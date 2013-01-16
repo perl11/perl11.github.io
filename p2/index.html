@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style type="text/css">@import 'doc.css';</style>
+<title>p2 on potion</title>
+</head><body><div id='central'>
+
+<body>
+  <h1 class="kana">ポーション</h1>
+  <h1>p2 on potion</h1>
+
+<pre style="background: #AE6">
+         .ooo
+          'OOOo
+      ~ p ooOOOo 2 ~
+          .OOO
+           oO      %% a fast perl5
+             Oo
+            'O
+             `
+            (o)
+        ___/ /          
+       /`    \ 
+      /v^  `  ,
+     (...v/v^/
+      \../::/
+       \/::/ 
+</pre>
+
+p2 is a she. She will be a perl5 and possible perl6/nqp backend, based
+on why the luck stiff&#8217;s potion. See <span class="caps">README</span>
+why potion is exciting.
+
+<pre>
+parrot examples/benchmarks/fib.pir 28  1.746s
+perl   examples/benchmarks/fib.pl  28  0.439s
+potion examples/benchmarks/fib.pn  28  0.013s
+
+parrot examples/benchmarks/fib.pir 40  3m36.447s
+perl   examples/benchmarks/fib.pl  40  2m19.752s
+potion examples/benchmarks/fib.pn  40  0m3.512s
+</pre>
+
+Its exciting points for perl folks are:
+
+<ul>
+  <li>Should parse most of perl5, just some XS and B tricks not.<br />
+    Since the original perl5 testsuite is not usable for other<br />
+    implementations and compilers it needs to be adjusted. The perl6<br />
+    testsuite is in a better shape.</li>
+</ul>
+<ul>
+  <li>signatures, types, mixins, traits, fast native threads, coroutines for perl5.</li>
+</ul>
+<ul>
+  <li>Using most of Damian Conway&#8217;s p5i recommendations:<br />
+    i.e. classes are immutable and final by default.<br />
+    See <a href="http://web.archive.org/web/20040207072905/http://www.yetanother.org/damian/Perl5+i/">www.yetanother.org/damian/Perl5+i/</a></li>
+</ul>
+<ul>
+  <li>libp2 should be usable as a fast backend for nqp/perl6.</li>
+</ul>
+<ul>
+  <li>Native and fast calling convention, no XS stack args on the heap.<br />
+    XS is replaced by dlcall (dynamic ffi), and/or shared libraries with<br />
+    normal function calls into the vm.</li>
+</ul>
+<ul>
+  <li>int, str, num are objects, you can optionally type all args and lexical variables.<br />
+    In fact everything is an object as in parrot, even the compiler, the parser, the vm.</li>
+</ul>
+<ul>
+  <li>Sized arrays are non-autovivifying and initialized with undef, resp. if typed 0, 0.0, &quot;&quot;.<br />
+<pre>
+     my $a[3]; print $a[3];    =&gt; compile-time error: array out of bounds
+     my int $i[3]; print $a[2] =&gt; 0
+     my num $n[3]; print $n[2] =&gt; 0.0
+     my str $s[3]; print $a[2] =&gt; &quot;&quot;
+</pre>
+</ul>
+<ul>
+	<li>A new pragma &#8220;no magic&#8221; applies to all visible objects in scope.</li>
+<pre>
+     {
+       no magic;
+       use Config;
+       print $Config{&#8217;ccflags&#8217;};
+     }
+     =&gt; compile-time error: Invalid use of tie with no magic
+</pre>
+
+use
+<pre>
+     {
+       no magic;
+       use Config;
+       print $Config::Config{&#8217;ccflags&#8217;};
+     }
+</pre>
+instead.
+
+</ul>
+<ul>
+  <li>p6-like meta-objmodel: :multi, type-optimizer. Like Moose, just better and much faster. 
+<i>(800x as first rough estimation)</i></li>
+
+</ul>
+<ul>
+  <li>smartmatch works because all data are typed objects.</li>
+</ul>
+
+<div id="potion"><img src="potion-1.png" /></div>
+
+<ul>
+  <li>Just-in-time compilation for x86, x86-64 and ppc done.</li>
+</ul>
+<ul>
+  <li>Intermediate bytecode format and VM. Load and dump code.  Decent<br />
+    speed and cross-architecture. Heavily based on <a href="http://nekovm.org/lua">Lua&#8217;s VM</a>.</li>
+</ul>
+<ul>
+  <li>A multi-threaded generational GC, based on Stefan Seifert's <br />
+    work on <a href="http://perl6advent.wordpress.com/2012/12/11/day-11-parrot-threads/">parrot threads</a>.
+    The compiler will add hooks for objects<br />
+    leaving scope and add <span class="caps">DESTROY</span> method calls if they are<br />
+    visible at compile-time. Run-time created <span class="caps">DESTROY</span> method<br />
+    will not be automatically called.</li>
+
+  <li>The current potion generational GC is based on Basile Starynkevitch&#8217;s<br />
+    work on <a href="http://starynkevitch.net/Basile/qishintro.html">Qish</a>.</li>
+</ul>
+<ul>
+  <li>Bootstrapped <a href="http://piumarta.com/software/id-objmodel/">&#8220;id&#8221; object model</a>, based on Ian Piumarta&#8217;s soda<br />
+    languages.  This means everything in the language, including<br />
+    object allocation and interpreter state are part of the object<br />
+    model.  (See <span class="caps"><a href="https://github.com/perl11/potion/blob/p2/COPYING">COPYING</a></span> for citations.)</li>
+</ul>
+<ul>
+  <li>Interpreter is thread-safe and reentrant.  I hope this will<br />
+    facilitate coroutines, parallel interpreters and sandboxing.</li>
+</ul>
+<ul>
+  <li>Small. Under 10kloc. Right now we&#8217;re like 6,000 or<br />
+    something. Install sloccount and run: make sloc.<br />
+    No configure, just make.</li>
+</ul>
+<ul>
+  <li>Reified <span class="caps">AST</span> and bytecode structures. This is very important to<br />
+    me. By giving access to the parser and compiler, it allows people<br />
+    to target other platforms, write code analysis tools and even<br />
+    fully bootstrapped VMs. I&#8217;m not as concerned about the Potion VM<br />
+    being fully bootstrapped, especially as it is tied into the <span class="caps">JIT</span><br />
+    so closely.</li>
+</ul>
+<ul>
+  <li>Memory-efficient classes. Stored like C structs. (Although the<br />
+    method lookup table can be used like a hash for storing arbitrary<br />
+    data.)</li>
+</ul>
+<ul>
+  <li>The <span class="caps">JIT</span> is also used to speed up some other bottlenecks. For<br />
+    example, instance variable and method lookup tables are compiled<br />
+    into machine code.</li>
+</ul>
+
+However, some warnings:
+<ul>
+  <li>Strings are immutable (like Lua and parrot) and byte arrays are used for I/O<br />
+    buffers. Strings are utf-8 only, de/encoding done in library functions.</li>
+</ul>
+<ul>
+  <li>No arbitrary precision for numbers yet. (automatic promotion to bigint, bignum, bigrat)</li>
+</ul>
+<ul>
+  <li>No error handling yet.</li>
+</ul>
+<ul>
+  <li>No signal handling yet.</li>
+</ul>
+
+  <h1>thankyous</h1>
+
+<p>why the lucky stiff left the ruby community. potion was his last
+public project. It&#8217;s a work of art and mastership. I could not
+think of anything better. I think it is better than go, if potion
+would have had dlcall, autothreads and channels, arbitrary precision
+numbers and exception handling.<p>
+
+Rob Pike for <a href="http://www.golang.org/">go</a>, and the parrot community for <a href="http://www.parrot.org/">parrot</a>.<p>
+<a href="http://cpanel.net/">cPanel</a> for letting me do what I 
+consider important. Not just 10% of my time as with Google.<p>
+
+Larry Wall for perl5. We miss his leadership and technical excellence.
+Without him nothing got done, and *if* something was done it was wrong.
+Besides defined-or, which left Tom Christiansen behind.<p>
+
+why the lucky stiff thanks:<p>
+
+I am gravely indebted to Basile Starynkevitch, who fielded my
+questions about his garbage collector. I favor French hackers
+to an extreme (Xavier Leroy, Nicolas Cannasse, Guy Decoux,
+Mathieu Bochard to name only a portion of those I admire) and
+am very glad to represent their influence in Potion&#8217;s garbage
+collector.<p>
+
+Matz, for answering my questions about conservative GC and
+for encouraging me so much. Potion&#8217;s stack scanning code and
+some of the object model come from Ruby.<p>
+
+Steve Dekorte for the <a href="http://iolanguage.org/">Io</a> language, <a href="http://dekorte.com/projects/opensource/libgarbagecollector/">libgarbagecollector</a> and
+<a href="http://dekorte.com/projects/opensource/libcoroutine/">libcoroutine</a> &#8212; I referred frequently to all of them in sorting out what I wanted.<p>
+
+Of course, Mauricio Fernandez for his inspiring programming
+journal housed at <a href="http://eigenclass.org/R2/">eigenclass.org/R2/</a> and for works
+derived throughout the course of it &#8212; extprot most of all.
+Many of my thoughts about language internals (object repr, GC, etc.) are informed by him.<p>
+
+Ian Piumarta for <a href="http://piumarta.com/software/peg/">peg/leg</a> and <a href="http://piumarta.com/software/id-objmodel/">id-objmodel</a>. I use a re-entrant custom version of peg, but the original library is sheer minimalist parsing amazement.<p>
+
+Final appreciations to Jonathan Wright and William Morgan
+who pitched in, back in the wee hours of Potion&#8217;s history.
+Thanks.<p>
+
+<h1>license</h2>
+See <span class="caps"><a href="https://github.com/perl11/potion/blob/p2/COPYING">COPYING</a></span> for legal information.<br/>
+potion is an <span class="caps">MIT</span> license, which lets you do anything you want with this.<br/>
+perl5 code is <span class="caps">ARTISTIC</span> and <span class="caps">GPL</span> dual licensed,<br/>
+p2, parrot and perl6 code is <span class="caps">ARTISTIC 2</span> licensed.<br/>
+
+</body>
+</html>
