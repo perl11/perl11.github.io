@@ -29,9 +29,11 @@
        \/::/ 
 </pre>
 
-p2 is a she. She will be a perl5 and possible perl6/nqp backend, based
-on why the luck stiff&#8217;s <a href="potion.html">potion</a> compiler,
-parser and vm technology.
+p2 is a she. She will be a perl5 frontend and possible perl6/nqp backend,
+based on why the luck stiff&#8217;s <a href="potion.html">potion</a> compiler
+and vm technology and a new extensible parser. Optionally perl6 might be parsed
+natively. (<tt>use v6;</tt>)<br />
+
 See the potion <span class="caps"><a href="https://github.com/perl11/potion/blob/p2/README">
 README<a/></span> why potion is exciting.
 
@@ -45,6 +47,9 @@ perl   examples/benchmarks/fib.pl  40  2m19.752s
 potion examples/benchmarks/fib.pn  40  0m3.512s
 </pre>
 
+java/jvm is somewhere between perl and potion. It has slow startup, fast calls and
+limited OO and dynamic type support.<br />
+
 Its exciting points for perl folks are:
 
 <ul>
@@ -55,8 +60,8 @@ Its exciting points for perl folks are:
     testsuite is in a better shape.</li>
 </ul>
 <ul>
-  <li>signatures, types, mixins, traits, fast native threads,
-    coroutines, macros for perl5.</li>
+  <li>signatures, types, mop, mixins, traits, fast native threads,
+    coroutines, perl6-like grammars (peg parser), macros for perl5.</li>
 </ul>
 <ul>
   <li>Using most of Damian Conway&#8217;s p5i recommendations:<br />
@@ -119,10 +124,19 @@ instead.
 on the planned perl5 language extensions,
 activated via the <tt>use p2;</tt> pragma.</p>
 
+<p>See <a href="glossary.html">glossary</a> for an overview
+on the potion/lua derived terminology.</p>
+
+<p>See <a href="design-decisions.html">design-decisions</a> why
+the code looks like asis, and what we want.</p>
+
+<hr>
+
 <div id="potion"><img src="potion-1.png" /></div>
 
 <ul>
-  <li>Just-in-time compilation for x86, x86-64 and ppc done.</li>
+  <li>Just-in-time compilation for x86, x86-64 and ppc done, missing is callcc for ppc
+    and the arm jit.</li>
 </ul>
 <ul>
   <li>Intermediate bytecode format and VM. Load and dump code.  Decent<br />
@@ -141,16 +155,18 @@ activated via the <tt>use p2;</tt> pragma.</p>
 </ul>
 <ul>
   <li>Bootstrapped <a href="http://piumarta.com/software/id-objmodel/">&#8220;id&#8221; object model</a>, based on Ian Piumarta&#8217;s <a href="http://piumarta.com/software/cola/">soda</a><br />
-    languages.  This means everything in the language, including<br />
+    languages.  This means almost everything in the language, including<br />
     object allocation and interpreter state are part of the object<br />
-    model.  (See <span class="caps"><a href="https://github.com/perl11/potion/blob/p2/COPYING">COPYING</a></span> for citations.)</li>
+    model.  (See <span class="caps"><a href="https://github.com/perl11/potion/blob/p2/COPYING">COPYING</a></span> for citations.)
+    The parser not yet, but this is planned.
+   </li>
 </ul>
 <ul>
-  <li>Interpreter is thread-safe and reentrant.  I hope this will<br />
+  <li>Interpreter is thread-safe and reentrant.  This will<br />
     facilitate coroutines, parallel interpreters and sandboxing.</li>
 </ul>
 <ul>
-  <li>Small. Under 10kloc. Right now we&#8217;re like 6,000 or<br />
+  <li>Lean, small, fast. Under 10kloc. Right now we&#8217;re like 6,000 or<br />
     something. Install sloccount and run: make sloc.<br />
     No configure, just make.</li>
 </ul>
@@ -163,9 +179,9 @@ activated via the <tt>use p2;</tt> pragma.</p>
     so closely.</li>
 </ul>
 <ul>
-  <li>Memory-efficient classes. Stored like C structs. (Although the<br />
+  <li>Memory-efficient classes. Stored like C structs. Although the<br />
     method lookup table can be used like a hash for storing arbitrary<br />
-    data.)</li>
+    data.</li>
 </ul>
 <ul>
   <li>The <span class="caps">JIT</span> is also used to speed up some other bottlenecks. For<br />
@@ -179,13 +195,14 @@ However, some warnings:
     buffers. Strings are utf-8 only, de/encoding done in library functions.</li>
 </ul>
 <ul>
-  <li>No arbitrary precision for numbers yet. (automatic promotion to bigint, bignum, bigrat)</li>
+  <li>No arbitrary precision for numbers yet. Limited int range, no automatic int boxing nor
+  promotion to bigint, bignum.</li>
 </ul>
 <ul>
-  <li>No error handling yet.</li>
+  <li>Only preliminary error handling yet.</li>
 </ul>
 <ul>
-  <li>No signal handling yet.</li>
+  <li>No signal handling yet. (longjmp based)</li>
 </ul>
 
   <h1>development</h1>
@@ -197,7 +214,7 @@ However, some warnings:
   irc://irc.perl.org/#perl11</li>
   <li>the plan is to have ~50% of perl5 parsed by summer 2013, add some
   basic libraries, and finish it by summer 2014.</li>
- <li><img src="https://travis-ci.org/perl11/potion.png?branch=master,p2"></li>
+ <li>Travis <a href="https://travis-ci.org/perl11/potion/"><img src="https://travis-ci.org/perl11/potion.png?branch=master,p2"></li><a>
 </ul>
 
  <div id='commits'></div>
@@ -231,7 +248,9 @@ Matz, for answering my questions about conservative GC and
 for encouraging me so much. Potion&#8217;s stack scanning code and
 some of the object model come from Ruby.<p>
 
-Steve Dekorte for the <a href="http://iolanguage.org/">Io</a> language, <a href="http://dekorte.com/projects/opensource/libgarbagecollector/">libgarbagecollector</a> and
+Steve Dekorte for the <a href="http://iolanguage.org/">Io</a>
+language, <a href="http://dekorte.com/projects/opensource/libgarbagecollector/">libgarbagecollector</a>
+and
 <a href="http://dekorte.com/projects/opensource/libcoroutine/">libcoroutine</a> &#8212; I referred frequently to all of them in sorting out what I wanted.<p>
 
 Of course, Mauricio Fernandez for his inspiring programming
@@ -239,7 +258,11 @@ journal housed at <a href="http://eigenclass.org/R2/">eigenclass.org/R2/</a> and
 derived throughout the course of it &#8212; extprot most of all.
 Many of my thoughts about language internals (object repr, GC, etc.) are informed by him.<p>
 
-Ian Piumarta for <a href="http://piumarta.com/software/peg/">peg/leg</a> and <a href="http://piumarta.com/software/id-objmodel/">id-objmodel</a>. I use a re-entrant custom version of peg, but the original library is sheer minimalist parsing amazement.<p>
+Ian Piumarta
+for <a href="http://piumarta.com/software/peg/">peg/leg</a>
+and <a href="http://piumarta.com/software/id-objmodel/">id-objmodel</a>. I
+use a re-entrant custom version of peg, but the original library is
+sheer minimalist parsing amazement.<p>
 
 Final appreciations to Jonathan Wright and William Morgan
 who pitched in, back in the wee hours of Potion&#8217;s history.
