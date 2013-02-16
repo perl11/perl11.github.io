@@ -4,7 +4,7 @@
 <style type="text/css">@import 'doc.css';</style>
 <title>Perl5 on p2 - Language backwards-compatible Extensions</title>
 </head><body>
-<pre style="background: #AE6;width:25em">
+<pre style="background:#AE6;width:25em;float:right;padding-right:2em">
          .ooo
           'OOOo
       ~ p ooOOOo 2 ~
@@ -27,15 +27,14 @@
 <p>Problem will arise with XS code, since the VM is different, and not<br />
 all XS <span class="caps">API</span> functions can be supported.  It should be much easier to<br />
 use XS-like functionality with the new <span class="caps">FFI</span>, or by using extension<br />
-libraries with native calls. See <code>lib/readline</code>. So we will loose 40% of<br />
-<span class="caps">CPAN</span> code, but will win on performance, expressibility and<br />
+libraries with native calls. See <code>lib/readline</code>. So we will loose<br />
+40% of <span class="caps">CPAN</span> code, but will win on performance, expressibility and<br />
 compile-time error checking when binding libs.</p>
 <h2>Perl5 Language Extensions</h2>
 <h3>All data are objects, all declarations can be optionally typed</h3>
-	<p>I.e. all core types are implictly blessed into the int, str, num
-classes and mixins thereof.
+<p>I.e. all core types are implictly blessed into the int, str, num<br />
+classes and mixins thereof.<br />
 See <a href="https://github.com/rurban/perl/blob/d1c07ab82fd3acf17803a9f7dbd8e3ab3c5d3903/pddtypes.pod">pddtypes.pod</a> and <a href="https://github.com/rurban/perl/blob/05514649c35a695734bc8e02911e7efef6ee4dde/pod/perltypes.pod">perltypes.pod</a> for more.</p>
-
 <pre><code>
 my int $i;
 my const str $s = "string";
@@ -44,18 +43,15 @@ my const int @a = (0..9);
 </code></pre>
 <h3>const declarations for data, @ISA, classes and functions/methods</h3>
 <p>method calls should be inlinable and compile-time optimizable.</p>
-
 <h3>sized arrays</h3>
 <pre><code>
-    my $a[10];
-    my int $a[10];
+	my $a[10];
+	my int $a[10];
 </code></pre>
 <p>Sized arrays are are non-autovivifying and initialized with undef,<br />
-resp. if typed 0, 0.0 or &quot;&quot;. This speeds up array access by factor 2-4.<br />
+resp. if typed 0, 0.0, or &quot;&quot;. This speeds up array access by factor 2-4.<br />
 See <a href="http://blogs.perl.org/users/rurban/2012/10/optimizing-compiler-benchmarks-part-3.html">optimizing compiler benchmarks part 3</a></p>
-
 <h3>no magic</h3>
-
 <p>A new pragma &#8220;no magic&#8221; applies to all visible objects in scope.</p>
 <pre><code>
      {
@@ -74,9 +70,7 @@ See <a href="http://blogs.perl.org/users/rurban/2012/10/optimizing-compiler-benc
      }
 </code></pre> instead.</p>
 <p>See <a href="http://blogs.perl.org/users/rurban/2012/10/optimizing-compiler-benchmarks-part-3.html">optimizing compiler benchmarks part 3</a></p>
-
 <h3>match operator</h3>
-
 <p>The simple smartmatch is already taken and will just work, because all<br />
 data is dynamically typed. smartmatch will use a user-defined <code>MATCH</code> method<br />
 for objects. given/when is too limited and a bit broken.<br />
@@ -90,24 +84,23 @@ See <a href="http://magpie.stuffwithstuff.com/patterns.html">magpie patterns</a>
        else: say "no match";
      }
 </code></pre>
-
 <p><code>is Int</code> is a new Type Pattern, which matches a type or subtype. <br />
 It calls the typeof() function.<br />
 <code>is</code> is a new keyword to match types in patterns.<br />
 $_ in patterns is always true and returns the given scalar value.<br />
 Use @_ to match multiple expressions, the &#8220;rest&#8221;.</p>
-
 <h3>flexible and efficient parser</h3>
-
-<p>The current <a href="http://piumarta.com/software/peg/">leg</a> based p2 parser can handle complicated expressions and operator precedence much better than the simple recursive descent <span class="caps">LLAR</span> <code>yacc</code>
-parser in <code>perly.y</code>.  Problematic syntax can be avoided, like previously
-mandatory parenthesis. <code>if</code> or <code>while</code> boolean expressions don&#8217;t need parens.</p>
-
+<p>The current <a href="http://piumarta.com/software/peg/">leg</a> based p2 parser can handle complicated expressions and operator<br />
+precedence much better than the simple recursive descent <span class="caps">LLAR</span> <code>yacc</code><br />
+parser in <code>perly.y</code>.  Problematic syntax can be avoided, like previously<br />
+mandatory parenthesis. E.g. <code>if</code> or <code>while</code> boolean expressions don&#8217;t need<br />
+parens.</p>
 <pre><code>
-     if $s say "$s";
-     else say "else";
+     if $cmp {
+       if $s say "$s";
+       else say "else";
+     }
 </code></pre>
-
 <p><code>for</code> lists should not need parens, the expressions are evaluated in list<br />
 context.</p>
 <pre><code>
@@ -116,18 +109,16 @@ context.</p>
 
      const int[] sub get_list {(0..9)}
 
-     for my int $i get_list {
+     for my $i get_list() {
        say $i;
      }
 </code></pre>
-
 <p>The language should be extendable. Left or right assiocative keywords<br />
 should be easily added to the parser description, with statically<br />
 deterministic proper precedence rules. (run-time extendable<br />
 associativity only with Pratt or marpa.)</p>
 <p>The packrat parser based on <code>leg</code> is not quite as highly efficient and<br />
-dynamically extendable as a <a href="http://journal.stuffwithstuff.com/2011/02/13/extending-syntax-from-within-a-language/">Pratt top-down<br />
-parser</a><br />
+dynamically extendable as a <a href="http://journal.stuffwithstuff.com/2011/02/13/extending-syntax-from-within-a-language/">Pratt top-down parser</a><br />
 with special operator precedence rules in the parser table<br />
 declaration, but it does not backtrack as much as <code>yacc</code> in<br />
 expressions due to memoizing, and precedence is statically defined in<br />
@@ -142,9 +133,7 @@ So far <a href="http://jeffreykegler.github.com/Marpa-web-site/">marpa</a> seems
 to be the best dynamic parser library, there is a C library, extending<br />
 it at run-time should be achievable easily, and the parser algorithm<br />
 is pretty robust.</p>
-
 <p><strong>marketing blurbs</strong>: <em>p2 will be the first implementation of any non-<span class="caps">LISP</span> language with proper macro support.</em></p>
-
 <h3>macros</h3>
 <p>macros expose the power of the parser to the language, as in <span class="caps">LISP</span>.<br />
 They allow extending and simplifying the language.</p>
@@ -157,11 +146,11 @@ perl5, with a mix of compile-time and run-time expressions.</p>
 <p>e.g. <br />
 <pre><code>
   syntax-p5.g:
-    block = '{' s:lineseq '}' { $$ = PN_AST(BLOCK, s); }
+    block = '{' s:statements* '}' { $$ = PN_AST(BLOCK, s); }
 </code></pre><br />
 <pre><code>
-  macro ifdebug block {
-    if $DEBUG `block`;
+  macro ifdebug block 'ifdebug' {
+    if (DEBUG) `block`;
   }
 </code></pre></p>
 <p>A macro can use valid parser expressions, i.e. strings<br />
