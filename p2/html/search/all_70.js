@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['potion_20_2d_20_5fwhy_27s_20object_2d_20and_20mixin_2doriented_20_28traits_29_20language',['potion - _why&apos;s object- and mixin-oriented (traits) language',['../index.html',1,'']]],
   ['p2_2eh',['p2.h',['../d4/d32/p2_8h.html',1,'']]],
   ['p2_5feval',['p2_eval',['../d4/d32/p2_8h.html#af7934e42352cde99640d849e4f78cac5',1,'p2.h']]],
   ['p2_5ffunc',['P2_FUNC',['../d4/d32/p2_8h.html#a7b9443175f442b061a784f5f31415ee4',1,'p2.h']]],
@@ -12,6 +13,8 @@ var searchData=
   ['p2_5fversion',['P2_VERSION',['../d4/d32/p2_8h.html#aef7f38cb5441f06e94bf291454a6dbdc',1,'p2.h']]],
   ['p2_5fvmid',['P2_VMID',['../d4/d32/p2_8h.html#abd45f15af439040251d04deefb18bf39',1,'p2.h']]],
   ['parent',['parent',['../d1/dc2/struct_p_n_error.html#aea3eceefc2a11a727ff8c2ae15a9d149',1,'PNError::parent()'],['../d7/de2/struct_p_n_vtable.html#a5410f1a12faa02d1287ccc0c648d2888',1,'PNVtable::parent()']]],
+  ['parrot',['parrot',['../d8/dd0/_r_e_a_d_m_e_8p2.html#a8ea3cc45296a7575df2220a6143cd9cc',1,'README.p2']]],
+  ['parser',['parser',['../d8/dd0/_r_e_a_d_m_e_8p2.html#a763cd9afc36edffa8a813b231cd1f618',1,'README.p2']]],
   ['part',['part',['../dc/dc6/struct_p_n_source.html#abab813a4b0b9d512387b60bd0c884ee3',1,'PNSource']]],
   ['pass',['pass',['../de/db4/struct_p_n_memory.html#a24d576e63326af7021cff3799ec7a8ce',1,'PNMemory']]],
   ['path',['path',['../d5/d55/struct_p_n_file.html#ae2b8d3969a61ceeac2b295cb0f5466b0',1,'PNFile']]],
@@ -472,7 +475,7 @@ var searchData=
   ['potion_5frev',['POTION_REV',['../db/d16/config_8h.html#a8df8b7cd36a24a05e5c20f4c9353b062',1,'POTION_REV():&#160;config.h'],['../df/dfc/version_8h.html#a8df8b7cd36a24a05e5c20f4c9353b062',1,'POTION_REV():&#160;version.h']]],
   ['potion_5frun',['potion_run',['../d2/d47/compile_8c.html#ad969bf78a897dccdd9be4751c64345ac',1,'potion_run(Potion *P, PN code, int jit):&#160;compile.c'],['../dd/d07/potion_8h.html#af2cd330a0ac2756e085eb6bb37ce1536',1,'potion_run(Potion *, PN, int):&#160;compile.c']]],
   ['potion_5fsend',['potion_send',['../dd/d07/potion_8h.html#ad6793f3765f6d7470ba98dc4b1fabe35',1,'potion.h']]],
-  ['potion_5fsig',['POTION_SIG',['../dd/d07/potion_8h.html#a3565095a51028e56c9040b2361fdb41b',1,'POTION_SIG():&#160;potion.h'],['../dd/d07/potion_8h.html#a15b883c85b3f6c5efd82ac28b9c8ec19',1,'potion_sig(Potion *, char *):&#160;potion.h']]],
+  ['potion_5fsig',['potion_sig',['../dd/d07/potion_8h.html#a15b883c85b3f6c5efd82ac28b9c8ec19',1,'potion_sig(Potion *, char *):&#160;potion.h'],['../dd/d07/potion_8h.html#a3565095a51028e56c9040b2361fdb41b',1,'POTION_SIG():&#160;potion.h']]],
   ['potion_5fsig_5fcompile',['potion_sig_compile',['../d2/d47/compile_8c.html#a49bd200a6ff397a7e9eb0707fc1ac921',1,'compile.c']]],
   ['potion_5fsig_5ffind',['potion_sig_find',['../dd/d07/potion_8h.html#a6d348183e8456ad1731817e6c6925991',1,'potion.h']]],
   ['potion_5fsource',['potion_source',['../d8/d01/ast_8c.html#aa57cbc6f61d57fc3b7c73db1925a9899',1,'potion_source(Potion *P, u8 p, PN a, PN b, PN c):&#160;ast.c'],['../db/df0/ast_8h.html#a76c9c5accb84b6ac6cfa43a03f757464',1,'potion_source(Potion *, u8, PN, PN, PN):&#160;ast.c']]],

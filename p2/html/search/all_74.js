@@ -9,5 +9,7 @@ var searchData=
   ['tree',['tree',['../d6/d4e/struct_p_n_proto.html#adf7084aaf5b28632c8618ee8c772f2f0',1,'PNProto']]],
   ['twist',['TWIST',['../df/dac/mt19937ar_8c.html#a043b3c14d16fdf595c9743b72e86d521',1,'mt19937ar.c']]],
   ['type',['type',['../d7/de2/struct_p_n_vtable.html#a795110448196863141a9a159d486a323',1,'PNVtable']]],
-  ['type_5fbatch_5fsize',['TYPE_BATCH_SIZE',['../db/dde/internal_8h.html#a8c88ac0c97ff6e9bf201b22303f7f73a',1,'internal.h']]]
+  ['type_5fbatch_5fsize',['TYPE_BATCH_SIZE',['../db/dde/internal_8h.html#a8c88ac0c97ff6e9bf201b22303f7f73a',1,'internal.h']]],
+  ['typed',['typed',['../d8/dd0/_r_e_a_d_m_e_8p2.html#ae601c20faac4db56ca209baaf7bfd70a',1,'README.p2']]],
+  ['types',['types',['../d8/dd0/_r_e_a_d_m_e_8p2.html#acadb8a9dbdffc4452d546bf392f8a0ec',1,'README.p2']]]
 ];
