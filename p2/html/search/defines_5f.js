@@ -10,6 +10,7 @@ var searchData=
   ['_5f_5fkh_5fset_5fisdel_5ffalse',['__kh_set_isdel_false',['../d2/deb/khash_8h.html#aceb262af03c522f72e53a897b844c744',1,'khash.h']]],
   ['_5f_5fkh_5fset_5fisdel_5ftrue',['__kh_set_isdel_true',['../d2/deb/khash_8h.html#a25d55aa788b99f2cc22b30c4e8d9533a',1,'khash.h']]],
   ['_5f_5fkh_5fset_5fisempty_5ffalse',['__kh_set_isempty_false',['../d2/deb/khash_8h.html#ac1165f99cb52feb5befacca959f84e06',1,'khash.h']]],
+  ['_5f_5fsanitize_5faddress_5f_5f',['__SANITIZE_ADDRESS__',['../db/d16/config_8h.html#a37edb07c3b51ebe2e883414d4729e8cd',1,'config.h']]],
   ['_5f_5fwordsize',['__WORDSIZE',['../dd/d07/potion_8h.html#aeea7ec6e47ecea02cc6812b268034b28',1,'potion.h']]],
   ['_5fstr',['_STR',['../dd/d07/potion_8h.html#a192d127e3d5478c72fddbb8d3d7d8f8a',1,'potion.h']]],
   ['_5fxstr',['_XSTR',['../dd/d07/potion_8h.html#ab5ed98809200890a8125641ecc126351',1,'potion.h']]]
