@@ -1,5 +1,9 @@
 var struct_p_n_proto =
 [
+    [ "potion_proto_tree", "d6/d4e/struct_p_n_proto.html#abc00a093d237ac8bfc310776d8cc3ec1", null ],
+    [ "potion_proto_call", "d6/d4e/struct_p_n_proto.html#a0807ac24495f8213b0a630523f12602b", null ],
+    [ "potion_proto_string", "d6/d4e/struct_p_n_proto.html#a8a7b15c16df8eb0cf4abe9a3e82a65f8", null ],
+    [ "potion_proto_dumpbc", "d6/d4e/struct_p_n_proto.html#ac4183f24e29bb870443b6b21922ed359", null ],
     [ "PN_OBJECT_HEADER", "d6/d4e/struct_p_n_proto.html#a6c65187b2ee7c1c4754b613552fa688c", null ],
     [ "source", "d6/d4e/struct_p_n_proto.html#a0391ab1d00b595ef4b6fe27c89b4331e", null ],
     [ "sig", "d6/d4e/struct_p_n_proto.html#afd8e9140ab8077c52ba010527bf2b72c", null ],
