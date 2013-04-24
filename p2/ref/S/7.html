@@ -1,140 +1,35 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>tools/protothread/protothread_lock.c</title>
+<title>test/classes/def.pn</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/895.html'>tools</a>/<a href='../files/898.html'>protothread</a>/protothread_lock.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L13'>[^]</a><a href='#L102'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
-<hr />
-<h2 class='header'>DEFINITIONS</h2>
-This source file includes following definitions.
-<ol>
-<li><a href='#L13' title='Defined at 13.'>pt_lock_init</a></li>
-<li><a href='#L21' title='Defined at 21.'>pt_lock_update</a></li>
-<li><a href='#L65' title='Defined at 65.'>pt_lock_acquire_read_f</a></li>
-<li><a href='#L79' title='Defined at 79.'>pt_lock_release_read</a></li>
-<li><a href='#L88' title='Defined at 88.'>pt_lock_acquire_write_f</a></li>
-<li><a href='#L102' title='Defined at 102.'>pt_lock_release_write</a></li>
-</ol>
+<!-- beginning of fixed guide -->
+<div id='guide'><ul>
+<li><a href='#TOP'><img class='icon' src='../icons/first.png' alt='[^]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/last.png' alt='[v]' /></a></li>
+<li><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a></li>
+<li><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a></li>
+<li><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a></li>
+<li class='standout'><span><a href='../files/183.html'>test</a>/<a href='../files/185.html'>classes</a>/def.pn</span></li>
+</ul></div>
+<!-- end of fixed guide -->
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/183.html'>test</a>/<a href='../files/185.html'>classes</a>/def.pn</h2>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><img class='icon' src='../icons/n_top.png' alt='[top]' /><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+1 test/classes/def.pn]</em> */</em>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>/**************************************************************/</em>
-<a id='L2' name='L2'></a><em class='comment'>/* PROTOTHREAD_LOCK.C */</em>
-<a id='L3' name='L3'></a><em class='comment'>/* Copyright (c) 2008, Larry Ruane, LeftHand Networks Inc. */</em>
-<a id='L4' name='L4'></a><em class='comment'>/* See license.txt */</em>
-<a id='L5' name='L5'></a><em class='comment'>/* Reader-writer (shared-exclusive) locks */</em>
-<a id='L6' name='L6'></a><em class='comment'>/**************************************************************/</em>
-<a id='L7' name='L7'></a><em class='sharp'>#include</em> &lt;string.h&gt;
-<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;assert.h&gt;
-<a id='L9' name='L9'></a>
-<a id='L10' name='L10'></a><em class='sharp'>#include</em> "<a href='9.html'>protothread_lock.h</a>"
-<a id='L11' name='L11'></a>
-<a id='L12' name='L12'></a><strong class='reserved'>void</strong>
-<a id='L13' name='L13'></a><a href='../R/995.html' title='Multiple referred from 2 places.'>pt_lock_init</a>(<a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L14' name='L14'></a><em class='brace'>{</em>
-<a id='L15' name='L15'></a>    memset(lock, 0, <strong class='reserved'>sizeof</strong>(*lock)) ;
-<a id='L16' name='L16'></a><em class='brace'>}</em>
-<a id='L17' name='L17'></a>
-<a id='L18' name='L18'></a><em class='comment'>/* start as many requests as possible</em>
-<a id='L19' name='L19'></a><em class='comment'> */</em>
-<a id='L20' name='L20'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong>
-<a id='L21' name='L21'></a><a href='../R/1000.html' title='Multiple referred from 4 places.'>pt_lock_update</a>(<a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L22' name='L22'></a><em class='brace'>{</em>
-<a id='L23' name='L23'></a>    <a href='../S/9.html#L23' title='Defined at 23 in tools/protothread/protothread_lock.h.'>pt_lock_env_t</a> *pt_lock_env ;
-<a id='L24' name='L24'></a>
-<a id='L25' name='L25'></a>    <strong class='reserved'>if</strong> (lock-&gt;waiting == NULL) <em class='brace'>{</em>
-<a id='L26' name='L26'></a>        <em class='comment'>/* nothing to do */</em>
-<a id='L27' name='L27'></a>        <strong class='reserved'>return</strong> ;
-<a id='L28' name='L28'></a>    <em class='brace'>}</em>
-<a id='L29' name='L29'></a>
-<a id='L30' name='L30'></a>    pt_lock_env = lock-&gt;waiting ;
-<a id='L31' name='L31'></a>    <strong class='reserved'>switch</strong> (pt_lock_env-&gt;state) <em class='brace'>{</em>
-<a id='L32' name='L32'></a>    <strong class='reserved'>case</strong> <a href='../S/9.html#L12' title='Defined at 12 in tools/protothread/protothread_lock.h.'>PT_LOCK_READ</a>:
-<a id='L33' name='L33'></a>        <strong class='reserved'>if</strong> (lock-&gt;nwriters) <em class='brace'>{</em>
-<a id='L34' name='L34'></a>            assert(lock-&gt;nwriters == 1) ;
-<a id='L35' name='L35'></a>            <strong class='reserved'>return</strong> ;
-<a id='L36' name='L36'></a>        <em class='brace'>}</em>
-<a id='L37' name='L37'></a>        <em class='comment'>/* start the first or additional readers */</em>
-<a id='L38' name='L38'></a>        <strong class='reserved'>while</strong> (lock-&gt;waiting) <em class='brace'>{</em>
-<a id='L39' name='L39'></a>            pt_lock_env = lock-&gt;waiting ;
-<a id='L40' name='L40'></a>            <strong class='reserved'>if</strong> (pt_lock_env-&gt;state != <a href='../S/9.html#L12' title='Defined at 12 in tools/protothread/protothread_lock.h.'>PT_LOCK_READ</a>) <em class='brace'>{</em>
-<a id='L41' name='L41'></a>                <strong class='reserved'>break</strong> ;
-<a id='L42' name='L42'></a>            <em class='brace'>}</em>
-<a id='L43' name='L43'></a>            lock-&gt;nreaders ++ ;
-<a id='L44' name='L44'></a>            lock-&gt;waiting = pt_lock_env-&gt;next ;
-<a id='L45' name='L45'></a>            pt_lock_env-&gt;state = <a href='../S/9.html#L14' title='Defined at 14 in tools/protothread/protothread_lock.h.'>PT_LOCK_READING</a> ;
-<a id='L46' name='L46'></a>            <a href='../S/11.html#L216' title='Defined at 216 in tools/protothread/protothread.c.'>pt_broadcast</a>(<a href='../S/6.html#L227' title='Defined at 227 in tools/protothread/protothread.h.'>pt_get_pt</a>(pt_lock_env), pt_lock_env) ;
-<a id='L47' name='L47'></a>        <em class='brace'>}</em>
-<a id='L48' name='L48'></a>        <strong class='reserved'>break</strong> ;
-<a id='L49' name='L49'></a>    <strong class='reserved'>case</strong> <a href='../S/9.html#L13' title='Defined at 13 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITE</a>:
-<a id='L50' name='L50'></a>        <strong class='reserved'>if</strong> (lock-&gt;nreaders || lock-&gt;nwriters) <em class='brace'>{</em>
-<a id='L51' name='L51'></a>            <strong class='reserved'>break</strong> ;
-<a id='L52' name='L52'></a>        <em class='brace'>}</em>
-<a id='L53' name='L53'></a>        lock-&gt;nwriters ++ ;
-<a id='L54' name='L54'></a>        lock-&gt;waiting = pt_lock_env-&gt;next ;
-<a id='L55' name='L55'></a>        pt_lock_env-&gt;state = <a href='../S/9.html#L15' title='Defined at 15 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITING</a> ;
-<a id='L56' name='L56'></a>        <a href='../S/11.html#L216' title='Defined at 216 in tools/protothread/protothread.c.'>pt_broadcast</a>(<a href='../S/6.html#L227' title='Defined at 227 in tools/protothread/protothread.h.'>pt_get_pt</a>(pt_lock_env), pt_lock_env) ;
-<a id='L57' name='L57'></a>        <strong class='reserved'>break</strong> ;
-<a id='L58' name='L58'></a>    <strong class='reserved'>case</strong> <a href='../S/9.html#L14' title='Defined at 14 in tools/protothread/protothread_lock.h.'>PT_LOCK_READING</a>:
-<a id='L59' name='L59'></a>    <strong class='reserved'>case</strong> <a href='../S/9.html#L15' title='Defined at 15 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITING</a>:
-<a id='L60' name='L60'></a>        <em class='comment'>/* this request is already active! */</em>
-<a id='L61' name='L61'></a>        assert(0) ;
-<a id='L62' name='L62'></a>    <em class='brace'>}</em>
-<a id='L63' name='L63'></a><em class='brace'>}</em>
-<a id='L64' name='L64'></a>
-<a id='L65' name='L65'></a><a href='../S/6.html#L81' title='Defined at 81 in tools/protothread/protothread.h.'>pt_t</a> <a href='../R/991.html' title='Multiple referred from 2 places.'>pt_lock_acquire_read_f</a>(<a href='../S/9.html#L23' title='Defined at 23 in tools/protothread/protothread_lock.h.'>pt_lock_env_t</a> *<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L66' name='L66'></a><em class='brace'>{</em>
-<a id='L67' name='L67'></a>    <a href='../S/6.html#L133' title='Defined at 133 in tools/protothread/protothread.h.'>pt_resume</a>(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>) ;
-<a id='L68' name='L68'></a>    <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;next = lock-&gt;waiting ;
-<a id='L69' name='L69'></a>    lock-&gt;waiting = <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a> ;
-<a id='L70' name='L70'></a>    <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state = <a href='../S/9.html#L12' title='Defined at 12 in tools/protothread/protothread_lock.h.'>PT_LOCK_READ</a> ;
-<a id='L71' name='L71'></a>    <a href='../S/7.html#L21' title='Defined at 21 in tools/protothread/protothread_lock.c.'>pt_lock_update</a>(lock) ;
-<a id='L72' name='L72'></a>    <strong class='reserved'>while</strong> (<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L12' title='Defined at 12 in tools/protothread/protothread_lock.h.'>PT_LOCK_READ</a>) <em class='brace'>{</em>
-<a id='L73' name='L73'></a>        <a href='../S/6.html#L177' title='Defined at 177 in tools/protothread/protothread.h.'>pt_wait</a>(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>) ;
-<a id='L74' name='L74'></a>    <em class='brace'>}</em>
-<a id='L75' name='L75'></a>    assert(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L14' title='Defined at 14 in tools/protothread/protothread_lock.h.'>PT_LOCK_READING</a>) ;
-<a id='L76' name='L76'></a>    <strong class='reserved'>return</strong> <a href='../S/6.html#L98' title='Defined at 98 in tools/protothread/protothread.h.'>PT_DONE</a> ;
-<a id='L77' name='L77'></a><em class='brace'>}</em>
-<a id='L78' name='L78'></a>
-<a id='L79' name='L79'></a><strong class='reserved'>void</strong> <a href='../R/996.html' title='Multiple referred from 2 places.'>pt_lock_release_read</a>(<a href='../S/9.html#L23' title='Defined at 23 in tools/protothread/protothread_lock.h.'>pt_lock_env_t</a> *<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L80' name='L80'></a><em class='brace'>{</em>
-<a id='L81' name='L81'></a>    assert(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L14' title='Defined at 14 in tools/protothread/protothread_lock.h.'>PT_LOCK_READING</a>) ;
-<a id='L82' name='L82'></a>    assert(!lock-&gt;nwriters) ;
-<a id='L83' name='L83'></a>    assert(lock-&gt;nreaders) ;
-<a id='L84' name='L84'></a>    lock-&gt;nreaders -- ;
-<a id='L85' name='L85'></a>    <a href='../S/7.html#L21' title='Defined at 21 in tools/protothread/protothread_lock.c.'>pt_lock_update</a>(lock) ;
-<a id='L86' name='L86'></a><em class='brace'>}</em>
-<a id='L87' name='L87'></a>
-<a id='L88' name='L88'></a><a href='../S/6.html#L81' title='Defined at 81 in tools/protothread/protothread.h.'>pt_t</a> <a href='../R/993.html' title='Multiple referred from 2 places.'>pt_lock_acquire_write_f</a>(<a href='../S/9.html#L23' title='Defined at 23 in tools/protothread/protothread_lock.h.'>pt_lock_env_t</a> *<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L89' name='L89'></a><em class='brace'>{</em>
-<a id='L90' name='L90'></a>    <a href='../S/6.html#L133' title='Defined at 133 in tools/protothread/protothread.h.'>pt_resume</a>(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>) ;
-<a id='L91' name='L91'></a>    <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;next = lock-&gt;waiting ;
-<a id='L92' name='L92'></a>    lock-&gt;waiting = <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a> ;
-<a id='L93' name='L93'></a>    <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state = <a href='../S/9.html#L13' title='Defined at 13 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITE</a> ;
-<a id='L94' name='L94'></a>    <a href='../S/7.html#L21' title='Defined at 21 in tools/protothread/protothread_lock.c.'>pt_lock_update</a>(lock) ;
-<a id='L95' name='L95'></a>    <strong class='reserved'>while</strong> (<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L13' title='Defined at 13 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITE</a>) <em class='brace'>{</em>
-<a id='L96' name='L96'></a>        <a href='../S/6.html#L177' title='Defined at 177 in tools/protothread/protothread.h.'>pt_wait</a>(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>) ;
-<a id='L97' name='L97'></a>    <em class='brace'>}</em>
-<a id='L98' name='L98'></a>    assert(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L15' title='Defined at 15 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITING</a>) ;
-<a id='L99' name='L99'></a>    <strong class='reserved'>return</strong> <a href='../S/6.html#L98' title='Defined at 98 in tools/protothread/protothread.h.'>PT_DONE</a> ;
-<a id='L100' name='L100'></a><em class='brace'>}</em>
-<a id='L101' name='L101'></a>
-<a id='L102' name='L102'></a><strong class='reserved'>void</strong> <a href='../R/997.html' title='Multiple referred from 2 places.'>pt_lock_release_write</a>(<a href='../S/9.html#L23' title='Defined at 23 in tools/protothread/protothread_lock.h.'>pt_lock_env_t</a> *<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>, <a href='../S/9.html#L30' title='Defined at 30 in tools/protothread/protothread_lock.h.'>pt_lock_t</a> *lock)
-<a id='L103' name='L103'></a><em class='brace'>{</em>
-<a id='L104' name='L104'></a>    assert(<a href='../D/609.html' title='Multiple defined in 64 places.'>c</a>-&gt;state == <a href='../S/9.html#L15' title='Defined at 15 in tools/protothread/protothread_lock.h.'>PT_LOCK_WRITING</a>) ;
-<a id='L105' name='L105'></a>    assert(!lock-&gt;nreaders) ;
-<a id='L106' name='L106'></a>    assert(lock-&gt;nwriters == 1) ;
-<a id='L107' name='L107'></a>    lock-&gt;nwriters -- ;
-<a id='L108' name='L108'></a>    <a href='../S/7.html#L21' title='Defined at 21 in tools/protothread/protothread_lock.c.'>pt_lock_update</a>(lock) ;
-<a id='L109' name='L109'></a><em class='brace'>}</em>
+<a id='L1' name='L1'></a>Triplet = class (a, b, c): /first = a, /second = b, /third = c.
+<a id='L2' name='L2'></a>Triplet sum = (): /first + /second + /third.
+<a id='L3' name='L3'></a>Triplet (71, 42, 90) sum
+<a id='L4' name='L4'></a>#=&gt; 203
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L13'>[^]</a><a href='#L102'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a><img class='icon' src='../icons/n_bottom.png' alt='[bottom]' /><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+4 test/classes/def.pn]</em> */</em>
 </body>
 </html>

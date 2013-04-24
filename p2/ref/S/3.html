@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>tools/config.sh</title>
+<meta name='robots' content='noindex,nofollow' />
+<meta name='generator' content='GLOBAL-6.2.8' />
+<meta http-equiv='Content-Style-Type' content='text/css' />
+<link rel='stylesheet' type='text/css' href='../style.css' />
+</head>
+<body>
+<!-- beginning of fixed guide -->
+<div id='guide'><ul>
+<li><a href='#TOP'><img class='icon' src='../icons/first.png' alt='[^]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/last.png' alt='[v]' /></a></li>
+<li><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a></li>
+<li><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a></li>
+<li><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a></li>
+<li class='standout'><span><a href='../files/197.html'>tools</a>/config.sh</span></li>
+</ul></div>
+<!-- end of fixed guide -->
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/197.html'>tools</a>/config.sh</h2>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><img class='icon' src='../icons/n_top.png' alt='[top]' /><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+1 tools/config.sh]</em> */</em>
+<hr />
+<pre>
+<a id='L1' name='L1'></a>#!/bin/sh
+<a id='L2' name='L2'></a># helper to generate config.inc and core/config.h
+<a id='L3' name='L3'></a>
+<a id='L4' name='L4'></a>CC=${1:-cc}
+<a id='L5' name='L5'></a>AC="tools/config.c"
+<a id='L6' name='L6'></a>AOUT="tools/config.out"
+<a id='L7' name='L7'></a>CCEX="$CC $AC -o $AOUT"
+<a id='L8' name='L8'></a>LANG=C
+<a id='L9' name='L9'></a>
+<a id='L10' name='L10'></a>CCv=`$CC -v 2&gt;&amp;1`
+<a id='L11' name='L11'></a>CLANG=`echo "$CCv" | sed "/clang/!d"`
+<a id='L12' name='L12'></a>TARGET=`echo "$CCv" | sed -e "/Target:/b" -e "/--target=/b" -e d | sed "s/.* --target=//; s/Target: //; s/ .*//" | head -1`
+<a id='L13' name='L13'></a>MINGW_GCC=`echo "$TARGET" | sed "/mingw/!d"`
+<a id='L14' name='L14'></a>if [ "$MINGW_GCC" = "" ]; then MINGW=0
+<a id='L15' name='L15'></a>else MINGW=1; fi
+<a id='L16' name='L16'></a>CYGWIN=`echo "$TARGET" | sed "/cygwin/!d"`
+<a id='L17' name='L17'></a>if [ "$CYGWIN" = "" ]; then CYGWIN=0
+<a id='L18' name='L18'></a>else CYGWIN=1; fi
+<a id='L19' name='L19'></a>BSD=`echo "$TARGET" | sed "/bsd/!d"`
+<a id='L20' name='L20'></a>JIT_X86=`echo "$TARGET" | sed "/86/!d"`
+<a id='L21' name='L21'></a>JIT_PPC=`echo "$TARGET" | sed "/powerpc/!d"`
+<a id='L22' name='L22'></a>JIT_I686=`echo "$TARGET" | sed "/i686/!d"`
+<a id='L23' name='L23'></a>JIT_AMD64=`echo "$TARGET" | sed "/amd64/!d"`
+<a id='L24' name='L24'></a>JIT_ARM=`echo "$TARGET" | sed "/arm/!d"`
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a>if [ $MINGW -eq 0 ]; then
+<a id='L27' name='L27'></a>  EXE=""
+<a id='L28' name='L28'></a>  LIBEXT=".a"
+<a id='L29' name='L29'></a>  if [ "$CYGWIN" != "1" ]; then
+<a id='L30' name='L30'></a>    LOADEXT=".so"
+<a id='L31' name='L31'></a>    DLL=".so"
+<a id='L32' name='L32'></a>  else
+<a id='L33' name='L33'></a>    EXE=".exe"
+<a id='L34' name='L34'></a>    LOADEXT=".dll"
+<a id='L35' name='L35'></a>    DLL=".dll"
+<a id='L36' name='L36'></a>  fi
+<a id='L37' name='L37'></a>  OSX=`echo "$TARGET" | sed "/apple/!d"`
+<a id='L38' name='L38'></a>  if [ "$OSX" != "" ]; then
+<a id='L39' name='L39'></a>    OSX=1
+<a id='L40' name='L40'></a>    LOADEXT=".bundle"
+<a id='L41' name='L41'></a>    DLL=".dylib"
+<a id='L42' name='L42'></a>  else
+<a id='L43' name='L43'></a>    OSX=0
+<a id='L44' name='L44'></a>  fi
+<a id='L45' name='L45'></a>else
+<a id='L46' name='L46'></a>  EXE=".exe"
+<a id='L47' name='L47'></a>  LOADEXT=".dll"
+<a id='L48' name='L48'></a>  DLL=".dll"
+<a id='L49' name='L49'></a>  LIBEXT=".a"
+<a id='L50' name='L50'></a>fi
+<a id='L51' name='L51'></a>
+<a id='L52' name='L52'></a>if [ "$2" = "mingw" ]; then
+<a id='L53' name='L53'></a>  if [ $MINGW -eq 0 ]; then echo "0"
+<a id='L54' name='L54'></a>  else echo "1"; fi
+<a id='L55' name='L55'></a>elif [ "$2" = "apple" ]; then
+<a id='L56' name='L56'></a>  if [ $OSX -eq 0 ]; then echo "0"
+<a id='L57' name='L57'></a>  else echo "1"; fi
+<a id='L58' name='L58'></a>elif [ "$2" = "cygwin" ]; then
+<a id='L59' name='L59'></a>  if [ $CYGWIN -eq 0 ]; then echo "0"
+<a id='L60' name='L60'></a>  else echo "1"; fi
+<a id='L61' name='L61'></a>elif [ "$2" = "clang" ]; then
+<a id='L62' name='L62'></a>  if [ "$CLANG" = "" ]; then echo "0"
+<a id='L63' name='L63'></a>  else echo "1"; fi
+<a id='L64' name='L64'></a>elif [ "$2" = "bsd" ]; then
+<a id='L65' name='L65'></a>  if [ "$BSD" = "" ]; then echo "0"
+<a id='L66' name='L66'></a>  else echo "1"; fi
+<a id='L67' name='L67'></a>elif [ "$2" = "version" ]; then
+<a id='L68' name='L68'></a>  cat core/potion.h | sed "/POTION_VERSION/!d; s/\\\"$//; s/.*\\\"//"
+<a id='L69' name='L69'></a>elif [ "$2" = "p2version" ]; then
+<a id='L70' name='L70'></a>  cat core/p2.h | sed "/P2_VERSION/!d; s/\\\"$//; s/.*\\\"//"
+<a id='L71' name='L71'></a>elif [ "$2" = "jit" ]; then
+<a id='L72' name='L72'></a>  if [ "$JIT_X86$MINGW_GCC" != "" -o "$JIT_I686" != "" -o "$JIT_AMD64" != "" ]; then
+<a id='L73' name='L73'></a>    echo "X86"
+<a id='L74' name='L74'></a>  elif [ "$JIT_PPC" != "" ]; then
+<a id='L75' name='L75'></a>    echo "PPC"
+<a id='L76' name='L76'></a>  elif [ "$JIT_ARM" != "" ]; then
+<a id='L77' name='L77'></a>    echo "ARM"
+<a id='L78' name='L78'></a>  fi
+<a id='L79' name='L79'></a>elif [ "$2" = "strip" ]; then
+<a id='L80' name='L80'></a>  if [ $MINGW -eq 0 ]; then
+<a id='L81' name='L81'></a>    if [ $CYGWIN -eq 0 ]; then
+<a id='L82' name='L82'></a>      echo "strip -x"
+<a id='L83' name='L83'></a>    else
+<a id='L84' name='L84'></a>      echo "strip"
+<a id='L85' name='L85'></a>    fi
+<a id='L86' name='L86'></a>  else
+<a id='L87' name='L87'></a>    echo "echo"
+<a id='L88' name='L88'></a>  fi
+<a id='L89' name='L89'></a>elif [ "$2" = "lib" ]; then
+<a id='L90' name='L90'></a>  prefix=$5
+<a id='L91' name='L91'></a>  if [ -n $prefix ]; then
+<a id='L92' name='L92'></a>    CC="$CC -I$prefix/include -L$prefix/lib"
+<a id='L93' name='L93'></a>    CCEX="$CC $AC -o $AOUT"
+<a id='L94' name='L94'></a>  fi
+<a id='L95' name='L95'></a>  LIBOUT=`echo "#include &lt;stdio.h&gt;#include \\"$4\\"int main() { puts(\\"1\\"); return 0; }" &gt; $AC &amp;&amp; $CCEX $3 2&gt;/dev/null &amp;&amp; $AOUT; rm -f $AOUT`
+<a id='L96' name='L96'></a>  echo $LIBOUT
+<a id='L97' name='L97'></a>else
+<a id='L98' name='L98'></a>  if [ $MINGW -eq 0 ]; then
+<a id='L99' name='L99'></a>      LONG=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(long)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L100' name='L100'></a>      INT=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(int)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L101' name='L101'></a>      SHORT=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(short)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L102' name='L102'></a>      CHAR=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(char)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L103' name='L103'></a>      LLONG=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(long long)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L104' name='L104'></a>      DOUBLE=`echo "#include &lt;stdio.h&gt;int main() { printf(\\"%d\\", (int)sizeof(double)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L105' name='L105'></a>      LILEND=`echo "#include &lt;stdio.h&gt;int main() { short int word = 0x0001; char *byte = (char *) &amp;word; printf(\\"%d\\", (int)byte[0]); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L106' name='L106'></a>      PAGESIZE=`echo "#include &lt;stdio.h&gt;#include &lt;unistd.h&gt;int main() { printf(\\"%d\\", (int)sysconf(_SC_PAGE_SIZE)); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L107' name='L107'></a>      STACKDIR=`echo "#include &lt;stdlib.h&gt;#include &lt;stdio.h&gt;void a2(int *a, int b, int c) { printf(\\"%d\\", (int)((&amp;b - a) / abs(&amp;b - a))); }void a1(int a) { a2(&amp;a,a+4,a+2); }int main() { a1(9); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L108' name='L108'></a>      ARGDIR=`echo "#include &lt;stdio.h&gt;void a2(int *a, int b, int c) { printf(\\"%d\\", (int)(&amp;c - &amp;b)); }void a1(int a) { a2(&amp;a,a+4,a+2); }int main() { a1(9); return 0; }" &gt; $AC &amp;&amp; $CCEX &amp;&amp; $AOUT &amp;&amp; rm -f $AOUT`
+<a id='L109' name='L109'></a>  else
+<a id='L110' name='L110'></a>      # hard coded win32 values
+<a id='L111' name='L111'></a>      CHAR="1"
+<a id='L112' name='L112'></a>      SHORT="2"
+<a id='L113' name='L113'></a>      LONG="4"
+<a id='L114' name='L114'></a>      INT="4"
+<a id='L115' name='L115'></a>      DOUBLE="8"
+<a id='L116' name='L116'></a>      LLONG="8"
+<a id='L117' name='L117'></a>      LILEND="1"
+<a id='L118' name='L118'></a>      PAGESIZE="4096"
+<a id='L119' name='L119'></a>      STACKDIR="-1"
+<a id='L120' name='L120'></a>      ARGDIR="1"
+<a id='L121' name='L121'></a>  fi
+<a id='L122' name='L122'></a>
+<a id='L123' name='L123'></a>  echo "#define POTION_PLATFORM   \"$TARGET\""
+<a id='L124' name='L124'></a>  echo "#define POTION_LIBEXT     \"$LIBEXT\""
+<a id='L125' name='L125'></a>  echo
+<a id='L126' name='L126'></a>  echo "#define PN_SIZE_T         $LONG"
+<a id='L127' name='L127'></a>  echo "#define LONG_SIZE_T       $LONG"
+<a id='L128' name='L128'></a>  echo "#define DOUBLE_SIZE_T     $DOUBLE"
+<a id='L129' name='L129'></a>  echo "#define INT_SIZE_T        $INT"
+<a id='L130' name='L130'></a>  echo "#define SHORT_SIZE_T      $SHORT"
+<a id='L131' name='L131'></a>  echo "#define CHAR_SIZE_T       $CHAR"
+<a id='L132' name='L132'></a>  echo "#define LONGLONG_SIZE_T   $LLONG"
+<a id='L133' name='L133'></a>  echo "#define PN_LITTLE_ENDIAN  $LILEND"
+<a id='L134' name='L134'></a>  echo "#define POTION_PAGESIZE   $PAGESIZE"
+<a id='L135' name='L135'></a>  echo "#define POTION_STACK_DIR  $STACKDIR"
+<a id='L136' name='L136'></a>  echo "#define POTION_ARGS_DIR   $ARGDIR"
+<a id='L137' name='L137'></a>fi
+</pre>
+<hr />
+<a id='BOTTOM' name='BOTTOM'></a>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a><img class='icon' src='../icons/n_bottom.png' alt='[bottom]' /><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+137 tools/config.sh]</em> */</em>
+</body>
+</html>

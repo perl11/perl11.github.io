@@ -1,0 +1,599 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>INTERNALS.md</title>
+<meta name='robots' content='noindex,nofollow' />
+<meta name='generator' content='GLOBAL-6.2.8' />
+<meta http-equiv='Content-Style-Type' content='text/css' />
+<link rel='stylesheet' type='text/css' href='../style.css' />
+</head>
+<body>
+<!-- beginning of fixed guide -->
+<div id='guide'><ul>
+<li><a href='#TOP'><img class='icon' src='../icons/first.png' alt='[^]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/last.png' alt='[v]' /></a></li>
+<li><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a></li>
+<li><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a></li>
+<li><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a></li>
+<li><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a></li>
+<li class='standout'><span>INTERNALS.md</span></li>
+</ul></div>
+<!-- end of fixed guide -->
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/INTERNALS.md</h2>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><img class='icon' src='../icons/n_top.png' alt='[top]' /><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+1 INTERNALS.md]</em> */</em>
+<hr />
+<pre>
+<a id='L1' name='L1'></a>
+<a id='L2' name='L2'></a># ~ the nature of potion's insides ~
+<a id='L3' name='L3'></a>
+<a id='L4' name='L4'></a>Potion's internals are based around the idea
+<a id='L5' name='L5'></a>that things that happen frequently should be
+<a id='L6' name='L6'></a>given the greater attention.
+<a id='L7' name='L7'></a>
+<a id='L8' name='L8'></a>For example, code execution happens more often
+<a id='L9' name='L9'></a>than code parsing and loading. Therefore, the
+<a id='L10' name='L10'></a>VM is larger and faster than the parser and
+<a id='L11' name='L11'></a>compiler.
+<a id='L12' name='L12'></a>
+<a id='L13' name='L13'></a>Other things that happen frequently:
+<a id='L14' name='L14'></a>
+<a id='L15' name='L15'></a> * Math.
+<a id='L16' name='L16'></a> * Conditionals.
+<a id='L17' name='L17'></a> * Method dispatch.
+<a id='L18' name='L18'></a> * Local variables.
+<a id='L19' name='L19'></a> * Strings, to build and compare.
+<a id='L20' name='L20'></a> * Memory allocation.
+<a id='L21' name='L21'></a>
+<a id='L22' name='L22'></a>More sporadic things likely include:
+<a id='L23' name='L23'></a>
+<a id='L24' name='L24'></a> * New methods.
+<a id='L25' name='L25'></a> * Creation of classes.
+<a id='L26' name='L26'></a> * Very deep scoping situations.
+<a id='L27' name='L27'></a> * Altering the inheritance tree.
+<a id='L28' name='L28'></a> * Evals.
+<a id='L29' name='L29'></a> * Code allocation.
+<a id='L30' name='L30'></a>
+<a id='L31' name='L31'></a>So understand that often the choices made in
+<a id='L32' name='L32'></a>Potion's VM are designed to accomodate the
+<a id='L33' name='L33'></a>first set rather than the second.
+<a id='L34' name='L34'></a>
+<a id='L35' name='L35'></a>#                   ~
+<a id='L36' name='L36'></a>
+<a id='L37' name='L37'></a>This doc is going to touch quite a bit on
+<a id='L38' name='L38'></a>the JIT, compiling straight to x86 and PowerPC
+<a id='L39' name='L39'></a>instructions. So many languages are targetting
+<a id='L40' name='L40'></a>the JVM and .Net these days, or try to use 30MB
+<a id='L41' name='L41'></a>LLVM just for adding jit support. It made me
+<a id='L42' name='L42'></a>wonder what the hurdles are to generating machine
+<a id='L43' name='L43'></a>code directly.
+<a id='L44' name='L44'></a>
+<a id='L45' name='L45'></a>Clearly, the biggest benefit of having a common
+<a id='L46' name='L46'></a>runtime is garbage collection. The JVM and .Net
+<a id='L47' name='L47'></a>have some wild GC algorithms built in.  And
+<a id='L48' name='L48'></a>that's actually a huge benefit. I only wish that
+<a id='L49' name='L49'></a>more garbage collectors were available as
+<a id='L50' name='L50'></a>libraries.
+<a id='L51' name='L51'></a>
+<a id='L52' name='L52'></a>Anyways, my favorite language has been Ruby
+<a id='L53' name='L53'></a>for many years, that's partially because
+<a id='L54' name='L54'></a>I like how easy it is to script from C,
+<a id='L55' name='L55'></a>for some efficiency where I need it. So
+<a id='L56' name='L56'></a>Potion is my little attempt to make a
+<a id='L57' name='L57'></a>language that feels easy, but compiles
+<a id='L58' name='L58'></a>to machine code, to give me the speed of
+<a id='L59' name='L59'></a>(un-optimized) C code and to use all the
+<a id='L60' name='L60'></a>C function call conventions so that I
+<a id='L61' name='L61'></a>can link to other C libs. I want to see
+<a id='L62' name='L62'></a>if its still possible to encroach on C.
+<a id='L63' name='L63'></a>
+<a id='L64' name='L64'></a>I should say that O'Caml and Haskell
+<a id='L65' name='L65'></a>already do a fine job as C competitors,
+<a id='L66' name='L66'></a>so it's not like anything here is that
+<a id='L67' name='L67'></a>new.
+<a id='L68' name='L68'></a>
+<a id='L69' name='L69'></a>
+<a id='L70' name='L70'></a>## ~ lua's influence ~
+<a id='L71' name='L71'></a>
+<a id='L72' name='L72'></a>Potion uses a register-based bytecode VM that
+<a id='L73' name='L73'></a>is nearly a word-for-word copy of Lua's. The
+<a id='L74' name='L74'></a>code is all different, but the bytecode is
+<a id='L75' name='L75'></a>nearly identical. And Lua's 5.1 bytecode design is
+<a id='L76' name='L76'></a>heavily inspired by the 1997 Inferno OS "Dis VM".
+<a id='L77' name='L77'></a>&lt;http://doc.cat-v.org/inferno/4th_edition/dis_VM_specification&gt;
+<a id='L78' name='L78'></a>which was Lucent's faster and smaller competitor
+<a id='L79' name='L79'></a>of Sun's stack-based and GC-heavy JVM.
+<a id='L80' name='L80'></a>Dis/Limbo/Inferno concepts only got a recent boost
+<a id='L81' name='L81'></a>with Google adopting it as natively compiled Go.
+<a id='L82' name='L82'></a>
+<a id='L83' name='L83'></a>I also spelunked Neko VM for some ideas and
+<a id='L84' name='L84'></a>found this comparison very useful.
+<a id='L85' name='L85'></a>&lt;http://nekovm.org/lua&gt;
+<a id='L86' name='L86'></a>
+<a id='L87' name='L87'></a>I also took from the Lua the notion of using
+<a id='L88' name='L88'></a>tables for everything. And, like Lua, lists
+<a id='L89' name='L89'></a>and tables are interchangeable. But, in Potion,
+<a id='L90' name='L90'></a>I kept their representations separate.
+<a id='L91' name='L91'></a>
+<a id='L92' name='L92'></a>I also use immutable strings, like Lua.
+<a id='L93' name='L93'></a>
+<a id='L94' name='L94'></a>However, my object representation is more
+<a id='L95' name='L95'></a>like Neko or Ruby, where objects are all
+<a id='L96' name='L96'></a>represented by a word (32-bit on x86 and
+<a id='L97' name='L97'></a>64-bit on x86-64).
+<a id='L98' name='L98'></a>
+<a id='L99' name='L99'></a>
+<a id='L100' name='L100'></a>## ~ the parts of potion ~
+<a id='L101' name='L101'></a>
+<a id='L102' name='L102'></a>1. the parser
+<a id='L103' name='L103'></a>   - written in peg
+<a id='L104' name='L104'></a>     (see `core/syntax.g`)
+<a id='L105' name='L105'></a>   - produces a syntax tree
+<a id='L106' name='L106'></a>   - the tree is a Potion object that can
+<a id='L107' name='L107'></a>     be traversed in the code
+<a id='L108' name='L108'></a>   - see `potion_source_load()`
+<a id='L109' name='L109'></a>     in `core/compile.c`
+<a id='L110' name='L110'></a>
+<a id='L111' name='L111'></a>2. the compiler
+<a id='L112' name='L112'></a>   - compiles a syntax tree into
+<a id='L113' name='L113'></a>     bytecode (see `core/compile.c`
+<a id='L114' name='L114'></a>     or `./potion -c -V code.pn`)
+<a id='L115' name='L115'></a>   - has its own file format
+<a id='L116' name='L116'></a>     (save to `.pnb` files)
+<a id='L117' name='L117'></a>   - interception of keywords
+<a id='L118' name='L118'></a>     happens here, rather than in
+<a id='L119' name='L119'></a>     the parser, to simplify parsing
+<a id='L120' name='L120'></a>
+<a id='L121' name='L121'></a>3. the bytecode vm
+<a id='L122' name='L122'></a>   - executes bytecode
+<a id='L123' name='L123'></a>   - used mostly to ensure correctness
+<a id='L124' name='L124'></a>   - helpful in debugging
+<a id='L125' name='L125'></a>   - run code on non jitted vm with performance
+<a id='L126' name='L126'></a>     penalty
+<a id='L127' name='L127'></a>
+<a id='L128' name='L128'></a>4. the jit vm
+<a id='L129' name='L129'></a>   - compiles bytecode into a function
+<a id='L130' name='L130'></a>     pointer
+<a id='L131' name='L131'></a>   - uses the same argument passing strategy
+<a id='L132' name='L132'></a>     as c functions
+<a id='L133' name='L133'></a>
+<a id='L134' name='L134'></a>5. the garbage collector
+<a id='L135' name='L135'></a>   - generational, copying, near exact
+<a id='L136' name='L136'></a>   - marks the stack, then uses a cheney
+<a id='L137' name='L137'></a>     loop to catch everything else
+<a id='L138' name='L138'></a>   - stack scanning is automatic (both
+<a id='L139' name='L139'></a>     the jit and the bytecode vm keep
+<a id='L140' name='L140'></a>     their registers on the call stack)
+<a id='L141' name='L141'></a>   - liberal use of volatile for object
+<a id='L142' name='L142'></a>     pointers, to allow them to move
+<a id='L143' name='L143'></a>     after any allocation
+<a id='L144' name='L144'></a>   - based on a collector called qish
+<a id='L145' name='L145'></a>
+<a id='L146' name='L146'></a>
+<a id='L147' name='L147'></a>## ~ the jit ~
+<a id='L148' name='L148'></a>
+<a id='L149' name='L149'></a>potions jits intel x86 32+64-bit and ppc.
+<a id='L150' name='L150'></a>arm jit is in preparation.
+<a id='L151' name='L151'></a>ppc callcc/yield is buggy.
+<a id='L152' name='L152'></a>The X86 JIT is in `core/vm-x86.c`.
+<a id='L153' name='L153'></a>The jit translates Potion bytecode into
+<a id='L154' name='L154'></a>32-bit or 64-bit machine code.
+<a id='L155' name='L155'></a>
+<a id='L156' name='L156'></a>In the code:
+<a id='L157' name='L157'></a>
+<a id='L158' name='L158'></a>    add = (x, y): x + y.
+<a id='L159' name='L159'></a>
+<a id='L160' name='L160'></a>The `add` closure is compiled into a c function
+<a id='L161' name='L161'></a>pointer looking like this:
+<a id='L162' name='L162'></a>
+<a id='L163' name='L163'></a>    PN (*)(Potion *P, PN cl, PN self, PN x, PN y)
+<a id='L164' name='L164'></a>
+<a id='L165' name='L165'></a>This means you can actually load this closure
+<a id='L166' name='L166'></a>into C and call it directly.
+<a id='L167' name='L167'></a>
+<a id='L168' name='L168'></a>    Potion *P = potion_create();
+<a id='L169' name='L169'></a>    PN add = potion_eval(P, "(x, y): x + y.");
+<a id='L170' name='L170'></a>    PN_F addfn = PN_CLOSURE_F(add);
+<a id='L171' name='L171'></a>    PN num = addfn(P, 0, 0, PN_NUM(3), PN_NUM(5));
+<a id='L172' name='L172'></a>    printf("3 + 5 = %d\n", PN_INT(num));
+<a id='L173' name='L173'></a>
+<a id='L174' name='L174'></a>The macros are there to allow bytecode to be
+<a id='L175' name='L175'></a>wrapped in a function pointer, if needed. The
+<a id='L176' name='L176'></a>inside story looks like this:
+<a id='L177' name='L177'></a>
+<a id='L178' name='L178'></a>    PN num = ((struct PNClosure *)add)-&gt;method(
+<a id='L179' name='L179'></a>               P, 0, 0, PN_NUM(3), PN_NUM(5));
+<a id='L180' name='L180'></a>
+<a id='L181' name='L181'></a>## ~ the jit's assembly ~
+<a id='L182' name='L182'></a>
+<a id='L183' name='L183'></a>Now, let's talk about the compiled code.
+<a id='L184' name='L184'></a>
+<a id='L185' name='L185'></a>Earlier the example was,
+<a id='L186' name='L186'></a>
+<a id='L187' name='L187'></a>    add = (x, y): x + y.
+<a id='L188' name='L188'></a>
+<a id='L189' name='L189'></a>So we have a function with two arguments
+<a id='L190' name='L190'></a>and a math operation.
+<a id='L191' name='L191'></a>
+<a id='L192' name='L192'></a>The C equivalent is,
+<a id='L193' name='L193'></a>
+<a id='L194' name='L194'></a>    PN add(Potion *P, PN cl, PN self, PN x, PN y) {
+<a id='L195' name='L195'></a>      PN reg1 = x;
+<a id='L196' name='L196'></a>      PN reg2 = y;
+<a id='L197' name='L197'></a>      reg1 = PN_NUM(PN_INT(reg1) + PN_INT(reg2));
+<a id='L198' name='L198'></a>      return reg1;
+<a id='L199' name='L199'></a>    }
+<a id='L200' name='L200'></a>
+<a id='L201' name='L201'></a>The arguments are moved to registers on the
+<a id='L202' name='L202'></a>stack. Then converted to ints. Then added.
+<a id='L203' name='L203'></a>And, lastly, the result is cast as a Potion
+<a id='L204' name='L204'></a>object.
+<a id='L205' name='L205'></a>
+<a id='L206' name='L206'></a>The machine code produced by the JIT will
+<a id='L207' name='L207'></a>be very close to the code produced by a
+<a id='L208' name='L208'></a>compiler with the optimizations turned off.
+<a id='L209' name='L209'></a>(_At least for the present this is true._)
+<a id='L210' name='L210'></a>
+<a id='L211' name='L211'></a>Like C functions, Potion keeps local variables
+<a id='L212' name='L212'></a>on the stack. The call stack is like a big tape
+<a id='L213' name='L213'></a>measure that goes on and on. Since this function
+<a id='L214' name='L214'></a>has two registers (reg1 and reg2,) we need
+<a id='L215' name='L215'></a>two inches from the tape measure.
+<a id='L216' name='L216'></a>
+<a id='L217' name='L217'></a>&lt;http://en.wikipedia.org/wiki/Call_stack&gt;
+<a id='L218' name='L218'></a>(See the parts that say "Local data storage"
+<a id='L219' name='L219'></a>and "Argument passing".)
+<a id='L220' name='L220'></a>
+<a id='L221' name='L221'></a>Our machine code says _"give me two word-sized
+<a id='L222' name='L222'></a>slots in the stack"_ as the first order of business.
+<a id='L223' name='L223'></a>
+<a id='L224' name='L224'></a>We store `x` and `y` in those two slots. (See
+<a id='L225' name='L225'></a>the comment about C argument passing in the
+<a id='L226' name='L226'></a>next section.)
+<a id='L227' name='L227'></a>
+<a id='L228' name='L228'></a>Then we do the math. Even the `PN_INT` and
+<a id='L229' name='L229'></a>`PN_NUM` macros are fundamentally math.
+<a id='L230' name='L230'></a>
+<a id='L231' name='L231'></a>If you run potion with `-V` or `--verbose` on this script,
+<a id='L232' name='L232'></a>you'll see a bytecode disassembly.
+<a id='L233' name='L233'></a>
+<a id='L234' name='L234'></a>    ; function ; 16 bytes
+<a id='L235' name='L235'></a>    ; (x, y) 2 registers
+<a id='L236' name='L236'></a>    .local "x" ; 0
+<a id='L237' name='L237'></a>    .local "y" ; 1
+<a id='L238' name='L238'></a>    [1] getlocal 0 0
+<a id='L239' name='L239'></a>    [2] getlocal 1 1
+<a id='L240' name='L240'></a>    [3] add 0 1
+<a id='L241' name='L241'></a>    [4] return 0
+<a id='L242' name='L242'></a>
+<a id='L243' name='L243'></a>Each of these lines corresponds to a line of
+<a id='L244' name='L244'></a>C code inside that function a few paragraphs
+<a id='L245' name='L245'></a>back. You see how they line up there?
+<a id='L246' name='L246'></a>
+<a id='L247' name='L247'></a>
+<a id='L248' name='L248'></a>## ~ x86 and x86-64 ~
+<a id='L249' name='L249'></a>
+<a id='L250' name='L250'></a>64-bit CPU instructions are a superset of
+<a id='L251' name='L251'></a>32-bit CPU instructions. And many 32-bit
+<a id='L252' name='L252'></a>instructions can be converted to 64-bit by
+<a id='L253' name='L253'></a>prefixing them.
+<a id='L254' name='L254'></a>
+<a id='L255' name='L255'></a>Take this code,
+<a id='L256' name='L256'></a>
+<a id='L257' name='L257'></a>    8b 55 f8  // mov %ebp[-1] %edx
+<a id='L258' name='L258'></a>    8b 45 fc  // mov %ebp[-2] %eax
+<a id='L259' name='L259'></a>    83 e8 04  // sub 0x4 %edx
+<a id='L260' name='L260'></a>    89 50 04  // mov %edx %eax[1]
+<a id='L261' name='L261'></a>
+<a id='L262' name='L262'></a>These are the 32-bit instructions for altering
+<a id='L263' name='L263'></a>an upval. (_A variable in upper scope_.) Since
+<a id='L264' name='L264'></a>a closure doesn't have access to the registers
+<a id='L265' name='L265'></a>of another function, these variables are passed
+<a id='L266' name='L266'></a>as pointers (the `PNWeakRef` struct.)
+<a id='L267' name='L267'></a>
+<a id='L268' name='L268'></a>This code loads the upval into `%eax` and the new
+<a id='L269' name='L269'></a>value into `%edx`. To get the upval's actual struct
+<a id='L270' name='L270'></a>pointer, we subtract 4 from `%edx`. Finally, we
+<a id='L271' name='L271'></a>move the new value into offset 4 in the struct
+<a id='L272' name='L272'></a>pointed to by the upval.
+<a id='L273' name='L273'></a>
+<a id='L274' name='L274'></a>In 64-bit code this would be,
+<a id='L275' name='L275'></a>
+<a id='L276' name='L276'></a>    48 8b 55 f0  // mov %rbp[-1] %rdx
+<a id='L277' name='L277'></a>    48 8b 45 f8  // mov %rbp[-2] %rax
+<a id='L278' name='L278'></a>    83 e8 04     // sub 0x4 %edx
+<a id='L279' name='L279'></a>    48 89 50 08  // mov %rdx %rax[1]
+<a id='L280' name='L280'></a>
+<a id='L281' name='L281'></a>All it took was adding the `0x48` prefix to our
+<a id='L282' name='L282'></a>mov instructions and changing our offsets to
+<a id='L283' name='L283'></a>measure 8 bytes rather than 4. The third
+<a id='L284' name='L284'></a>instruction actually stays the same, since
+<a id='L285' name='L285'></a>we're only doing math on the lower 32-bits of
+<a id='L286' name='L286'></a>the upval.
+<a id='L287' name='L287'></a>
+<a id='L288' name='L288'></a>We now call the registers `%rax` and `%rdx`.
+<a id='L289' name='L289'></a>That's just what the CPU folks call `em`.
+<a id='L290' name='L290'></a>
+<a id='L291' name='L291'></a>The only other technique that changes between
+<a id='L292' name='L292'></a>32-bit and 64-bit is function calling. On 32-
+<a id='L293' name='L293'></a>bit, we keep all the function arguments on
+<a id='L294' name='L294'></a>the stack. On 64-bit, some function arguments
+<a id='L295' name='L295'></a>are passed through registers.
+<a id='L296' name='L296'></a>
+<a id='L297' name='L297'></a>That's the purpose behind the function named
+<a id='L298' name='L298'></a>`potion_x86_c_arg`. To shuttle the arguments
+<a id='L299' name='L299'></a>in and out, depending on the architecture.
+<a id='L300' name='L300'></a>
+<a id='L301' name='L301'></a>
+<a id='L302' name='L302'></a>## ~ using disassemblers ~
+<a id='L303' name='L303'></a>
+<a id='L304' name='L304'></a>I don't really know the x86 instruction set
+<a id='L305' name='L305'></a>too well and most often I just write something
+<a id='L306' name='L306'></a>in C and disassemble it.
+<a id='L307' name='L307'></a>
+<a id='L308' name='L308'></a>    $ gcc test.c -o test
+<a id='L309' name='L309'></a>    $ objdump --disassemble-all test
+<a id='L310' name='L310'></a>
+<a id='L311' name='L311'></a>However, `objdump` doesn't come with the OS X
+<a id='L312' name='L312'></a>dev tools, so you can use the included
+<a id='L313' name='L313'></a>`tools/machodis.pl` by Robert Kelp to inspect the
+<a id='L314' name='L314'></a>binary.
+<a id='L315' name='L315'></a>
+<a id='L316' name='L316'></a>    $ ./tools/machodis.pl test
+<a id='L317' name='L317'></a>
+<a id='L318' name='L318'></a>If you compile with `make DEBUG=1` and `config.mak`
+<a id='L319' name='L319'></a>finds any of the following disassembly libraries *udis86*,
+<a id='L320' name='L320'></a>*libdistorm64* or *libdisam*, they are used automatically.
+<a id='L321' name='L321'></a>See `core/vm-dis.c` and `config.mak`.
+<a id='L322' name='L322'></a>
+<a id='L323' name='L323'></a>
+<a id='L324' name='L324'></a>## ~ the garbage collector ~
+<a id='L325' name='L325'></a>
+<a id='L326' name='L326'></a>Potion's garbage collector is based on the
+<a id='L327' name='L327'></a>work Basile Starynkevitch performed with his
+<a id='L328' name='L328'></a>small generational GC entitled *Qish*. As with
+<a id='L329' name='L329'></a>everything else in Potion, the goal isn't to
+<a id='L330' name='L330'></a>be the best, but to experiment with what sort
+<a id='L331' name='L331'></a>of advanced features can be squeezed into a
+<a id='L332' name='L332'></a>language while keeping the code compact.
+<a id='L333' name='L333'></a>
+<a id='L334' name='L334'></a>Since Potion interpreters are per-thread,
+<a id='L335' name='L335'></a>each interpreter has its own GC heap. This
+<a id='L336' name='L336'></a>allows interpreters to run in parallel and
+<a id='L337' name='L337'></a>to start up and shut down independently.
+<a id='L338' name='L338'></a>Perhaps one day the GC will run in parallel.
+<a id='L339' name='L339'></a> 
+<a id='L340' name='L340'></a>Qish is a two-finger generational collector.
+<a id='L341' name='L341'></a>(Also called a _Cheney loop_.) This collector
+<a id='L342' name='L342'></a>only has two generations. When the time for
+<a id='L343' name='L343'></a>garbage collection arrives, everything from
+<a id='L344' name='L344'></a>the call stack is scanned and moved from the
+<a id='L345' name='L345'></a>young gen to the older gen. The insides of
+<a id='L346' name='L346'></a>all those objects are then scanned and moved
+<a id='L347' name='L347'></a>as well. The goal is simply to wipe out the
+<a id='L348' name='L348'></a>birth region and replace it with another.
+<a id='L349' name='L349'></a>
+<a id='L350' name='L350'></a>What about objects from the birth region
+<a id='L351' name='L351'></a>that are stored off in some old hashtable
+<a id='L352' name='L352'></a>somewhere? Or stuff added to a global object?
+<a id='L353' name='L353'></a>
+<a id='L354' name='L354'></a>The birth region has a write barrier: an
+<a id='L355' name='L355'></a>array of pointers to any object which has
+<a id='L356' name='L356'></a>recently changed. If a new object is added
+<a id='L357' name='L357'></a>to a tuple, it's the tuple's job to notify
+<a id='L358' name='L358'></a>GC so that the tuple will get scanned on
+<a id='L359' name='L359'></a>the next GC pass.
+<a id='L360' name='L360'></a>
+<a id='L361' name='L361'></a>What happens when the old generation runs
+<a id='L362' name='L362'></a>out of room? A new old generation is
+<a id='L363' name='L363'></a>allocated and we do a major collection:
+<a id='L364' name='L364'></a>the call stack is scanned and everything from
+<a id='L365' name='L365'></a>the birth region AND the full-to-the-brim
+<a id='L366' name='L366'></a>older region are both scanned and moved on
+<a id='L367' name='L367'></a>to the new generation.
+<a id='L368' name='L368'></a>
+<a id='L369' name='L369'></a>This all has some obvious pitfalls. First,
+<a id='L370' name='L370'></a>that's a lot of memory moving around all
+<a id='L371' name='L371'></a>the time -- pointers moving around. And,
+<a id='L372' name='L372'></a>second, that's a lot of scanning to do:
+<a id='L373' name='L373'></a>does the entire heap have to be scanned
+<a id='L374' name='L374'></a>every time there's a major collection?
+<a id='L375' name='L375'></a>
+<a id='L376' name='L376'></a>Yes, it's a lot of work and I hope to get
+<a id='L377' name='L377'></a>some real benchmarks and determine a new
+<a id='L378' name='L378'></a>strategy to buy some speed: either through
+<a id='L379' name='L379'></a>introducing a third generation or by
+<a id='L380' name='L380'></a>defragmenting memory or by allowing pages
+<a id='L381' name='L381'></a>to be partially unmapped. Probably the last
+<a id='L382' name='L382'></a>one: I'll weight sections of the older
+<a id='L383' name='L383'></a>generation and then clear out those sections
+<a id='L384' name='L384'></a>as they become more sparse.
+<a id='L385' name='L385'></a>
+<a id='L386' name='L386'></a>As for moving pointers around, that's
+<a id='L387' name='L387'></a>why the volatile keyword is a part of the
+<a id='L388' name='L388'></a>PN typedef.
+<a id='L389' name='L389'></a>
+<a id='L390' name='L390'></a>Does Potion perform *exact GC*? Not strictly.
+<a id='L391' name='L391'></a>During the stack scanning phase, Potion has
+<a id='L392' name='L392'></a>no idea what pointers are legit. For now,
+<a id='L393' name='L393'></a>this is resolved by investigating the header
+<a id='L394' name='L394'></a>of each pointer's object for a valid type
+<a id='L395' name='L395'></a>object. The type can then be compared with
+<a id='L396' name='L396'></a>the contents of the object to be sure the
+<a id='L397' name='L397'></a>object is real. To me, this feels exact
+<a id='L398' name='L398'></a>enough. (If, in practice, it proves to
+<a id='L399' name='L399'></a>be too messy, I may resort to using a
+<a id='L400' name='L400'></a>macro to identify exact pointers, just as
+<a id='L401' name='L401'></a>Qish does.)
+<a id='L402' name='L402'></a>
+<a id='L403' name='L403'></a>
+<a id='L404' name='L404'></a>## ~ the volatile keyword ~
+<a id='L405' name='L405'></a>
+<a id='L406' name='L406'></a>Since objects move freely about, Potion
+<a id='L407' name='L407'></a>requires use of the *volatile* keyword for
+<a id='L408' name='L408'></a>all access to object ids (`PN`) from C.
+<a id='L409' name='L409'></a>As most people don't readily understand
+<a id='L410' name='L410'></a>the volatile keyword, let's go over it.
+<a id='L411' name='L411'></a>
+<a id='L412' name='L412'></a>There are three common uses of the volatile
+<a id='L413' name='L413'></a>keyword in Potion code:
+<a id='L414' name='L414'></a>
+<a id='L415' name='L415'></a>    PN string = potion_byte_str("...");
+<a id='L416' name='L416'></a>
+<a id='L417' name='L417'></a>Since `volatile` is part of the PN typedef
+<a id='L418' name='L418'></a>this code actually means:
+<a id='L419' name='L419'></a>
+<a id='L420' name='L420'></a>    volatile unsigned long string =
+<a id='L421' name='L421'></a>      potion_byte_str("...");
+<a id='L422' name='L422'></a>
+<a id='L423' name='L423'></a>In this case, the `volatile` keyword will
+<a id='L424' name='L424'></a>generally prevent the PN from being stored
+<a id='L425' name='L425'></a>in a system register when the code is
+<a id='L426' name='L426'></a>optimized. Even for caching purposes.
+<a id='L427' name='L427'></a>
+<a id='L428' name='L428'></a>So any time the `string` variable is used,
+<a id='L429' name='L429'></a>it'll be looked up directly on the stack.
+<a id='L430' name='L430'></a>This means the code won't be optimized fully,
+<a id='L431' name='L431'></a>but it also means the value will be looked
+<a id='L432' name='L432'></a>up every time we use it, in case GC has changed
+<a id='L433' name='L433'></a>the object's place on us.
+<a id='L434' name='L434'></a>
+<a id='L435' name='L435'></a>    struct PNObject * volatile string = ...;
+<a id='L436' name='L436'></a>
+<a id='L437' name='L437'></a>If we cast the string to a `PNObject` pointer,
+<a id='L438' name='L438'></a>we need to be sure to place the `volatile`
+<a id='L439' name='L439'></a>keyword after the star. This tells the compiler
+<a id='L440' name='L440'></a>that the _pointer_ is the volatile one, not the
+<a id='L441' name='L441'></a>struct itself.
+<a id='L442' name='L442'></a>
+<a id='L443' name='L443'></a>    struct PNUserType {
+<a id='L444' name='L444'></a>      PN_OBJECT_HEADER
+<a id='L445' name='L445'></a>      PN a, b, c;
+<a id='L446' name='L446'></a>    };
+<a id='L447' name='L447'></a>
+<a id='L448' name='L448'></a>Lastly, in any structs which are wrapped by
+<a id='L449' name='L449'></a>a Potion object, you need to be sure that any
+<a id='L450' name='L450'></a>object handles are marked volatile as well.
+<a id='L451' name='L451'></a>In the above case, the PN typedef handles that.
+<a id='L452' name='L452'></a>
+<a id='L453' name='L453'></a>This is a bit tedious to keep in mind, but
+<a id='L454' name='L454'></a>is compensated for by Potion's automatic stack
+<a id='L455' name='L455'></a>scanning (a technique which has brought easy
+<a id='L456' name='L456'></a>C extensions to Ruby) and object convention
+<a id='L457' name='L457'></a>(if your object pointers are all 8-byte aligned,
+<a id='L458' name='L458'></a>you won't need to write a GC marking function.)
+<a id='L459' name='L459'></a>
+<a id='L460' name='L460'></a>
+<a id='L461' name='L461'></a>## ~ the fixed memory section ~
+<a id='L462' name='L462'></a>
+<a id='L463' name='L463'></a>Potion does have one other section of
+<a id='L464' name='L464'></a>memory: a permanent generation containing
+<a id='L465' name='L465'></a>all of the objects that are used to bootstrap
+<a id='L466' name='L466'></a>Potion's environment. The Lobby object, the
+<a id='L467' name='L467'></a>class lookup table, the GC structures, etc.
+<a id='L468' name='L468'></a>
+<a id='L469' name='L469'></a>This section of memory is positioned at the
+<a id='L470' name='L470'></a>beginning of the first birth area. After the
+<a id='L471' name='L471'></a>birth area, fills that memory is detached
+<a id='L472' name='L472'></a>(like the saucer section of the Enterprise)
+<a id='L473' name='L473'></a>and lives its life independantly of the other
+<a id='L474' name='L474'></a>regions, not to be moved or released until
+<a id='L475' name='L475'></a>the Potion interpreter is destroyed.
+<a id='L476' name='L476'></a>
+<a id='L477' name='L477'></a>
+<a id='L478' name='L478'></a>## ~ object overhead ~
+<a id='L479' name='L479'></a>
+<a id='L480' name='L480'></a>Primitives (such as numbers, booleans and nil) are
+<a id='L481' name='L481'></a>immediate values in Potion, kept in registers.
+<a id='L482' name='L482'></a>
+<a id='L483' name='L483'></a>Everything else is given a spot in memory. Every
+<a id='L484' name='L484'></a>allocated object has a single word header specifying
+<a id='L485' name='L485'></a>its type. Here's a breakdown of what each object looks
+<a id='L486' name='L486'></a>like on 32-bit:
+<a id='L487' name='L487'></a>
+<a id='L488' name='L488'></a>    PNObject = 4 + (N * 4) bytes
+<a id='L489' name='L489'></a>      4 bytes (type = 0x250009)
+<a id='L490' name='L490'></a>      N * 4 bytes (each object field)
+<a id='L491' name='L491'></a>  
+<a id='L492' name='L492'></a>    PNWeakRef = 8 bytes
+<a id='L493' name='L493'></a>      4 bytes (type = 0x250004)
+<a id='L494' name='L494'></a>      4 bytes (pointer to object)
+<a id='L495' name='L495'></a>  
+<a id='L496' name='L496'></a>    PNString = 13 + N bytes
+<a id='L497' name='L497'></a>      4 bytes (type = 0x250003)
+<a id='L498' name='L498'></a>      4 bytes (length of string)
+<a id='L499' name='L499'></a>      4 bytes (an incremental id used as hash)
+<a id='L500' name='L500'></a>      N + 1 bytes (UTF-8 + '\0')
+<a id='L501' name='L501'></a>  
+<a id='L502' name='L502'></a>    PNBytes = 9 + N bytes
+<a id='L503' name='L503'></a>      4 bytes (type = 0x25000c)
+<a id='L504' name='L504'></a>      4 bytes (length of string)
+<a id='L505' name='L505'></a>      N + 1 bytes (string + '\0')
+<a id='L506' name='L506'></a>  
+<a id='L507' name='L507'></a>    PNTuple = 8 + (N * 4) bytes
+<a id='L508' name='L508'></a>      4 bytes (type = 0x250006)
+<a id='L509' name='L509'></a>      4 bytes (length of tuple)
+<a id='L510' name='L510'></a>      N * 4 bytes (each tuple item)
+<a id='L511' name='L511'></a>  
+<a id='L512' name='L512'></a>    PNClosure = 16 + (N * 4) bytes
+<a id='L513' name='L513'></a>      4 bytes (type = 0x25005)
+<a id='L514' name='L514'></a>      4 bytes (function pointer)
+<a id='L515' name='L515'></a>      4 bytes (signature pointer)
+<a id='L516' name='L516'></a>      4 bytes (length of attached data)
+<a id='L517' name='L517'></a>      N * 4 bytes (attached data)
+<a id='L518' name='L518'></a>  
+<a id='L519' name='L519'></a>    PNData = 8 + N bytes
+<a id='L520' name='L520'></a>      4 bytes (type = 0x250011)
+<a id='L521' name='L521'></a>      4 bytes (length of contained data)
+<a id='L522' name='L522'></a>      N bytes (data)
+<a id='L523' name='L523'></a>
+<a id='L524' name='L524'></a>The smallest allocation unit in Potion is
+<a id='L525' name='L525'></a>16 bytes. Everything larger than 16 bytes
+<a id='L526' name='L526'></a>is aligned to 8 bytes. This is true for both
+<a id='L527' name='L527'></a>32-bit and 64-bit platforms.
+<a id='L528' name='L528'></a>
+<a id='L529' name='L529'></a>The reason for this figure is to allow room for
+<a id='L530' name='L530'></a>the `PNFwd` struct:
+<a id='L531' name='L531'></a>
+<a id='L532' name='L532'></a>    unsigned int  // POTION_FWD or POTION_COPIED
+<a id='L533' name='L533'></a>    unsigned int  // allocated space in this slot
+<a id='L534' name='L534'></a>    unsigned long // pointer to moved object
+<a id='L535' name='L535'></a>
+<a id='L536' name='L536'></a>Any time an object is moved by GC or reallocated,
+<a id='L537' name='L537'></a>a temporary `PNFwd` is placed in the memory slot to
+<a id='L538' name='L538'></a>redirect callers temporarily. In practice, you
+<a id='L539' name='L539'></a>shouldn't ever need to deal with these values,
+<a id='L540' name='L540'></a>since the stack scanning phase will rewrite them
+<a id='L541' name='L541'></a>automatically.
+<a id='L542' name='L542'></a>
+<a id='L543' name='L543'></a>The first type of `PNFwd` is `POTION_FWD`. This type
+<a id='L544' name='L544'></a>is used for reallocation. Potion only has four
+<a id='L545' name='L545'></a>built-in types that are subject to reallocation:
+<a id='L546' name='L546'></a>tuples, tables, byte strings, and internal buffers.
+<a id='L547' name='L547'></a>(Internal buffers are used by the JIT to store
+<a id='L548' name='L548'></a>machine code output and by the object model to
+<a id='L549' name='L549'></a>keep an array of type classes in circulation.)
+<a id='L550' name='L550'></a>
+<a id='L551' name='L551'></a>The `POTION_FWD` pointers will happen between GC
+<a id='L552' name='L552'></a>cycles, so they stay in place for awhile. The
+<a id='L553' name='L553'></a>API around those four built-ins is designed to
+<a id='L554' name='L554'></a>check for forwarded pointers whenever they're
+<a id='L555' name='L555'></a>passed in as an object. One the next GC cycle
+<a id='L556' name='L556'></a>hits all the pointers will be updated to use
+<a id='L557' name='L557'></a>the new objects (even if `POTION_FWD` occurs in
+<a id='L558' name='L558'></a>the old generation, due to the write barrier.)
+<a id='L559' name='L559'></a>
+<a id='L560' name='L560'></a>The other `PNFwd` type is a `POTION_COPIED` pointer.
+<a id='L561' name='L561'></a>This is used by the GC to denote an object which
+<a id='L562' name='L562'></a>has moved to the old generation. These should
+<a id='L563' name='L563'></a>not appear outside the GC cycle. The `PNFwd` is
+<a id='L564' name='L564'></a>placed immediately when the object is moved and
+<a id='L565' name='L565'></a>is then used to rewrite pointers found on the
+<a id='L566' name='L566'></a>stack or inside other objects. After the GC
+<a id='L567' name='L567'></a>cycle, these pointers will disappear when the
+<a id='L568' name='L568'></a>its outdated generation is discarded.
+</pre>
+<hr />
+<a id='BOTTOM' name='BOTTOM'></a>
+<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a><img class='icon' src='../icons/n_bottom.png' alt='[bottom]' /><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+568 INTERNALS.md]</em> */</em>
+</body>
+</html>
