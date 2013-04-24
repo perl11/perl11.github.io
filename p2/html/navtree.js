@@ -35,8 +35,8 @@ var NAVTREEINDEX =
 "annotated.html",
 "d3/de6/opcodes_8h_source.html",
 "da/d73/contrib_8c_source.html",
-"dc/df8/internal_8c.html#aeaa63e19faf22605c3f54e8a0bbaa073",
-"dd/d07/potion_8h.html#ad6793f3765f6d7470ba98dc4b1fabe35",
+"dc/df8/internal_8c.html#ad19cc2cf28214b9b1225806b06afe7f7",
+"dd/d07/potion_8h.html#ad4fc60986a450d249518bbc75e80628b",
 "df/dad/struct_p_n_lick.html#a939493e5592b7e2d0409181994a4dacb"
 ];
 

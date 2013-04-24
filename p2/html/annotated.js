@@ -3,7 +3,7 @@ var annotated =
     [ "PN_OP", "d6/d0b/struct_p_n___o_p.html", "d6/d0b/struct_p_n___o_p" ],
     [ "PNArg", "d0/d61/struct_p_n_arg.html", "d0/d61/struct_p_n_arg" ],
     [ "PNBHeader", "de/d35/struct_p_n_b_header.html", "de/d35/struct_p_n_b_header" ],
-    [ "PNBoolean", "dc/d77/class_p_n_boolean.html", null ],
+    [ "PNBoolean", "dc/d77/class_p_n_boolean.html", "dc/d77/class_p_n_boolean" ],
     [ "PNBytes", "d5/da9/struct_p_n_bytes.html", "d5/da9/struct_p_n_bytes" ],
     [ "PNClosure", "d3/de9/struct_p_n_closure.html", "d3/de9/struct_p_n_closure" ],
     [ "PNCont", "d7/da4/struct_p_n_cont.html", "d7/da4/struct_p_n_cont" ],
