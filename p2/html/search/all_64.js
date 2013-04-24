@@ -14,6 +14,5 @@ var searchData=
   ['debug_5fverbose',['DEBUG_VERBOSE',['../dd/d07/potion_8h.html#ad22983c638a3d30183fd11b959f85aa8a12c143a6c656a0bbf0788ecaf6f007a0',1,'potion.h']]],
   ['del_5fbirth_5fregion',['DEL_BIRTH_REGION',['../d0/daa/gc_8h.html#af7167a07d6a1aee7f1026ccf04a4e81e',1,'gc.h']]],
   ['dirty',['dirty',['../de/db4/struct_p_n_memory.html#a6191dbbc730ace6c1f283dd1d9e99b2a',1,'PNMemory']]],
-  ['dlcall',['dlcall',['../d8/dd0/_r_e_a_d_m_e_8p2.html#a8c2dcd3b875139297f2a239410843a97',1,'README.p2']]],
   ['double_5fsize_5ft',['DOUBLE_SIZE_T',['../db/d16/config_8h.html#a15edf29f5daac7418e4c103fc702757d',1,'config.h']]]
 ];

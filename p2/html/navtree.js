@@ -34,10 +34,10 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d3/de6/opcodes_8h_source.html",
-"da/d73/contrib_8c_source.html",
-"dc/df8/internal_8c.html#ad19cc2cf28214b9b1225806b06afe7f7",
-"dd/d07/potion_8h.html#ad4fc60986a450d249518bbc75e80628b",
-"df/dad/struct_p_n_lick.html#a939493e5592b7e2d0409181994a4dacb"
+"db/d16/config_8h.html#a8429ff84d8244144dbe9c437c373a1d1",
+"dd/d07/potion_8h.html#a0a20add9dec7f3cdfbea92be6228ef2e",
+"dd/d07/potion_8h.html#ae9db0e8a5bb40175b8960e9f92fa68ca",
+"globals_0x61.html"
 ];
 
 var navTreeSubIndices = new Array();

@@ -23,7 +23,7 @@ var files =
     [ "p2.h", "d4/d32/p2_8h.html", "d4/d32/p2_8h" ],
     [ "potion.h", "dd/d07/potion_8h.html", "dd/d07/potion_8h" ],
     [ "primitive.c", "df/d8d/primitive_8c.html", "df/d8d/primitive_8c" ],
-    [ "README.p2", "d8/dd0/_r_e_a_d_m_e_8p2.html", "d8/dd0/_r_e_a_d_m_e_8p2" ],
+    [ "README.p2", "d8/dd0/_r_e_a_d_m_e_8p2.html", null ],
     [ "string.c", "d1/db0/string_8c.html", "d1/db0/string_8c" ],
     [ "table.c", "dc/d33/table_8c.html", "dc/d33/table_8c" ],
     [ "table.h", "dd/d98/table_8h.html", "dd/d98/table_8h" ],

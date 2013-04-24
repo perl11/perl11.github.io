@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['o',['O',['../d8/dd0/_r_e_a_d_m_e_8p2.html#a1a43dff97e187e5661876e41de004fc5',1,'README.p2']]],
   ['o_5fbinary',['O_BINARY',['../db/dde/internal_8h.html#a36fa9b2e726512bc17a7a6d3e39002be',1,'internal.h']]],
-  ['objects',['objects',['../d8/dd0/_r_e_a_d_m_e_8p2.html#aa535d4576b662c38e09db106fe0160dd',1,'README.p2']]],
   ['objmodel_2ec',['objmodel.c',['../d4/ddb/objmodel_8c.html',1,'']]],
   ['old_5fcur',['old_cur',['../de/db4/struct_p_n_memory.html#adcc808c0b3deef1a445fbb0be629af31',1,'PNMemory']]],
   ['old_5fhi',['old_hi',['../de/db4/struct_p_n_memory.html#abe0acbc9bbf1d0d5cb7f2194afcee405',1,'PNMemory']]],
