@@ -248,7 +248,7 @@ var searchData=
   ['potion_5fbytes_5feach',['potion_bytes_each',['../d5/da9/struct_p_n_bytes.html#a690c5cdad0ee74ea2ffd4f8bb0f0486d',1,'PNBytes']]],
   ['potion_5fbytes_5flength',['potion_bytes_length',['../d5/da9/struct_p_n_bytes.html#a53aaf21521cf66efa4cfe6b8a0d03e89',1,'PNBytes']]],
   ['potion_5fbytes_5fobj_5fstring',['potion_bytes_obj_string',['../dd/d07/potion_8h.html#a78c348c089c1816df91cb015e8a9d331',1,'potion_bytes_obj_string(Potion *, PN, PN):&#160;string.c'],['../d1/db0/string_8c.html#a89ef0585ab738676e85d2339c9a649b2',1,'potion_bytes_obj_string(Potion *P, PN bytes, PN obj):&#160;string.c']]],
-  ['potion_5fbytes_5fprint',['potion_bytes_print',['../d1/db0/string_8c.html#a155ac01d2e11c56e47552378f68dc331',1,'string.c']]],
+  ['potion_5fbytes_5fprint',['potion_bytes_print',['../d5/da9/struct_p_n_bytes.html#a155ac01d2e11c56e47552378f68dc331',1,'PNBytes']]],
   ['potion_5fbytes_5fstring',['potion_bytes_string',['../d5/da9/struct_p_n_bytes.html#a08196078bbfcf2537ac0f207820803e5',1,'PNBytes::potion_bytes_string()'],['../dd/d07/potion_8h.html#ac29674c41e943835a950b94a737aee86',1,'potion_bytes_string():&#160;potion.h']]],
   ['potion_5fcall',['potion_call',['../dc/df8/internal_8c.html#a88544f9cfe71be7b4c43f69775644e3f',1,'potion_call(Potion *P, PN cl, PN_SIZE argc, PN *volatile argv):&#160;internal.c'],['../dd/d07/potion_8h.html#ae9397ecfb01c3a0864f4d106d6ee7b9d',1,'potion_call(Potion *, PN, PN_SIZE, PN *volatile):&#160;internal.c']]],
   ['potion_5fcallcc',['potion_callcc',['../da/d23/callcc_8c.html#a69fa3fc9061a6d980abfc7bb060a4feb',1,'potion_callcc(Potion *P, PN cl, PN self):&#160;callcc.c'],['../dd/d07/potion_8h.html#ae7e99860d1d85e17540163f980f28037',1,'potion_callcc(Potion *, PN, PN):&#160;callcc.c']]],

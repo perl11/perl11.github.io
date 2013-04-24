@@ -1,5 +1,7 @@
 var NAVTREEINDEX5 =
 {
+"df/dad/struct_p_n_lick.html#a2b05cfae82ae8470c89900fcb5d4243e":[4,0,13,1],
+"df/dad/struct_p_n_lick.html#a939493e5592b7e2d0409181994a4dacb":[4,0,13,4],
 "df/dad/struct_p_n_lick.html#abbba33898a80f8f4ee0c27fea8dc4485":[4,0,13,3],
 "df/dad/struct_p_n_lick.html#adc52cac7a6d7ea0b9b70de9169fdc053":[4,0,13,2],
 "df/dad/struct_p_n_lick.html#aebba9b491e000bc2c8910ac3ef105f17":[4,0,13,7],
@@ -14,8 +16,8 @@ var NAVTREEINDEX5 =
 "functions.html":[4,2,0],
 "functions_func.html":[4,2,1],
 "functions_vars.html":[4,2,2],
-"globals.html":[5,1,0,0],
 "globals.html":[5,1,0],
+"globals.html":[5,1,0,0],
 "globals_0x5f.html":[5,1,0,1],
 "globals_0x61.html":[5,1,0,2],
 "globals_0x62.html":[5,1,0,3],
@@ -68,8 +70,8 @@ var NAVTREEINDEX5 =
 "globals_defs_0x79.html":[5,1,6,23],
 "globals_enum.html":[5,1,4],
 "globals_eval.html":[5,1,5],
-"globals_func.html":[5,1,1],
 "globals_func.html":[5,1,1,0],
+"globals_func.html":[5,1,1],
 "globals_func_0x64.html":[5,1,1,1],
 "globals_func_0x66.html":[5,1,1,2],
 "globals_func_0x69.html":[5,1,1,3],

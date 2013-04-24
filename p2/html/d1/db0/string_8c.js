@@ -16,7 +16,6 @@ var string_8c =
     [ "potion_bytes", "d1/db0/string_8c.html#a4d9b3154c82ec86033f7b8865fb199fa", null ],
     [ "pn_printf", "d1/db0/string_8c.html#a2f9ad11f6343d9b2eac3695e91197737", null ],
     [ "potion_bytes_obj_string", "d1/db0/string_8c.html#a89ef0585ab738676e85d2339c9a649b2", null ],
-    [ "potion_bytes_print", "d1/db0/string_8c.html#a155ac01d2e11c56e47552378f68dc331", null ],
     [ "potion_str_hash_init", "d1/db0/string_8c.html#a4869f95c1e9281e8fa7df512d7adf016", null ],
     [ "potion_str_init", "d1/db0/string_8c.html#a53451ea1c8ded7f50af20bd7e768703e", null ]
 ];

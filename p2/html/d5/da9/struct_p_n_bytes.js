@@ -4,6 +4,7 @@ var struct_p_n_bytes =
     [ "potion_bytes_append", "d5/da9/struct_p_n_bytes.html#aaeb426421ee2f79484a2912744740cc9", null ],
     [ "potion_bytes_length", "d5/da9/struct_p_n_bytes.html#a53aaf21521cf66efa4cfe6b8a0d03e89", null ],
     [ "potion_bytes_string", "d5/da9/struct_p_n_bytes.html#a08196078bbfcf2537ac0f207820803e5", null ],
+    [ "potion_bytes_print", "d5/da9/struct_p_n_bytes.html#a155ac01d2e11c56e47552378f68dc331", null ],
     [ "potion_bytes_each", "d5/da9/struct_p_n_bytes.html#a690c5cdad0ee74ea2ffd4f8bb0f0486d", null ],
     [ "potion_bytes_at", "d5/da9/struct_p_n_bytes.html#adfc3468a142e1aefd7f478c4f33b003a", null ],
     [ "PN_OBJECT_HEADER", "d5/da9/struct_p_n_bytes.html#a204a3082afd41b8337eb00746e6ad150", null ],

@@ -32,11 +32,11 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/de6/opcodes_8h.html#aed0da68a542497c50283f1b25ed1c6c6",
-"da/d73/contrib_8c_source.html",
-"dc/df8/internal_8c.html#aeaa63e19faf22605c3f54e8a0bbaa073",
-"dd/d07/potion_8h.html#ad6793f3765f6d7470ba98dc4b1fabe35",
-"df/dad/struct_p_n_lick.html#abbba33898a80f8f4ee0c27fea8dc4485"
+"d3/de6/opcodes_8h_source.html",
+"da/d73/contrib_8c.html#af56668a28c69f1304be4b6b427df513e",
+"dc/df8/internal_8c.html#ada47533cf99d74a5bd159ecbc6440081",
+"dd/d07/potion_8h.html#ad64948e77fe92161d7edaeda9f71d20b",
+"df/dad/struct_p_n_lick.html#a2b05cfae82ae8470c89900fcb5d4243e"
 ];
 
 var navTreeSubIndices = new Array();

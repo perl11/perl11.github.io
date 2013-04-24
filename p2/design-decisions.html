@@ -29,18 +29,20 @@ for perl6.</p>
 would be no progress.<br />
 I plan significant enhancements in perl performance and features.</p>
 <h2>Generally</h2>
-<p>I go along with _why and every lisp coder. Good software should be<br />
-beautiful. It&#8217;s art not technology.<br />
-short, precise, readable. no one wants to work with a big and ugly mess,<br />
-not even companies. rather restrict the usage to those who know and<br />
-can be taught, than sacrifice your system for it.  support 90% but do<br />
-not sacrifice for the rest.  gmake and gcc/clang are available<br />
-everywhere, even on pure bsd&#8217;s.</p>
+<p>I go along with _why and every lisp coder.  Good software should be<br />
+beautiful. But not too beautiful. Code is also art not only technology.<br />
+Short, precise, readable. No one wants to work with a big and ugly<br />
+mess, not even companies. Too much code smells.  Rather restrict the<br />
+usage to those who know and can be taught, than sacrifice your system<br />
+for it. On the other hand too beautiful code rarely gets out of a niche.<br />
+Worse is better.</p>
+<p>Support 90% but do not sacrifice for the rest.<br />
+gmake and gcc/clang are available everywhere, even on pure bsd&#8217;s.</p>
 <p>Examples:<br />
-no support for MS cl/nmake, people should use mingw with gmake and gcc instead.<br />
-no support for BSDmakefile syntax (see the bsd branch).<br />
-no support for pure strict c++ compilers (see the p2-c++ branch).<br />
-no vax, hpux, aix without gnu tools</p>
+no support for MS cl/nmake. people should use mingw with gmake and gcc instead.<br />
+no support for BSDmakefile syntax. see the <code>bsd</code> branch.<br />
+no support for pure strict c++ compilers. see the <code>p2-c++</code> branch.<br />
+no vax, hpux, aix without gnu tools.</p>
 <h1>Incompatibilities</h1>
 <p>Some functionality will change, some annoying bugs fixed, <br />
 and some functionality might get removed, or not yet supported.</p>
@@ -54,15 +56,29 @@ compile-time error checking when binding libs.</p>
 <p>There should be a translator of old XS code to check the stack<br />
 (argument + return values) handling macros and convert them to direct<br />
 calls.</p>
-<h2>functional programming support</h2>
-<p>Some side-effect-only functions will be changed to return the<br />
+<h2>functional programming</h2>
+<p>p2 is pretty obscene in being a pure functional language, certainly more functional<br />
+than <span class="caps">LISP</span>.<br />
+Internally any non-lexical variable (GV in perl5) is a function, a closure, which means<br />
+it is an object, which means getting the value is done by sending it a message with<br />
+an empty name,<br />
+and setting the value is done by sending it the &#8220;def&#8221; message.</p>
+(message %<span class="caps">ENV</span>) =&gt; return value of %<span class="caps">ENV</span>
+(message %<span class="caps">ENV</span> &#8220;def&#8221; &amp;env) =&gt; set new value of %<span class="caps">ENV</span>
+<p>Yes, you smell Smalltalk.<br />
+This is needed to be able to support a proper object system, types and esp.<br />
+proper multi-threading.</p>
+<p>On the user-side some side-effect-only functions will be changed to return the<br />
 changed argument.<br />
-E.g. <code>chop, chomp, &#8230;</code></p>
-<p>The parser will be different. Most statements will return values.<br />
-E.g. <span class="caps">if</span> returns the value of the executed branch or<br />
-<span class="caps">undef</span> if no branch is choosen.<br />
-<code>$a = if (1) { $c }; # same as: $a = $c</code></p>
-
+E.g. chop, chomp, &#8230;<br />
+return $s =~ s///r as default if the left hand side (wantarray) is no list.</p>
+<p>The parser simplier and different. All statements return values. Everything can be on a<br />
+right hand side of something.<br />
+E.g. <strong>if</strong> returns the value of the executed branch or<br />
+<strong>undef</strong> if no branch is choosen.</p>
+<pre><code>{
+    $a = if (1) { $c }; #same as: $a = $c;
+}</code></pre>
 <h2>order of destruction</h2>
 <p>If you don&#8217;t use explicit <span class="caps">DESTROY</span> calls at the end of blocks, the compiler <br />
 might miss some <span class="caps">DESTROY</span> calls of untyped objects. <span class="caps">DESTROY</span> might be called<br />
@@ -113,12 +129,10 @@ pure top-down parser as e.g. lua to enable this.</p>
 allow user macros. expose the parser <span class="caps">API</span> to the user. query and<br />
 insert rules. use custom rules to parse ffi declarations (c headers)<br />
 templates, &#8230; or even basic, ruby, python or perl6.</p>
-<pre><code>
-  {
-    use v6;
-    # perl6 syntax...
-  }
-</code></pre>
+<pre><code>{
+  use v6;
+  # perl6 syntax...
+}</code></pre>
 <p><em>(this will need a pre-compiled <code>syntax-p6.g</code> and scoped syntax)</em></p>
 <p>Either done by extending packrat greg (ie leg) by with a parser<br />
 interpreter to add rules at run-time, &#8211; from precompiled rules and<br />
@@ -136,16 +150,12 @@ at run-time, but their syntactic macros are too complicated for me.<br />
 maybe using the perl6 <rule> syntax looks ok. <em>(i.e. <block> below)</em></p>
 <p>There are some similar non-mainstream approaches, on mono or java or<br />
 haskell, but none on fast, compiled to C scripting languages.</p>
-<pre><code>
-  syntax-p5.g:
-    block = '{' s:statements* '}' { $$ = PN_AST(BLOCK, s); }
-</code></pre>
-<pre><code>
-  macro ifdebug block 'ifdebug' {
-    if ($DEBUG) `block`;
-  }
-  { call() } ifdebug;
-</code></pre>
+<pre><code>syntax-p5.g:
+    block = '{' s:statements* '}' { $$ = PN_AST(BLOCK, s); }</code></pre>
+<pre><code> macro ifdebug block 'ifdebug' {
+  if ($DEBUG) `block`;
+}
+{ call() } ifdebug;</code></pre>
 <h3>auto-threads</h3>
 <p>the p2/potion data-structures, compiler, vm, gc, interpreter are<br />
 thread-safe.</p>

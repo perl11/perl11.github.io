@@ -1,5 +1,6 @@
 var vm_8c =
 [
+    [ "dbg_t", "de/de9/vm_8c.html#a43f06e20a84ebf9a7cf86ccf0500403c", null ],
     [ "STRINGIFY", "de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854", null ],
     [ "STACK_MAX", "de/de9/vm_8c.html#a27b296fccb4da1e9cfcf1f9c810e619e", null ],
     [ "JUMPS_MAX", "de/de9/vm_8c.html#ac0d60f35e73dff59f1522b9403410b41", null ],
