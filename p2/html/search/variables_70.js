@@ -42,7 +42,7 @@ var searchData=
   ['pn_5fwhile',['PN_while',['../dc/df8/internal_8c.html#ad19cc2cf28214b9b1225806b06afe7f7',1,'PN_while():&#160;internal.c'],['../dd/d07/potion_8h.html#ad19cc2cf28214b9b1225806b06afe7f7',1,'PN_while():&#160;internal.c']]],
   ['potion_5fast_5fnames',['potion_ast_names',['../d8/d01/ast_8c.html#ab2a4f2f15a3df1f743dcb85406d23fd8',1,'ast.c']]],
   ['potion_5fast_5fsizes',['potion_ast_sizes',['../d8/d01/ast_8c.html#ae20f7ab154ecf0669b8b6731cff4be90',1,'ast.c']]],
-  ['potion_5fops',['potion_ops',['../d2/d47/compile_8c.html#ad16d449009a0f5a96f0d41527aed780a',1,'compile.c']]],
+  ['potion_5fops',['potion_ops',['../d2/d47/compile_8c.html#ad16d449009a0f5a96f0d41527aed780a',1,'potion_ops():&#160;compile.c'],['../de/de9/vm_8c.html#aa4ec4e9629930984b8e9ac2aef649ecb',1,'potion_ops():&#160;vm.c']]],
   ['potion_5ftarget_5fx86',['potion_target_x86',['../de/de9/vm_8c.html#ab751dce2161ff80fe673b22eb7ea2c2f',1,'vm.c']]],
   ['prec',['prec',['../d2/dcd/struct_potion___state.html#a6b514cf97be4e919e121de078cfb1531',1,'Potion_State']]],
   ['protect',['protect',['../de/db4/struct_p_n_memory.html#a6ff90035d7886e6287c50d424f10060c',1,'PNMemory']]],

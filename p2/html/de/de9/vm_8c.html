@@ -108,6 +108,9 @@ $(document).ready(function(){initNavTree('de/de9/vm_8c.html','../../');});
 <div class="title">vm.c File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p>the vm execution loop, the "bytecode interpreter".  
+<a href="#details">More...</a></p>
 <div class="textblock"><code>#include &lt;stdio.h&gt;</code><br/>
 <code>#include &lt;stdarg.h&gt;</code><br/>
 <code>#include &lt;stdlib.h&gt;</code><br/>
@@ -118,6 +121,8 @@ $(document).ready(function(){initNavTree('de/de9/vm_8c.html','../../');});
 <code>#include &quot;<a class="el" href="../../de/d21/asm_8h_source.html">asm.h</a>&quot;</code><br/>
 <code>#include &quot;<a class="el" href="../../d2/deb/khash_8h_source.html">khash.h</a>&quot;</code><br/>
 <code>#include &quot;<a class="el" href="../../dd/d98/table_8h_source.html">table.h</a>&quot;</code><br/>
+<code>#include &lt;udis86.h&gt;</code><br/>
+<code>#include &quot;<a class="el" href="../../d3/dea/vm-dis_8c_source.html">vm-dis.c</a>&quot;</code><br/>
 </div><div class="textblock"><div id="dynsection-0" onclick="return toggleVisibility(this)" class="dynheader closed" style="cursor:pointer;">
   <img id="dynsection-0-trigger" src="../../closed.png" alt="+"/> Include dependency graph for vm.c:</div>
 <div id="dynsection-0-summary" class="dynsummary" style="display:block;">
@@ -125,47 +130,105 @@ $(document).ready(function(){initNavTree('de/de9/vm_8c.html','../../');});
 <div id="dynsection-0-content" class="dyncontent" style="display:none;">
 <div class="center"><img src="../../d8/d9e/vm_8c__incl.png" border="0" usemap="#vm_8c" alt=""/></div>
 <map name="vm_8c" id="vm_8c">
-<area shape="rect" id="node11" href="../../d4/d32/p2_8h.html" title="p2.h" alt="" coords="371,83,416,112"/><area shape="rect" id="node23" href="../../db/dde/internal_8h.html" title="internal.h" alt="" coords="433,160,508,189"/><area shape="rect" id="node25" href="../../d3/de6/opcodes_8h.html" title="opcodes.h" alt="" coords="576,83,659,112"/><area shape="rect" id="node27" href="../../de/d21/asm_8h.html" title="asm.h" alt="" coords="683,83,741,112"/><area shape="rect" id="node29" href="../../d2/deb/khash_8h.html" title="klib hash table library based on double hashing http://en.wikipedia.org/wiki/Double_hashing ..." alt="" coords="235,160,301,189"/><area shape="rect" id="node35" href="../../dd/d98/table_8h.html" title="the central table type, based on core/khash.h" alt="" coords="285,83,347,112"/><area shape="rect" id="node13" href="../../dd/d07/potion_8h.html" title="potion.h" alt="" coords="343,160,409,189"/><area shape="rect" id="node21" href="../../db/d16/config_8h.html" title="config.h" alt="" coords="549,237,616,267"/></map>
+<area shape="rect" id="node11" href="../../d4/d32/p2_8h.html" title="p2.h" alt="" coords="371,83,416,112"/><area shape="rect" id="node23" href="../../db/dde/internal_8h.html" title="internal.h" alt="" coords="433,160,508,189"/><area shape="rect" id="node25" href="../../d3/de6/opcodes_8h.html" title="opcodes.h" alt="" coords="576,83,659,112"/><area shape="rect" id="node27" href="../../de/d21/asm_8h.html" title="asm.h" alt="" coords="683,83,741,112"/><area shape="rect" id="node29" href="../../d2/deb/khash_8h.html" title="klib hash table library based on double hashing http://en.wikipedia.org/wiki/Double_hashing ..." alt="" coords="235,160,301,189"/><area shape="rect" id="node35" href="../../dd/d98/table_8h.html" title="the central table type, based on core/khash.h" alt="" coords="285,83,347,112"/><area shape="rect" id="node42" href="../../d3/dea/vm-dis_8c.html" title="interface to various jit disassembler libs." alt="" coords="859,83,931,112"/><area shape="rect" id="node13" href="../../dd/d07/potion_8h.html" title="potion.h" alt="" coords="343,160,409,189"/><area shape="rect" id="node21" href="../../db/d16/config_8h.html" title="config.h" alt="" coords="549,237,616,267"/></map>
 </div>
 </div>
 <p><a href="../../de/de9/vm_8c_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a43f06e20a84ebf9a7cf86ccf0500403c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a43f06e20a84ebf9a7cf86ccf0500403c">dbg_t</a>(...)</td></tr>
+<tr class="memitem:aaba147344d60f707eef54bd8cd116854"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854">STRINGIFY</a>(_obj)&#160;&#160;&#160;<a class="el" href="../../dd/d07/potion_8h.html#a1a49dc30df54f576694ab622ebf38d1b">PN_STR_PTR</a>(<a class="el" href="../../dd/d07/potion_8h.html#ad6793f3765f6d7470ba98dc4b1fabe35">potion_send</a>(_obj, <a class="el" href="../../dd/d07/potion_8h.html#a1e9051c7879ecabb2e8789591a4df318">PN_string</a>))</td></tr>
 <tr class="memitem:a27b296fccb4da1e9cfcf1f9c810e619e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a27b296fccb4da1e9cfcf1f9c810e619e">STACK_MAX</a>&#160;&#160;&#160;4096</td></tr>
 <tr class="memitem:ac0d60f35e73dff59f1522b9403410b41"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#ac0d60f35e73dff59f1522b9403410b41">JUMPS_MAX</a>&#160;&#160;&#160;1024</td></tr>
-<tr class="memitem:a65a37a7116a55e32f389eb26a744d647"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a65a37a7116a55e32f389eb26a744d647">CASE_OP</a>(<a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, <a class="el" href="../../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>)&#160;&#160;&#160;case OP_##name: target-&gt;op[OP_##<a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>]<a class="el" href="../../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>; break;</td></tr>
-<tr class="memitem:a4caa93520f45e12b729607b69ceed3bc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a4caa93520f45e12b729607b69ceed3bc">PN_VM_MATH</a>(<a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, oper)</td></tr>
+<tr class="memitem:a65a37a7116a55e32f389eb26a744d647"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a65a37a7116a55e32f389eb26a744d647">CASE_OP</a>(<a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, <a class="el" href="../../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>)&#160;&#160;&#160;case OP_##name: target-&gt;op[OP_##<a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>]<a class="el" href="../../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>; break;</td></tr>
+<tr class="memitem:a4caa93520f45e12b729607b69ceed3bc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a4caa93520f45e12b729607b69ceed3bc">PN_VM_MATH</a>(<a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, oper)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a43f53d1bb0ff2cba095a076fcb9c1ef2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a43f53d1bb0ff2cba095a076fcb9c1ef2">potion_vm_init</a> (<a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *P)</td></tr>
 <tr class="memitem:a2b801f0b4a822dce0c08d9b3515f2d3c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#a2b801f0b4a822dce0c08d9b3515f2d3c">potion_vm_proto</a> (<a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *P, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> cl, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> self,...)</td></tr>
 <tr class="memitem:ab63c36540b79de6bd0edad736f30604c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#ab63c36540b79de6bd0edad736f30604c">potion_vm_class</a> (<a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *P, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> cl, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> self)</td></tr>
-<tr class="memitem:af96fe06b2417036ef7db5eb6e6280da7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d07/potion_8h.html#a4312bc1eaaab6fd6dd62ad3d00a2e141">PN_F</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#af96fe06b2417036ef7db5eb6e6280da7">potion_jit_proto</a> (<a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *P, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> proto)</td></tr>
 <tr class="memitem:af23b54160a0fc75ea32fe1a9b479bbea"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#af23b54160a0fc75ea32fe1a9b479bbea">potion_vm</a> (<a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *P, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> proto, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> self, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> vargs, <a class="el" href="../../dd/d07/potion_8h.html#a1dbfbf639d88c38c8fcaedb9b3ba330c">PN_SIZE</a> upc, <a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a> *upargs)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2><a name="var-members"></a>
 Variables</h2></td></tr>
+<tr class="memitem:aa4ec4e9629930984b8e9ac2aef649ecb"><td class="memItemLeft" >struct {</td></tr>
+<tr class="memitem:ac57d6a7169df9504c2c687a9f98253f5"><td class="memItemLeft" >&#160;&#160;&#160;const char *&#160;&#160;&#160;<a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a></td></tr>
+<tr class="memitem:ac67b935ba63a42e56a58f7f9345b5212"><td class="memItemLeft" >&#160;&#160;&#160;const <a class="el" href="../../db/dde/internal_8h.html#aed742c436da53c1080638ce6ef7d13de">u8</a>&#160;&#160;&#160;<a class="el" href="../../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a></td></tr>
+<tr class="memitem:aa4ec4e9629930984b8e9ac2aef649ecb"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#aa4ec4e9629930984b8e9ac2aef649ecb">potion_ops</a> []</td></tr>
 <tr class="memitem:ab751dce2161ff80fe673b22eb7ea2c2f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d6/d06/struct_p_n_target.html">PNTarget</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/de9/vm_8c.html#ab751dce2161ff80fe673b22eb7ea2c2f">potion_target_x86</a></td></tr>
 </table>
-<h2>Macro Definition Documentation</h2>
-<a class="anchor" id="a43f06e20a84ebf9a7cf86ccf0500403c"></a>
+<a name="details" id="details"></a><h2>Detailed Description</h2>
+<div class="textblock"><p>the vm execution loop, the "bytecode interpreter". </p>
+<p>correct but slower than the jit.</p>
+<p>usage: -B or automatically when no jit is available for your architecture.</p>
+<p>Potion uses a register-based bytecode VM that is nearly a word-for-word copy of Lua's. The code is all different, but the bytecode is nearly identical. See <a href="http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf">http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf</a> or <a href="http://www.lua.org/doc/jucs05.pdf">http://www.lua.org/doc/jucs05.pdf</a></p>
+<ul>
+<li>MOVE (pos) copy value between registers</li>
+<li>LOADPN (pos) load a PN value into a register</li>
+<li>LOADK (pos, need) load a constant into a register</li>
+<li>SELF (pos, need) prepare an object method for calling R(A+1) := R(B); R(A) := R(B)[RK(C)]</li>
+<li>GETLOCAL (pos, regs) read a local into a register</li>
+<li>SETLOCAL (pos, regs) write a register value into a local</li>
+<li>GETUPVAL (pos, lregs) read an upvalue (upper scope)</li>
+<li>SETUPVAL (pos, lregs) write to an upvalue</li>
+<li>GLOBAL (pos, need) returns a global (for get or set)</li>
+<li>NEWTUPLE (pos, need) create tuple</li>
+<li>SETTUPLE (pos, need) write register into tuple key</li>
+<li>SETTABLE (pos, need) write register into a table entry</li>
+<li>NEWLICK (pos, need) create lick. R(A) := {} (size = B,C)</li>
+<li>GETPATH (pos, need) read obj field into register</li>
+<li>SETPATH (pos, need) write into obj field</li>
+<li>ADD (pos, need) a = b + c</li>
+<li>SUB (pos, need) a = b - c</li>
+<li>MULT (pos, need)</li>
+<li>DIV (pos, need)</li>
+<li>REM (pos, need)</li>
+<li>POW (pos, need)</li>
+<li>NEQ (pos)</li>
+<li>EQ (pos) if ((RK(B) == RK(C) ~= A) then PC++</li>
+<li>LT (pos) if ((RK(B) &lt; RK(C) ~= A) then PC++</li>
+<li>LTE (pos) if ((RK(B) &lt;= RK(C) ~= A) then PC++</li>
+<li>GT (pos)</li>
+<li>GTE (pos)</li>
+<li>BITN (pos, need)</li>
+<li>BITL (pos, need)</li>
+<li>BITR (pos, need)</li>
+<li>DEF (pos, need) define a method for an object</li>
+<li>BIND (pos, need) extend obj by set a binding <a href="http://piumarta.com/software/cola/colas-whitepaper.pdf">http://piumarta.com/software/cola/colas-whitepaper.pdf</a></li>
+<li>MESSAGE (pos, need) call a method of an object</li>
+<li>JMP (pos, jmps, offs, &amp;jmpc) PC += sBx</li>
+<li>TEST (pos) if not (R(A) &lt;=&gt; C) then PC++</li>
+<li>NOT (pos) a = not b</li>
+<li>CMP (pos)</li>
+<li>TESTJMP (pos, jmps, offs, &amp;jmpc)</li>
+<li>NOTJMP (pos, jmps, offs, &amp;jmpc)</li>
+<li>NAMED (pos, need) assign named args before a CALL</li>
+<li>CALL (pos, need) call a function. R(A),...:= R(A)(R(A+1),...,R(A+B-1)</li>
+<li>CALLSET (pos, need) ? set return register to write to</li>
+<li>RETURN (pos) return R(A), ... ,R(A+B-2)</li>
+<li>PROTO (&amp;pos, lregs, need, regs) define function prototype</li>
+<li>CLASS (pos, need) find class for register value</li>
+</ul>
+<p>(c) 2008 why the lucky stiff, the freelance professor (c) 2013 by perl11 org </p>
+
+<p>Definition in file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+</div><h2>Macro Definition Documentation</h2>
+<a class="anchor" id="aaba147344d60f707eef54bd8cd116854"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define dbg_t</td>
+          <td class="memname">#define STRINGIFY</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>...</em></td><td>)</td>
-          <td></td>
+          <td class="paramname">_obj</td><td>)</td>
+          <td>&#160;&#160;&#160;<a class="el" href="../../dd/d07/potion_8h.html#a1a49dc30df54f576694ab622ebf38d1b">PN_STR_PTR</a>(<a class="el" href="../../dd/d07/potion_8h.html#ad6793f3765f6d7470ba98dc4b1fabe35">potion_send</a>(_obj, <a class="el" href="../../dd/d07/potion_8h.html#a1e9051c7879ecabb2e8789591a4df318">PN_string</a>))</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00042">42</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00092">92</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -179,7 +242,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00097">97</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00147">147</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -193,7 +256,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00098">98</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00148">148</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -205,23 +268,23 @@ Variables</h2></td></tr>
           <td class="memname">#define CASE_OP</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, </td>
+          <td class="paramname"><a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><a class="el" href="../../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>&#160;</td>
+          <td class="paramname"><a class="el" href="../../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>&#160;</td>
         </tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td>&#160;&#160;&#160;case OP_##name: target-&gt;op[OP_##<a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>]<a class="el" href="../../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>; break;</td>
+          <td></td><td>&#160;&#160;&#160;case OP_##name: target-&gt;op[OP_##<a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>]<a class="el" href="../../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178">args</a>; break;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00100">100</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00150">150</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -233,7 +296,7 @@ Variables</h2></td></tr>
           <td class="memname">#define PN_VM_MATH</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><a class="el" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, </td>
+          <td class="paramname"><a class="el" href="../../de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -253,7 +316,7 @@ Variables</h2></td></tr>
 <div class="line">  else \</div>
 <div class="line">    reg[op.a] = potion_obj_##<a class="code" href="../../d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb">name</a>(P, reg[op.a], reg[op.b]);</div>
 </div><!-- fragment -->
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00230">230</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00278">278</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -272,7 +335,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00055">55</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00105">105</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -312,7 +375,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00067">67</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00117">117</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -346,35 +409,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00084">84</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="af96fe06b2417036ef7db5eb6e6280da7"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="../../dd/d07/potion_8h.html#a4312bc1eaaab6fd6dd62ad3d00a2e141">PN_F</a> potion_jit_proto </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023">Potion</a> *&#160;</td>
-          <td class="paramname"><em>P</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="../../dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2">PN</a>&#160;</td>
-          <td class="paramname"><em>proto</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00102">102</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00134">134</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
@@ -426,11 +461,51 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00236">236</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00284">284</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
 
 </div>
 </div>
 <h2>Variable Documentation</h2>
+<a class="anchor" id="a8f8f80d37794cde9472343e4487ba3eb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const char* name</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00088">88</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a696b922b70259bfcac0d3acf49cdf178"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="el" href="../../db/dde/internal_8h.html#aed742c436da53c1080638ce6ef7d13de">u8</a> args</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="../../de/de9/vm_8c_source.html#l00089">89</a> of file <a class="el" href="../../de/de9/vm_8c_source.html">vm.c</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aa4ec4e9629930984b8e9ac2aef649ecb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct { ... }   potion_ops[]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="ab751dce2161ff80fe673b22eb7ea2c2f"></a>
 <div class="memitem">
 <div class="memproto">
@@ -446,6 +521,6 @@ Variables</h2></td></tr>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 25 15:01:35 CDT 2013 for p2 "0.0" (date="2013-04-25")
+Generated on Thu Apr 25 17:42:43 CDT 2013 for p2 "0.0" (date="2013-04-25")
 by <a href="http://www.doxygen.org/index.html">doxygen</a> 1.8.1.2 
 </small></address></body></html>

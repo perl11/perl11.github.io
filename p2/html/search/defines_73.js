@@ -4,5 +4,6 @@ var searchData=
   ['set_5fstoreptr',['SET_STOREPTR',['../d0/daa/gc_8h.html#a67f5a44718f132251aea81436807c06b',1,'gc.h']]],
   ['short_5fsize_5ft',['SHORT_SIZE_T',['../db/d16/config_8h.html#a2c648a0ad7de70fa81224838e2eaca98',1,'config.h']]],
   ['stack_5fmax',['STACK_MAX',['../de/de9/vm_8c.html#a27b296fccb4da1e9cfcf1f9c810e619e',1,'vm.c']]],
-  ['string_5fname',['STRING_NAME',['../d4/ddb/objmodel_8c.html#a3aaebdc8f4248444a5fca0799f71b13c',1,'objmodel.c']]]
+  ['string_5fname',['STRING_NAME',['../d4/ddb/objmodel_8c.html#a3aaebdc8f4248444a5fca0799f71b13c',1,'objmodel.c']]],
+  ['stringify',['STRINGIFY',['../de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854',1,'vm.c']]]
 ];
