@@ -13,6 +13,5 @@ var searchData=
   ['state',['state',['../df/dac/mt19937ar_8c.html#a1ac338c8291400e2f2785ef2cb7a5458',1,'mt19937ar.c']]],
   ['string_2ec',['string.c',['../d1/db0/string_8c.html',1,'']]],
   ['string_5fname',['STRING_NAME',['../d4/ddb/objmodel_8c.html#a3aaebdc8f4248444a5fca0799f71b13c',1,'objmodel.c']]],
-  ['stringify',['STRINGIFY',['../de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854',1,'vm.c']]],
   ['strings',['strings',['../d2/dcd/struct_potion___state.html#a4c96fa5a6e97901c494be572d8944ac4',1,'Potion_State']]]
 ];
