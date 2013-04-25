@@ -303,5 +303,6 @@ var potion_8h =
     [ "PN_bitn", "dd/d07/potion_8h.html#acf6277168a912c7f78f9e460229f64a3", null ],
     [ "PN_bitl", "dd/d07/potion_8h.html#a77f22808dbaad1053033fe56d7e2899b", null ],
     [ "PN_bitr", "dd/d07/potion_8h.html#a7ea8074775c7b4c5286217389ea3d5f0", null ],
-    [ "PN_cmp", "dd/d07/potion_8h.html#a0f2f0010a3c8704d77e0a004255b1755", null ]
+    [ "PN_cmp", "dd/d07/potion_8h.html#a0f2f0010a3c8704d77e0a004255b1755", null ],
+    [ "PN_number", "dd/d07/potion_8h.html#a7e85537374f77c01bf880d8fb9cf9ca9", null ]
 ];

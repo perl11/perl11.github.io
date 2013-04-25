@@ -1,270 +1,145 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>core/khash.h</title>
+<title>core/contrib.c</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/khash.h</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L191'>[^]</a><a href='#L197'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
-<hr />
-<h2 class='header'><a href='../J/13.html' title='Multiple included from 10 places.'>INCLUDED FROM</a></h2>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/contrib.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L19'>[^]</a><a href='#L102'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
 <h2 class='header'>DEFINITIONS</h2>
 This source file includes following definitions.
 <ol>
-<li><a href='#L191' title='Defined at 191.'>__kh_X31_hash_string</a></li>
-<li><a href='#L197' title='Defined at 197.'>__luaS_hash_string</a></li>
+<li><a href='#L19' title='Defined at 19.'>potion_cp_strlen_utf8</a></li>
+<li><a href='#L53' title='Defined at 53.'>potion_mmap</a></li>
+<li><a href='#L62' title='Defined at 62.'>potion_munmap</a></li>
+<li><a href='#L70' title='Defined at 70.'>potion_mmap</a></li>
+<li><a href='#L79' title='Defined at 79.'>potion_munmap</a></li>
+<li><a href='#L90' title='Defined at 90.'>vasprintf</a></li>
+<li><a href='#L102' title='Defined at 102.'>asprintf</a></li>
 </ol>
 <hr />
 <pre>
 <a id='L1' name='L1'></a><em class='comment'>//</em>
-<a id='L2' name='L2'></a><em class='comment'>// khash.h</em>
-<a id='L3' name='L3'></a><em class='comment'>// a hashtable library, modified to suit potion's gc</em>
+<a id='L2' name='L2'></a><em class='comment'>// contrib.c</em>
+<a id='L3' name='L3'></a><em class='comment'>// stuff written by other folks, seen on blogs, etc. </em>
 <a id='L4' name='L4'></a><em class='comment'>//</em>
-<a id='L5' name='L5'></a><em class='comment'>// Copyright (c) 2008, by Attractive Chaos &lt;attractivechaos@aol.co.uk&gt;</em>
-<a id='L6' name='L6'></a><em class='comment'>// (Released under the MIT license, see COPYING)</em>
-<a id='L7' name='L7'></a><em class='comment'>//</em>
-<a id='L8' name='L8'></a>
-<a id='L9' name='L9'></a><em class='sharp'>#ifndef</em> <a href='../S/16.html#L10' title='Defined at 10 in core/khash.h.'>__AC_KHASH_H</a>
-<a id='L10' name='L10'></a><em class='sharp'>#define</em> <a href='../S/16.html#L9' title='Referred from 9 in core/khash.h.'>__AC_KHASH_H</a>
-<a id='L11' name='L11'></a>
-<a id='L12' name='L12'></a><em class='sharp'>#define</em> AC_VERSION_KHASH_H "0.2.2"
-<a id='L13' name='L13'></a>
-<a id='L14' name='L14'></a><em class='sharp'>#include</em> &lt;stdint.h&gt;
-<a id='L15' name='L15'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
-<a id='L16' name='L16'></a><em class='sharp'>#include</em> &lt;string.h&gt;
+<a id='L5' name='L5'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L6' name='L6'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L7' name='L7'></a><em class='sharp'>#include</em> &lt;stdint.h&gt;
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> "config.h"
+<a id='L9' name='L9'></a>
+<a id='L10' name='L10'></a><em class='comment'>//</em>
+<a id='L11' name='L11'></a><em class='comment'>// wonderful utf-8 counting trickery</em>
+<a id='L12' name='L12'></a><em class='comment'>// by colin percival</em>
+<a id='L13' name='L13'></a><em class='comment'>//</em>
+<a id='L14' name='L14'></a><em class='comment'>// http://www.daemonology.net/blog/2008-06-05-faster-utf8-strlen.html</em>
+<a id='L15' name='L15'></a><em class='comment'>//</em>
+<a id='L16' name='L16'></a><em class='sharp'>#define</em> <a href='../R/159.html' title='Multiple referred from 3 places.'>ONEMASK</a> ((size_t)(-1) / 0xFF)
 <a id='L17' name='L17'></a>
-<a id='L18' name='L18'></a><strong class='reserved'>typedef</strong> uint32_t <a href='../R/532.html' title='Multiple referred from 25 places.'>khint_t</a>;
-<a id='L19' name='L19'></a><strong class='reserved'>typedef</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> khiter_t;
-<a id='L20' name='L20'></a>
-<a id='L21' name='L21'></a><em class='sharp'>#define</em> <a href='../R/465.html' title='Multiple referred from 2 places.'>__ac_HASH_PRIME_SIZE</a> 32
-<a id='L22' name='L22'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> uint32_t __ac_prime_list[<a href='../S/16.html#L21' title='Defined at 21 in core/khash.h.'>__ac_HASH_PRIME_SIZE</a>] =
-<a id='L23' name='L23'></a><em class='brace'>{</em>
-<a id='L24' name='L24'></a>  0ul,          3ul,          11ul,         23ul,         53ul,
-<a id='L25' name='L25'></a>  97ul,         193ul,        389ul,        769ul,        1543ul,
-<a id='L26' name='L26'></a>  3079ul,       6151ul,       12289ul,      24593ul,      49157ul,
-<a id='L27' name='L27'></a>  98317ul,      196613ul,     393241ul,     786433ul,     1572869ul,
-<a id='L28' name='L28'></a>  3145739ul,    6291469ul,    12582917ul,   25165843ul,   50331653ul,
-<a id='L29' name='L29'></a>  100663319ul,  201326611ul,  402653189ul,  805306457ul,  1610612741ul,
-<a id='L30' name='L30'></a>  3221225473ul, 4294967291ul
-<a id='L31' name='L31'></a><em class='brace'>}</em>;
-<a id='L32' name='L32'></a>
-<a id='L33' name='L33'></a><em class='sharp'>#define</em> <a href='../R/123.html' title='Multiple referred from 9 places.'>KHASH_FLAG</a>(name, h, i) *(uint32_t *)(h-&gt;table + kh_flag_##name(i))
-<a id='L34' name='L34'></a><em class='sharp'>#define</em> <a href='../R/125.html' title='Multiple referred from 8 places.'>KHASH_KEY</a>(name, h, i) *kh_key_##name(h, i)
-<a id='L35' name='L35'></a><em class='sharp'>#define</em> <a href='../R/128.html' title='Multiple referred from 4 places.'>KHASH_VAL</a>(name, h, i) *kh_val_##name(h, i)
-<a id='L36' name='L36'></a>
-<a id='L37' name='L37'></a><em class='sharp'>#define</em> <a href='../S/16.html#L111' title='Referred from 111 in core/khash.h.'>__ac_isempty</a>(flag, i) ((flag[i&gt;&gt;4]&gt;&gt;((i&amp;0xfU)&lt;&lt;1))&amp;2)
-<a id='L38' name='L38'></a><em class='sharp'>#define</em> <a href='../S/16.html#L115' title='Referred from 115 in core/khash.h.'>__ac_set_isempty_false</a>(flag, i) (flag[i&gt;&gt;4]&amp;=~(2ul&lt;&lt;((i&amp;0xfU)&lt;&lt;1)))
-<a id='L39' name='L39'></a><em class='sharp'>#define</em> <a href='../R/470.html' title='Multiple referred from 5 places.'>__kh_isempty</a>(name, h, i) ((<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&gt;&gt;((i&amp;0xfU)&lt;&lt;1))&amp;2)
-<a id='L40' name='L40'></a><em class='sharp'>#define</em> <a href='../R/468.html' title='Multiple referred from 4 places.'>__kh_isdel</a>(name, h, i) ((<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&gt;&gt;((i&amp;0xfU)&lt;&lt;1))&amp;1)
-<a id='L41' name='L41'></a><em class='sharp'>#define</em> <a href='../R/469.html' title='Multiple referred from 5 places.'>__kh_iseither</a>(name, h, i) ((<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&gt;&gt;((i&amp;0xfU)&lt;&lt;1))&amp;3)
-<a id='L42' name='L42'></a><em class='sharp'>#define</em> __kh_set_isdel_false(name, h, i) (<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&amp;=~(1ul&lt;&lt;((i&amp;0xfU)&lt;&lt;1)))
-<a id='L43' name='L43'></a><em class='sharp'>#define</em> __kh_set_isempty_false(name, h, i) (<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&amp;=~(2ul&lt;&lt;((i&amp;0xfU)&lt;&lt;1)))
-<a id='L44' name='L44'></a><em class='sharp'>#define</em> <a href='../R/471.html' title='Multiple referred from 2 places.'>__kh_set_isboth_false</a>(name, h, i) (<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)&amp;=~(3ul&lt;&lt;((i&amp;0xfU)&lt;&lt;1)))
-<a id='L45' name='L45'></a><em class='sharp'>#define</em> <a href='../R/472.html' title='Multiple referred from 3 places.'>__kh_set_isdel_true</a>(name, h, i) (<a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i)|=1ul&lt;&lt;((i&amp;0xfU)&lt;&lt;1))
-<a id='L46' name='L46'></a>
-<a id='L47' name='L47'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>double</strong> __kh_HASH_UPPER = 0.77;
+<a id='L18' name='L18'></a>size_t
+<a id='L19' name='L19'></a><a href='../R/646.html' title='Multiple referred from 3 places.'>potion_cp_strlen_utf8</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> * _s)
+<a id='L20' name='L20'></a><em class='brace'>{</em>
+<a id='L21' name='L21'></a>  <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> * s;
+<a id='L22' name='L22'></a>  size_t count = 0;
+<a id='L23' name='L23'></a>  size_t u;
+<a id='L24' name='L24'></a>  <strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong> b;
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a>  <strong class='reserved'>for</strong> (s = _s; (uintptr_t)(s) &amp; (<strong class='reserved'>sizeof</strong>(size_t) - 1); s++) <em class='brace'>{</em>
+<a id='L27' name='L27'></a>    b = *s;
+<a id='L28' name='L28'></a>    <strong class='reserved'>if</strong> (b == '\0') <strong class='reserved'>goto</strong> done;
+<a id='L29' name='L29'></a>    count += (b &gt;&gt; 7) &amp; ((~b) &gt;&gt; 6);
+<a id='L30' name='L30'></a>  <em class='brace'>}</em>
+<a id='L31' name='L31'></a>
+<a id='L32' name='L32'></a>  <strong class='reserved'>for</strong> (; ; s += <strong class='reserved'>sizeof</strong>(size_t)) <em class='brace'>{</em>
+<a id='L33' name='L33'></a>    __builtin_prefetch(&amp;s[256], 0, 0);
+<a id='L34' name='L34'></a>    u = *(size_t *)(s);
+<a id='L35' name='L35'></a>    <strong class='reserved'>if</strong> ((u - <a href='../S/16.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a>) &amp; (~u) &amp; (<a href='../S/16.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a> * 0x80)) <strong class='reserved'>break</strong>;
+<a id='L36' name='L36'></a>    u = ((u &amp; (<a href='../S/16.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a> * 0x80)) &gt;&gt; 7) &amp; ((~u) &gt;&gt; 6);
+<a id='L37' name='L37'></a>    count += (u * <a href='../S/16.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a>) &gt;&gt; ((<strong class='reserved'>sizeof</strong>(size_t) - 1) * 8);
+<a id='L38' name='L38'></a>  <em class='brace'>}</em>
+<a id='L39' name='L39'></a>
+<a id='L40' name='L40'></a>  <strong class='reserved'>for</strong> (; ; s++) <em class='brace'>{</em>
+<a id='L41' name='L41'></a>    b = *s;
+<a id='L42' name='L42'></a>    <strong class='reserved'>if</strong> (b == '\0') <strong class='reserved'>break</strong>;
+<a id='L43' name='L43'></a>    count += (b &gt;&gt; 7) &amp; ((~b) &gt;&gt; 6);
+<a id='L44' name='L44'></a>  <em class='brace'>}</em>
+<a id='L45' name='L45'></a>done:
+<a id='L46' name='L46'></a>  <strong class='reserved'>return</strong> ((s - _s) - count);
+<a id='L47' name='L47'></a><em class='brace'>}</em>
 <a id='L48' name='L48'></a>
-<a id='L49' name='L49'></a><em class='sharp'>#define</em> <a href='../S/28.html#L34' title='Referred from 34 in core/table.h.'>PN_TABLE_HEADER</a> <a href='../S/24.html#L75' title='Defined at 75 in core/potion.h.'>PN_SIZE</a> n_buckets, size, n_occupied, upper_bound
-<a id='L50' name='L50'></a>
-<a id='L51' name='L51'></a><em class='sharp'>#define</em> <a href='../R/124.html' title='Multiple referred from 2 places.'>KHASH_INIT</a>(name, kh_t, khkey_t, khval_t, khkey_t2, kh_is_map, __hash_func, __hash_equal, __hash_func2, __hash_equal2) \
-<a id='L52' name='L52'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_pair_##name() <em class='brace'>{</em> <strong class='reserved'>return</strong> (kh_is_map ? (<strong class='reserved'>sizeof</strong>(khkey_t) + <strong class='reserved'>sizeof</strong>(khval_t)) : <strong class='reserved'>sizeof</strong>(khkey_t)); <em class='brace'>}</em> \
-<a id='L53' name='L53'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_size_##name(<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> n) <em class='brace'>{</em> <strong class='reserved'>return</strong> (((n &gt;&gt; 4) + 1) * (<strong class='reserved'>sizeof</strong>(uint32_t))) + (n * kh_pair_##name()); <em class='brace'>}</em> \
-<a id='L54' name='L54'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_flag_##name(<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> i) <em class='brace'>{</em> <strong class='reserved'>return</strong> (i &gt;&gt; 4) * (<strong class='reserved'>sizeof</strong>(uint32_t) + ((<strong class='reserved'>sizeof</strong>(uint32_t) * 4) * kh_pair_##name())); <em class='brace'>}</em> \
-<a id='L55' name='L55'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_key_at_##name(<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> i) <em class='brace'>{</em> <strong class='reserved'>return</strong> (((i &gt;&gt; 4) + 1) * <strong class='reserved'>sizeof</strong>(uint32_t)) + (i * kh_pair_##name()); <em class='brace'>}</em> \
-<a id='L56' name='L56'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_val_at_##name(<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> i) <em class='brace'>{</em> <strong class='reserved'>return</strong> (((i &gt;&gt; 4) + 1) * <strong class='reserved'>sizeof</strong>(uint32_t)) + (i * kh_pair_##name()) + <strong class='reserved'>sizeof</strong>(khkey_t); <em class='brace'>}</em> \
-<a id='L57' name='L57'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> khkey_t *kh_key_##name(kh_t *h, <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> i) <em class='brace'>{</em> <strong class='reserved'>return</strong> (khkey_t *)(h-&gt;table + kh_key_at_##name(i)); <em class='brace'>}</em> \
-<a id='L58' name='L58'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> khval_t *kh_val_##name(kh_t *h, <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> i) <em class='brace'>{</em> <strong class='reserved'>return</strong> (khval_t *)(h-&gt;table + kh_val_at_##name(i)); <em class='brace'>}</em> \
-<a id='L59' name='L59'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <strong class='reserved'>void</strong> kh_clear_##name(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, kh_t *h) \
-<a id='L60' name='L60'></a>  <em class='brace'>{</em> \
-<a id='L61' name='L61'></a>    <strong class='reserved'>if</strong> (h &amp;&amp; h-&gt;n_buckets &gt; 0) <em class='brace'>{</em> \
-<a id='L62' name='L62'></a>      <strong class='reserved'>int</strong> i = ((h-&gt;n_buckets) &gt;&gt; 4) + 1; \
-<a id='L63' name='L63'></a>      <strong class='reserved'>while</strong> (i-- &gt; 0) <a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, i) = 0xaaaaaaaa; \
-<a id='L64' name='L64'></a>      h-&gt;size = h-&gt;n_occupied = 0; \
-<a id='L65' name='L65'></a>    <em class='brace'>}</em> \
-<a id='L66' name='L66'></a>  <em class='brace'>}</em> \
-<a id='L67' name='L67'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_get_##name(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, kh_t *h, khkey_t2 key) \
-<a id='L68' name='L68'></a>  <em class='brace'>{</em> \
-<a id='L69' name='L69'></a>    <strong class='reserved'>if</strong> (h-&gt;n_buckets) <em class='brace'>{</em> \
-<a id='L70' name='L70'></a>      <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> inc, k, i, last; \
-<a id='L71' name='L71'></a>      k = __hash_func2(key); i = k % h-&gt;n_buckets; \
-<a id='L72' name='L72'></a>      inc = 1 + k % (h-&gt;n_buckets - 1); last = i; \
-<a id='L73' name='L73'></a>      <strong class='reserved'>while</strong> (!<a href='../S/16.html#L39' title='Defined at 39 in core/khash.h.'>__kh_isempty</a>(name, h, i) &amp;&amp; (<a href='../S/16.html#L40' title='Defined at 40 in core/khash.h.'>__kh_isdel</a>(name, h, i) || !__hash_equal2(<a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, i), key))) <em class='brace'>{</em> \
-<a id='L74' name='L74'></a>        <strong class='reserved'>if</strong> (i + inc &gt;= h-&gt;n_buckets) i = i + inc - h-&gt;n_buckets; \
-<a id='L75' name='L75'></a>        <strong class='reserved'>else</strong> i += inc; \
-<a id='L76' name='L76'></a>        <strong class='reserved'>if</strong> (i == last) <strong class='reserved'>return</strong> h-&gt;n_buckets; \
-<a id='L77' name='L77'></a>      <em class='brace'>}</em> \
-<a id='L78' name='L78'></a>      <strong class='reserved'>return</strong> <a href='../S/16.html#L41' title='Defined at 41 in core/khash.h.'>__kh_iseither</a>(name, h, i)? h-&gt;n_buckets : i; \
-<a id='L79' name='L79'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>return</strong> 0; \
-<a id='L80' name='L80'></a>  <em class='brace'>}</em> \
-<a id='L81' name='L81'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> kh_t *kh_resize_##name(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, kh_t *h, <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> new_n_buckets) \
-<a id='L82' name='L82'></a>  <em class='brace'>{</em> \
-<a id='L83' name='L83'></a>    <a href='../S/24.html#L128' title='Defined at 128 in core/potion.h.'>vPN</a>(Data) nft = 0; \
-<a id='L84' name='L84'></a>    uint32_t *new_flags = 0; \
-<a id='L85' name='L85'></a>    <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> j = 1; \
-<a id='L86' name='L86'></a>    <em class='brace'>{</em> \
-<a id='L87' name='L87'></a>      <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> t = <a href='../S/16.html#L21' title='Defined at 21 in core/khash.h.'>__ac_HASH_PRIME_SIZE</a> - 1; \
-<a id='L88' name='L88'></a>      <strong class='reserved'>while</strong> (__ac_prime_list[t] &gt; new_n_buckets) --t; \
-<a id='L89' name='L89'></a>      new_n_buckets = __ac_prime_list[t+1]; \
-<a id='L90' name='L90'></a>      <strong class='reserved'>if</strong> (h-&gt;size &gt;= (<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a>)(new_n_buckets * __kh_HASH_UPPER + 0.5)) j = 0; \
-<a id='L91' name='L91'></a>      <strong class='reserved'>else</strong> <em class='brace'>{</em> \
-<a id='L92' name='L92'></a>        nft = <a href='../S/15.html#L17' title='Defined at 17 in core/internal.h.'>PN_DALLOC_N</a>(uint32_t, (new_n_buckets &gt;&gt; 4) + 1); \
-<a id='L93' name='L93'></a>        <strong class='reserved'>if</strong> (h-&gt;n_buckets &lt; new_n_buckets) \
-<a id='L94' name='L94'></a>          <a href='../S/15.html#L16' title='Defined at 16 in core/internal.h.'>PN_REALLOC</a>(h, <a href='../S/24.html#L126' title='Defined at 126 in core/potion.h.'>PN_TUSER</a>, kh_t, kh_size_##name(new_n_buckets)); \
-<a id='L95' name='L95'></a>        new_flags = (uint32_t *)nft-&gt;data; \
-<a id='L96' name='L96'></a>        memset(new_flags, 0xaa, ((new_n_buckets&gt;&gt;4) + 1) * <strong class='reserved'>sizeof</strong>(uint32_t)); \
-<a id='L97' name='L97'></a>      <em class='brace'>}</em> \
-<a id='L98' name='L98'></a>    <em class='brace'>}</em> \
-<a id='L99' name='L99'></a>    <strong class='reserved'>if</strong> (j) <em class='brace'>{</em> \
-<a id='L100' name='L100'></a>      <strong class='reserved'>for</strong> (j = 0; j != h-&gt;n_buckets; ++j) <em class='brace'>{</em> \
-<a id='L101' name='L101'></a>        <strong class='reserved'>if</strong> (<a href='../S/16.html#L41' title='Defined at 41 in core/khash.h.'>__kh_iseither</a>(name, h, j) == 0) <em class='brace'>{</em> \
-<a id='L102' name='L102'></a>          khkey_t key = <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, j); \
-<a id='L103' name='L103'></a>          khval_t val; \
-<a id='L104' name='L104'></a>          <strong class='reserved'>if</strong> (kh_is_map) val = <a href='../S/16.html#L35' title='Defined at 35 in core/khash.h.'>KHASH_VAL</a>(name, h, j); \
-<a id='L105' name='L105'></a>          <a href='../S/16.html#L45' title='Defined at 45 in core/khash.h.'>__kh_set_isdel_true</a>(name, h, j); \
-<a id='L106' name='L106'></a>          <strong class='reserved'>while</strong> (1) <em class='brace'>{</em> \
-<a id='L107' name='L107'></a>            <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> inc, k, i; \
-<a id='L108' name='L108'></a>            k = __hash_func(key); \
-<a id='L109' name='L109'></a>            i = k % new_n_buckets; \
-<a id='L110' name='L110'></a>            inc = 1 + k % (new_n_buckets - 1); \
-<a id='L111' name='L111'></a>            <strong class='reserved'>while</strong> (!<a href='../S/16.html#L37' title='Defined at 37 in core/khash.h.'>__ac_isempty</a>(new_flags, i)) <em class='brace'>{</em> \
-<a id='L112' name='L112'></a>              <strong class='reserved'>if</strong> (i + inc &gt;= new_n_buckets) i = i + inc - new_n_buckets; \
-<a id='L113' name='L113'></a>              <strong class='reserved'>else</strong> i += inc; \
-<a id='L114' name='L114'></a>            <em class='brace'>}</em> \
-<a id='L115' name='L115'></a>            <a href='../S/16.html#L38' title='Defined at 38 in core/khash.h.'>__ac_set_isempty_false</a>(new_flags, i); \
-<a id='L116' name='L116'></a>            <strong class='reserved'>if</strong> (i &lt; h-&gt;n_buckets &amp;&amp; <a href='../S/16.html#L41' title='Defined at 41 in core/khash.h.'>__kh_iseither</a>(name, h, i) == 0) <em class='brace'>{</em> \
-<a id='L117' name='L117'></a>              <em class='brace'>{</em> khkey_t tmp = <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, i); <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, i) = key; key = tmp; <em class='brace'>}</em> \
-<a id='L118' name='L118'></a>              <strong class='reserved'>if</strong> (kh_is_map) <em class='brace'>{</em> khval_t tmp = <a href='../S/16.html#L35' title='Defined at 35 in core/khash.h.'>KHASH_VAL</a>(name, h, i); <a href='../S/16.html#L35' title='Defined at 35 in core/khash.h.'>KHASH_VAL</a>(name, h, i) = val; val = tmp; <em class='brace'>}</em> \
-<a id='L119' name='L119'></a>              <a href='../S/16.html#L45' title='Defined at 45 in core/khash.h.'>__kh_set_isdel_true</a>(name, h, i); \
-<a id='L120' name='L120'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
-<a id='L121' name='L121'></a>              <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, i) = key; \
-<a id='L122' name='L122'></a>              <strong class='reserved'>if</strong> (kh_is_map) <a href='../S/16.html#L35' title='Defined at 35 in core/khash.h.'>KHASH_VAL</a>(name, h, i) = val; \
-<a id='L123' name='L123'></a>              <strong class='reserved'>break</strong>; \
-<a id='L124' name='L124'></a>            <em class='brace'>}</em> \
-<a id='L125' name='L125'></a>          <em class='brace'>}</em> \
-<a id='L126' name='L126'></a>        <em class='brace'>}</em> \
-<a id='L127' name='L127'></a>      <em class='brace'>}</em> \
-<a id='L128' name='L128'></a>      <strong class='reserved'>if</strong> (h-&gt;n_buckets &gt; new_n_buckets) \
-<a id='L129' name='L129'></a>        <a href='../S/15.html#L16' title='Defined at 16 in core/internal.h.'>PN_REALLOC</a>(h, <a href='../S/24.html#L126' title='Defined at 126 in core/potion.h.'>PN_TUSER</a>, kh_t, kh_size_##name(new_n_buckets)); \
-<a id='L130' name='L130'></a>      j = (new_n_buckets &gt;&gt; 4) + 1; \
-<a id='L131' name='L131'></a>      new_flags = (uint32_t *)nft-&gt;data; \
-<a id='L132' name='L132'></a>      <strong class='reserved'>while</strong> (j-- &gt; 0) <a href='../S/16.html#L33' title='Defined at 33 in core/khash.h.'>KHASH_FLAG</a>(name, h, j &lt;&lt; 4) = new_flags[j]; \
-<a id='L133' name='L133'></a>      h-&gt;n_buckets = new_n_buckets; \
-<a id='L134' name='L134'></a>      h-&gt;n_occupied = h-&gt;size; \
-<a id='L135' name='L135'></a>      h-&gt;upper_bound = (<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a>)(h-&gt;n_buckets * __kh_HASH_UPPER + 0.5); \
-<a id='L136' name='L136'></a>    <em class='brace'>}</em> \
-<a id='L137' name='L137'></a>    <strong class='reserved'>return</strong> h; \
-<a id='L138' name='L138'></a>  <em class='brace'>}</em> \
-<a id='L139' name='L139'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> kh_put_##name(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, kh_t *h, khkey_t key, <strong class='reserved'>int</strong> *ret) \
-<a id='L140' name='L140'></a>  <em class='brace'>{</em> \
-<a id='L141' name='L141'></a>    <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> x; \
-<a id='L142' name='L142'></a>    <strong class='reserved'>if</strong> (h-&gt;n_occupied &gt;= h-&gt;upper_bound) <em class='brace'>{</em> \
-<a id='L143' name='L143'></a>      <strong class='reserved'>if</strong> (h-&gt;n_buckets &gt; (h-&gt;size&lt;&lt;1)) h = kh_resize_##name(P, h, h-&gt;n_buckets - 1); \
-<a id='L144' name='L144'></a>      <strong class='reserved'>else</strong> h = kh_resize_##name(P, h, h-&gt;n_buckets + 1); \
-<a id='L145' name='L145'></a>    <em class='brace'>}</em> \
-<a id='L146' name='L146'></a>    <em class='brace'>{</em> \
-<a id='L147' name='L147'></a>      <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> inc, k, i, site, last; \
-<a id='L148' name='L148'></a>      x = site = h-&gt;n_buckets; k = __hash_func(key); i = k % h-&gt;n_buckets; \
-<a id='L149' name='L149'></a>      <strong class='reserved'>if</strong> (<a href='../S/16.html#L39' title='Defined at 39 in core/khash.h.'>__kh_isempty</a>(name, h, i)) x = i; \
-<a id='L150' name='L150'></a>      <strong class='reserved'>else</strong> <em class='brace'>{</em> \
-<a id='L151' name='L151'></a>        inc = 1 + k % (h-&gt;n_buckets - 1); last = i; \
-<a id='L152' name='L152'></a>        <strong class='reserved'>while</strong> (!<a href='../S/16.html#L39' title='Defined at 39 in core/khash.h.'>__kh_isempty</a>(name, h, i) &amp;&amp; (<a href='../S/16.html#L40' title='Defined at 40 in core/khash.h.'>__kh_isdel</a>(name, h, i) || !__hash_equal(<a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, i), key))) <em class='brace'>{</em> \
-<a id='L153' name='L153'></a>          <strong class='reserved'>if</strong> (<a href='../S/16.html#L40' title='Defined at 40 in core/khash.h.'>__kh_isdel</a>(name, h, i)) site = i; \
-<a id='L154' name='L154'></a>          <strong class='reserved'>if</strong> (i + inc &gt;= h-&gt;n_buckets) i = i + inc - h-&gt;n_buckets; \
-<a id='L155' name='L155'></a>          <strong class='reserved'>else</strong> i += inc; \
-<a id='L156' name='L156'></a>          <strong class='reserved'>if</strong> (i == last) <em class='brace'>{</em> x = site; <strong class='reserved'>break</strong>; <em class='brace'>}</em> \
-<a id='L157' name='L157'></a>        <em class='brace'>}</em> \
-<a id='L158' name='L158'></a>        <strong class='reserved'>if</strong> (x == h-&gt;n_buckets) <em class='brace'>{</em> \
-<a id='L159' name='L159'></a>          <strong class='reserved'>if</strong> (<a href='../S/16.html#L39' title='Defined at 39 in core/khash.h.'>__kh_isempty</a>(name, h, i) &amp;&amp; site != h-&gt;n_buckets) x = site; \
-<a id='L160' name='L160'></a>          <strong class='reserved'>else</strong> x = i; \
-<a id='L161' name='L161'></a>        <em class='brace'>}</em> \
-<a id='L162' name='L162'></a>      <em class='brace'>}</em> \
-<a id='L163' name='L163'></a>    <em class='brace'>}</em> \
-<a id='L164' name='L164'></a>    <strong class='reserved'>if</strong> (<a href='../S/16.html#L39' title='Defined at 39 in core/khash.h.'>__kh_isempty</a>(name, h, x)) <em class='brace'>{</em> \
-<a id='L165' name='L165'></a>      <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, x) = key; \
-<a id='L166' name='L166'></a>      <a href='../S/16.html#L44' title='Defined at 44 in core/khash.h.'>__kh_set_isboth_false</a>(name, h, x); \
-<a id='L167' name='L167'></a>      ++h-&gt;size; ++h-&gt;n_occupied; \
-<a id='L168' name='L168'></a>      *ret = 1; \
-<a id='L169' name='L169'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (<a href='../S/16.html#L40' title='Defined at 40 in core/khash.h.'>__kh_isdel</a>(name, h, x)) <em class='brace'>{</em> \
-<a id='L170' name='L170'></a>      <a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, x) = key; \
-<a id='L171' name='L171'></a>      <a href='../S/16.html#L44' title='Defined at 44 in core/khash.h.'>__kh_set_isboth_false</a>(name, h, x); \
-<a id='L172' name='L172'></a>      ++h-&gt;size; \
-<a id='L173' name='L173'></a>      *ret = 2; \
-<a id='L174' name='L174'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> *ret = 0; \
-<a id='L175' name='L175'></a>    <strong class='reserved'>return</strong> x; \
-<a id='L176' name='L176'></a>  <em class='brace'>}</em> \
-<a id='L177' name='L177'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <strong class='reserved'>void</strong> kh_del_##name(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, kh_t *h, <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> x) \
-<a id='L178' name='L178'></a>  <em class='brace'>{</em> \
-<a id='L179' name='L179'></a>    <strong class='reserved'>if</strong> (x != h-&gt;n_buckets &amp;&amp; !<a href='../S/16.html#L41' title='Defined at 41 in core/khash.h.'>__kh_iseither</a>(name, h, x)) <em class='brace'>{</em> \
-<a id='L180' name='L180'></a>      <a href='../S/16.html#L45' title='Defined at 45 in core/khash.h.'>__kh_set_isdel_true</a>(name, h, x); \
-<a id='L181' name='L181'></a>      --h-&gt;size; \
-<a id='L182' name='L182'></a>    <em class='brace'>}</em> \
-<a id='L183' name='L183'></a>  <em class='brace'>}</em>
-<a id='L184' name='L184'></a>
-<a id='L185' name='L185'></a><em class='comment'>/* --- BEGIN OF HASH FUNCTIONS --- */</em>
-<a id='L186' name='L186'></a>
-<a id='L187' name='L187'></a><em class='sharp'>#define</em> kh_int_hash_func(key) (uint32_t)(key)
-<a id='L188' name='L188'></a><em class='sharp'>#define</em> kh_int_hash_equal(a, b) (a == b)
-<a id='L189' name='L189'></a><em class='sharp'>#define</em> kh_int64_hash_func(key) (uint32_t)((key)&gt;&gt;33^(key)^(key)&lt;&lt;11)
-<a id='L190' name='L190'></a><em class='sharp'>#define</em> kh_int64_hash_equal(a, b) (a == b)
-<a id='L191' name='L191'></a><strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> __kh_X31_hash_string(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *s)
-<a id='L192' name='L192'></a><em class='brace'>{</em>
-<a id='L193' name='L193'></a>  <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> h = *s;
-<a id='L194' name='L194'></a>  <strong class='reserved'>if</strong> (h) <strong class='reserved'>for</strong> (++s ; *s; ++s) h = (h &lt;&lt; 5) - h + *s;
-<a id='L195' name='L195'></a>  <strong class='reserved'>return</strong> h;
-<a id='L196' name='L196'></a><em class='brace'>}</em>
-<a id='L197' name='L197'></a><strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> <a href='../R/473.html' title='Multiple referred from 2 places.'>__luaS_hash_string</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *s)
-<a id='L198' name='L198'></a><em class='brace'>{</em>
-<a id='L199' name='L199'></a>  size_t len = strlen(s);
-<a id='L200' name='L200'></a>  <a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a> h = len;
-<a id='L201' name='L201'></a>  size_t step = (len &gt;&gt; 5) + 1; <em class='comment'>/* limit amount of string to hash */</em>
-<a id='L202' name='L202'></a>  size_t l1;
-<a id='L203' name='L203'></a>  <strong class='reserved'>for</strong> (l1 = len; l1 &gt;= step; l1 -= step)
-<a id='L204' name='L204'></a>    h = h ^ ((h &lt;&lt; 5) + (h &gt;&gt; 2) + (<strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong>)s[l1 - 1]);
-<a id='L205' name='L205'></a>  <strong class='reserved'>return</strong> h;
-<a id='L206' name='L206'></a><em class='brace'>}</em>
-<a id='L207' name='L207'></a><em class='sharp'>#define</em> <a href='../S/16.html#L234' title='Referred from 234 in core/khash.h.'>kh_pnstr_hash_func</a>(key) <a href='../S/16.html#L197' title='Defined at 197 in core/khash.h.'>__luaS_hash_string</a>(<a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_STR_PTR</a>(key))
-<a id='L208' name='L208'></a><em class='sharp'>#define</em> <a href='../S/16.html#L235' title='Referred from 235 in core/khash.h.'>kh_pnstr_hash_equal</a>(a, b) (strcmp(<a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_STR_PTR</a>(a), <a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_STR_PTR</a>(b)) == 0)
-<a id='L209' name='L209'></a><em class='sharp'>#define</em> <a href='../S/16.html#L235' title='Referred from 235 in core/khash.h.'>kh_str_hash_func</a>(key) <a href='../S/16.html#L197' title='Defined at 197 in core/khash.h.'>__luaS_hash_string</a>(key)
-<a id='L210' name='L210'></a><em class='sharp'>#define</em> <a href='../S/16.html#L235' title='Referred from 235 in core/khash.h.'>kh_str_hash_equal</a>(a, b) (strcmp(<a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_STR_PTR</a>(a), b) == 0)
-<a id='L211' name='L211'></a><em class='sharp'>#define</em> <a href='../R/524.html' title='Multiple referred from 2 places.'>kh_pn_hash_func</a>(key) (uint32_t)<a href='../S/24.html#L196' title='Defined at 196 in core/potion.h.'>PN_UNIQ</a>(key)
-<a id='L212' name='L212'></a><em class='sharp'>#define</em> <a href='../S/16.html#L239' title='Referred from 239 in core/khash.h.'>kh_pn_hash_equal</a>(a, b) (a == b)
-<a id='L213' name='L213'></a>
-<a id='L214' name='L214'></a><em class='comment'>/* --- END OF HASH FUNCTIONS --- */</em>
-<a id='L215' name='L215'></a>
-<a id='L216' name='L216'></a><em class='comment'>/* Other necessary macros... */</em>
-<a id='L217' name='L217'></a>
-<a id='L218' name='L218'></a><em class='sharp'>#define</em> kh_clear(name, h) kh_clear_##name(P, h)
-<a id='L219' name='L219'></a><em class='sharp'>#define</em> kh_resize(name, h, s) h = kh_resize_##name(P, h, s)
-<a id='L220' name='L220'></a><em class='sharp'>#define</em> <a href='../R/527.html' title='Multiple referred from 4 places.'>kh_put</a>(name, h, k, r) kh_put_##name(P, h, k, r)
-<a id='L221' name='L221'></a><em class='sharp'>#define</em> <a href='../R/520.html' title='Multiple referred from 4 places.'>kh_get</a>(name, h, k) kh_get_##name(P, h, k)
-<a id='L222' name='L222'></a><em class='sharp'>#define</em> <a href='../R/517.html' title='Multiple referred from 3 places.'>kh_del</a>(name, h, k) kh_del_##name(P, h, k)
-<a id='L223' name='L223'></a>
-<a id='L224' name='L224'></a><em class='sharp'>#define</em> <a href='../R/519.html' title='Multiple referred from 7 places.'>kh_exist</a>(name, h, x) (!<a href='../S/16.html#L41' title='Defined at 41 in core/khash.h.'>__kh_iseither</a>(name, (h), (x)))
-<a id='L225' name='L225'></a><em class='sharp'>#define</em> <a href='../R/521.html' title='Multiple referred from 12 places.'>kh_key</a>(name, h, x) (<a href='../S/16.html#L34' title='Defined at 34 in core/khash.h.'>KHASH_KEY</a>(name, h, x))
-<a id='L226' name='L226'></a><em class='sharp'>#define</em> <a href='../R/531.html' title='Multiple referred from 12 places.'>kh_val</a>(name, h, x) (<a href='../S/16.html#L35' title='Defined at 35 in core/khash.h.'>KHASH_VAL</a>(name, h, x))
-<a id='L227' name='L227'></a><em class='sharp'>#define</em> <a href='../R/516.html' title='Multiple referred from 7 places.'>kh_begin</a>(h) (<a href='../S/16.html#L18' title='Defined at 18 in core/khash.h.'>khint_t</a>)(0)
-<a id='L228' name='L228'></a><em class='sharp'>#define</em> <a href='../R/518.html' title='Multiple referred from 11 places.'>kh_end</a>(h) ((h)-&gt;n_buckets)
-<a id='L229' name='L229'></a><em class='sharp'>#define</em> <a href='../S/27.html#L124' title='Referred from 124 in core/table.c.'>kh_size</a>(h) ((h)-&gt;size)
-<a id='L230' name='L230'></a><em class='sharp'>#define</em> kh_n_buckets(h) ((h)-&gt;n_buckets)
-<a id='L231' name='L231'></a><em class='sharp'>#define</em> <a href='../R/522.html' title='Multiple referred from 2 places.'>kh_mem</a>(name, h) (((<strong class='reserved'>struct</strong> <a href='../S/28.html#L32' title='Defined at 32 in core/table.h.'>PNTable</a> *)h)-&gt;n_buckets == 0 ? 0 : kh_size_##name(((<strong class='reserved'>struct</strong> <a href='../S/28.html#L32' title='Defined at 32 in core/table.h.'>PNTable</a> *)h)-&gt;n_buckets))
-<a id='L232' name='L232'></a>
-<a id='L233' name='L233'></a><em class='sharp'>#define</em> <a href='../S/28.html#L39' title='Referred from 39 in core/table.h.'>KHASH_MAP_INIT_STR</a>(name, t) \
-<a id='L234' name='L234'></a>  <a href='../S/16.html#L51' title='Defined at 51 in core/khash.h.'>KHASH_INIT</a>(name, t, <a href='../S/24.html#L74' title='Defined at 74 in core/potion.h.'>_PN</a>, <a href='../S/24.html#L75' title='Defined at 75 in core/potion.h.'>PNUniq</a>, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *, 0, <a href='../S/16.html#L207' title='Defined at 207 in core/khash.h.'>kh_pnstr_hash_func</a>, \
-<a id='L235' name='L235'></a>    <a href='../S/16.html#L208' title='Defined at 208 in core/khash.h.'>kh_pnstr_hash_equal</a>, <a href='../S/16.html#L209' title='Defined at 209 in core/khash.h.'>kh_str_hash_func</a>, <a href='../S/16.html#L210' title='Defined at 210 in core/khash.h.'>kh_str_hash_equal</a>)
-<a id='L236' name='L236'></a>
-<a id='L237' name='L237'></a><em class='sharp'>#define</em> <a href='../S/28.html#L38' title='Referred from 38 in core/table.h.'>KHASH_MAP_INIT_PN</a>(name, t) \
-<a id='L238' name='L238'></a>  <a href='../S/16.html#L51' title='Defined at 51 in core/khash.h.'>KHASH_INIT</a>(name, t, <a href='../S/24.html#L74' title='Defined at 74 in core/potion.h.'>_PN</a>, <a href='../S/24.html#L74' title='Defined at 74 in core/potion.h.'>_PN</a>, <a href='../S/24.html#L74' title='Defined at 74 in core/potion.h.'>_PN</a>, 1, <a href='../S/16.html#L211' title='Defined at 211 in core/khash.h.'>kh_pn_hash_func</a>, \
-<a id='L239' name='L239'></a>    <a href='../S/16.html#L212' title='Defined at 212 in core/khash.h.'>kh_pn_hash_equal</a>, <a href='../S/16.html#L211' title='Defined at 211 in core/khash.h.'>kh_pn_hash_func</a>, <a href='../S/16.html#L212' title='Defined at 212 in core/khash.h.'>kh_pn_hash_equal</a>)
-<a id='L240' name='L240'></a>
-<a id='L241' name='L241'></a><em class='sharp'>#endif</em> <em class='comment'>/* __AC_KHASH_H */</em>
+<a id='L49' name='L49'></a><em class='sharp'>#ifdef</em> __MINGW32__
+<a id='L50' name='L50'></a><em class='sharp'>#include</em> &lt;windows.h&gt;
+<a id='L51' name='L51'></a><em class='sharp'>#include</em> &lt;sys/unistd.h&gt;
+<a id='L52' name='L52'></a>
+<a id='L53' name='L53'></a><strong class='reserved'>void</strong> *<a href='../R/720.html' title='Multiple referred from 3 places.'>potion_mmap</a>(size_t length, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> exec)
+<a id='L54' name='L54'></a><em class='brace'>{</em> 
+<a id='L55' name='L55'></a>  <strong class='reserved'>void</strong> *mem = VirtualAlloc(NULL, length, MEM_COMMIT,
+<a id='L56' name='L56'></a>    exec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+<a id='L57' name='L57'></a>  <strong class='reserved'>if</strong> (mem == NULL)
+<a id='L58' name='L58'></a>    fprintf(stderr, "** potion_mmap failed");
+<a id='L59' name='L59'></a>  <strong class='reserved'>return</strong> mem;
+<a id='L60' name='L60'></a><em class='brace'>}</em>
+<a id='L61' name='L61'></a>
+<a id='L62' name='L62'></a><strong class='reserved'>int</strong> <a href='../R/722.html' title='Multiple referred from 3 places.'>potion_munmap</a>(<strong class='reserved'>void</strong> *mem, size_t len)
+<a id='L63' name='L63'></a><em class='brace'>{</em>
+<a id='L64' name='L64'></a>  <strong class='reserved'>return</strong> VirtualFree(mem, len, MEM_DECOMMIT) != 0 ? 0 : -1;
+<a id='L65' name='L65'></a><em class='brace'>}</em>
+<a id='L66' name='L66'></a>
+<a id='L67' name='L67'></a><em class='sharp'>#else</em>
+<a id='L68' name='L68'></a><em class='sharp'>#include</em> &lt;sys/mman.h&gt;
+<a id='L69' name='L69'></a>
+<a id='L70' name='L70'></a><strong class='reserved'>void</strong> *<a href='../R/720.html' title='Multiple referred from 3 places.'>potion_mmap</a>(size_t length, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> exec)
+<a id='L71' name='L71'></a><em class='brace'>{</em>
+<a id='L72' name='L72'></a>  <strong class='reserved'>int</strong> prot = exec ? PROT_EXEC : 0;
+<a id='L73' name='L73'></a>  <strong class='reserved'>void</strong> *mem = mmap(NULL, length, prot|PROT_READ|PROT_WRITE,
+<a id='L74' name='L74'></a>    (MAP_PRIVATE|MAP_ANON), -1, 0);
+<a id='L75' name='L75'></a>  <strong class='reserved'>if</strong> (mem == MAP_FAILED) <strong class='reserved'>return</strong> NULL;
+<a id='L76' name='L76'></a>  <strong class='reserved'>return</strong> mem;
+<a id='L77' name='L77'></a><em class='brace'>}</em>
+<a id='L78' name='L78'></a>
+<a id='L79' name='L79'></a><strong class='reserved'>int</strong> <a href='../R/722.html' title='Multiple referred from 3 places.'>potion_munmap</a>(<strong class='reserved'>void</strong> *mem, size_t len)
+<a id='L80' name='L80'></a><em class='brace'>{</em>
+<a id='L81' name='L81'></a>  <strong class='reserved'>return</strong> munmap(mem, len);
+<a id='L82' name='L82'></a><em class='brace'>}</em>
+<a id='L83' name='L83'></a>
+<a id='L84' name='L84'></a><em class='sharp'>#endif</em>
+<a id='L85' name='L85'></a>
+<a id='L86' name='L86'></a><em class='sharp'>#if</em> POTION_WIN32
+<a id='L87' name='L87'></a><em class='comment'>// vasprintf from nokogiri</em>
+<a id='L88' name='L88'></a><em class='comment'>// http://github.com/tenderlove/nokogiri</em>
+<a id='L89' name='L89'></a><em class='comment'>// (written by Geoffroy Couprie)</em>
+<a id='L90' name='L90'></a><strong class='reserved'>int</strong> <a href='../S/16.html#L108' title='Referred from 108 in core/contrib.c.'>vasprintf</a> (<strong class='reserved'>char</strong> **strp, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *fmt, va_list ap)
+<a id='L91' name='L91'></a><em class='brace'>{</em>
+<a id='L92' name='L92'></a>  <strong class='reserved'>int</strong> len = vsnprintf (NULL, 0, fmt, ap) + 1;
+<a id='L93' name='L93'></a>  <strong class='reserved'>char</strong> *res = (<strong class='reserved'>char</strong> *)malloc((<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)len);
+<a id='L94' name='L94'></a>  <strong class='reserved'>if</strong> (res == NULL)
+<a id='L95' name='L95'></a>      <strong class='reserved'>return</strong> -1;
+<a id='L96' name='L96'></a>  *strp = res;
+<a id='L97' name='L97'></a>  <strong class='reserved'>return</strong> vsnprintf(res, (<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)len, fmt, ap);
+<a id='L98' name='L98'></a><em class='brace'>}</em>
+<a id='L99' name='L99'></a>
+<a id='L100' name='L100'></a><em class='comment'>// asprintf from glibc</em>
+<a id='L101' name='L101'></a><strong class='reserved'>int</strong>
+<a id='L102' name='L102'></a><a href='../R/475.html' title='Multiple referred from 7 places.'>asprintf</a> (<strong class='reserved'>char</strong> **string_ptr, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *format, ...)
+<a id='L103' name='L103'></a><em class='brace'>{</em>
+<a id='L104' name='L104'></a>  va_list arg;
+<a id='L105' name='L105'></a>  <strong class='reserved'>int</strong> done;
+<a id='L106' name='L106'></a>
+<a id='L107' name='L107'></a>  va_start (arg, format);
+<a id='L108' name='L108'></a>  done = <a href='../S/16.html#L90' title='Defined at 90 in core/contrib.c.'>vasprintf</a> (string_ptr, format, arg);
+<a id='L109' name='L109'></a>  va_end (arg);
+<a id='L110' name='L110'></a>
+<a id='L111' name='L111'></a>  <strong class='reserved'>return</strong> done;
+<a id='L112' name='L112'></a><em class='brace'>}</em>
+<a id='L113' name='L113'></a><em class='sharp'>#endif</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L191'>[^]</a><a href='#L197'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L19'>[^]</a><a href='#L102'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>
