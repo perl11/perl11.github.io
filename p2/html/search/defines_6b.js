@@ -10,6 +10,7 @@ var searchData=
   ['kh_5fint64_5fhash_5ffunc',['kh_int64_hash_func',['../d2/deb/khash_8h.html#a5cf1d12eba42259f8da59b871ad1a467',1,'khash.h']]],
   ['kh_5fint_5fhash_5fequal',['kh_int_hash_equal',['../d2/deb/khash_8h.html#a901ae78ee61035f46a13f40a347348c4',1,'khash.h']]],
   ['kh_5fint_5fhash_5ffunc',['kh_int_hash_func',['../d2/deb/khash_8h.html#ac186b0d088e170116758c8734ee14c4e',1,'khash.h']]],
+  ['kh_5fint_5fhash_5ffunc2',['kh_int_hash_func2',['../d2/deb/khash_8h.html#a4ad843907fb3db9dd36ee32a03fb9ebe',1,'khash.h']]],
   ['kh_5fkey',['kh_key',['../d2/deb/khash_8h.html#a2eba89f3f3c6ee7a713bb48a4e8063ac',1,'khash.h']]],
   ['kh_5fmem',['kh_mem',['../d2/deb/khash_8h.html#aacbb75491c9ef67a87f05703a8929206',1,'khash.h']]],
   ['kh_5fn_5fbuckets',['kh_n_buckets',['../d2/deb/khash_8h.html#adf71183b5bc5cdcb3ac42d8b3a3cfb4d',1,'khash.h']]],
