@@ -9,7 +9,5 @@ var table_8c =
     [ "potion_tuple_push", "dc/d33/table_8c.html#aef65d906f091db2f49cd5b1c27dd6c07", null ],
     [ "potion_tuple_find", "dc/d33/table_8c.html#aef40ab42fbf8f0cd26144beecf22b6f5", null ],
     [ "potion_tuple_push_unless", "dc/d33/table_8c.html#a8baf1f8eb786c8458a00a89b5cf1b411", null ],
-    [ "potion_tuple_binary_search", "dc/d33/table_8c.html#a65ba10883339a16434ea40b2df8fdea1", null ],
-    [ "potion_tuple_ins_sort", "dc/d33/table_8c.html#a558e8c44eb5cb367f4082c0485171743", null ],
     [ "potion_table_init", "dc/d33/table_8c.html#a7937588515f0d732a32062e833ba4071", null ]
 ];

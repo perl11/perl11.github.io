@@ -16,7 +16,7 @@ var annotated =
     [ "PNLick", "df/dad/struct_p_n_lick.html", "df/dad/struct_p_n_lick" ],
     [ "PNLoop", "d1/d49/struct_p_n_loop.html", "d1/d49/struct_p_n_loop" ],
     [ "PNMemory", "de/db4/struct_p_n_memory.html", "de/db4/struct_p_n_memory" ],
-    [ "PNNumber", "d9/d08/class_p_n_number.html", null ],
+    [ "PNNumber", "d9/d08/class_p_n_number.html", "d9/d08/class_p_n_number" ],
     [ "PNObject", "da/dbb/struct_p_n_object.html", "da/dbb/struct_p_n_object" ],
     [ "PNProto", "d6/d4e/struct_p_n_proto.html", "d6/d4e/struct_p_n_proto" ],
     [ "PNSource", "dc/dc6/struct_p_n_source.html", "dc/dc6/struct_p_n_source" ],

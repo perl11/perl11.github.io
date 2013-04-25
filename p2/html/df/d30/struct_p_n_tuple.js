@@ -10,9 +10,13 @@ var struct_p_n_tuple =
     [ "potion_tuple_string", "df/d30/struct_p_n_tuple.html#a0379ee153b1f3368b49f8a39c07d9252", null ],
     [ "potion_tuple_pop", "df/d30/struct_p_n_tuple.html#a1eb077cd8d3de8fc6e246c2b371e71e2", null ],
     [ "potion_tuple_put", "df/d30/struct_p_n_tuple.html#adb8b659a0b3e0350b6c09ec1dceaa191", null ],
+    [ "potion_tuple_unshift", "df/d30/struct_p_n_tuple.html#a1eef7c2052e6b5010412c43f740d7048", null ],
+    [ "potion_tuple_shift", "df/d30/struct_p_n_tuple.html#ae23806200c1ece339a2b3eec2beee88e", null ],
     [ "potion_tuple_print", "df/d30/struct_p_n_tuple.html#a117e663be07244016a8e7bc01befd927", null ],
     [ "potion_tuple_length", "df/d30/struct_p_n_tuple.html#ad363d3d7401cd51bfa0e1c54a4a32a7f", null ],
     [ "potion_tuple_reverse", "df/d30/struct_p_n_tuple.html#afa3e67266641925a518d0a65d9b1cafa", null ],
+    [ "potion_tuple_bsearch", "df/d30/struct_p_n_tuple.html#a88d109d726af52569015d19de3252cd4", null ],
+    [ "potion_tuple_sort", "df/d30/struct_p_n_tuple.html#a01b5f8d7d486a9597ffb25d62421ae27", null ],
     [ "PN_OBJECT_HEADER", "df/d30/struct_p_n_tuple.html#a4f1336e49066f1aa41b1bcd6dd3ac57e", null ],
     [ "len", "df/d30/struct_p_n_tuple.html#a315ac3981528576e654439b89e6830cf", null ],
     [ "set", "df/d30/struct_p_n_tuple.html#a3261a550ff4a232694bd6b2055007af9", null ]

@@ -227,6 +227,7 @@ var potion_8h =
     [ "potion_obj_bitn", "dd/d07/potion_8h.html#a075a8e6fb744994de1fc3b704c2e3c69", null ],
     [ "potion_obj_bitl", "dd/d07/potion_8h.html#a9d19794b954de4cd36703bf61a02ce0e", null ],
     [ "potion_obj_bitr", "dd/d07/potion_8h.html#ac92cc2dd48e2b34bbc27b17a7f33284e", null ],
+    [ "potion_any_cmp", "dd/d07/potion_8h.html#ae14b8eeb8b8eb8b807a18a992978851a", null ],
     [ "potion_tuple_empty", "dd/d07/potion_8h.html#a8fb62e5547427a77d16f7be9386e110f", null ],
     [ "potion_tuple_with_size", "dd/d07/potion_8h.html#a118aaea530cb321be73f4a8fdbddbae8", null ],
     [ "potion_tuple_new", "dd/d07/potion_8h.html#aacf44681fe463b7573f4ea11837e80e4", null ],
@@ -238,8 +239,8 @@ var potion_8h =
     [ "potion_table_put", "dd/d07/potion_8h.html#a7a10bb702063ecb9be8bbcf0871eba9b", null ],
     [ "potion_table_set", "dd/d07/potion_8h.html#a33698b056a9d7ed4c0280c7c013fb2b3", null ],
     [ "potion_table_at", "dd/d07/potion_8h.html#a799d8de85516d57dc216f964ce589f4d", null ],
-    [ "potion_tuple_binary_search", "dd/d07/potion_8h.html#af4cdb7536dd6cca93d64017947426ca6", null ],
-    [ "potion_tuple_ins_sort", "dd/d07/potion_8h.html#acca073cc85cf555cefdd6efad9c86a8d", null ],
+    [ "potion_tuple_bsearch", "dd/d07/potion_8h.html#a5b9099baca6ff72a69f8a15dc5d4858a", null ],
+    [ "potion_tuple_sort", "dd/d07/potion_8h.html#a1a17e8a55cc2e802aba3edbbff7492e7", null ],
     [ "potion_lick", "dd/d07/potion_8h.html#a26293d075e56ab60972908f79cc43e99", null ],
     [ "potion_source_compile", "dd/d07/potion_8h.html#ab6fb1b717334fb48c6a7b07c98151fe7", null ],
     [ "potion_source_load", "dd/d07/potion_8h.html#a5407ac0e9668ef34e7f42bd3a492b125", null ],
@@ -301,5 +302,6 @@ var potion_8h =
     [ "PN_rem", "dd/d07/potion_8h.html#a635122a6db2461ee40096ee11e1e89b9", null ],
     [ "PN_bitn", "dd/d07/potion_8h.html#acf6277168a912c7f78f9e460229f64a3", null ],
     [ "PN_bitl", "dd/d07/potion_8h.html#a77f22808dbaad1053033fe56d7e2899b", null ],
-    [ "PN_bitr", "dd/d07/potion_8h.html#a7ea8074775c7b4c5286217389ea3d5f0", null ]
+    [ "PN_bitr", "dd/d07/potion_8h.html#a7ea8074775c7b4c5286217389ea3d5f0", null ],
+    [ "PN_cmp", "dd/d07/potion_8h.html#a0f2f0010a3c8704d77e0a004255b1755", null ]
 ];

@@ -1,84 +1,93 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>tools/potion-mode.el</title>
+<title>core/asm.c</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<!-- beginning of fixed guide -->
-<div id='guide'><ul>
-<li><a href='#TOP'><img class='icon' src='../icons/first.png' alt='[^]' /></a></li>
-<li><a href='#BOTTOM'><img class='icon' src='../icons/last.png' alt='[v]' /></a></li>
-<li><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a></li>
-<li><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a></li>
-<li><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a></li>
-<li><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a></li>
-<li class='standout'><span><a href='../files/197.html'>tools</a>/potion-mode.el</span></li>
-</ul></div>
-<!-- end of fixed guide -->
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/197.html'>tools</a>/potion-mode.el</h2>
-<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><img class='icon' src='../icons/n_top.png' alt='[top]' /><a href='#BOTTOM'><img class='icon' src='../icons/bottom.png' alt='[bottom]' /></a><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+1 tools/potion-mode.el]</em> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/asm.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L15'>[^]</a><a href='#L56'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<hr />
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L15' title='Defined at 15.'>potion_asm_new</a></li>
+<li><a href='#L21' title='Defined at 21.'>potion_asm_clear</a></li>
+<li><a href='#L27' title='Defined at 27.'>potion_asm_put</a></li>
+<li><a href='#L43' title='Defined at 43.'>potion_asm_op</a></li>
+<li><a href='#L56' title='Defined at 56.'>potion_asm_write</a></li>
+</ol>
 <hr />
 <pre>
-<a id='L1' name='L1'></a>(eval-when-compile
-<a id='L2' name='L2'></a>  (require 'generic)
-<a id='L3' name='L3'></a>  (require 'font-lock)
-<a id='L4' name='L4'></a>  (require 'regexp-opt))
-<a id='L5' name='L5'></a>
-<a id='L6' name='L6'></a>(defmacro potion-match-symbol (&amp;rest symbols)
-<a id='L7' name='L7'></a>  "Convert a word-list into a font-lock regexp."
-<a id='L8' name='L8'></a>  (concat "\\_&lt;" (regexp-opt symbols t) "\\_&gt;"))
-<a id='L9' name='L9'></a>
-<a id='L10' name='L10'></a>(define-generic-mode potion-mode
-<a id='L11' name='L11'></a>  '(?#)                                    ;comments
-<a id='L12' name='L12'></a>  '("and" "or" "not" "nil" "true" "false") ;keywords
-<a id='L13' name='L13'></a>  `(                                       ;font-lock-list
-<a id='L14' name='L14'></a>    ;; block delimiters
-<a id='L15' name='L15'></a>    ("[.:]" . font-lock-preprocessor-face)
-<a id='L16' name='L16'></a>    ;; "licks" (data language)
-<a id='L17' name='L17'></a>    ("[][]" . font-lock-warning-face)
-<a id='L18' name='L18'></a>    (,(concat
-<a id='L19' name='L19'></a>       ;; one-char operators
-<a id='L20' name='L20'></a>       "[,()|?=+~*%&lt;&gt;=!&amp;^-]"
-<a id='L21' name='L21'></a>       ;; multi-char operators
-<a id='L22' name='L22'></a>       "\\|\\("
-<a id='L23' name='L23'></a>       "\\+\\+\\|--\\|\\*\\*\\|&lt;&lt;\\|&gt;&gt;\\|&lt;=\\|&gt;=\\|==\\|!=\\|&lt;=&gt;\\|&amp;&amp;\\|||"
-<a id='L24' name='L24'></a>       "\\)")
-<a id='L25' name='L25'></a>     . font-lock-builtin-face)
-<a id='L26' name='L26'></a>    ;; slash is magical
-<a id='L27' name='L27'></a>    ("\\(/\\) " 1 font-lock-builtin-face)
-<a id='L28' name='L28'></a>    ;; numeric constants
-<a id='L29' name='L29'></a>    ("\\_&lt;[0-9]+\\(\\.[0-9]*\\)?\\([Ee][+-]?[0-9]+\\)?\\_&gt;" . font-lock-constant-face)
-<a id='L30' name='L30'></a>    ("0x[a-fA-F0-9]+" . font-lock-constant-face)
-<a id='L31' name='L31'></a>    ;; attributes
-<a id='L32' name='L32'></a>    ("/\\(?:\\sw\\|\\s_\\)+\\_&gt;" . font-lock-variable-name-face)
-<a id='L33' name='L33'></a>    ;; control constructs
-<a id='L34' name='L34'></a>    (,(potion-match-symbol
-<a id='L35' name='L35'></a>       "class" "if" "elsif" "else" "loop" "while" "to" "times" "return")
-<a id='L36' name='L36'></a>     . font-lock-keyword-face)
-<a id='L37' name='L37'></a>    ;; core functions (XXX some overlap with operators)
-<a id='L38' name='L38'></a>    (,(potion-match-symbol 
-<a id='L39' name='L39'></a>       "%" "*" "**" "+" "+" "-" "/" "&lt;&lt;" "&gt;&gt;" "about" "abs" "append" "arity"
-<a id='L40' name='L40'></a>       "at" "attr" "bytes" "call" "chr" "clone" "close" "code" "compile"
-<a id='L41' name='L41'></a>       "each" "eval" "exit" "first" "float?" "forward" "here" "integer"
-<a id='L42' name='L42'></a>       "integer?" "join" "kind" "last" "length" "licks" "list" "load" "meta"
-<a id='L43' name='L43'></a>       "name" "nil?" "number" "ord" "pop" "print" "push" "put" "rand" "read"
-<a id='L44' name='L44'></a>       "remove" "reverse" "self" "send" "slice" "sqrt" "srand" "step" "string"
-<a id='L45' name='L45'></a>       "text" "times" "to" "tree" "write" "~") . font-lock-builtin-face)
-<a id='L46' name='L46'></a>    )
-<a id='L47' name='L47'></a>  '("\\.pn$")                           ;file extension
-<a id='L48' name='L48'></a>  '((lambda ()                          ;other setup work
-<a id='L49' name='L49'></a>      (modify-syntax-entry ?' "\"")
-<a id='L50' name='L50'></a>      (modify-syntax-entry ?: "(.")
-<a id='L51' name='L51'></a>      (modify-syntax-entry ?\. "):")))
-<a id='L52' name='L52'></a>  "Major mode for editing _why's Potion language."
-<a id='L53' name='L53'></a>)
+<a id='L1' name='L1'></a><em class='comment'>//</em>
+<a id='L2' name='L2'></a><em class='comment'>// asm.c</em>
+<a id='L3' name='L3'></a><em class='comment'>// some assembler functions</em>
+<a id='L4' name='L4'></a><em class='comment'>//</em>
+<a id='L5' name='L5'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
+<a id='L6' name='L6'></a><em class='comment'>//</em>
+<a id='L7' name='L7'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;math.h&gt;
+<a id='L10' name='L10'></a><em class='sharp'>#include</em> "<a href='23.html'>p2.h</a>"
+<a id='L11' name='L11'></a><em class='sharp'>#include</em> "<a href='15.html'>internal.h</a>"
+<a id='L12' name='L12'></a><em class='sharp'>#include</em> "<a href='22.html'>opcodes.h</a>"
+<a id='L13' name='L13'></a><em class='sharp'>#include</em> "<a href='5.html'>asm.h</a>"
+<a id='L14' name='L14'></a>
+<a id='L15' name='L15'></a>PNAsm *<a href='../R/607.html' title='Multiple referred from 7 places.'>potion_asm_new</a>(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
+<a id='L16' name='L16'></a>  <strong class='reserved'>int</strong> siz = <a href='../S/5.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a> - <strong class='reserved'>sizeof</strong>(PNAsm);
+<a id='L17' name='L17'></a>  PNAsm * <strong class='reserved'>volatile</strong> asmb = <a href='../S/15.html#L34' title='Defined at 34 in core/internal.h.'>PN_FLEX_NEW</a>(asmb, <a href='../S/24.html#L116' title='Defined at 116 in core/potion.h.'>PN_TBYTES</a>, PNAsm, siz);
+<a id='L18' name='L18'></a>  <strong class='reserved'>return</strong> asmb;
+<a id='L19' name='L19'></a><em class='brace'>}</em>
+<a id='L20' name='L20'></a>
+<a id='L21' name='L21'></a>PNAsm *<a href='../R/606.html' title='Multiple referred from 5 places.'>potion_asm_clear</a>(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb) <em class='brace'>{</em>
+<a id='L22' name='L22'></a>  asmb-&gt;len = 0;
+<a id='L23' name='L23'></a>  <a href='../S/15.html#L20' title='Defined at 20 in core/internal.h.'>PN_MEMZERO_N</a>(asmb-&gt;ptr, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>, asmb-&gt;siz);
+<a id='L24' name='L24'></a>  <strong class='reserved'>return</strong> asmb;
+<a id='L25' name='L25'></a><em class='brace'>}</em>
+<a id='L26' name='L26'></a>
+<a id='L27' name='L27'></a>PNAsm *<a href='../R/609.html' title='Multiple referred from 5 places.'>potion_asm_put</a>(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <a href='../S/24.html#L77' title='Defined at 77 in core/potion.h.'>PN</a> val, size_t len) <em class='brace'>{</em>
+<a id='L28' name='L28'></a>  <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *ptr;
+<a id='L29' name='L29'></a>  <a href='../S/15.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(len, asmb, <a href='../S/24.html#L116' title='Defined at 116 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/5.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
+<a id='L30' name='L30'></a>  ptr = asmb-&gt;ptr + asmb-&gt;len;
+<a id='L31' name='L31'></a>
+<a id='L32' name='L32'></a>  <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>))
+<a id='L33' name='L33'></a>    *ptr = (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)val;
+<a id='L34' name='L34'></a>  <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<strong class='reserved'>int</strong>))
+<a id='L35' name='L35'></a>    *((<strong class='reserved'>int</strong> *)ptr) = (<strong class='reserved'>int</strong>)val;
+<a id='L36' name='L36'></a>  <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L77' title='Defined at 77 in core/potion.h.'>PN</a>))
+<a id='L37' name='L37'></a>    *((<a href='../S/24.html#L77' title='Defined at 77 in core/potion.h.'>PN</a> *)ptr) = val;
+<a id='L38' name='L38'></a>
+<a id='L39' name='L39'></a>  asmb-&gt;len += len;
+<a id='L40' name='L40'></a>  <strong class='reserved'>return</strong> asmb;
+<a id='L41' name='L41'></a><em class='brace'>}</em>
+<a id='L42' name='L42'></a>
+<a id='L43' name='L43'></a>PNAsm *<a href='../R/608.html' title='Multiple referred from 3 places.'>potion_asm_op</a>(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> ins, <strong class='reserved'>int</strong> _a, <strong class='reserved'>int</strong> _b) <em class='brace'>{</em>
+<a id='L44' name='L44'></a>  <a href='../D/317.html' title='Multiple defined in 2 places.'>PN_OP</a> *pos;
+<a id='L45' name='L45'></a>  <a href='../S/15.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(<strong class='reserved'>sizeof</strong>(<a href='../D/317.html' title='Multiple defined in 2 places.'>PN_OP</a>), asmb, <a href='../S/24.html#L116' title='Defined at 116 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/5.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
+<a id='L46' name='L46'></a>  pos = (<a href='../D/317.html' title='Multiple defined in 2 places.'>PN_OP</a> *)(asmb-&gt;ptr + asmb-&gt;len);
+<a id='L47' name='L47'></a>
+<a id='L48' name='L48'></a>  pos-&gt;code = ins;
+<a id='L49' name='L49'></a>  pos-&gt;a    = _a;
+<a id='L50' name='L50'></a>  pos-&gt;b    = _b;
+<a id='L51' name='L51'></a>
+<a id='L52' name='L52'></a>  asmb-&gt;len += <strong class='reserved'>sizeof</strong>(<a href='../D/317.html' title='Multiple defined in 2 places.'>PN_OP</a>);
+<a id='L53' name='L53'></a>  <strong class='reserved'>return</strong> asmb;
+<a id='L54' name='L54'></a><em class='brace'>}</em>
+<a id='L55' name='L55'></a>
+<a id='L56' name='L56'></a>PNAsm *<a href='../R/610.html' title='Multiple referred from 23 places.'>potion_asm_write</a>(<a href='../S/24.html#L76' title='Defined at 76 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <strong class='reserved'>char</strong> *str, size_t len) <em class='brace'>{</em>
+<a id='L57' name='L57'></a>  <strong class='reserved'>char</strong> *ptr;
+<a id='L58' name='L58'></a>  <a href='../S/15.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(len, asmb, <a href='../S/24.html#L116' title='Defined at 116 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/5.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
+<a id='L59' name='L59'></a>  ptr = (<strong class='reserved'>char</strong> *)asmb-&gt;ptr + asmb-&gt;len;
+<a id='L60' name='L60'></a>  <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(ptr, str, <strong class='reserved'>char</strong>, len);
+<a id='L61' name='L61'></a>  asmb-&gt;len += len;
+<a id='L62' name='L62'></a>  <strong class='reserved'>return</strong> asmb;
+<a id='L63' name='L63'></a><em class='brace'>}</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* <img class='icon' src='../icons/n_left.png' alt='[previous]' /><img class='icon' src='../icons/n_right.png' alt='[next]' /><img class='icon' src='../icons/n_first.png' alt='[first]' /><img class='icon' src='../icons/n_last.png' alt='[last]' /><a href='#TOP'><img class='icon' src='../icons/top.png' alt='[top]' /></a><img class='icon' src='../icons/n_bottom.png' alt='[bottom]' /><a href='../mains.html'><img class='icon' src='../icons/index.png' alt='[index]' /></a><a href='../help.html'><img class='icon' src='../icons/help.png' alt='[help]' /></a>&nbsp;<em class='position'>[+53 tools/potion-mode.el]</em> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L15'>[^]</a><a href='#L56'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>
