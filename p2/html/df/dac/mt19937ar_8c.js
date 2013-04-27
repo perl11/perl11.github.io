@@ -12,8 +12,6 @@ var mt19937ar_8c =
     [ "next_state", "df/dac/mt19937ar_8c.html#a6d769044ee5e3370e83b2a2024c14c4b", null ],
     [ "potion_rand_int", "df/dac/mt19937ar_8c.html#a62d05d12cf12be007f03d1b4e449c3ad", null ],
     [ "potion_rand_double", "df/dac/mt19937ar_8c.html#ac14b7d952e10f498255b56c618da35bb", null ],
-    [ "potion_srand", "df/dac/mt19937ar_8c.html#a58b7528876043870b5caf01d76ff52f2", null ],
-    [ "potion_rand", "df/dac/mt19937ar_8c.html#a5f42b4d5cef7a8a66c273a3befe7126a", null ],
     [ "state", "df/dac/mt19937ar_8c.html#a1ac338c8291400e2f2785ef2cb7a5458", null ],
     [ "left", "df/dac/mt19937ar_8c.html#ad8f5e19e19f12974c9713e920ec54331", null ],
     [ "initf", "df/dac/mt19937ar_8c.html#ae0c83b9e91eac53982b5261e53fac50c", null ],

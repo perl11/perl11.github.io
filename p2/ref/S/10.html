@@ -1,93 +1,152 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>core/asm.c</title>
+<title>core/contrib.c</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/asm.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L15'>[^]</a><a href='#L56'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/contrib.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L19'>[^]</a><a href='#L109'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
 <h2 class='header'>DEFINITIONS</h2>
 This source file includes following definitions.
 <ol>
-<li><a href='#L15' title='Defined at 15.'>potion_asm_new</a></li>
-<li><a href='#L21' title='Defined at 21.'>potion_asm_clear</a></li>
-<li><a href='#L27' title='Defined at 27.'>potion_asm_put</a></li>
-<li><a href='#L43' title='Defined at 43.'>potion_asm_op</a></li>
-<li><a href='#L56' title='Defined at 56.'>potion_asm_write</a></li>
+<li><a href='#L19' title='Defined at 19.'>potion_cp_strlen_utf8</a></li>
+<li><a href='#L53' title='Defined at 53.'>potion_mmap</a></li>
+<li><a href='#L62' title='Defined at 62.'>potion_munmap</a></li>
+<li><a href='#L70' title='Defined at 70.'>potion_mmap</a></li>
+<li><a href='#L79' title='Defined at 79.'>potion_munmap</a></li>
+<li><a href='#L90' title='Defined at 90.'>vasprintf</a></li>
+<li><a href='#L109' title='Defined at 109.'>asprintf</a></li>
 </ol>
 <hr />
 <pre>
 <a id='L1' name='L1'></a><em class='comment'>//</em>
-<a id='L2' name='L2'></a><em class='comment'>// asm.c</em>
-<a id='L3' name='L3'></a><em class='comment'>// some assembler functions</em>
+<a id='L2' name='L2'></a><em class='comment'>// contrib.c</em>
+<a id='L3' name='L3'></a><em class='comment'>// stuff written by other folks, seen on blogs, etc. </em>
 <a id='L4' name='L4'></a><em class='comment'>//</em>
-<a id='L5' name='L5'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
-<a id='L6' name='L6'></a><em class='comment'>//</em>
-<a id='L7' name='L7'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
-<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
-<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;math.h&gt;
-<a id='L10' name='L10'></a><em class='sharp'>#include</em> "<a href='29.html'>p2.h</a>"
-<a id='L11' name='L11'></a><em class='sharp'>#include</em> "<a href='21.html'>internal.h</a>"
-<a id='L12' name='L12'></a><em class='sharp'>#include</em> "<a href='28.html'>opcodes.h</a>"
-<a id='L13' name='L13'></a><em class='sharp'>#include</em> "<a href='11.html'>asm.h</a>"
-<a id='L14' name='L14'></a>
-<a id='L15' name='L15'></a>PNAsm *<a href='../R/609.html' title='Multiple referred from 7 places.'>potion_asm_new</a>(<a href='../S/30.html#L77' title='Defined at 77 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
-<a id='L16' name='L16'></a>  <strong class='reserved'>int</strong> siz = <a href='../S/11.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a> - <strong class='reserved'>sizeof</strong>(PNAsm);
-<a id='L17' name='L17'></a>  PNAsm * <strong class='reserved'>volatile</strong> asmb = <a href='../S/21.html#L34' title='Defined at 34 in core/internal.h.'>PN_FLEX_NEW</a>(asmb, <a href='../S/30.html#L117' title='Defined at 117 in core/potion.h.'>PN_TBYTES</a>, PNAsm, siz);
-<a id='L18' name='L18'></a>  <strong class='reserved'>return</strong> asmb;
-<a id='L19' name='L19'></a><em class='brace'>}</em>
-<a id='L20' name='L20'></a>
-<a id='L21' name='L21'></a>PNAsm *<a href='../R/608.html' title='Multiple referred from 5 places.'>potion_asm_clear</a>(<a href='../S/30.html#L77' title='Defined at 77 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb) <em class='brace'>{</em>
-<a id='L22' name='L22'></a>  asmb-&gt;len = 0;
-<a id='L23' name='L23'></a>  <a href='../S/21.html#L20' title='Defined at 20 in core/internal.h.'>PN_MEMZERO_N</a>(asmb-&gt;ptr, <a href='../S/21.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>, asmb-&gt;siz);
-<a id='L24' name='L24'></a>  <strong class='reserved'>return</strong> asmb;
-<a id='L25' name='L25'></a><em class='brace'>}</em>
-<a id='L26' name='L26'></a>
-<a id='L27' name='L27'></a>PNAsm *<a href='../R/611.html' title='Multiple referred from 5 places.'>potion_asm_put</a>(<a href='../S/30.html#L77' title='Defined at 77 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <a href='../S/30.html#L78' title='Defined at 78 in core/potion.h.'>PN</a> val, size_t len) <em class='brace'>{</em>
-<a id='L28' name='L28'></a>  <a href='../S/21.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *ptr;
-<a id='L29' name='L29'></a>  <a href='../S/21.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(len, asmb, <a href='../S/30.html#L117' title='Defined at 117 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/11.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
-<a id='L30' name='L30'></a>  ptr = asmb-&gt;ptr + asmb-&gt;len;
+<a id='L5' name='L5'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L6' name='L6'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L7' name='L7'></a><em class='sharp'>#include</em> &lt;stdint.h&gt;
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> "config.h"
+<a id='L9' name='L9'></a>
+<a id='L10' name='L10'></a><em class='comment'>//</em>
+<a id='L11' name='L11'></a><em class='comment'>// wonderful utf-8 counting trickery</em>
+<a id='L12' name='L12'></a><em class='comment'>// by colin percival</em>
+<a id='L13' name='L13'></a><em class='comment'>//</em>
+<a id='L14' name='L14'></a><em class='comment'>// http://www.daemonology.net/blog/2008-06-05-faster-utf8-strlen.html</em>
+<a id='L15' name='L15'></a><em class='comment'>//</em>
+<a id='L16' name='L16'></a><em class='sharp'>#define</em> <a href='../R/161.html' title='Multiple referred from 3 places.'>ONEMASK</a> ((size_t)(-1) / 0xFF)
+<a id='L17' name='L17'></a>
+<a id='L18' name='L18'></a>size_t
+<a id='L19' name='L19'></a><a href='../R/649.html' title='Multiple referred from 3 places.'>potion_cp_strlen_utf8</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> * _s)
+<a id='L20' name='L20'></a><em class='brace'>{</em>
+<a id='L21' name='L21'></a>  <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> * s;
+<a id='L22' name='L22'></a>  size_t count = 0;
+<a id='L23' name='L23'></a>  size_t u;
+<a id='L24' name='L24'></a>  <strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong> b;
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a>  <strong class='reserved'>for</strong> (s = _s; (uintptr_t)(s) &amp; (<strong class='reserved'>sizeof</strong>(size_t) - 1); s++) <em class='brace'>{</em>
+<a id='L27' name='L27'></a>    b = *s;
+<a id='L28' name='L28'></a>    <strong class='reserved'>if</strong> (b == '\0') <strong class='reserved'>goto</strong> done;
+<a id='L29' name='L29'></a>    count += (b &gt;&gt; 7) &amp; ((~b) &gt;&gt; 6);
+<a id='L30' name='L30'></a>  <em class='brace'>}</em>
 <a id='L31' name='L31'></a>
-<a id='L32' name='L32'></a>  <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<a href='../S/21.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>))
-<a id='L33' name='L33'></a>    *ptr = (<a href='../S/21.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)val;
-<a id='L34' name='L34'></a>  <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<strong class='reserved'>int</strong>))
-<a id='L35' name='L35'></a>    *((<strong class='reserved'>int</strong> *)ptr) = (<strong class='reserved'>int</strong>)val;
-<a id='L36' name='L36'></a>  <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (len == <strong class='reserved'>sizeof</strong>(<a href='../S/30.html#L78' title='Defined at 78 in core/potion.h.'>PN</a>))
-<a id='L37' name='L37'></a>    *((<a href='../S/30.html#L78' title='Defined at 78 in core/potion.h.'>PN</a> *)ptr) = val;
-<a id='L38' name='L38'></a>
-<a id='L39' name='L39'></a>  asmb-&gt;len += len;
-<a id='L40' name='L40'></a>  <strong class='reserved'>return</strong> asmb;
-<a id='L41' name='L41'></a><em class='brace'>}</em>
-<a id='L42' name='L42'></a>
-<a id='L43' name='L43'></a>PNAsm *<a href='../R/610.html' title='Multiple referred from 3 places.'>potion_asm_op</a>(<a href='../S/30.html#L77' title='Defined at 77 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <a href='../S/21.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> ins, <strong class='reserved'>int</strong> _a, <strong class='reserved'>int</strong> _b) <em class='brace'>{</em>
-<a id='L44' name='L44'></a>  <a href='../D/321.html' title='Multiple defined in 2 places.'>PN_OP</a> *pos;
-<a id='L45' name='L45'></a>  <a href='../S/21.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(<strong class='reserved'>sizeof</strong>(<a href='../D/321.html' title='Multiple defined in 2 places.'>PN_OP</a>), asmb, <a href='../S/30.html#L117' title='Defined at 117 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/11.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
-<a id='L46' name='L46'></a>  pos = (<a href='../D/321.html' title='Multiple defined in 2 places.'>PN_OP</a> *)(asmb-&gt;ptr + asmb-&gt;len);
-<a id='L47' name='L47'></a>
-<a id='L48' name='L48'></a>  pos-&gt;code = ins;
-<a id='L49' name='L49'></a>  pos-&gt;a    = _a;
-<a id='L50' name='L50'></a>  pos-&gt;b    = _b;
-<a id='L51' name='L51'></a>
-<a id='L52' name='L52'></a>  asmb-&gt;len += <strong class='reserved'>sizeof</strong>(<a href='../D/321.html' title='Multiple defined in 2 places.'>PN_OP</a>);
-<a id='L53' name='L53'></a>  <strong class='reserved'>return</strong> asmb;
-<a id='L54' name='L54'></a><em class='brace'>}</em>
-<a id='L55' name='L55'></a>
-<a id='L56' name='L56'></a>PNAsm *<a href='../R/612.html' title='Multiple referred from 23 places.'>potion_asm_write</a>(<a href='../S/30.html#L77' title='Defined at 77 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> asmb, <strong class='reserved'>char</strong> *str, size_t len) <em class='brace'>{</em>
-<a id='L57' name='L57'></a>  <strong class='reserved'>char</strong> *ptr;
-<a id='L58' name='L58'></a>  <a href='../S/21.html#L39' title='Defined at 39 in core/internal.h.'>PN_FLEX_NEEDS</a>(len, asmb, <a href='../S/30.html#L117' title='Defined at 117 in core/potion.h.'>PN_TBYTES</a>, PNAsm, <a href='../S/11.html#L17' title='Defined at 17 in core/asm.h.'>ASM_UNIT</a>);
-<a id='L59' name='L59'></a>  ptr = (<strong class='reserved'>char</strong> *)asmb-&gt;ptr + asmb-&gt;len;
-<a id='L60' name='L60'></a>  <a href='../S/21.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(ptr, str, <strong class='reserved'>char</strong>, len);
-<a id='L61' name='L61'></a>  asmb-&gt;len += len;
-<a id='L62' name='L62'></a>  <strong class='reserved'>return</strong> asmb;
-<a id='L63' name='L63'></a><em class='brace'>}</em>
+<a id='L32' name='L32'></a>  <strong class='reserved'>for</strong> (; ; s += <strong class='reserved'>sizeof</strong>(size_t)) <em class='brace'>{</em>
+<a id='L33' name='L33'></a>    __builtin_prefetch(&amp;s[256], 0, 0);
+<a id='L34' name='L34'></a>    u = *(size_t *)(s);
+<a id='L35' name='L35'></a>    <strong class='reserved'>if</strong> ((u - <a href='../S/10.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a>) &amp; (~u) &amp; (<a href='../S/10.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a> * 0x80)) <strong class='reserved'>break</strong>;
+<a id='L36' name='L36'></a>    u = ((u &amp; (<a href='../S/10.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a> * 0x80)) &gt;&gt; 7) &amp; ((~u) &gt;&gt; 6);
+<a id='L37' name='L37'></a>    count += (u * <a href='../S/10.html#L16' title='Defined at 16 in core/contrib.c.'>ONEMASK</a>) &gt;&gt; ((<strong class='reserved'>sizeof</strong>(size_t) - 1) * 8);
+<a id='L38' name='L38'></a>  <em class='brace'>}</em>
+<a id='L39' name='L39'></a>
+<a id='L40' name='L40'></a>  <strong class='reserved'>for</strong> (; ; s++) <em class='brace'>{</em>
+<a id='L41' name='L41'></a>    b = *s;
+<a id='L42' name='L42'></a>    <strong class='reserved'>if</strong> (b == '\0') <strong class='reserved'>break</strong>;
+<a id='L43' name='L43'></a>    count += (b &gt;&gt; 7) &amp; ((~b) &gt;&gt; 6);
+<a id='L44' name='L44'></a>  <em class='brace'>}</em>
+<a id='L45' name='L45'></a>done:
+<a id='L46' name='L46'></a>  <strong class='reserved'>return</strong> ((s - _s) - count);
+<a id='L47' name='L47'></a><em class='brace'>}</em>
+<a id='L48' name='L48'></a>
+<a id='L49' name='L49'></a><em class='sharp'>#ifdef</em> __MINGW32__
+<a id='L50' name='L50'></a><em class='sharp'>#include</em> &lt;windows.h&gt;
+<a id='L51' name='L51'></a><em class='sharp'>#include</em> &lt;sys/unistd.h&gt;
+<a id='L52' name='L52'></a>
+<a id='L53' name='L53'></a><strong class='reserved'>void</strong> *<a href='../R/723.html' title='Multiple referred from 3 places.'>potion_mmap</a>(size_t length, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> exec)
+<a id='L54' name='L54'></a><em class='brace'>{</em> 
+<a id='L55' name='L55'></a>  <strong class='reserved'>void</strong> *mem = VirtualAlloc(NULL, length, MEM_COMMIT,
+<a id='L56' name='L56'></a>    exec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+<a id='L57' name='L57'></a>  <strong class='reserved'>if</strong> (mem == NULL)
+<a id='L58' name='L58'></a>    fprintf(stderr, "** potion_mmap failed");
+<a id='L59' name='L59'></a>  <strong class='reserved'>return</strong> mem;
+<a id='L60' name='L60'></a><em class='brace'>}</em>
+<a id='L61' name='L61'></a>
+<a id='L62' name='L62'></a><strong class='reserved'>int</strong> <a href='../R/725.html' title='Multiple referred from 3 places.'>potion_munmap</a>(<strong class='reserved'>void</strong> *mem, size_t len)
+<a id='L63' name='L63'></a><em class='brace'>{</em>
+<a id='L64' name='L64'></a>  <strong class='reserved'>return</strong> VirtualFree(mem, len, MEM_DECOMMIT) != 0 ? 0 : -1;
+<a id='L65' name='L65'></a><em class='brace'>}</em>
+<a id='L66' name='L66'></a>
+<a id='L67' name='L67'></a><em class='sharp'>#else</em>
+<a id='L68' name='L68'></a><em class='sharp'>#include</em> &lt;sys/mman.h&gt;
+<a id='L69' name='L69'></a>
+<a id='L70' name='L70'></a><strong class='reserved'>void</strong> *<a href='../R/723.html' title='Multiple referred from 3 places.'>potion_mmap</a>(size_t length, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> exec)
+<a id='L71' name='L71'></a><em class='brace'>{</em>
+<a id='L72' name='L72'></a>  <strong class='reserved'>int</strong> prot = exec ? PROT_EXEC : 0;
+<a id='L73' name='L73'></a>  <strong class='reserved'>void</strong> *mem = mmap(NULL, length, prot|PROT_READ|PROT_WRITE,
+<a id='L74' name='L74'></a>    (MAP_PRIVATE|MAP_ANON), -1, 0);
+<a id='L75' name='L75'></a>  <strong class='reserved'>if</strong> (mem == MAP_FAILED) <strong class='reserved'>return</strong> NULL;
+<a id='L76' name='L76'></a>  <strong class='reserved'>return</strong> mem;
+<a id='L77' name='L77'></a><em class='brace'>}</em>
+<a id='L78' name='L78'></a>
+<a id='L79' name='L79'></a><strong class='reserved'>int</strong> <a href='../R/725.html' title='Multiple referred from 3 places.'>potion_munmap</a>(<strong class='reserved'>void</strong> *mem, size_t len)
+<a id='L80' name='L80'></a><em class='brace'>{</em>
+<a id='L81' name='L81'></a>  <strong class='reserved'>return</strong> munmap(mem, len);
+<a id='L82' name='L82'></a><em class='brace'>}</em>
+<a id='L83' name='L83'></a>
+<a id='L84' name='L84'></a><em class='sharp'>#endif</em>
+<a id='L85' name='L85'></a>
+<a id='L86' name='L86'></a><em class='sharp'>#if</em> POTION_WIN32
+<a id='L87' name='L87'></a><em class='comment'>// vasprintf from nokogiri</em>
+<a id='L88' name='L88'></a><em class='comment'>// http://github.com/tenderlove/nokogiri</em>
+<a id='L89' name='L89'></a><em class='comment'>// (written by Geoffroy Couprie), mingw32 fixes by rurban</em>
+<a id='L90' name='L90'></a><strong class='reserved'>int</strong> <a href='../R/882.html' title='Multiple referred from 2 places.'>vasprintf</a> (<strong class='reserved'>char</strong> **strp, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *fmt, ...)
+<a id='L91' name='L91'></a><em class='brace'>{</em>
+<a id='L92' name='L92'></a>  va_list ap;
+<a id='L93' name='L93'></a>  <strong class='reserved'>int</strong> len;
+<a id='L94' name='L94'></a>  <strong class='reserved'>char</strong> *res;
+<a id='L95' name='L95'></a>
+<a id='L96' name='L96'></a>  va_start (ap, fmt);
+<a id='L97' name='L97'></a>  len = vsnprintf (NULL, 0, fmt, ap) + 1;
+<a id='L98' name='L98'></a>  res = (<strong class='reserved'>char</strong> *)malloc((<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)len);
+<a id='L99' name='L99'></a>  <strong class='reserved'>if</strong> (res == NULL)
+<a id='L100' name='L100'></a>      <strong class='reserved'>return</strong> -1;
+<a id='L101' name='L101'></a>  *strp = res;
+<a id='L102' name='L102'></a>  len = vsnprintf(res, (<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)len, fmt, ap);
+<a id='L103' name='L103'></a>  va_end (ap);
+<a id='L104' name='L104'></a>  <strong class='reserved'>return</strong> len;
+<a id='L105' name='L105'></a><em class='brace'>}</em>
+<a id='L106' name='L106'></a>
+<a id='L107' name='L107'></a><em class='comment'>// asprintf from glibc</em>
+<a id='L108' name='L108'></a><strong class='reserved'>int</strong>
+<a id='L109' name='L109'></a><a href='../R/479.html' title='Multiple referred from 8 places.'>asprintf</a> (<strong class='reserved'>char</strong> **string_ptr, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *format, ...)
+<a id='L110' name='L110'></a><em class='brace'>{</em>
+<a id='L111' name='L111'></a>  va_list arg;
+<a id='L112' name='L112'></a>  <strong class='reserved'>int</strong> done;
+<a id='L113' name='L113'></a>
+<a id='L114' name='L114'></a>  va_start (arg, format);
+<a id='L115' name='L115'></a>  done = <a href='../S/10.html#L90' title='Defined at 90 in core/contrib.c.'>vasprintf</a> (string_ptr, format, arg);
+<a id='L116' name='L116'></a>  va_end (arg);
+<a id='L117' name='L117'></a>
+<a id='L118' name='L118'></a>  <strong class='reserved'>return</strong> done;
+<a id='L119' name='L119'></a><em class='brace'>}</em>
+<a id='L120' name='L120'></a><em class='sharp'>#endif</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L15'>[^]</a><a href='#L56'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L19'>[^]</a><a href='#L109'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

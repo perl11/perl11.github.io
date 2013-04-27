@@ -14,6 +14,9 @@ var config_8h =
     [ "POTION_LOADEXT", "db/d16/config_8h.html#acb51147f9d1e2351e89491bffc1fe0c7", null ],
     [ "POTION_JIT_TARGET", "db/d16/config_8h.html#a099aaecb3d238f5655019e2849072637", null ],
     [ "POTION_JIT_NAME", "db/d16/config_8h.html#a005dc80cef01584875711c0f819badac", null ],
+    [ "HAVE_LIBUDIS86", "db/d16/config_8h.html#a8d0f95306939c65004b17c9c93deae04", null ],
+    [ "JIT_DEBUG", "db/d16/config_8h.html#af8d4ea267aa62b4f8927741c2d9407d3", null ],
+    [ "DEBUG", "db/d16/config_8h.html#ad72dbcf6d0153db1b8d8a58001feed83", null ],
     [ "POTION_PLATFORM", "db/d16/config_8h.html#a16143015c87bb1afe2508137da21714e", null ],
     [ "POTION_LIBEXT", "db/d16/config_8h.html#a91d4db31b26ba38119062e488992b1e9", null ],
     [ "PN_SIZE_T", "db/d16/config_8h.html#ae89ae7c9a1cf297108ea10607c7bccbf", null ],
@@ -26,5 +29,6 @@ var config_8h =
     [ "PN_LITTLE_ENDIAN", "db/d16/config_8h.html#a8429ff84d8244144dbe9c437c373a1d1", null ],
     [ "POTION_PAGESIZE", "db/d16/config_8h.html#a1dad0c484f3a6da1efe0f3b1e9b18d1d", null ],
     [ "POTION_STACK_DIR", "db/d16/config_8h.html#ac2b6cd6a5e7c081d784168281b0a5aab", null ],
-    [ "POTION_ARGS_DIR", "db/d16/config_8h.html#abe90386fbd1e150540e803a1fefad952", null ]
+    [ "POTION_ARGS_DIR", "db/d16/config_8h.html#abe90386fbd1e150540e803a1fefad952", null ],
+    [ "HAVE_ASAN_ATTR", "db/d16/config_8h.html#a651616c50be0ce326276a81c9f19b8d6", null ]
 ];

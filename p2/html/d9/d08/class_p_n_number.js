@@ -1,5 +1,6 @@
 var class_p_n_number =
 [
+    [ "potion_num_rand", "d9/d08/class_p_n_number.html#a2d52f0acd8cd43d565f31a09193df481", null ],
     [ "potion_pow", "d9/d08/class_p_n_number.html#aa5fe41a66c0258cf3a52701511dc05eb", null ],
     [ "potion_sqrt", "d9/d08/class_p_n_number.html#a68f9aa1d8407694d6095bc5ba515796e", null ],
     [ "potion_add", "d9/d08/class_p_n_number.html#a5e26ae3fbb5ddfaba90d6172b855e41d", null ],
