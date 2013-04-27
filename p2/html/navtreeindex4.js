@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"dd/d07/potion_8h.html#acf6277168a912c7f78f9e460229f64a3":[5,0,21,286],
 "dd/d07/potion_8h.html#acf7b7f779595350f29df44c6e4f323ce":[5,0,21,164],
 "dd/d07/potion_8h.html#ad0b0a08a96ceb3101cbe5f752f1441c3":[5,0,21,276],
 "dd/d07/potion_8h.html#ad0b97a6b55d1b170afc31c4b1ccf0ae6":[5,0,21,235],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "df/dac/mt19937ar_8c.html#ad8f5e19e19f12974c9713e920ec54331":[5,0,16,13],
 "df/dac/mt19937ar_8c.html#ae0c83b9e91eac53982b5261e53fac50c":[5,0,16,14],
 "df/dac/mt19937ar_8c_source.html":[5,0,16],
-"df/dad/struct_p_n_lick.html":[4,0,14],
-"df/dad/struct_p_n_lick.html#a1a5cdc91ef610d6cee265986d3a5a726":[4,0,14,8]
+"df/dad/struct_p_n_lick.html":[4,0,14]
 };

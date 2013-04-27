@@ -2,6 +2,8 @@ var struct_p_n_vtable =
 [
     [ "vPN", "d7/de2/struct_p_n_vtable.html#a24898664ad5b803392a1a3444cefe72b", null ],
     [ "vPN", "d7/de2/struct_p_n_vtable.html#a344ca7e3f03e48626a061ad3ee1ce839", null ],
+    [ "potion_object_new", "d7/de2/struct_p_n_vtable.html#a765c5c0f9085d653d1b01e287ac80fc6", null ],
+    [ "potion_get_metaclass", "d7/de2/struct_p_n_vtable.html#a61454badb73ef13cd2777780758f2894", null ],
     [ "PN_OBJECT_HEADER", "d7/de2/struct_p_n_vtable.html#a31036db690e1b115c10c4a90986caca3", null ],
     [ "parent", "d7/de2/struct_p_n_vtable.html#a5410f1a12faa02d1287ccc0c648d2888", null ],
     [ "type", "d7/de2/struct_p_n_vtable.html#a795110448196863141a9a159d486a323", null ],

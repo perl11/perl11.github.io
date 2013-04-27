@@ -106,8 +106,10 @@ var NAVTREEINDEX0 =
 "d2/d47/compile_8c.html#afeab00e73d10534c5180a68a2a7a4c91":[5,0,5,1],
 "d2/d47/compile_8c_source.html":[5,0,5],
 "d2/d49/struct_p_n_weak_ref.html":[4,0,26],
-"d2/d49/struct_p_n_weak_ref.html#a0509a76af9538fee1511f9a427059158":[4,0,26,0],
-"d2/d49/struct_p_n_weak_ref.html#ab81c2ec49f00f2a170aafca08314d53a":[4,0,26,1],
+"d2/d49/struct_p_n_weak_ref.html#a0509a76af9538fee1511f9a427059158":[4,0,26,2],
+"d2/d49/struct_p_n_weak_ref.html#a2f2c61b24b43716d67bdefa3104ca219":[4,0,26,1],
+"d2/d49/struct_p_n_weak_ref.html#a7e73f6dbc9ce8dbb45ceae26a0717e92":[4,0,26,0],
+"d2/d49/struct_p_n_weak_ref.html#ab81c2ec49f00f2a170aafca08314d53a":[4,0,26,3],
 "d2/dcd/struct_potion___state.html":[4,0,27],
 "d2/dcd/struct_potion___state.html#a016348a40874efed4e1ca5ccfee0c051":[4,0,27,1],
 "d2/dcd/struct_potion___state.html#a23a75cc4addbf6d4eefaeddd512b3586":[4,0,27,9],
@@ -247,7 +249,5 @@ var NAVTREEINDEX0 =
 "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaddf83bbc02b6a88d325135c880d12184":[5,0,19,3,1],
 "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaeddb9259ad1cce7db3b01f0e220ad4ea":[5,0,19,3,35],
 "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaeeff17c6fb750c7a7e697287c04a22fb":[5,0,19,3,40],
-"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaf3fba0b80ef291d770690f78541fad49":[5,0,19,3,24],
-"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaf73588aae7bc4b33ed536f93a5c0feb7":[5,0,19,3,43],
-"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebafd679fab86e6a91d22c91734e287639b":[5,0,19,3,37]
+"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaf3fba0b80ef291d770690f78541fad49":[5,0,19,3,24]
 };

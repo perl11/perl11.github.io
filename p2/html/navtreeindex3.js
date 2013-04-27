@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"dc/df8/internal_8c.html#a9b0dbaf7b2e9fc1cc17f2f4055d2f255":[5,0,11,28],
 "dc/df8/internal_8c.html#a9fb9287884786d464cd1d7511c4fb984":[5,0,11,33],
 "dc/df8/internal_8c.html#aa1f5049deb6de8a0990d55fdc45c1eac":[5,0,11,9],
 "dc/df8/internal_8c.html#aa29f0c173cd4cf7c25ac1c78bb6834d3":[5,0,11,20],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "dd/d07/potion_8h.html#ac92cc2dd48e2b34bbc27b17a7f33284e":[5,0,21,212],
 "dd/d07/potion_8h.html#acb1ae2720a13982ea5a519f6ceeb5176":[5,0,21,281],
 "dd/d07/potion_8h.html#acbdb233786540b817e292d16ad9b7871":[5,0,21,151],
-"dd/d07/potion_8h.html#acc152b35d78cc17620b5312e20891b25":[5,0,21,165],
-"dd/d07/potion_8h.html#acf6277168a912c7f78f9e460229f64a3":[5,0,21,286]
+"dd/d07/potion_8h.html#acc152b35d78cc17620b5312e20891b25":[5,0,21,165]
 };
