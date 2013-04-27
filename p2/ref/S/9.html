@@ -1,168 +1,967 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>core/callcc.c</title>
+<title>core/compile.c</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/859.html'>core</a>/callcc.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L13'>[^]</a><a href='#L136'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/171.html'>core</a>/compile.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L40'>[^]</a><a href='#L923'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
 <h2 class='header'>DEFINITIONS</h2>
 This source file includes following definitions.
 <ol>
-<li><a href='#L13' title='Defined at 13.'>potion_continuation_yield</a></li>
-<li><a href='#L87' title='Defined at 87.'>potion_callcc</a></li>
-<li><a href='#L136' title='Defined at 136.'>potion_cont_init</a></li>
+<li><a href='#L40' title='Defined at 40.'>potion_proto_tree</a></li>
+<li><a href='#L47' title='Defined at 47.'>potion_proto_call</a></li>
+<li><a href='#L53' title='Defined at 53.'>potion_proto_string</a></li>
+<li><a href='#L222' title='Defined at 222.'>potion_arg_asmb</a></li>
+<li><a href='#L271' title='Defined at 271.'>potion_source_asmb</a></li>
+<li><a href='#L687' title='Defined at 687.'>potion_sig_compile</a></li>
+<li><a href='#L722' title='Defined at 722.'>potion_source_compile</a></li>
+<li><a href='#L785' title='Defined at 785.'>potion_proto_load</a></li>
+<li><a href='#L814' title='Defined at 814.'>potion_source_load</a></li>
+<li><a href='#L864' title='Defined at 864.'>potion_proto_dumpbc</a></li>
+<li><a href='#L885' title='Defined at 885.'>potion_source_dumpbc</a></li>
+<li><a href='#L900' title='Defined at 900.'>potion_run</a></li>
+<li><a href='#L916' title='Defined at 916.'>potion_eval</a></li>
+<li><a href='#L923' title='Defined at 923.'>potion_compiler_init</a></li>
 </ol>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>///\file callcc.c</em>
-<a id='L2' name='L2'></a><em class='comment'>/// creation and calling of continuations, in non-portable asm, x86 only yet</em>
-<a id='L3' name='L3'></a><em class='comment'>//</em>
-<a id='L4' name='L4'></a><em class='comment'>// NOTE: these hacks make use of the frame pointer, so they must</em>
-<a id='L5' name='L5'></a><em class='comment'>// be compiled -fno-omit-frame-pointer!</em>
-<a id='L6' name='L6'></a><em class='comment'>//</em>
-<a id='L7' name='L7'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
-<a id='L8' name='L8'></a><em class='comment'>//</em>
-<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
-<a id='L10' name='L10'></a><em class='sharp'>#include</em> "<a href='25.html'>p2.h</a>"
-<a id='L11' name='L11'></a><em class='sharp'>#include</em> "<a href='17.html'>internal.h</a>"
-<a id='L12' name='L12'></a>
-<a id='L13' name='L13'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/9.html#L138' title='Referred from 138 in core/callcc.c.'>potion_continuation_yield</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L14' name='L14'></a>  <strong class='reserved'>struct</strong> <a href='../S/26.html#L412' title='Defined at 412 in core/potion.h.'>PNCont</a> *cc = (<strong class='reserved'>struct</strong> <a href='../S/26.html#L412' title='Defined at 412 in core/potion.h.'>PNCont</a> *)self;
-<a id='L15' name='L15'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *start, *<a href='../S/750.html#L175' title='Defined at 175 in syn/compile.c.'>end</a>, *sp1 = P-&gt;mem-&gt;cstack;
-<a id='L16' name='L16'></a><em class='sharp'>#if</em> <a href='../S/11.html#L33' title='Defined at 33 in core/config.h.'>POTION_STACK_DIR</a> &gt; 0
-<a id='L17' name='L17'></a>  start = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[0];
-<a id='L18' name='L18'></a>  <a href='../S/750.html#L175' title='Defined at 175 in syn/compile.c.'>end</a> = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[1];
-<a id='L19' name='L19'></a><em class='sharp'>#else</em>
-<a id='L20' name='L20'></a>  start = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[1];
-<a id='L21' name='L21'></a>  <a href='../S/750.html#L175' title='Defined at 175 in syn/compile.c.'>end</a> = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[0];
-<a id='L22' name='L22'></a><em class='sharp'>#endif</em>
-<a id='L23' name='L23'></a>
-<a id='L24' name='L24'></a>  <strong class='reserved'>if</strong> ((<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp1 != cc-&gt;stack[0]) <em class='brace'>{</em>
-<a id='L25' name='L25'></a>    fprintf(stderr, "** TODO: continuations which switch stacks must be rewritten. (%p != %p)\n",
-<a id='L26' name='L26'></a>      sp1, (<strong class='reserved'>void</strong> *)(cc-&gt;stack[0]));
-<a id='L27' name='L27'></a>    <strong class='reserved'>return</strong> <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
-<a id='L28' name='L28'></a>  <em class='brace'>}</em>
-<a id='L29' name='L29'></a>
-<a id='L30' name='L30'></a>  <em class='comment'>//</em>
-<a id='L31' name='L31'></a>  <em class='comment'>// move stack pointer, fill in stack, resume</em>
-<a id='L32' name='L32'></a>  cc-&gt;stack[3] = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cc;
-<a id='L33' name='L33'></a><em class='sharp'>#if</em> <a href='../S/26.html#L48' title='Defined at 48 in core/potion.h.'>POTION_X86</a> == <a href='../S/11.html#L14' title='Defined at 14 in core/config.h.'>POTION_JIT_TARGET</a>
-<a id='L34' name='L34'></a><em class='sharp'>#if</em> <a href='../D/564.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64
-<a id='L35' name='L35'></a>  <strong class='reserved'>__asm__</strong> ("mov 0x8(%2), %%rsp;"
-<a id='L36' name='L36'></a>           "mov 0x10(%2), %%rbp;"
-<a id='L37' name='L37'></a>           "mov %2, %%rbx;"
-<a id='L38' name='L38'></a>           "add $0x48, %2;"
-<a id='L39' name='L39'></a>        "loop:"
-<a id='L40' name='L40'></a>           "mov (%2), %%rax;"
-<a id='L41' name='L41'></a>           "add $0x8, %0;"
-<a id='L42' name='L42'></a>           "mov %%rax, (%0);"
-<a id='L43' name='L43'></a>           "add $0x8, %2;"
-<a id='L44' name='L44'></a>           "cmp %0, %1;"
-<a id='L45' name='L45'></a>           "jne loop;"
-<a id='L46' name='L46'></a>           "mov 0x18(%%rbx), %%rax;"
-<a id='L47' name='L47'></a>           "movq $0x0, 0x18(%%rbx);"
-<a id='L48' name='L48'></a>           "mov 0x28(%%rbx), %%r12;"
-<a id='L49' name='L49'></a>           "mov 0x30(%%rbx), %%r13;"
-<a id='L50' name='L50'></a>           "mov 0x38(%%rbx), %%r14;"
-<a id='L51' name='L51'></a>           "mov 0x40(%%rbx), %%r15;"
-<a id='L52' name='L52'></a>           "mov 0x20(%%rbx), %%rbx;"
-<a id='L53' name='L53'></a>           "leave; ret"
-<a id='L54' name='L54'></a>           :<em class='comment'>/* no output */</em>
-<a id='L55' name='L55'></a>           :"r"(start), "r"(<a href='../S/750.html#L175' title='Defined at 175 in syn/compile.c.'>end</a>), "r"(cc-&gt;stack)
-<a id='L56' name='L56'></a>           :"%rax", "%rsp", "%rbx"
-<a id='L57' name='L57'></a>          );
-<a id='L58' name='L58'></a><em class='sharp'>#else</em>
-<a id='L59' name='L59'></a>  <strong class='reserved'>__asm__</strong> ("mov 0x4(%2), %%esp;"
-<a id='L60' name='L60'></a>           "mov 0x8(%2), %%ebp;"
-<a id='L61' name='L61'></a>           "mov %2, %%esi;"
-<a id='L62' name='L62'></a>           "add $0x1c, %2;"
-<a id='L63' name='L63'></a>        "loop:"
-<a id='L64' name='L64'></a>           "mov (%2), %%eax;"
-<a id='L65' name='L65'></a>           "add $0x4, %0;"
-<a id='L66' name='L66'></a>           "mov %%eax, (%0);"
-<a id='L67' name='L67'></a>           "add $0x4, %2;"
-<a id='L68' name='L68'></a>           "cmp %0, %1;"
-<a id='L69' name='L69'></a>           "jne loop;"
-<a id='L70' name='L70'></a>           "mov 0xc(%%esi), %%eax;"
-<a id='L71' name='L71'></a>           "mov 0x14(%%esi), %%edi;"
-<a id='L72' name='L72'></a>           "mov 0x18(%%esi), %%ebx;"
-<a id='L73' name='L73'></a>           "mov 0x10(%%esi), %%esi;"
-<a id='L74' name='L74'></a>           "leave; ret"
-<a id='L75' name='L75'></a>           :<em class='comment'>/* no output */</em>
-<a id='L76' name='L76'></a>           :"r"(start), "r"(<a href='../S/750.html#L175' title='Defined at 175 in syn/compile.c.'>end</a>), "r"(cc-&gt;stack)
-<a id='L77' name='L77'></a>           :"%eax", "%esp", <em class='comment'>/*"%ebp",*/</em> "%esi"
-<a id='L78' name='L78'></a>          );
-<a id='L79' name='L79'></a><em class='sharp'>#endif</em>
-<a id='L80' name='L80'></a><em class='sharp'>#else</em>
-<a id='L81' name='L81'></a>  fprintf(stderr, "** TODO: callcc/yield does not work outside of X86 yet.\n");
-<a id='L82' name='L82'></a><em class='sharp'>#endif</em>
-<a id='L83' name='L83'></a>  <strong class='reserved'>return</strong> self;
-<a id='L84' name='L84'></a><em class='brace'>}</em>
-<a id='L85' name='L85'></a>
-<a id='L86' name='L86'></a><a href='../D/43.html' title='Multiple defined in 2 places.'>ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS</a>
-<a id='L87' name='L87'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/702.html' title='Multiple referred from 2 places.'>potion_callcc</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L88' name='L88'></a>  <strong class='reserved'>struct</strong> <a href='../S/26.html#L412' title='Defined at 412 in core/potion.h.'>PNCont</a> *cc;
-<a id='L89' name='L89'></a>  <a href='../S/26.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a>;
-<a id='L90' name='L90'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *start, *sp1 = P-&gt;mem-&gt;cstack, *sp2, *sp3;
-<a id='L91' name='L91'></a>  <a href='../D/411.html' title='Multiple defined in 3 places.'>POTION_ESP</a>(&amp;sp2);
-<a id='L92' name='L92'></a>  <a href='../D/410.html' title='Multiple defined in 3 places.'>POTION_EBP</a>(&amp;sp3);
-<a id='L93' name='L93'></a><em class='sharp'>#if</em> <a href='../S/11.html#L33' title='Defined at 33 in core/config.h.'>POTION_STACK_DIR</a> &gt; 0
-<a id='L94' name='L94'></a>  <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> = sp2 - sp1;
-<a id='L95' name='L95'></a>  start = sp1;
-<a id='L96' name='L96'></a><em class='sharp'>#else</em>
-<a id='L97' name='L97'></a>  <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> = sp1 - sp2 + 1;
-<a id='L98' name='L98'></a>  start = sp2;
-<a id='L99' name='L99'></a><em class='sharp'>#endif</em>
-<a id='L100' name='L100'></a>
-<a id='L101' name='L101'></a>  cc = <a href='../S/17.html#L14' title='Defined at 14 in core/internal.h.'>PN_ALLOC_N</a>(<a href='../S/26.html#L128' title='Defined at 128 in core/potion.h.'>PN_TCONT</a>, <strong class='reserved'>struct</strong> <a href='../S/26.html#L412' title='Defined at 412 in core/potion.h.'>PNCont</a>, <strong class='reserved'>sizeof</strong>(<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>) * (<a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> + 3 + <a href='../D/350.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>));
-<a id='L102' name='L102'></a>  cc-&gt;len = <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> + 3;
-<a id='L103' name='L103'></a>  cc-&gt;stack[0] = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp1;
-<a id='L104' name='L104'></a>  cc-&gt;stack[1] = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp2;
-<a id='L105' name='L105'></a>  cc-&gt;stack[2] = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp3;
-<a id='L106' name='L106'></a>  cc-&gt;stack[3] = <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
-<a id='L107' name='L107'></a><em class='sharp'>#if</em> <a href='../S/26.html#L48' title='Defined at 48 in core/potion.h.'>POTION_X86</a> == <a href='../S/11.html#L14' title='Defined at 14 in core/config.h.'>POTION_JIT_TARGET</a>
-<a id='L108' name='L108'></a><em class='sharp'>#if</em> <a href='../D/564.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64
-<a id='L109' name='L109'></a>  <strong class='reserved'>__asm__</strong> ("mov %%rbx, 0x20(%0);"
-<a id='L110' name='L110'></a>           "mov %%r12, 0x28(%0);"
-<a id='L111' name='L111'></a>           "mov %%r13, 0x30(%0);"
-<a id='L112' name='L112'></a>           "mov %%r14, 0x38(%0);"
-<a id='L113' name='L113'></a>           "mov %%r15, 0x40(%0);"::"r"(cc-&gt;stack));
-<a id='L114' name='L114'></a><em class='sharp'>#else</em>
-<a id='L115' name='L115'></a>  <strong class='reserved'>__asm__</strong> ("mov %%esi, 0x10(%0);"
-<a id='L116' name='L116'></a>           "mov %%edi, 0x14(%0);"
-<a id='L117' name='L117'></a>           "mov %%ebx, 0x18(%0)"::"r"(cc-&gt;stack));
-<a id='L118' name='L118'></a><em class='sharp'>#endif</em>
-<a id='L119' name='L119'></a><em class='sharp'>#endif</em>
-<a id='L120' name='L120'></a>
-<a id='L121' name='L121'></a><em class='comment'>// avoid wrong asan stack underflow, caught in memcpy</em>
-<a id='L122' name='L122'></a><em class='sharp'>#if</em> <strong class='reserved'>defined</strong>(__clang__) &amp;&amp; <strong class='reserved'>defined</strong>(__SANITIZE_ADDRESS__)
-<a id='L123' name='L123'></a>  <em class='brace'>{</em>
-<a id='L124' name='L124'></a>    <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *<a href='../D/1134.html' title='Multiple defined in 114 places.'>s</a> = start + 1;
-<a id='L125' name='L125'></a>    <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *d = cc-&gt;stack + 4 + <a href='../D/350.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>;
-<a id='L126' name='L126'></a>    <strong class='reserved'>for</strong> (<strong class='reserved'>int</strong> <a href='../D/632.html' title='Multiple defined in 20 places.'>i</a>=0; <a href='../D/632.html' title='Multiple defined in 20 places.'>i</a> &lt; <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> - 1; <a href='../D/632.html' title='Multiple defined in 20 places.'>i</a>++) <em class='brace'>{</em>
-<a id='L127' name='L127'></a>      *d++ = *<a href='../D/1134.html' title='Multiple defined in 114 places.'>s</a>++;
-<a id='L128' name='L128'></a>    <em class='brace'>}</em>
-<a id='L129' name='L129'></a>  <em class='brace'>}</em>
-<a id='L130' name='L130'></a><em class='sharp'>#else</em>
-<a id='L131' name='L131'></a>  <a href='../S/17.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>((<strong class='reserved'>char</strong> *)(cc-&gt;stack + 4 + <a href='../D/350.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>), start + 1, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <a href='../D/702.html' title='Multiple defined in 28 places.'>n</a> - 1);
-<a id='L132' name='L132'></a><em class='sharp'>#endif</em>
-<a id='L133' name='L133'></a>  <strong class='reserved'>return</strong> (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cc;
-<a id='L134' name='L134'></a><em class='brace'>}</em>
-<a id='L135' name='L135'></a>
-<a id='L136' name='L136'></a><strong class='reserved'>void</strong> <a href='../R/716.html' title='Multiple referred from 2 places.'>potion_cont_init</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
-<a id='L137' name='L137'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cnt_vt = <a href='../S/26.html#L136' title='Defined at 136 in core/potion.h.'>PN_VTABLE</a>(<a href='../S/26.html#L128' title='Defined at 128 in core/potion.h.'>PN_TCONT</a>);
-<a id='L138' name='L138'></a>  <a href='../S/23.html#L113' title='Defined at 113 in core/objmodel.c.'>potion_type_call_is</a>(cnt_vt, <a href='../S/26.html#L186' title='Defined at 186 in core/potion.h.'>PN_FUNC</a>(<a href='../S/9.html#L13' title='Defined at 13 in core/callcc.c.'>potion_continuation_yield</a>, 0));
-<a id='L139' name='L139'></a><em class='brace'>}</em>
-<a id='L140' name='L140'></a>
+<a id='L1' name='L1'></a><em class='comment'>/** \file compile.c</em>
+<a id='L2' name='L2'></a><em class='comment'> * ast to bytecode.</em>
+<a id='L3' name='L3'></a><em class='comment'> *</em>
+<a id='L4' name='L4'></a><em class='comment'> * implement PNSource (AST) and PNProto (closure) methods</em>
+<a id='L5' name='L5'></a><em class='comment'> */</em>
+<a id='L6' name='L6'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
+<a id='L7' name='L7'></a><em class='comment'>//</em>
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L10' name='L10'></a><em class='sharp'>#include</em> &lt;math.h&gt;
+<a id='L11' name='L11'></a><em class='sharp'>#include</em> &lt;ctype.h&gt;
+<a id='L12' name='L12'></a><em class='sharp'>#include</em> "<a href='23.html'>p2.h</a>"
+<a id='L13' name='L13'></a><em class='sharp'>#include</em> "<a href='15.html'>internal.h</a>"
+<a id='L14' name='L14'></a><em class='sharp'>#include</em> "<a href='7.html'>ast.h</a>"
+<a id='L15' name='L15'></a><em class='sharp'>#include</em> "<a href='22.html'>opcodes.h</a>"
+<a id='L16' name='L16'></a><em class='sharp'>#include</em> "<a href='5.html'>asm.h</a>"
+<a id='L17' name='L17'></a>
+<a id='L18' name='L18'></a><em class='sharp'>#define</em> <a href='../R/245.html' title='Multiple referred from 13 places.'>PN_ASM1</a>(ins, _a)     f-&gt;asmb = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/4.html#L43' title='Defined at 43 in core/asm.c.'>potion_asm_op</a>(P, (PNAsm *)f-&gt;asmb, (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)ins, (<strong class='reserved'>int</strong>)_a, 0)
+<a id='L19' name='L19'></a><em class='sharp'>#define</em> <a href='../R/246.html' title='Multiple referred from 73 places.'>PN_ASM2</a>(ins, _a, _b) f-&gt;asmb = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/4.html#L43' title='Defined at 43 in core/asm.c.'>potion_asm_op</a>(P, (PNAsm *)f-&gt;asmb, (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)ins, (<strong class='reserved'>int</strong>)_a, (<strong class='reserved'>int</strong>)_b)
+<a id='L20' name='L20'></a>
+<a id='L21' name='L21'></a><strong class='reserved'>const</strong> <strong class='reserved'>struct</strong> <em class='brace'>{</em>
+<a id='L22' name='L22'></a>  <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *name;
+<a id='L23' name='L23'></a>  <strong class='reserved'>const</strong> <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> args;
+<a id='L24' name='L24'></a><em class='brace'>}</em> potion_ops[] = <em class='brace'>{</em>
+<a id='L25' name='L25'></a>  <em class='brace'>{</em>"noop", 0<em class='brace'>}</em>, <em class='brace'>{</em>"move", 2<em class='brace'>}</em>, <em class='brace'>{</em>"loadk", 2<em class='brace'>}</em>, <em class='brace'>{</em>"loadpn", 2<em class='brace'>}</em>, <em class='brace'>{</em>"self", 1<em class='brace'>}</em>,
+<a id='L26' name='L26'></a>  <em class='brace'>{</em>"newtuple", 2<em class='brace'>}</em>, <em class='brace'>{</em>"settuple", 2<em class='brace'>}</em>, <em class='brace'>{</em>"getlocal", 2<em class='brace'>}</em>, <em class='brace'>{</em>"setlocal", 2<em class='brace'>}</em>,
+<a id='L27' name='L27'></a>  <em class='brace'>{</em>"getupval", 2<em class='brace'>}</em>, <em class='brace'>{</em>"setupval", 2<em class='brace'>}</em>, <em class='brace'>{</em>"global", 2<em class='brace'>}</em>, <em class='brace'>{</em>"gettable", 2<em class='brace'>}</em>,
+<a id='L28' name='L28'></a>  <em class='brace'>{</em>"settable", 2<em class='brace'>}</em>, <em class='brace'>{</em>"newlick", 2<em class='brace'>}</em>, <em class='brace'>{</em>"getpath", 2<em class='brace'>}</em>, <em class='brace'>{</em>"setpath", 2<em class='brace'>}</em>,
+<a id='L29' name='L29'></a>  <em class='brace'>{</em>"add", 2<em class='brace'>}</em>, <em class='brace'>{</em>"sub", 2<em class='brace'>}</em>, <em class='brace'>{</em>"mult", 2<em class='brace'>}</em>, <em class='brace'>{</em>"div", 2<em class='brace'>}</em>, <em class='brace'>{</em>"mod", 2<em class='brace'>}</em>, <em class='brace'>{</em>"pow", 2<em class='brace'>}</em>,
+<a id='L30' name='L30'></a>  <em class='brace'>{</em>"not", 1<em class='brace'>}</em>, <em class='brace'>{</em>"cmp", 2<em class='brace'>}</em>, <em class='brace'>{</em>"eq", 2<em class='brace'>}</em>, <em class='brace'>{</em>"neq", 2<em class='brace'>}</em>, <em class='brace'>{</em>"lt", 2<em class='brace'>}</em>, <em class='brace'>{</em>"lte", 2<em class='brace'>}</em>,
+<a id='L31' name='L31'></a>  <em class='brace'>{</em>"gt", 2<em class='brace'>}</em>, <em class='brace'>{</em>"gte", 2<em class='brace'>}</em>, <em class='brace'>{</em>"bitn", 2<em class='brace'>}</em>, <em class='brace'>{</em>"bitl", 2<em class='brace'>}</em>, <em class='brace'>{</em>"bitr", 2<em class='brace'>}</em>, <em class='brace'>{</em>"def", 2<em class='brace'>}</em>,
+<a id='L32' name='L32'></a>  <em class='brace'>{</em>"bind", 2<em class='brace'>}</em>, <em class='brace'>{</em>"message", 2<em class='brace'>}</em>, <em class='brace'>{</em>"jump", 1<em class='brace'>}</em>, <em class='brace'>{</em>"test", 2<em class='brace'>}</em>, <em class='brace'>{</em>"testjmp", 2<em class='brace'>}</em>,
+<a id='L33' name='L33'></a>  <em class='brace'>{</em>"notjmp", 2<em class='brace'>}</em>, <em class='brace'>{</em>"named", 2<em class='brace'>}</em>, <em class='brace'>{</em>"call", 2<em class='brace'>}</em>, <em class='brace'>{</em>"callset", 2<em class='brace'>}</em>, <em class='brace'>{</em>"tailcall", 2<em class='brace'>}</em>,
+<a id='L34' name='L34'></a>  <em class='brace'>{</em>"return", 1<em class='brace'>}</em>, <em class='brace'>{</em>"proto", 2<em class='brace'>}</em>, <em class='brace'>{</em>"class", 2<em class='brace'>}</em>
+<a id='L35' name='L35'></a><em class='brace'>}</em>;
+<a id='L36' name='L36'></a>
+<a id='L37' name='L37'></a><em class='comment'>///\memberof PNProto</em>
+<a id='L38' name='L38'></a><em class='comment'>/// tree method of PNProto</em>
+<a id='L39' name='L39'></a><em class='comment'>///\return the original PNSource AST for the closure</em>
+<a id='L40' name='L40'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/9.html#L926' title='Referred from 926 in core/compile.c.'>potion_proto_tree</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L41' name='L41'></a>  <strong class='reserved'>return</strong> <a href='../S/24.html#L185' title='Defined at 185 in core/potion.h.'>PN_PROTO</a>(self)-&gt;tree;
+<a id='L42' name='L42'></a><em class='brace'>}</em>
+<a id='L43' name='L43'></a>
+<a id='L44' name='L44'></a><em class='comment'>///\memberof PNProto</em>
+<a id='L45' name='L45'></a><em class='comment'>/// call method of PNProto. i.e. apply - bind args to a closure.</em>
+<a id='L46' name='L46'></a><em class='comment'>///\param args</em>
+<a id='L47' name='L47'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/9.html#L925' title='Referred from 925 in core/compile.c.'>potion_proto_call</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> args) <em class='brace'>{</em>
+<a id='L48' name='L48'></a>  <strong class='reserved'>return</strong> <a href='../S/33.html#L284' title='Defined at 284 in core/vm.c.'>potion_vm</a>(P, self, P-&gt;lobby, args, 0, NULL);
+<a id='L49' name='L49'></a><em class='brace'>}</em>
+<a id='L50' name='L50'></a>
+<a id='L51' name='L51'></a><em class='comment'>///\memberof PNProto</em>
+<a id='L52' name='L52'></a><em class='comment'>/// string method of PNProto. ascii dump of a function definition</em>
+<a id='L53' name='L53'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/9.html#L927' title='Referred from 927 in core/compile.c.'>potion_proto_string</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L54' name='L54'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) t = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a> *)self;
+<a id='L55' name='L55'></a>  <strong class='reserved'>int</strong> x = 0;
+<a id='L56' name='L56'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = 1;
+<a id='L57' name='L57'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> numcols;
+<a id='L58' name='L58'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> out = <a href='../S/26.html#L227' title='Defined at 227 in core/string.c.'>potion_byte_str</a>(P, "; function definition");
+<a id='L59' name='L59'></a><em class='sharp'>  #ifdef</em> JIT_DEBUG
+<a id='L60' name='L60'></a>  <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ": %p; %u bytes\n", t, <a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(t-&gt;asmb));
+<a id='L61' name='L61'></a><em class='sharp'>  #else</em>
+<a id='L62' name='L62'></a>  <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ": %u bytes\n", <a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(t-&gt;asmb));
+<a id='L63' name='L63'></a><em class='sharp'>  #endif</em>
+<a id='L64' name='L64'></a>  <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; (");
+<a id='L65' name='L65'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;sig, i, v, <em class='brace'>{</em>
+<a id='L66' name='L66'></a>    <strong class='reserved'>if</strong> (<a href='../S/24.html#L160' title='Defined at 160 in core/potion.h.'>PN_IS_NUM</a>(v)) <em class='brace'>{</em>
+<a id='L67' name='L67'></a>      <strong class='reserved'>if</strong> (v == '.')
+<a id='L68' name='L68'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ". ");
+<a id='L69' name='L69'></a>      <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (v == '|')
+<a id='L70' name='L70'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "| ");
+<a id='L71' name='L71'></a>      <strong class='reserved'>else</strong>
+<a id='L72' name='L72'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "=%c, ", (<strong class='reserved'>int</strong>)<a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_INT</a>(v));
+<a id='L73' name='L73'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong>
+<a id='L74' name='L74'></a>      <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L75' name='L75'></a>  <em class='brace'>}</em>);
+<a id='L76' name='L76'></a>  <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ") %ld registers\n", <a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_INT</a>(t-&gt;stack));
+<a id='L77' name='L77'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;paths, i, v, <em class='brace'>{</em>
+<a id='L78' name='L78'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ".path /");
+<a id='L79' name='L79'></a>    v = <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(t-&gt;values, <a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_INT</a>(v));
+<a id='L80' name='L80'></a>    <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L81' name='L81'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " ; %u\n", i);
+<a id='L82' name='L82'></a>  <em class='brace'>}</em>);
+<a id='L83' name='L83'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;locals, i, v, <em class='brace'>{</em>
+<a id='L84' name='L84'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ".local ");
+<a id='L85' name='L85'></a>    <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L86' name='L86'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " ; %u\n", i);
+<a id='L87' name='L87'></a>  <em class='brace'>}</em>);
+<a id='L88' name='L88'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;upvals, i, v, <em class='brace'>{</em>
+<a id='L89' name='L89'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ".upval ");
+<a id='L90' name='L90'></a>    <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L91' name='L91'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " ; %u\n", i);
+<a id='L92' name='L92'></a>  <em class='brace'>}</em>);
+<a id='L93' name='L93'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;values, i, v, <em class='brace'>{</em>
+<a id='L94' name='L94'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, ".value ");
+<a id='L95' name='L95'></a>    <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L96' name='L96'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " ; %u\n", i);
+<a id='L97' name='L97'></a>  <em class='brace'>}</em>);
+<a id='L98' name='L98'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;protos, i, v, <em class='brace'>{</em>
+<a id='L99' name='L99'></a>    <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, v);
+<a id='L100' name='L100'></a>  <em class='brace'>}</em>);
+<a id='L101' name='L101'></a>  numcols = (<strong class='reserved'>int</strong>)ceil(log10(<a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(t-&gt;asmb) / <strong class='reserved'>sizeof</strong>(<a href='../D/322.html' title='Multiple defined in 2 places.'>PN_OP</a>)));
+<a id='L102' name='L102'></a>  <strong class='reserved'>for</strong> (x = 0; x &lt; <a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(t-&gt;asmb) / <strong class='reserved'>sizeof</strong>(<a href='../D/322.html' title='Multiple defined in 2 places.'>PN_OP</a>); x++) <em class='brace'>{</em>
+<a id='L103' name='L103'></a>    <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> commentoffset = 20;
+<a id='L104' name='L104'></a>    <strong class='reserved'>int</strong> width = <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "[%*u] %-8s %d",
+<a id='L105' name='L105'></a>      numcols, num, potion_ops[<a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).code].name, <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).a);
+<a id='L106' name='L106'></a>
+<a id='L107' name='L107'></a>    <strong class='reserved'>if</strong> (potion_ops[<a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).code].args &gt; 1)
+<a id='L108' name='L108'></a>      width += <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " %d", <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).b);
+<a id='L109' name='L109'></a>
+<a id='L110' name='L110'></a>    <strong class='reserved'>if</strong> (width &lt; commentoffset)
+<a id='L111' name='L111'></a>      <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "%*s", commentoffset - width, "");
+<a id='L112' name='L112'></a>    <strong class='reserved'>else</strong>
+<a id='L113' name='L113'></a>      <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, " ");
+<a id='L114' name='L114'></a>
+<a id='L115' name='L115'></a>    <em class='comment'>// TODO: Byte code listing: instead of using tabs, pad with spaces to make everything line up</em>
+<a id='L116' name='L116'></a>    <strong class='reserved'>switch</strong> (<a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).code) <em class='brace'>{</em>
+<a id='L117' name='L117'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L70' title='Defined at 70 in core/opcodes.h.'>OP_JMP</a>:
+<a id='L118' name='L118'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; to %d", num + <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).a + 1);
+<a id='L119' name='L119'></a>        <strong class='reserved'>break</strong>;
+<a id='L120' name='L120'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a>:
+<a id='L121' name='L121'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>:
+<a id='L122' name='L122'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; to %d", num + <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).b + 1);
+<a id='L123' name='L123'></a>        <strong class='reserved'>break</strong>;
+<a id='L124' name='L124'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>:
+<a id='L125' name='L125'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; ");
+<a id='L126' name='L126'></a>        <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).b);
+<a id='L127' name='L127'></a>        <strong class='reserved'>break</strong>;
+<a id='L128' name='L128'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>:
+<a id='L129' name='L129'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; ");
+<a id='L130' name='L130'></a>        <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(t-&gt;values, <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).b));
+<a id='L131' name='L131'></a>        <strong class='reserved'>break</strong>;
+<a id='L132' name='L132'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L41' title='Defined at 41 in core/opcodes.h.'>OP_SETLOCAL</a>:
+<a id='L133' name='L133'></a>      <strong class='reserved'>case</strong> <a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>:
+<a id='L134' name='L134'></a>        <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; ");
+<a id='L135' name='L135'></a>        <a href='../S/26.html#L269' title='Defined at 269 in core/string.c.'>potion_bytes_obj_string</a>(P, out, <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(t-&gt;locals, <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(t-&gt;asmb, x).b));
+<a id='L136' name='L136'></a>        <strong class='reserved'>break</strong>;
+<a id='L137' name='L137'></a>    <em class='brace'>}</em>
+<a id='L138' name='L138'></a>    <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "\n");
+<a id='L139' name='L139'></a>    num++;
+<a id='L140' name='L140'></a>  <em class='brace'>}</em>
+<a id='L141' name='L141'></a>  <em class='comment'>//pn_printf(P, out, "\n");</em>
+<a id='L142' name='L142'></a>  <a href='../S/26.html#L246' title='Defined at 246 in core/string.c.'>pn_printf</a>(P, out, "; function end\n");
+<a id='L143' name='L143'></a>  <strong class='reserved'>return</strong> <a href='../S/24.html#L182' title='Defined at 182 in core/potion.h.'>PN_STR_B</a>(out);
+<a id='L144' name='L144'></a><em class='brace'>}</em>
+<a id='L145' name='L145'></a>
+<a id='L146' name='L146'></a><em class='sharp'>#define</em> <a href='../R/305.html' title='Multiple referred from 9 places.'>PN_REG</a>(f, reg) \
+<a id='L147' name='L147'></a>  <strong class='reserved'>if</strong> (reg &gt;= <a href='../S/24.html#L176' title='Defined at 176 in core/potion.h.'>PN_INT</a>(f-&gt;stack)) \
+<a id='L148' name='L148'></a>    f-&gt;stack = <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>(reg + 1)
+<a id='L149' name='L149'></a><em class='sharp'>#ifdef</em> <a href='../S/71.html#L12' title='Defined at 12 in syn/syntax-p5.y.'>P2</a>
+<a id='L150' name='L150'></a><em class='sharp'>#define</em> <a href='../R/243.html' title='Multiple referred from 5 places.'>PN_ARG</a>(n, reg) \
+<a id='L151' name='L151'></a>  <strong class='reserved'>if</strong> (<a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(t-&gt;a[n]) == <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a> &amp;&amp; <a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[n], 0), 0)) == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a>) <em class='brace'>{</em> \
+<a id='L152' name='L152'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> test = <a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[n], 0), 0), 0); \
+<a id='L153' name='L153'></a>    <strong class='reserved'>if</strong> (!<a href='../S/24.html#L158' title='Defined at 158 in core/potion.h.'>PN_IS_NIL</a>(test)) <em class='brace'>{</em> \
+<a id='L154' name='L154'></a>      <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(test, i, v, <em class='brace'>{</em> \
+<a id='L155' name='L155'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, reg); <em class='brace'>}</em>); \
+<a id='L156' name='L156'></a>    <em class='brace'>}</em> \
+<a id='L157' name='L157'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
+<a id='L158' name='L158'></a>    <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[n], reg); \
+<a id='L159' name='L159'></a>  <em class='brace'>}</em>
+<a id='L160' name='L160'></a><em class='sharp'>#else</em>
+<a id='L161' name='L161'></a><em class='sharp'>#define</em> <a href='../R/243.html' title='Multiple referred from 5 places.'>PN_ARG</a>(n, reg) \
+<a id='L162' name='L162'></a>  <strong class='reserved'>if</strong> (<a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(t-&gt;a[n]) == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a> &amp;&amp; <a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[n], 0), 0)) == <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a>) <em class='brace'>{</em> \
+<a id='L163' name='L163'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> test = <a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[n], 0), 0), 0); \
+<a id='L164' name='L164'></a>    <strong class='reserved'>if</strong> (!<a href='../S/24.html#L158' title='Defined at 158 in core/potion.h.'>PN_IS_NIL</a>(test)) <em class='brace'>{</em> \
+<a id='L165' name='L165'></a>      <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(test, i, v, <em class='brace'>{</em> \
+<a id='L166' name='L166'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, reg); <em class='brace'>}</em>); \
+<a id='L167' name='L167'></a>    <em class='brace'>}</em> \
+<a id='L168' name='L168'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
+<a id='L169' name='L169'></a>    <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[n], reg); \
+<a id='L170' name='L170'></a>  <em class='brace'>}</em>
+<a id='L171' name='L171'></a><em class='sharp'>#endif</em>
+<a id='L172' name='L172'></a><em class='sharp'>#define</em> <a href='../R/251.html' title='Multiple referred from 6 places.'>PN_BLOCK</a>(reg, blk, sig) (<em class='brace'>{</em> \
+<a id='L173' name='L173'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> block = <a href='../S/24.html#L628' title='Defined at 628 in core/potion.h.'>potion_send</a>(blk, PN_compile, (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)f, sig); \
+<a id='L174' name='L174'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;protos, block); \
+<a id='L175' name='L175'></a>  <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L79' title='Defined at 79 in core/opcodes.h.'>OP_PROTO</a>, reg, num); \
+<a id='L176' name='L176'></a>  <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(((<strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a> *)block)-&gt;upvals, i, v, <em class='brace'>{</em> \
+<a id='L177' name='L177'></a>    <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> numup = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;upvals, v); \
+<a id='L178' name='L178'></a>    <strong class='reserved'>if</strong> (numup != <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>, reg, numup); \
+<a id='L179' name='L179'></a>    <strong class='reserved'>else</strong>                  <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>, reg, <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;locals, v)); \
+<a id='L180' name='L180'></a>  <em class='brace'>}</em>); \
+<a id='L181' name='L181'></a><em class='brace'>}</em>)
+<a id='L182' name='L182'></a><em class='sharp'>#define</em> <a href='../R/349.html' title='Multiple referred from 3 places.'>PN_UPVAL</a>(name) (<em class='brace'>{</em> \
+<a id='L183' name='L183'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> numl = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;locals, name); \
+<a id='L184' name='L184'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> numup = <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>; \
+<a id='L185' name='L185'></a>  <strong class='reserved'>if</strong> (numl == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em> \
+<a id='L186' name='L186'></a>    numup = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;upvals, name); \
+<a id='L187' name='L187'></a>    <strong class='reserved'>if</strong> (numup == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em> \
+<a id='L188' name='L188'></a>      <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) up = f; \
+<a id='L189' name='L189'></a>      <strong class='reserved'>int</strong> depth = 1; \
+<a id='L190' name='L190'></a>      <strong class='reserved'>while</strong> (<a href='../S/24.html#L166' title='Defined at 166 in core/potion.h.'>PN_IS_PROTO</a>(up-&gt;source)) <em class='brace'>{</em> \
+<a id='L191' name='L191'></a>        up = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a> *)up-&gt;source; \
+<a id='L192' name='L192'></a>        <strong class='reserved'>if</strong> (<a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a> != (numup = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(up-&gt;locals, name))) <strong class='reserved'>break</strong>; \
+<a id='L193' name='L193'></a>        depth++; \
+<a id='L194' name='L194'></a>      <em class='brace'>}</em> \
+<a id='L195' name='L195'></a>      <strong class='reserved'>if</strong> (numup != <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em> \
+<a id='L196' name='L196'></a>        up = f; \
+<a id='L197' name='L197'></a>        <strong class='reserved'>while</strong> (depth--) <em class='brace'>{</em> \
+<a id='L198' name='L198'></a>          up-&gt;upvals = <a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(up-&gt;upvals, name); \
+<a id='L199' name='L199'></a>          up = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a> *)up-&gt;source; \
+<a id='L200' name='L200'></a>        <em class='brace'>}</em> \
+<a id='L201' name='L201'></a>      <em class='brace'>}</em> \
+<a id='L202' name='L202'></a>      numup = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;upvals, name); \
+<a id='L203' name='L203'></a>    <em class='brace'>}</em> \
+<a id='L204' name='L204'></a>  <em class='brace'>}</em> \
+<a id='L205' name='L205'></a>  numup; \
+<a id='L206' name='L206'></a><em class='brace'>}</em>)
+<a id='L207' name='L207'></a><em class='sharp'>#define</em> <a href='../R/244.html' title='Multiple referred from 8 places.'>PN_ARG_TABLE</a>(args, reg, inc) <a href='../S/9.html#L222' title='Defined at 222 in core/compile.c.'>potion_arg_asmb</a>(P, f, loop, args, &amp;reg, inc)
+<a id='L208' name='L208'></a>
+<a id='L209' name='L209'></a><em class='sharp'>#define</em> <a href='../R/142.html' title='Multiple referred from 2 places.'>MAX_JUMPS</a> 1024
+<a id='L210' name='L210'></a><em class='comment'>/// jump table for loops, for the 2 args b and c</em>
+<a id='L211' name='L211'></a><em class='comment'>/// Note: only statically allocated (max 1024)</em>
+<a id='L212' name='L212'></a><strong class='reserved'>struct</strong> <a href='../R/226.html' title='Multiple referred from 4 places.'>PNLoop</a> <em class='brace'>{</em>
+<a id='L213' name='L213'></a>  <strong class='reserved'>int</strong> bjmps[<a href='../S/9.html#L209' title='Defined at 209 in core/compile.c.'>MAX_JUMPS</a>];
+<a id='L214' name='L214'></a>  <strong class='reserved'>int</strong> cjmps[<a href='../S/9.html#L209' title='Defined at 209 in core/compile.c.'>MAX_JUMPS</a>];
+<a id='L215' name='L215'></a>
+<a id='L216' name='L216'></a>  <strong class='reserved'>int</strong> bjmpc;  <em class='comment'>///&lt; count of b jumps (abc regs)</em>
+<a id='L217' name='L217'></a>  <strong class='reserved'>int</strong> cjmpc;  <em class='comment'>///&lt; count of c jumps (abc regs)</em>
+<a id='L218' name='L218'></a><em class='brace'>}</em>;
+<a id='L219' name='L219'></a>
+<a id='L220' name='L220'></a><strong class='reserved'>void</strong> <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto), <strong class='reserved'>struct</strong> <a href='../S/9.html#L212' title='Defined at 212 in core/compile.c.'>PNLoop</a> *, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a>, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source), <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>);
+<a id='L221' name='L221'></a>
+<a id='L222' name='L222'></a><strong class='reserved'>void</strong> <a href='../S/9.html#L207' title='Referred from 207 in core/compile.c.'>potion_arg_asmb</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f, <strong class='reserved'>struct</strong> <a href='../S/9.html#L212' title='Defined at 212 in core/compile.c.'>PNLoop</a> *loop, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> args, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *reg, <strong class='reserved'>int</strong> inc)
+<a id='L223' name='L223'></a><em class='brace'>{</em>
+<a id='L224' name='L224'></a>  <strong class='reserved'>if</strong> (args != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L225' name='L225'></a>    <strong class='reserved'>if</strong> (<a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(args) == <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a>) <em class='brace'>{</em>
+<a id='L226' name='L226'></a>      args = <a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(args, 0);
+<a id='L227' name='L227'></a>      <strong class='reserved'>if</strong> (!<a href='../S/24.html#L158' title='Defined at 158 in core/potion.h.'>PN_IS_NIL</a>(args)) <em class='brace'>{</em>
+<a id='L228' name='L228'></a>        <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> freg = *reg, sreg = *reg + <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(args) + 1;
+<a id='L229' name='L229'></a>        <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(args, i, v, <em class='brace'>{</em>
+<a id='L230' name='L230'></a>          <strong class='reserved'>if</strong> (inc) <em class='brace'>{</em>
+<a id='L231' name='L231'></a>            (*reg)++;
+<a id='L232' name='L232'></a>            <strong class='reserved'>if</strong> (<a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(v) == <a href='../S/7.html#L21' title='Defined at 21 in core/ast.h.'>AST_ASSIGN</a>) <em class='brace'>{</em>
+<a id='L233' name='L233'></a>              <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(v, 0);
+<a id='L234' name='L234'></a>              <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(v, 1), sreg + 1);
+<a id='L235' name='L235'></a>              <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a> &amp;&amp; <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(lhs-&gt;a[0]) == 1)
+<a id='L236' name='L236'></a>              <em class='brace'>{</em>
+<a id='L237' name='L237'></a>                lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(lhs-&gt;a[0], 0);
+<a id='L238' name='L238'></a>                <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> || lhs-&gt;part == <a href='../S/7.html#L20' title='Defined at 20 in core/ast.h.'>AST_VALUE</a>) <em class='brace'>{</em>
+<a id='L239' name='L239'></a>                  <a href='../D/322.html' title='Multiple defined in 2 places.'>PN_OP</a> op; op.a = lhs-&gt;a[0];
+<a id='L240' name='L240'></a>                  <strong class='reserved'>if</strong> (!<a href='../S/24.html#L157' title='Defined at 157 in core/potion.h.'>PN_IS_PTR</a>(lhs-&gt;a[0]) &amp;&amp; lhs-&gt;a[0] == (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)op.a) <em class='brace'>{</em>
+<a id='L241' name='L241'></a>                    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>, sreg, lhs-&gt;a[0]);
+<a id='L242' name='L242'></a>                  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L243' name='L243'></a>                    <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, lhs-&gt;a[0]);
+<a id='L244' name='L244'></a>                    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, sreg, num);
+<a id='L245' name='L245'></a>                  <em class='brace'>}</em>
+<a id='L246' name='L246'></a>                  lhs = NULL;
+<a id='L247' name='L247'></a>                <em class='brace'>}</em>
+<a id='L248' name='L248'></a>              <em class='brace'>}</em>
+<a id='L249' name='L249'></a>
+<a id='L250' name='L250'></a>              <strong class='reserved'>if</strong> (lhs != NULL)
+<a id='L251' name='L251'></a>                <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)lhs, sreg);
+<a id='L252' name='L252'></a>
+<a id='L253' name='L253'></a>              <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L74' title='Defined at 74 in core/opcodes.h.'>OP_NAMED</a>, freg - 1, sreg + 1);
+<a id='L254' name='L254'></a>              <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, sreg + 1);
+<a id='L255' name='L255'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong>
+<a id='L256' name='L256'></a>              <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, *reg);
+<a id='L257' name='L257'></a>          <em class='brace'>}</em> <strong class='reserved'>else</strong>
+<a id='L258' name='L258'></a>            <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, *reg);
+<a id='L259' name='L259'></a>        <em class='brace'>}</em>);
+<a id='L260' name='L260'></a>      <em class='brace'>}</em>
+<a id='L261' name='L261'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L262' name='L262'></a>      <strong class='reserved'>if</strong> (inc) (*reg)++;
+<a id='L263' name='L263'></a>      <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)args, *reg);
+<a id='L264' name='L264'></a>    <em class='brace'>}</em>
+<a id='L265' name='L265'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L266' name='L266'></a>    <strong class='reserved'>if</strong> (inc) (*reg)++;
+<a id='L267' name='L267'></a>    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>, *reg, args);
+<a id='L268' name='L268'></a>  <em class='brace'>}</em>
+<a id='L269' name='L269'></a><em class='brace'>}</em>
+<a id='L270' name='L270'></a>
+<a id='L271' name='L271'></a><strong class='reserved'>void</strong> <a href='../R/783.html' title='Multiple referred from 25 places.'>potion_source_asmb</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f, <strong class='reserved'>struct</strong> <a href='../S/9.html#L212' title='Defined at 212 in core/compile.c.'>PNLoop</a> *loop, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> count,
+<a id='L272' name='L272'></a>                        <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) t, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> reg) <em class='brace'>{</em>
+<a id='L273' name='L273'></a>  <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, reg);
+<a id='L274' name='L274'></a>
+<a id='L275' name='L275'></a>  <strong class='reserved'>switch</strong> (t-&gt;part) <em class='brace'>{</em>
+<a id='L276' name='L276'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L19' title='Defined at 19 in core/ast.h.'>AST_CODE</a>:
+<a id='L277' name='L277'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L51' title='Defined at 51 in core/ast.h.'>AST_BLOCK</a>:
+<a id='L278' name='L278'></a>      <strong class='reserved'>if</strong> (t-&gt;a[0] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L279' name='L279'></a>        <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;a[0], i, v, <em class='brace'>{</em>
+<a id='L280' name='L280'></a>          <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, reg);
+<a id='L281' name='L281'></a>        <em class='brace'>}</em>);
+<a id='L282' name='L282'></a>      <em class='brace'>}</em>
+<a id='L283' name='L283'></a>    <strong class='reserved'>break</strong>;
+<a id='L284' name='L284'></a>
+<a id='L285' name='L285'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a>:
+<a id='L286' name='L286'></a>      <strong class='reserved'>if</strong> (t-&gt;a[0] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L287' name='L287'></a>        <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;a[0], i, v, <em class='brace'>{</em>
+<a id='L288' name='L288'></a>          <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, i, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, reg);
+<a id='L289' name='L289'></a>        <em class='brace'>}</em>);
+<a id='L290' name='L290'></a>      <em class='brace'>}</em>
+<a id='L291' name='L291'></a>    <strong class='reserved'>break</strong>;
+<a id='L292' name='L292'></a>
+<a id='L293' name='L293'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L53' title='Defined at 53 in core/ast.h.'>AST_PROTO</a>:
+<a id='L294' name='L294'></a>      <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(reg, t-&gt;a[1], t-&gt;a[0]);
+<a id='L295' name='L295'></a>    <strong class='reserved'>break</strong>;
+<a id='L296' name='L296'></a>
+<a id='L297' name='L297'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L20' title='Defined at 20 in core/ast.h.'>AST_VALUE</a>: <em class='brace'>{</em>
+<a id='L298' name='L298'></a>      <a href='../D/322.html' title='Multiple defined in 2 places.'>PN_OP</a> op; op.a = t-&gt;a[0];
+<a id='L299' name='L299'></a>      <strong class='reserved'>if</strong> (!<a href='../S/24.html#L157' title='Defined at 157 in core/potion.h.'>PN_IS_PTR</a>(t-&gt;a[0]) &amp;&amp; t-&gt;a[0] == (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)op.a) <em class='brace'>{</em>
+<a id='L300' name='L300'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>, reg, t-&gt;a[0]);
+<a id='L301' name='L301'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L302' name='L302'></a>        <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, t-&gt;a[0]);
+<a id='L303' name='L303'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, reg, num);
+<a id='L304' name='L304'></a>      <em class='brace'>}</em>
+<a id='L305' name='L305'></a>      <strong class='reserved'>if</strong> (t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L306' name='L306'></a>        <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> breg = reg;
+<a id='L307' name='L307'></a>        <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, ++breg);
+<a id='L308' name='L308'></a>        <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 1);
+<a id='L309' name='L309'></a>        <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L310' name='L310'></a>          breg++;
+<a id='L311' name='L311'></a>          <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(breg, t-&gt;a[2], <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L312' name='L312'></a>        <em class='brace'>}</em>
+<a id='L313' name='L313'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L75' title='Defined at 75 in core/opcodes.h.'>OP_CALL</a>, reg, breg);
+<a id='L314' name='L314'></a>      <em class='brace'>}</em>
+<a id='L315' name='L315'></a>    <em class='brace'>}</em>
+<a id='L316' name='L316'></a>    <strong class='reserved'>break</strong>;
+<a id='L317' name='L317'></a>
+<a id='L318' name='L318'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L21' title='Defined at 21 in core/ast.h.'>AST_ASSIGN</a>: <em class='brace'>{</em>
+<a id='L319' name='L319'></a>      <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[0];
+<a id='L320' name='L320'></a>      <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>, c = count;
+<a id='L321' name='L321'></a>      <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> opcode = <a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>, breg = reg;
+<a id='L322' name='L322'></a>
+<a id='L323' name='L323'></a>      <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a>) <em class='brace'>{</em>
+<a id='L324' name='L324'></a>        <strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong> i = 0;
+<a id='L325' name='L325'></a>        c = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(lhs-&gt;a[0]) - 1;
+<a id='L326' name='L326'></a>        <strong class='reserved'>for</strong> (i = 0; i &lt; c; i++) <em class='brace'>{</em>
+<a id='L327' name='L327'></a>          <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, i, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(lhs-&gt;a[0], i), reg);
+<a id='L328' name='L328'></a>        <em class='brace'>}</em>;
+<a id='L329' name='L329'></a>        lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(lhs-&gt;a[0], c);
+<a id='L330' name='L330'></a>      <em class='brace'>}</em>
+<a id='L331' name='L331'></a>
+<a id='L332' name='L332'></a>      <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> || lhs-&gt;part == <a href='../S/7.html#L47' title='Defined at 47 in core/ast.h.'>AST_QUERY</a>) <em class='brace'>{</em>
+<a id='L333' name='L333'></a>        <strong class='reserved'>char</strong> first_letter = <a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(lhs-&gt;a[0])[0];
+<a id='L334' name='L334'></a>        <strong class='reserved'>if</strong> ((first_letter &amp; 0x80) == 0 &amp;&amp; isupper((<strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong>)first_letter)) <em class='brace'>{</em>
+<a id='L335' name='L335'></a>          num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, lhs-&gt;a[0]);
+<a id='L336' name='L336'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, breg, num);
+<a id='L337' name='L337'></a>          opcode = <a href='../S/22.html#L44' title='Defined at 44 in core/opcodes.h.'>OP_GLOBAL</a>;
+<a id='L338' name='L338'></a>          num = ++breg;
+<a id='L339' name='L339'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (c == 0) <em class='brace'>{</em>
+<a id='L340' name='L340'></a>          num = <a href='../S/9.html#L182' title='Defined at 182 in core/compile.c.'>PN_UPVAL</a>(lhs-&gt;a[0]);
+<a id='L341' name='L341'></a>          <strong class='reserved'>if</strong> (num == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em>
+<a id='L342' name='L342'></a>            num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;locals, lhs-&gt;a[0]);
+<a id='L343' name='L343'></a>            opcode = <a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>;
+<a id='L344' name='L344'></a>          <em class='brace'>}</em>
+<a id='L345' name='L345'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L346' name='L346'></a>          num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, lhs-&gt;a[0]);
+<a id='L347' name='L347'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, ++breg, num);
+<a id='L348' name='L348'></a>          opcode = <a href='../S/22.html#L67' title='Defined at 67 in core/opcodes.h.'>OP_DEF</a>;
+<a id='L349' name='L349'></a>          num = ++breg;
+<a id='L350' name='L350'></a>        <em class='brace'>}</em>
+<a id='L351' name='L351'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L46' title='Defined at 46 in core/ast.h.'>AST_PATH</a> || lhs-&gt;part == <a href='../S/7.html#L48' title='Defined at 48 in core/ast.h.'>AST_PATHQ</a>) <em class='brace'>{</em>
+<a id='L352' name='L352'></a>        num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, lhs-&gt;a[0]);
+<a id='L353' name='L353'></a>        <strong class='reserved'>if</strong> (c == 0) <em class='brace'>{</em>
+<a id='L354' name='L354'></a>          <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;paths, <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>(num));
+<a id='L355' name='L355'></a>          <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, reg);
+<a id='L356' name='L356'></a>        <em class='brace'>}</em>
+<a id='L357' name='L357'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, ++breg, num);
+<a id='L358' name='L358'></a>        opcode = <a href='../S/22.html#L48' title='Defined at 48 in core/opcodes.h.'>OP_GETPATH</a>;
+<a id='L359' name='L359'></a>        num = ++breg;
+<a id='L360' name='L360'></a>      <em class='brace'>}</em>
+<a id='L361' name='L361'></a>
+<a id='L362' name='L362'></a>      <strong class='reserved'>if</strong> (lhs-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L363' name='L363'></a>        breg = reg;
+<a id='L364' name='L364'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(opcode, ++breg, num);
+<a id='L365' name='L365'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L76' title='Defined at 76 in core/opcodes.h.'>OP_CALLSET</a>, reg, breg);
+<a id='L366' name='L366'></a>        <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(lhs-&gt;a[1], breg, 1);
+<a id='L367' name='L367'></a>        <em class='comment'>// TODO: no block allowed here?</em>
+<a id='L368' name='L368'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[1], ++breg);
+<a id='L369' name='L369'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L75' title='Defined at 75 in core/opcodes.h.'>OP_CALL</a>, reg, breg);
+<a id='L370' name='L370'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L371' name='L371'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[1], breg);
+<a id='L372' name='L372'></a>        <strong class='reserved'>if</strong> (opcode == <a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>) <em class='brace'>{</em>
+<a id='L373' name='L373'></a>          <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L47' title='Defined at 47 in core/ast.h.'>AST_QUERY</a>) <em class='brace'>{</em>
+<a id='L374' name='L374'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>, breg, num);
+<a id='L375' name='L375'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, breg, 1);
+<a id='L376' name='L376'></a>          <em class='brace'>}</em>
+<a id='L377' name='L377'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L43' title='Defined at 43 in core/opcodes.h.'>OP_SETUPVAL</a>, reg, num);
+<a id='L378' name='L378'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (opcode == <a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>) <em class='brace'>{</em>
+<a id='L379' name='L379'></a>          <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L47' title='Defined at 47 in core/ast.h.'>AST_QUERY</a>) <em class='brace'>{</em>
+<a id='L380' name='L380'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>, breg, num);
+<a id='L381' name='L381'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, breg, 1);
+<a id='L382' name='L382'></a>          <em class='brace'>}</em>
+<a id='L383' name='L383'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L41' title='Defined at 41 in core/opcodes.h.'>OP_SETLOCAL</a>, reg, num);
+<a id='L384' name='L384'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (opcode == <a href='../S/22.html#L48' title='Defined at 48 in core/opcodes.h.'>OP_GETPATH</a>) <em class='brace'>{</em>
+<a id='L385' name='L385'></a>          <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L48' title='Defined at 48 in core/ast.h.'>AST_PATHQ</a>) <em class='brace'>{</em>
+<a id='L386' name='L386'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L48' title='Defined at 48 in core/opcodes.h.'>OP_GETPATH</a>, reg, num);
+<a id='L387' name='L387'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, reg, 1);
+<a id='L388' name='L388'></a>          <em class='brace'>}</em>
+<a id='L389' name='L389'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L49' title='Defined at 49 in core/opcodes.h.'>OP_SETPATH</a>, reg, num);
+<a id='L390' name='L390'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L391' name='L391'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(opcode, reg, num);
+<a id='L392' name='L392'></a>        <em class='brace'>}</em>
+<a id='L393' name='L393'></a>      <em class='brace'>}</em>
+<a id='L394' name='L394'></a>      <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, breg);
+<a id='L395' name='L395'></a>    <em class='brace'>}</em>
+<a id='L396' name='L396'></a>    <strong class='reserved'>break</strong>;
+<a id='L397' name='L397'></a>
+<a id='L398' name='L398'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L40' title='Defined at 40 in core/ast.h.'>AST_INC</a>: <em class='brace'>{</em>
+<a id='L399' name='L399'></a>      <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> breg = reg;
+<a id='L400' name='L400'></a>      <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[0];
+<a id='L401' name='L401'></a>      <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/9.html#L182' title='Defined at 182 in core/compile.c.'>PN_UPVAL</a>(lhs-&gt;a[0]);
+<a id='L402' name='L402'></a>      <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> opcode = <a href='../S/22.html#L43' title='Defined at 43 in core/opcodes.h.'>OP_SETUPVAL</a>;
+<a id='L403' name='L403'></a>      <strong class='reserved'>if</strong> (num == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em>
+<a id='L404' name='L404'></a>        num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;locals, lhs-&gt;a[0]);
+<a id='L405' name='L405'></a>        opcode = <a href='../S/22.html#L41' title='Defined at 41 in core/opcodes.h.'>OP_SETLOCAL</a>;
+<a id='L406' name='L406'></a>      <em class='brace'>}</em>
+<a id='L407' name='L407'></a>
+<a id='L408' name='L408'></a>      <strong class='reserved'>if</strong> (opcode == <a href='../S/22.html#L43' title='Defined at 43 in core/opcodes.h.'>OP_SETUPVAL</a>)
+<a id='L409' name='L409'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>, reg, num);
+<a id='L410' name='L410'></a>       <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (opcode == <a href='../S/22.html#L41' title='Defined at 41 in core/opcodes.h.'>OP_SETLOCAL</a>)
+<a id='L411' name='L411'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>, reg, num);
+<a id='L412' name='L412'></a>      <strong class='reserved'>if</strong> (<a href='../S/24.html#L160' title='Defined at 160 in core/potion.h.'>PN_IS_NUM</a>(t-&gt;a[1])) <em class='brace'>{</em>
+<a id='L413' name='L413'></a>        breg++;
+<a id='L414' name='L414'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L34' title='Defined at 34 in core/opcodes.h.'>OP_MOVE</a>, breg, reg);
+<a id='L415' name='L415'></a>      <em class='brace'>}</em>
+<a id='L416' name='L416'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>, breg + 1, (t-&gt;a[1] | <a href='../S/24.html#L151' title='Defined at 151 in core/potion.h.'>PN_FNUMBER</a>));
+<a id='L417' name='L417'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L50' title='Defined at 50 in core/opcodes.h.'>OP_ADD</a>, breg, breg + 1);
+<a id='L418' name='L418'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(opcode, breg, num);
+<a id='L419' name='L419'></a>      <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, breg + 1);
+<a id='L420' name='L420'></a>    <em class='brace'>}</em>
+<a id='L421' name='L421'></a>    <strong class='reserved'>break</strong>;
+<a id='L422' name='L422'></a>
+<a id='L423' name='L423'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L25' title='Defined at 25 in core/ast.h.'>AST_CMP</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L26' title='Defined at 26 in core/ast.h.'>AST_EQ</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L27' title='Defined at 27 in core/ast.h.'>AST_NEQ</a>:
+<a id='L424' name='L424'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L28' title='Defined at 28 in core/ast.h.'>AST_GT</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L29' title='Defined at 29 in core/ast.h.'>AST_GTE</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L30' title='Defined at 30 in core/ast.h.'>AST_LT</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L31' title='Defined at 31 in core/ast.h.'>AST_LTE</a>:
+<a id='L425' name='L425'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L38' title='Defined at 38 in core/ast.h.'>AST_PLUS</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L39' title='Defined at 39 in core/ast.h.'>AST_MINUS</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L41' title='Defined at 41 in core/ast.h.'>AST_TIMES</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L42' title='Defined at 42 in core/ast.h.'>AST_DIV</a>:
+<a id='L426' name='L426'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L43' title='Defined at 43 in core/ast.h.'>AST_REM</a>:  <strong class='reserved'>case</strong> <a href='../S/7.html#L44' title='Defined at 44 in core/ast.h.'>AST_POW</a>:   <strong class='reserved'>case</strong> <a href='../S/7.html#L36' title='Defined at 36 in core/ast.h.'>AST_BITL</a>:  <strong class='reserved'>case</strong> <a href='../S/7.html#L37' title='Defined at 37 in core/ast.h.'>AST_BITR</a>: <em class='brace'>{</em>
+<a id='L427' name='L427'></a>      <a href='../D/266.html' title='Multiple defined in 2 places.'>PN_ARG</a>(0, reg);
+<a id='L428' name='L428'></a>      <a href='../D/266.html' title='Multiple defined in 2 places.'>PN_ARG</a>(1, reg + 1);
+<a id='L429' name='L429'></a>      <strong class='reserved'>switch</strong> (t-&gt;part) <em class='brace'>{</em>
+<a id='L430' name='L430'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L25' title='Defined at 25 in core/ast.h.'>AST_CMP</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L57' title='Defined at 57 in core/opcodes.h.'>OP_CMP</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L431' name='L431'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L26' title='Defined at 26 in core/ast.h.'>AST_EQ</a>:    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L58' title='Defined at 58 in core/opcodes.h.'>OP_EQ</a>,  reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L432' name='L432'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L27' title='Defined at 27 in core/ast.h.'>AST_NEQ</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L59' title='Defined at 59 in core/opcodes.h.'>OP_NEQ</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L433' name='L433'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L29' title='Defined at 29 in core/ast.h.'>AST_GTE</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L63' title='Defined at 63 in core/opcodes.h.'>OP_GTE</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L434' name='L434'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L28' title='Defined at 28 in core/ast.h.'>AST_GT</a>:    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L62' title='Defined at 62 in core/opcodes.h.'>OP_GT</a>, reg, reg + 1);   <strong class='reserved'>break</strong>;
+<a id='L435' name='L435'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L30' title='Defined at 30 in core/ast.h.'>AST_LT</a>:    <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L60' title='Defined at 60 in core/opcodes.h.'>OP_LT</a>, reg, reg + 1);   <strong class='reserved'>break</strong>;
+<a id='L436' name='L436'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L31' title='Defined at 31 in core/ast.h.'>AST_LTE</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L61' title='Defined at 61 in core/opcodes.h.'>OP_LTE</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L437' name='L437'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L38' title='Defined at 38 in core/ast.h.'>AST_PLUS</a>:  <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L50' title='Defined at 50 in core/opcodes.h.'>OP_ADD</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L438' name='L438'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L39' title='Defined at 39 in core/ast.h.'>AST_MINUS</a>: <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L51' title='Defined at 51 in core/opcodes.h.'>OP_SUB</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L439' name='L439'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L41' title='Defined at 41 in core/ast.h.'>AST_TIMES</a>: <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L52' title='Defined at 52 in core/opcodes.h.'>OP_MULT</a>, reg, reg + 1); <strong class='reserved'>break</strong>;
+<a id='L440' name='L440'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L42' title='Defined at 42 in core/ast.h.'>AST_DIV</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L53' title='Defined at 53 in core/opcodes.h.'>OP_DIV</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L441' name='L441'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L43' title='Defined at 43 in core/ast.h.'>AST_REM</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L54' title='Defined at 54 in core/opcodes.h.'>OP_REM</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L442' name='L442'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L44' title='Defined at 44 in core/ast.h.'>AST_POW</a>:   <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L55' title='Defined at 55 in core/opcodes.h.'>OP_POW</a>, reg, reg + 1);  <strong class='reserved'>break</strong>;
+<a id='L443' name='L443'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L36' title='Defined at 36 in core/ast.h.'>AST_BITL</a>:  <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L65' title='Defined at 65 in core/opcodes.h.'>OP_BITL</a>, reg, reg + 1); <strong class='reserved'>break</strong>;
+<a id='L444' name='L444'></a>        <strong class='reserved'>case</strong> <a href='../S/7.html#L37' title='Defined at 37 in core/ast.h.'>AST_BITR</a>:  <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L66' title='Defined at 66 in core/opcodes.h.'>OP_BITR</a>, reg, reg + 1); <strong class='reserved'>break</strong>;
+<a id='L445' name='L445'></a>      <em class='brace'>}</em>
+<a id='L446' name='L446'></a>    <em class='brace'>}</em>
+<a id='L447' name='L447'></a>    <strong class='reserved'>break</strong>;
+<a id='L448' name='L448'></a>
+<a id='L449' name='L449'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L22' title='Defined at 22 in core/ast.h.'>AST_NOT</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L35' title='Defined at 35 in core/ast.h.'>AST_WAVY</a>:
+<a id='L450' name='L450'></a>      <a href='../D/266.html' title='Multiple defined in 2 places.'>PN_ARG</a>(0, reg);
+<a id='L451' name='L451'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(t-&gt;part == <a href='../S/7.html#L35' title='Defined at 35 in core/ast.h.'>AST_WAVY</a> ? <a href='../S/22.html#L64' title='Defined at 64 in core/opcodes.h.'>OP_BITN</a> : <a href='../S/22.html#L56' title='Defined at 56 in core/opcodes.h.'>OP_NOT</a>, reg, reg);
+<a id='L452' name='L452'></a>    <strong class='reserved'>break</strong>;
+<a id='L453' name='L453'></a>
+<a id='L454' name='L454'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L24' title='Defined at 24 in core/ast.h.'>AST_AND</a>: <strong class='reserved'>case</strong> <a href='../S/7.html#L23' title='Defined at 23 in core/ast.h.'>AST_OR</a>: <em class='brace'>{</em>
+<a id='L455' name='L455'></a>      <strong class='reserved'>int</strong> jmp;
+<a id='L456' name='L456'></a>      <a href='../D/266.html' title='Multiple defined in 2 places.'>PN_ARG</a>(0, reg);
+<a id='L457' name='L457'></a>      jmp = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L458' name='L458'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(t-&gt;part == <a href='../S/7.html#L24' title='Defined at 24 in core/ast.h.'>AST_AND</a> ? <a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a> : <a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, reg, 0);
+<a id='L459' name='L459'></a>      <a href='../D/266.html' title='Multiple defined in 2 places.'>PN_ARG</a>(1, reg);
+<a id='L460' name='L460'></a>      <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp) - 1;
+<a id='L461' name='L461'></a>    <em class='brace'>}</em>
+<a id='L462' name='L462'></a>    <strong class='reserved'>break</strong>;
+<a id='L463' name='L463'></a>
+<a id='L464' name='L464'></a>    <em class='comment'>// TODO: this stuff is ugly and repetitive</em>
+<a id='L465' name='L465'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>:
+<a id='L466' name='L466'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L47' title='Defined at 47 in core/ast.h.'>AST_QUERY</a>: <em class='brace'>{</em>
+<a id='L467' name='L467'></a>      <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> breg = reg;
+<a id='L468' name='L468'></a>      <strong class='reserved'>int</strong> arg = (t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L469' name='L469'></a>      <strong class='reserved'>int</strong> call = (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> || arg);
+<a id='L470' name='L470'></a>      <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_if) <em class='brace'>{</em>
+<a id='L471' name='L471'></a>        <strong class='reserved'>int</strong> jmp; breg++;
+<a id='L472' name='L472'></a>        <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 0);
+<a id='L473' name='L473'></a>        jmp = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L474' name='L474'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a>, breg, 0);
+<a id='L475' name='L475'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[2], reg);
+<a id='L476' name='L476'></a>        <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp) - 1;
+<a id='L477' name='L477'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_elsif) <em class='brace'>{</em>
+<a id='L478' name='L478'></a>        <strong class='reserved'>int</strong> jmp1 = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb), jmp2; breg++;
+<a id='L479' name='L479'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, breg, 0);
+<a id='L480' name='L480'></a>        <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 0);
+<a id='L481' name='L481'></a>        jmp2 = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L482' name='L482'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a>, breg, 0);
+<a id='L483' name='L483'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[2], reg);
+<a id='L484' name='L484'></a>        <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp1).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp1) - 1;
+<a id='L485' name='L485'></a>        <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp2).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp2) - 1;
+<a id='L486' name='L486'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_else) <em class='brace'>{</em>
+<a id='L487' name='L487'></a>        <strong class='reserved'>int</strong> jmp = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb); breg++;
+<a id='L488' name='L488'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L72' title='Defined at 72 in core/opcodes.h.'>OP_TESTJMP</a>, breg, 0);
+<a id='L489' name='L489'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[2], reg);
+<a id='L490' name='L490'></a>        <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp) - 1;
+<a id='L491' name='L491'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_class) <em class='brace'>{</em>
+<a id='L492' name='L492'></a>        <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> breg = reg;
+<a id='L493' name='L493'></a>        <strong class='reserved'>if</strong> (count == 0)
+<a id='L494' name='L494'></a>          <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, reg);
+<a id='L495' name='L495'></a>        <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L496' name='L496'></a>          <em class='comment'>// TODO: a hack to make sure constructors always return self</em>
+<a id='L497' name='L497'></a>          <strong class='reserved'>if</strong> (<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[2], 0) == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)
+<a id='L498' name='L498'></a>            <a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[2], 0) = <a href='../D/270.html' title='Multiple defined in 2 places.'>PN_AST</a>(CODE, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L499' name='L499'></a>          <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ctor = <a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(t-&gt;a[2], 0);
+<a id='L500' name='L500'></a>          <a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(ctor, <a href='../D/270.html' title='Multiple defined in 2 places.'>PN_AST</a>(EXPR, <a href='../S/24.html#L220' title='Defined at 220 in core/potion.h.'>PN_TUP</a>(<a href='../D/270.html' title='Multiple defined in 2 places.'>PN_AST</a>(MESSAGE, <a href='../S/26.html#L33' title='Defined at 33 in core/string.c.'>potion_str</a>(P, "self")))));
+<a id='L501' name='L501'></a>          breg++;
+<a id='L502' name='L502'></a>          <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(breg, t-&gt;a[2], t-&gt;a[1]);
+<a id='L503' name='L503'></a>        <em class='brace'>}</em>
+<a id='L504' name='L504'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L80' title='Defined at 80 in core/opcodes.h.'>OP_CLASS</a>, reg, breg);
+<a id='L505' name='L505'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; (t-&gt;a[0] == PN_while || t-&gt;a[0] == PN_loop)) <em class='brace'>{</em>
+<a id='L506' name='L506'></a>        <strong class='reserved'>int</strong> jmp1 = 0, jmp2 = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb); breg++;
+<a id='L507' name='L507'></a>        <strong class='reserved'>struct</strong> <a href='../S/9.html#L212' title='Defined at 212 in core/compile.c.'>PNLoop</a> l; l.bjmpc = 0; l.cjmpc = 0;
+<a id='L508' name='L508'></a>        <strong class='reserved'>int</strong> i;
+<a id='L509' name='L509'></a>        <strong class='reserved'>if</strong> (t-&gt;a[0] == PN_while) <em class='brace'>{</em>
+<a id='L510' name='L510'></a>          <em class='comment'>// TODO: error if args to `loop`?</em>
+<a id='L511' name='L511'></a>          <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 0);
+<a id='L512' name='L512'></a>          jmp1 = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L513' name='L513'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a>, breg, 0);
+<a id='L514' name='L514'></a>        <em class='brace'>}</em>
+<a id='L515' name='L515'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, &amp;l, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[2], reg);
+<a id='L516' name='L516'></a>        <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L70' title='Defined at 70 in core/opcodes.h.'>OP_JMP</a>, (jmp2 - <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb)) - 1);
+<a id='L517' name='L517'></a>        <strong class='reserved'>if</strong> (t-&gt;a[0] == PN_while) <em class='brace'>{</em>
+<a id='L518' name='L518'></a>          <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp1).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp1) - 1;
+<a id='L519' name='L519'></a>        <em class='brace'>}</em>
+<a id='L520' name='L520'></a>        <strong class='reserved'>for</strong> (i = 0; i &lt; l.bjmpc; i++) <em class='brace'>{</em>
+<a id='L521' name='L521'></a>          <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, l.bjmps[i]).a = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - l.bjmps[i]) - 1;
+<a id='L522' name='L522'></a>        <em class='brace'>}</em>
+<a id='L523' name='L523'></a>        <strong class='reserved'>for</strong> (i = 0; i &lt; l.cjmpc; i++) <em class='brace'>{</em>
+<a id='L524' name='L524'></a>          <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, l.cjmps[i]).a = (jmp2 - l.cjmps[i]) - 1;
+<a id='L525' name='L525'></a>        <em class='brace'>}</em>
+<a id='L526' name='L526'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_return) <em class='brace'>{</em>
+<a id='L527' name='L527'></a>        <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], reg, 0);
+<a id='L528' name='L528'></a>        <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L78' title='Defined at 78 in core/opcodes.h.'>OP_RETURN</a>, reg);
+<a id='L529' name='L529'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_break) <em class='brace'>{</em>
+<a id='L530' name='L530'></a>        <strong class='reserved'>if</strong> (loop != NULL) <em class='brace'>{</em>
+<a id='L531' name='L531'></a>          loop-&gt;bjmps[loop-&gt;bjmpc++] = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L532' name='L532'></a>          <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L70' title='Defined at 70 in core/opcodes.h.'>OP_JMP</a>, 0);
+<a id='L533' name='L533'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L534' name='L534'></a>          <em class='comment'>// TODO: Report error: 'break' outside of loop.</em>
+<a id='L535' name='L535'></a>        <em class='brace'>}</em>
+<a id='L536' name='L536'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_continue) <em class='brace'>{</em>
+<a id='L537' name='L537'></a>        <strong class='reserved'>if</strong> (loop != NULL) <em class='brace'>{</em>
+<a id='L538' name='L538'></a>          loop-&gt;cjmps[loop-&gt;cjmpc++] = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L539' name='L539'></a>          <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L70' title='Defined at 70 in core/opcodes.h.'>OP_JMP</a>, 0);
+<a id='L540' name='L540'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L541' name='L541'></a>          <em class='comment'>// TODO: Report error: 'continue' outside of loop.</em>
+<a id='L542' name='L542'></a>        <em class='brace'>}</em>
+<a id='L543' name='L543'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a> &amp;&amp; t-&gt;a[0] == PN_self) <em class='brace'>{</em>
+<a id='L544' name='L544'></a>        <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, reg);
+<a id='L545' name='L545'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L546' name='L546'></a>        <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> opcode = <a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>;
+<a id='L547' name='L547'></a>        <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>;
+<a id='L548' name='L548'></a>        <strong class='reserved'>if</strong> (count == 0 &amp;&amp; t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>) <em class='brace'>{</em>
+<a id='L549' name='L549'></a>          num = <a href='../S/9.html#L182' title='Defined at 182 in core/compile.c.'>PN_UPVAL</a>(t-&gt;a[0]);
+<a id='L550' name='L550'></a>          <strong class='reserved'>if</strong> (num == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>) <em class='brace'>{</em>
+<a id='L551' name='L551'></a>            num = <a href='../S/24.html#L222' title='Defined at 222 in core/potion.h.'>PN_GET</a>(f-&gt;locals, t-&gt;a[0]);
+<a id='L552' name='L552'></a>            opcode = <a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>;
+<a id='L553' name='L553'></a>          <em class='brace'>}</em>
+<a id='L554' name='L554'></a>        <em class='brace'>}</em>
+<a id='L555' name='L555'></a>
+<a id='L556' name='L556'></a>        <strong class='reserved'>if</strong> (num == <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a> &amp;&amp; t-&gt;a[0] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L557' name='L557'></a>          <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> oreg = ++breg;
+<a id='L558' name='L558'></a>          <strong class='reserved'>int</strong> jmp = 0;
+<a id='L559' name='L559'></a>          num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, t-&gt;a[0]);
+<a id='L560' name='L560'></a>          <strong class='reserved'>if</strong> (count == 0) <em class='brace'>{</em>
+<a id='L561' name='L561'></a>            <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, oreg);
+<a id='L562' name='L562'></a>          <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L563' name='L563'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L34' title='Defined at 34 in core/opcodes.h.'>OP_MOVE</a>, oreg, reg);
+<a id='L564' name='L564'></a>          <em class='brace'>}</em>
+<a id='L565' name='L565'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, reg, num);
+<a id='L566' name='L566'></a>          <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> || t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> ? <a href='../S/22.html#L69' title='Defined at 69 in core/opcodes.h.'>OP_MESSAGE</a> : <a href='../S/22.html#L68' title='Defined at 68 in core/opcodes.h.'>OP_BIND</a>, reg, breg);
+<a id='L567' name='L567'></a>          <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L47' title='Defined at 47 in core/ast.h.'>AST_QUERY</a> &amp;&amp; t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L568' name='L568'></a>            jmp = <a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb);
+<a id='L569' name='L569'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L73' title='Defined at 73 in core/opcodes.h.'>OP_NOTJMP</a>, reg, 0);
+<a id='L570' name='L570'></a>          <em class='brace'>}</em>
+<a id='L571' name='L571'></a><em class='sharp'>#define</em> <a href='../R/135.html' title='Multiple referred from 2 places.'>LOAD_ARG</a>() <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 1)
+<a id='L572' name='L572'></a>          <strong class='reserved'>if</strong> (arg) <em class='brace'>{</em>
+<a id='L573' name='L573'></a>            <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> part1 = ((<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)(t-&gt;a[1]))-&gt;part;
+<a id='L574' name='L574'></a>            <strong class='reserved'>if</strong> (part1 == <a href='../S/7.html#L20' title='Defined at 20 in core/ast.h.'>AST_VALUE</a> || (part1 == <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a> &amp;&amp; t-&gt;a[2] == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)) <em class='brace'>{</em>
+<a id='L575' name='L575'></a>              <a href='../D/149.html' title='Multiple defined in 2 places.'>LOAD_ARG</a>();
+<a id='L576' name='L576'></a>            <em class='brace'>}</em>
+<a id='L577' name='L577'></a>          <em class='brace'>}</em>
+<a id='L578' name='L578'></a>          <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> &amp;&amp; ((<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)(t-&gt;a[2]))-&gt;part == <a href='../S/7.html#L53' title='Defined at 53 in core/ast.h.'>AST_PROTO</a>) <em class='brace'>{</em>
+<a id='L579' name='L579'></a>            <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) t2 = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)(t-&gt;a[2]);
+<a id='L580' name='L580'></a>            breg++;
+<a id='L581' name='L581'></a>            <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(breg, t2-&gt;a[1], t2-&gt;a[0]);
+<a id='L582' name='L582'></a>          <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L583' name='L583'></a>            <strong class='reserved'>if</strong> (t-&gt;a[1] == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> &amp;&amp; t-&gt;a[2] == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)
+<a id='L584' name='L584'></a>              <a href='../D/149.html' title='Multiple defined in 2 places.'>LOAD_ARG</a>();
+<a id='L585' name='L585'></a>            <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> &amp;&amp; ((<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)(t-&gt;a[2]))-&gt;part == <a href='../S/7.html#L51' title='Defined at 51 in core/ast.h.'>AST_BLOCK</a>) <em class='brace'>{</em>
+<a id='L586' name='L586'></a>              breg++;
+<a id='L587' name='L587'></a>              <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(breg, t-&gt;a[2], t-&gt;a[1]);
+<a id='L588' name='L588'></a>            <em class='brace'>}</em>
+<a id='L589' name='L589'></a>          <em class='brace'>}</em>
+<a id='L590' name='L590'></a><em class='sharp'>#undef</em> <a href='../R/135.html' title='Multiple referred from 2 places.'>LOAD_ARG</a>
+<a id='L591' name='L591'></a>          <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>) <em class='brace'>{</em>
+<a id='L592' name='L592'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L75' title='Defined at 75 in core/opcodes.h.'>OP_CALL</a>, reg, breg);
+<a id='L593' name='L593'></a>          <em class='brace'>}</em> <strong class='reserved'>else</strong>
+<a id='L594' name='L594'></a>            <strong class='reserved'>if</strong> (t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L595' name='L595'></a>              <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L75' title='Defined at 75 in core/opcodes.h.'>OP_CALL</a>, reg, breg);
+<a id='L596' name='L596'></a>              <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, jmp).b = (<a href='../S/22.html#L30' title='Defined at 30 in core/opcodes.h.'>PN_OP_LEN</a>(f-&gt;asmb) - jmp) - 1;
+<a id='L597' name='L597'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L598' name='L598'></a>              <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L71' title='Defined at 71 in core/opcodes.h.'>OP_TEST</a>, reg, breg);
+<a id='L599' name='L599'></a>            <em class='brace'>}</em>
+<a id='L600' name='L600'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L601' name='L601'></a>          <strong class='reserved'>if</strong> (num != <a href='../S/24.html#L145' title='Defined at 145 in core/potion.h.'>PN_NONE</a>)
+<a id='L602' name='L602'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(opcode, reg, num);
+<a id='L603' name='L603'></a>          <strong class='reserved'>if</strong> (call) <em class='brace'>{</em>
+<a id='L604' name='L604'></a>            <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, ++breg);
+<a id='L605' name='L605'></a>            <a href='../S/9.html#L207' title='Defined at 207 in core/compile.c.'>PN_ARG_TABLE</a>(t-&gt;a[1], breg, 1);
+<a id='L606' name='L606'></a>            <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L607' name='L607'></a>              breg++;
+<a id='L608' name='L608'></a>              <a href='../S/9.html#L172' title='Defined at 172 in core/compile.c.'>PN_BLOCK</a>(breg, t-&gt;a[2], <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L609' name='L609'></a>            <em class='brace'>}</em>
+<a id='L610' name='L610'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L75' title='Defined at 75 in core/opcodes.h.'>OP_CALL</a>, reg, breg);
+<a id='L611' name='L611'></a>          <em class='brace'>}</em>
+<a id='L612' name='L612'></a>        <em class='brace'>}</em>
+<a id='L613' name='L613'></a>      <em class='brace'>}</em>
+<a id='L614' name='L614'></a>      <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, breg);
+<a id='L615' name='L615'></a>    <em class='brace'>}</em>
+<a id='L616' name='L616'></a>    <strong class='reserved'>break</strong>;
+<a id='L617' name='L617'></a>
+<a id='L618' name='L618'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L46' title='Defined at 46 in core/ast.h.'>AST_PATH</a>:
+<a id='L619' name='L619'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L48' title='Defined at 48 in core/ast.h.'>AST_PATHQ</a>: <em class='brace'>{</em>
+<a id='L620' name='L620'></a>      <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, t-&gt;a[0]);
+<a id='L621' name='L621'></a>      <strong class='reserved'>if</strong> (count == 0) <em class='brace'>{</em>
+<a id='L622' name='L622'></a>        <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;paths, <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>(num));
+<a id='L623' name='L623'></a>        <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L37' title='Defined at 37 in core/opcodes.h.'>OP_SELF</a>, reg);
+<a id='L624' name='L624'></a>      <em class='brace'>}</em>
+<a id='L625' name='L625'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, reg + 1, num);
+<a id='L626' name='L626'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L48' title='Defined at 48 in core/opcodes.h.'>OP_GETPATH</a>, reg, reg + 1);
+<a id='L627' name='L627'></a>      <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L48' title='Defined at 48 in core/ast.h.'>AST_PATHQ</a>)
+<a id='L628' name='L628'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L71' title='Defined at 71 in core/opcodes.h.'>OP_TEST</a>, reg, reg);
+<a id='L629' name='L629'></a>      <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, reg + 1);
+<a id='L630' name='L630'></a>    <em class='brace'>}</em>
+<a id='L631' name='L631'></a>    <strong class='reserved'>break</strong>;
+<a id='L632' name='L632'></a>
+<a id='L633' name='L633'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L52' title='Defined at 52 in core/ast.h.'>AST_LICK</a>: <em class='brace'>{</em>
+<a id='L634' name='L634'></a>      <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> breg = reg;
+<a id='L635' name='L635'></a>      <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, t-&gt;a[0]);
+<a id='L636' name='L636'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, reg, num);
+<a id='L637' name='L637'></a>      <strong class='reserved'>if</strong> (t-&gt;a[1] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)
+<a id='L638' name='L638'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[1], ++breg);
+<a id='L639' name='L639'></a>      <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)
+<a id='L640' name='L640'></a>        <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L36' title='Defined at 36 in core/opcodes.h.'>OP_LOADPN</a>, ++breg, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L641' name='L641'></a>      <strong class='reserved'>if</strong> (t-&gt;a[2] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>)
+<a id='L642' name='L642'></a>        <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)t-&gt;a[2], ++breg);
+<a id='L643' name='L643'></a>      <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L47' title='Defined at 47 in core/opcodes.h.'>OP_NEWLICK</a>, reg, breg);
+<a id='L644' name='L644'></a>      <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, breg);
+<a id='L645' name='L645'></a>    <em class='brace'>}</em>
+<a id='L646' name='L646'></a>    <strong class='reserved'>break</strong>;
+<a id='L647' name='L647'></a>
+<a id='L648' name='L648'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a>:
+<a id='L649' name='L649'></a>      <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L38' title='Defined at 38 in core/opcodes.h.'>OP_NEWTUPLE</a>, reg);
+<a id='L650' name='L650'></a>      <strong class='reserved'>if</strong> (t-&gt;a[0] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L651' name='L651'></a>        <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;a[0], i, v, <em class='brace'>{</em>
+<a id='L652' name='L652'></a>          <strong class='reserved'>if</strong> (<a href='../S/7.html#L62' title='Defined at 62 in core/ast.h.'>PN_PART</a>(v) == <a href='../S/7.html#L21' title='Defined at 21 in core/ast.h.'>AST_ASSIGN</a>) <em class='brace'>{</em>
+<a id='L653' name='L653'></a>            <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(v, 0);
+<a id='L654' name='L654'></a>            <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a> &amp;&amp; <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(lhs-&gt;a[0]) == 1)
+<a id='L655' name='L655'></a>            <em class='brace'>{</em>
+<a id='L656' name='L656'></a>              lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(lhs-&gt;a[0], 0);
+<a id='L657' name='L657'></a>              <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>) <em class='brace'>{</em>
+<a id='L658' name='L658'></a>                <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> num = <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;values, lhs-&gt;a[0]);
+<a id='L659' name='L659'></a>                <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L35' title='Defined at 35 in core/opcodes.h.'>OP_LOADK</a>, reg + 1, num);
+<a id='L660' name='L660'></a>                lhs = NULL;
+<a id='L661' name='L661'></a>              <em class='brace'>}</em>
+<a id='L662' name='L662'></a>            <em class='brace'>}</em>
+<a id='L663' name='L663'></a>
+<a id='L664' name='L664'></a>            <strong class='reserved'>if</strong> (lhs != NULL)
+<a id='L665' name='L665'></a>              <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)lhs, reg + 1);
+<a id='L666' name='L666'></a>
+<a id='L667' name='L667'></a>            <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/7.html#L63' title='Defined at 63 in core/ast.h.'>PN_S</a>(v, 1), reg + 2);
+<a id='L668' name='L668'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L46' title='Defined at 46 in core/opcodes.h.'>OP_SETTABLE</a>, reg, reg + 2);
+<a id='L669' name='L669'></a>            <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, reg + 2);
+<a id='L670' name='L670'></a>          <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L671' name='L671'></a>            <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, loop, 0, (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v, reg + 1);
+<a id='L672' name='L672'></a>            <a href='../S/9.html#L19' title='Defined at 19 in core/compile.c.'>PN_ASM2</a>(<a href='../S/22.html#L39' title='Defined at 39 in core/opcodes.h.'>OP_SETTUPLE</a>, reg, reg + 1);
+<a id='L673' name='L673'></a>            <a href='../S/9.html#L146' title='Defined at 146 in core/compile.c.'>PN_REG</a>(f, reg + 1);
+<a id='L674' name='L674'></a>          <em class='brace'>}</em>
+<a id='L675' name='L675'></a>        <em class='brace'>}</em>);
+<a id='L676' name='L676'></a>      <em class='brace'>}</em>
+<a id='L677' name='L677'></a>    <strong class='reserved'>break</strong>;
+<a id='L678' name='L678'></a>  <em class='brace'>}</em>
+<a id='L679' name='L679'></a><em class='brace'>}</em>
+<a id='L680' name='L680'></a>
+<a id='L681' name='L681'></a><em class='comment'>/// Dissect the parsed and compiled parse_from()/yy_sig() AST tree</em>
+<a id='L682' name='L682'></a><em class='comment'>/// of a potion signature. Name=Type, '| optional' '.' sep</em>
+<a id='L683' name='L683'></a><em class='comment'>/// Types are encoded as ord. No handling of default values.</em>
+<a id='L684' name='L684'></a><em class='comment'>///\param f    the PNProto closure to store locals</em>
+<a id='L685' name='L685'></a><em class='comment'>///\param src  PNSource signature tree, parsed via yy_sig()</em>
+<a id='L686' name='L686'></a><em class='comment'>///\return PNProto a closure</em>
+<a id='L687' name='L687'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/9.html#L741' title='Referred from 741 in core/compile.c.'>potion_sig_compile</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> src) <em class='brace'>{</em>
+<a id='L688' name='L688'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> sig = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L689' name='L689'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) t = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)src;
+<a id='L690' name='L690'></a>  <strong class='reserved'>if</strong> (t-&gt;part == <a href='../S/7.html#L50' title='Defined at 50 in core/ast.h.'>AST_LIST</a> &amp;&amp; t-&gt;a[0] != <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <em class='brace'>{</em>
+<a id='L691' name='L691'></a>    <a href='../S/24.html#L234' title='Defined at 234 in core/potion.h.'>PN_TUPLE_EACH</a>(t-&gt;a[0], i, v, <em class='brace'>{</em>
+<a id='L692' name='L692'></a>      <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) expr = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)v;
+<a id='L693' name='L693'></a>      <strong class='reserved'>if</strong> (expr-&gt;part == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a>) <em class='brace'>{</em>
+<a id='L694' name='L694'></a>        <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) name = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(expr-&gt;a[0], 0);
+<a id='L695' name='L695'></a>        <strong class='reserved'>if</strong> (name-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>)
+<a id='L696' name='L696'></a>        <em class='brace'>{</em>
+<a id='L697' name='L697'></a>          <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;locals, name-&gt;a[0]);
+<a id='L698' name='L698'></a>          sig = <a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(<a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(sig, name-&gt;a[0]), <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>('o'));
+<a id='L699' name='L699'></a>        <em class='brace'>}</em>
+<a id='L700' name='L700'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (expr-&gt;part == <a href='../S/7.html#L21' title='Defined at 21 in core/ast.h.'>AST_ASSIGN</a>) <em class='brace'>{</em>
+<a id='L701' name='L701'></a>        <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)expr-&gt;a[0];
+<a id='L702' name='L702'></a>        <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L49' title='Defined at 49 in core/ast.h.'>AST_EXPR</a> &amp;&amp; <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(lhs-&gt;a[0]) == 1)
+<a id='L703' name='L703'></a>        <em class='brace'>{</em>
+<a id='L704' name='L704'></a>          lhs = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(lhs-&gt;a[0], 0);
+<a id='L705' name='L705'></a>          <strong class='reserved'>if</strong> (lhs-&gt;part == <a href='../S/7.html#L45' title='Defined at 45 in core/ast.h.'>AST_MESSAGE</a>) <em class='brace'>{</em>
+<a id='L706' name='L706'></a>            <a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_PUT</a>(f-&gt;locals, lhs-&gt;a[0]);
+<a id='L707' name='L707'></a>            sig = <a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(<a href='../S/24.html#L221' title='Defined at 221 in core/potion.h.'>PN_PUSH</a>(sig, lhs-&gt;a[0]), <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>('o'));
+<a id='L708' name='L708'></a>          <em class='brace'>}</em>
+<a id='L709' name='L709'></a>        <em class='brace'>}</em>
+<a id='L710' name='L710'></a>      <em class='brace'>}</em>
+<a id='L711' name='L711'></a>    <em class='brace'>}</em>);
+<a id='L712' name='L712'></a>  <em class='brace'>}</em>
+<a id='L713' name='L713'></a>  <strong class='reserved'>return</strong> sig;
+<a id='L714' name='L714'></a><em class='brace'>}</em>
+<a id='L715' name='L715'></a>
+<a id='L716' name='L716'></a><em class='comment'>///\memberof PNSource</em>
+<a id='L717' name='L717'></a><em class='comment'>/// "compile" method for PNSource, an AST fragment. Typically to add a function definition,</em>
+<a id='L718' name='L718'></a><em class='comment'>/// but also objects, blocks, ... (Almost everything is a PNClosure)</em>
+<a id='L719' name='L719'></a><em class='comment'>///\param source  PNSource AST source tree</em>
+<a id='L720' name='L720'></a><em class='comment'>///\param sig     PNSource signature tree or PN_NIL, parsed via yy_sig(), compiled with potion_sig_compile()</em>
+<a id='L721' name='L721'></a><em class='comment'>///\return PNProto a closure</em>
+<a id='L722' name='L722'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/784.html' title='Multiple referred from 2 places.'>potion_source_compile</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> source, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> sig) <em class='brace'>{</em>
+<a id='L723' name='L723'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f;
+<a id='L724' name='L724'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Source) t = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L341' title='Defined at 341 in core/potion.h.'>PNSource</a> *)self;
+<a id='L725' name='L725'></a>
+<a id='L726' name='L726'></a>  <strong class='reserved'>switch</strong> (t-&gt;part) <em class='brace'>{</em>
+<a id='L727' name='L727'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L19' title='Defined at 19 in core/ast.h.'>AST_CODE</a>:
+<a id='L728' name='L728'></a>    <strong class='reserved'>case</strong> <a href='../S/7.html#L51' title='Defined at 51 in core/ast.h.'>AST_BLOCK</a>: <strong class='reserved'>break</strong>;
+<a id='L729' name='L729'></a>    <strong class='reserved'>default</strong>: <strong class='reserved'>return</strong> <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>; <em class='comment'>// TODO: error</em>
+<a id='L730' name='L730'></a>  <em class='brace'>}</em>
+<a id='L731' name='L731'></a>
+<a id='L732' name='L732'></a>  f = <a href='../S/15.html#L13' title='Defined at 13 in core/internal.h.'>PN_ALLOC</a>(<a href='../S/24.html#L121' title='Defined at 121 in core/potion.h.'>PN_TPROTO</a>, <strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a>);
+<a id='L733' name='L733'></a>  f-&gt;source = source;
+<a id='L734' name='L734'></a>  f-&gt;stack = <a href='../S/24.html#L175' title='Defined at 175 in core/potion.h.'>PN_NUM</a>(1);
+<a id='L735' name='L735'></a>  f-&gt;protos = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L736' name='L736'></a>  f-&gt;paths = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L737' name='L737'></a>  f-&gt;locals = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L738' name='L738'></a>  f-&gt;upvals = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L739' name='L739'></a>  f-&gt;values = <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>();
+<a id='L740' name='L740'></a>  f-&gt;tree = self;
+<a id='L741' name='L741'></a>  f-&gt;sig = (sig == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> ? <a href='../S/24.html#L219' title='Defined at 219 in core/potion.h.'>PN_TUP0</a>() : <a href='../S/9.html#L687' title='Defined at 687 in core/compile.c.'>potion_sig_compile</a>(P, f, sig));
+<a id='L742' name='L742'></a>  f-&gt;asmb = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/4.html#L15' title='Defined at 15 in core/asm.c.'>potion_asm_new</a>(P);
+<a id='L743' name='L743'></a>
+<a id='L744' name='L744'></a>  <a href='../S/9.html#L271' title='Defined at 271 in core/compile.c.'>potion_source_asmb</a>(P, f, NULL, 0, t, 0);
+<a id='L745' name='L745'></a>  <a href='../S/9.html#L18' title='Defined at 18 in core/compile.c.'>PN_ASM1</a>(<a href='../S/22.html#L78' title='Defined at 78 in core/opcodes.h.'>OP_RETURN</a>, 0);
+<a id='L746' name='L746'></a>
+<a id='L747' name='L747'></a>  f-&gt;localsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;locals);
+<a id='L748' name='L748'></a>  f-&gt;upvalsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;upvals);
+<a id='L749' name='L749'></a>  f-&gt;pathsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;paths);
+<a id='L750' name='L750'></a>  <strong class='reserved'>return</strong> (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)f;
+<a id='L751' name='L751'></a><em class='brace'>}</em>
+<a id='L752' name='L752'></a>
+<a id='L753' name='L753'></a><em class='sharp'>#define</em> <a href='../S/9.html#L772' title='Referred from 772 in core/compile.c.'>READ_U8</a>(ptr) (<em class='brace'>{</em><a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> rpu = *ptr; ptr += <strong class='reserved'>sizeof</strong>(<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>); rpu;<em class='brace'>}</em>)
+<a id='L754' name='L754'></a><em class='sharp'>#define</em> <a href='../R/400.html' title='Multiple referred from 2 places.'>READ_PN</a>(pn, ptr) (<em class='brace'>{</em><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> rpn = *(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)ptr; ptr += pn; rpn;<em class='brace'>}</em>)
+<a id='L755' name='L755'></a><em class='sharp'>#define</em> <a href='../R/399.html' title='Multiple referred from 3 places.'>READ_CONST</a>(pn, ptr) (<em class='brace'>{</em> \
+<a id='L756' name='L756'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> val = <a href='../S/9.html#L754' title='Defined at 754 in core/compile.c.'>READ_PN</a>(pn, ptr); \
+<a id='L757' name='L757'></a>    <strong class='reserved'>if</strong> (<a href='../S/24.html#L157' title='Defined at 157 in core/potion.h.'>PN_IS_PTR</a>(val)) <em class='brace'>{</em> \
+<a id='L758' name='L758'></a>      <strong class='reserved'>if</strong> (val &amp; 2) <em class='brace'>{</em> \
+<a id='L759' name='L759'></a>        size_t len = ((val ^ 2) &gt;&gt; 4) - 1; \
+<a id='L760' name='L760'></a>        val = <a href='../S/20.html#L21' title='Defined at 21 in core/number.c.'>potion_decimal</a>(P, (<strong class='reserved'>char</strong> *)ptr, len); \
+<a id='L761' name='L761'></a>        ptr += len; \
+<a id='L762' name='L762'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
+<a id='L763' name='L763'></a>        size_t len = (val &gt;&gt; 4) - 1; \
+<a id='L764' name='L764'></a>        val = <a href='../S/26.html#L47' title='Defined at 47 in core/string.c.'>potion_str2</a>(P, (<strong class='reserved'>char</strong> *)ptr, len); \
+<a id='L765' name='L765'></a>        ptr += len; \
+<a id='L766' name='L766'></a>      <em class='brace'>}</em> \
+<a id='L767' name='L767'></a>    <em class='brace'>}</em> \
+<a id='L768' name='L768'></a>    val; \
+<a id='L769' name='L769'></a>  <em class='brace'>}</em>)
+<a id='L770' name='L770'></a>
+<a id='L771' name='L771'></a><em class='sharp'>#define</em> <a href='../R/402.html' title='Multiple referred from 2 places.'>READ_TUPLE</a>(ptr) \
+<a id='L772' name='L772'></a>  <strong class='reserved'>long</strong> i = 0, count = <a href='../S/9.html#L753' title='Defined at 753 in core/compile.c.'>READ_U8</a>(ptr); \
+<a id='L773' name='L773'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> tup = <a href='../S/27.html#L139' title='Defined at 139 in core/table.c.'>potion_tuple_with_size</a>(P, (<a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a>)count); \
+<a id='L774' name='L774'></a>  <strong class='reserved'>for</strong> (; i &lt; count; i++)
+<a id='L775' name='L775'></a><em class='sharp'>#define</em> <a href='../R/404.html' title='Multiple referred from 5 places.'>READ_VALUES</a>(pn, ptr) (<em class='brace'>{</em> \
+<a id='L776' name='L776'></a>    <a href='../S/9.html#L771' title='Defined at 771 in core/compile.c.'>READ_TUPLE</a>(ptr) <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(tup, i) = <a href='../S/9.html#L755' title='Defined at 755 in core/compile.c.'>READ_CONST</a>(pn, ptr); \
+<a id='L777' name='L777'></a>    tup; \
+<a id='L778' name='L778'></a>  <em class='brace'>}</em>)
+<a id='L779' name='L779'></a><em class='sharp'>#define</em> <a href='../S/9.html#L797' title='Referred from 797 in core/compile.c.'>READ_PROTOS</a>(pn, ptr) (<em class='brace'>{</em> \
+<a id='L780' name='L780'></a>    <a href='../S/9.html#L771' title='Defined at 771 in core/compile.c.'>READ_TUPLE</a>(ptr) <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(tup, i) = <a href='../S/9.html#L785' title='Defined at 785 in core/compile.c.'>potion_proto_load</a>(P, (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)f, pn, &amp;(ptr)); \
+<a id='L781' name='L781'></a>    tup; \
+<a id='L782' name='L782'></a>  <em class='brace'>}</em>)
+<a id='L783' name='L783'></a>
+<a id='L784' name='L784'></a><em class='comment'>// TODO: this byte string is volatile, need to avoid using ptr</em>
+<a id='L785' name='L785'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/767.html' title='Multiple referred from 2 places.'>potion_proto_load</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> up, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> pn, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> **ptr) <em class='brace'>{</em>
+<a id='L786' name='L786'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> len = 0;
+<a id='L787' name='L787'></a>  PNAsm * <strong class='reserved'>volatile</strong> asmb = NULL;
+<a id='L788' name='L788'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f = <a href='../S/15.html#L13' title='Defined at 13 in core/internal.h.'>PN_ALLOC</a>(<a href='../S/24.html#L121' title='Defined at 121 in core/potion.h.'>PN_TPROTO</a>, <strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a>);
+<a id='L789' name='L789'></a>  f-&gt;source = <a href='../S/9.html#L755' title='Defined at 755 in core/compile.c.'>READ_CONST</a>(pn, *ptr);
+<a id='L790' name='L790'></a>  <strong class='reserved'>if</strong> (f-&gt;source == <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) f-&gt;source = up; 
+<a id='L791' name='L791'></a>  f-&gt;sig = <a href='../S/9.html#L775' title='Defined at 775 in core/compile.c.'>READ_VALUES</a>(pn, *ptr);
+<a id='L792' name='L792'></a>  f-&gt;stack = <a href='../S/9.html#L755' title='Defined at 755 in core/compile.c.'>READ_CONST</a>(pn, *ptr);
+<a id='L793' name='L793'></a>  f-&gt;values = <a href='../S/9.html#L775' title='Defined at 775 in core/compile.c.'>READ_VALUES</a>(pn, *ptr);
+<a id='L794' name='L794'></a>  f-&gt;paths = <a href='../S/9.html#L775' title='Defined at 775 in core/compile.c.'>READ_VALUES</a>(pn, *ptr);
+<a id='L795' name='L795'></a>  f-&gt;locals = <a href='../S/9.html#L775' title='Defined at 775 in core/compile.c.'>READ_VALUES</a>(pn, *ptr);
+<a id='L796' name='L796'></a>  f-&gt;upvals = <a href='../S/9.html#L775' title='Defined at 775 in core/compile.c.'>READ_VALUES</a>(pn, *ptr);
+<a id='L797' name='L797'></a>  f-&gt;protos = <a href='../S/9.html#L779' title='Defined at 779 in core/compile.c.'>READ_PROTOS</a>(pn, *ptr);
+<a id='L798' name='L798'></a>
+<a id='L799' name='L799'></a>  len = <a href='../S/9.html#L754' title='Defined at 754 in core/compile.c.'>READ_PN</a>(pn, *ptr);
+<a id='L800' name='L800'></a>  <a href='../S/15.html#L34' title='Defined at 34 in core/internal.h.'>PN_FLEX_NEW</a>(asmb, <a href='../S/24.html#L120' title='Defined at 120 in core/potion.h.'>PN_TBYTES</a>, PNAsm, len);
+<a id='L801' name='L801'></a>  <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(asmb-&gt;ptr, *ptr, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>, len);
+<a id='L802' name='L802'></a>  asmb-&gt;len = len;
+<a id='L803' name='L803'></a>
+<a id='L804' name='L804'></a>  f-&gt;asmb = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)asmb;
+<a id='L805' name='L805'></a>  f-&gt;localsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;locals);
+<a id='L806' name='L806'></a>  f-&gt;upvalsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;upvals);
+<a id='L807' name='L807'></a>  f-&gt;pathsize = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;paths);
+<a id='L808' name='L808'></a>  *ptr += len;
+<a id='L809' name='L809'></a>  <strong class='reserved'>return</strong> (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)f;
+<a id='L810' name='L810'></a><em class='brace'>}</em>
+<a id='L811' name='L811'></a>
+<a id='L812' name='L812'></a><em class='comment'>///\memberof PNSource</em>
+<a id='L813' name='L813'></a><em class='comment'>// TODO: "load" from a stream</em>
+<a id='L814' name='L814'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/787.html' title='Multiple referred from 4 places.'>potion_source_load</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> buf) <em class='brace'>{</em>
+<a id='L815' name='L815'></a>  <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *ptr;
+<a id='L816' name='L816'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(BHeader) h = (<strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a> *)<a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(buf);
+<a id='L817' name='L817'></a>  <em class='comment'>// check for compiled binary first</em>
+<a id='L818' name='L818'></a>  <strong class='reserved'>if</strong> ((size_t)<a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(buf) &lt;= <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a>) || 
+<a id='L819' name='L819'></a>      strncmp((<strong class='reserved'>char</strong> *)h-&gt;sig, <a href='../D/412.html' title='Multiple defined in 3 places.'>POTION_SIG</a>, 4) != 0)
+<a id='L820' name='L820'></a>    <strong class='reserved'>return</strong> <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L821' name='L821'></a>
+<a id='L822' name='L822'></a>  ptr = h-&gt;proto;
+<a id='L823' name='L823'></a>  <strong class='reserved'>return</strong> <a href='../S/9.html#L785' title='Defined at 785 in core/compile.c.'>potion_proto_load</a>(P, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, h-&gt;pn, &amp;ptr);
+<a id='L824' name='L824'></a><em class='brace'>}</em>
+<a id='L825' name='L825'></a>
+<a id='L826' name='L826'></a><em class='comment'>// TODO: switch to dump methods</em>
+<a id='L827' name='L827'></a><em class='sharp'>#define</em> <a href='../S/9.html#L848' title='Referred from 848 in core/compile.c.'>WRITE_U8</a>(un, ptr) (<em class='brace'>{</em>*ptr = (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)un; ptr += <strong class='reserved'>sizeof</strong>(<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>);<em class='brace'>}</em>)
+<a id='L828' name='L828'></a><em class='sharp'>#define</em> <a href='../R/437.html' title='Multiple referred from 4 places.'>WRITE_PN</a>(pn, ptr) (<em class='brace'>{</em>*(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)ptr = pn; ptr += <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>);<em class='brace'>}</em>)
+<a id='L829' name='L829'></a><em class='sharp'>#define</em> <a href='../R/436.html' title='Multiple referred from 3 places.'>WRITE_CONST</a>(val, ptr) (<em class='brace'>{</em> \
+<a id='L830' name='L830'></a>    <strong class='reserved'>if</strong> (<a href='../S/24.html#L162' title='Defined at 162 in core/potion.h.'>PN_IS_STR</a>(val)) <em class='brace'>{</em> \
+<a id='L831' name='L831'></a>      <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> count = (<a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(val)+1) &lt;&lt; 4; \
+<a id='L832' name='L832'></a>      <a href='../S/9.html#L828' title='Defined at 828 in core/compile.c.'>WRITE_PN</a>(count, ptr); \
+<a id='L833' name='L833'></a>      <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(ptr, <a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(val), <strong class='reserved'>char</strong>, <a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(val)); \
+<a id='L834' name='L834'></a>      ptr += <a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(val); \
+<a id='L835' name='L835'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (<a href='../S/24.html#L165' title='Defined at 165 in core/potion.h.'>PN_IS_DECIMAL</a>(val)) <em class='brace'>{</em> \
+<a id='L836' name='L836'></a>      <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> str = <a href='../S/20.html#L129' title='Defined at 129 in core/number.c.'>potion_num_string</a>(P, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, val); \
+<a id='L837' name='L837'></a>      <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> count = ((<a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(str)+1) &lt;&lt; 4) | 2; \
+<a id='L838' name='L838'></a>      <a href='../S/9.html#L828' title='Defined at 828 in core/compile.c.'>WRITE_PN</a>(count, ptr); \
+<a id='L839' name='L839'></a>      <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(ptr, <a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(str), <strong class='reserved'>char</strong>, <a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(str)); \
+<a id='L840' name='L840'></a>      ptr += <a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(str); \
+<a id='L841' name='L841'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
+<a id='L842' name='L842'></a>      <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cval = (<a href='../S/24.html#L157' title='Defined at 157 in core/potion.h.'>PN_IS_PTR</a>(val) ? <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a> : val); \
+<a id='L843' name='L843'></a>      <a href='../S/9.html#L828' title='Defined at 828 in core/compile.c.'>WRITE_PN</a>(cval, ptr); \
+<a id='L844' name='L844'></a>    <em class='brace'>}</em> \
+<a id='L845' name='L845'></a>  <em class='brace'>}</em>)
+<a id='L846' name='L846'></a><em class='sharp'>#define</em> <a href='../R/439.html' title='Multiple referred from 2 places.'>WRITE_TUPLE</a>(tup, ptr) \
+<a id='L847' name='L847'></a>  <strong class='reserved'>long</strong> i = 0, count = <a href='../S/24.html#L225' title='Defined at 225 in core/potion.h.'>PN_TUPLE_LEN</a>(tup); \
+<a id='L848' name='L848'></a>  <a href='../S/9.html#L827' title='Defined at 827 in core/compile.c.'>WRITE_U8</a>(count, ptr); \
+<a id='L849' name='L849'></a>  <strong class='reserved'>for</strong> (; i &lt; count; i++)
+<a id='L850' name='L850'></a><em class='sharp'>#define</em> <a href='../R/441.html' title='Multiple referred from 5 places.'>WRITE_VALUES</a>(tup, ptr) (<em class='brace'>{</em> \
+<a id='L851' name='L851'></a>    <a href='../S/9.html#L846' title='Defined at 846 in core/compile.c.'>WRITE_TUPLE</a>(tup, ptr) <a href='../S/9.html#L829' title='Defined at 829 in core/compile.c.'>WRITE_CONST</a>(<a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(tup, i), ptr); \
+<a id='L852' name='L852'></a>  <em class='brace'>}</em>)
+<a id='L853' name='L853'></a><em class='sharp'>#define</em> <a href='../S/9.html#L875' title='Referred from 875 in core/compile.c.'>WRITE_PROTOS</a>(tup, ptr) (<em class='brace'>{</em> \
+<a id='L854' name='L854'></a>    <a href='../S/9.html#L846' title='Defined at 846 in core/compile.c.'>WRITE_TUPLE</a>(tup, ptr) ptr += <a href='../S/9.html#L864' title='Defined at 864 in core/compile.c.'>potion_proto_dumpbc</a>(P, <a href='../S/24.html#L226' title='Defined at 226 in core/potion.h.'>PN_TUPLE_AT</a>(tup, i), \
+<a id='L855' name='L855'></a>        out, (<strong class='reserved'>char</strong> *)ptr - <a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(out)); \
+<a id='L856' name='L856'></a>  <em class='brace'>}</em>)
+<a id='L857' name='L857'></a>
+<a id='L858' name='L858'></a><em class='comment'>///\memberof PNProto</em>
+<a id='L859' name='L859'></a><em class='comment'>/// compile to bytecode</em>
+<a id='L860' name='L860'></a><em class='comment'>///\param proto  PNProto</em>
+<a id='L861' name='L861'></a><em class='comment'>///\param out    PNBytes output buffer</em>
+<a id='L862' name='L862'></a><em class='comment'>///\param pos    long where to add at out</em>
+<a id='L863' name='L863'></a><em class='comment'>///\return char* ptr - start</em>
+<a id='L864' name='L864'></a><strong class='reserved'>long</strong> <a href='../R/766.html' title='Multiple referred from 2 places.'>potion_proto_dumpbc</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> proto, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> out, <strong class='reserved'>long</strong> pos) <em class='brace'>{</em>
+<a id='L865' name='L865'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) f = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L351' title='Defined at 351 in core/potion.h.'>PNProto</a> *)proto;
+<a id='L866' name='L866'></a>  <strong class='reserved'>char</strong> *start = <a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(out) + pos;
+<a id='L867' name='L867'></a>  <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *ptr = (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a> *)start;
+<a id='L868' name='L868'></a>  <a href='../S/9.html#L829' title='Defined at 829 in core/compile.c.'>WRITE_CONST</a>(f-&gt;source, ptr);
+<a id='L869' name='L869'></a>  <a href='../S/9.html#L850' title='Defined at 850 in core/compile.c.'>WRITE_VALUES</a>(f-&gt;sig, ptr);
+<a id='L870' name='L870'></a>  <a href='../S/9.html#L829' title='Defined at 829 in core/compile.c.'>WRITE_CONST</a>(f-&gt;stack, ptr);
+<a id='L871' name='L871'></a>  <a href='../S/9.html#L850' title='Defined at 850 in core/compile.c.'>WRITE_VALUES</a>(f-&gt;values, ptr);
+<a id='L872' name='L872'></a>  <a href='../S/9.html#L850' title='Defined at 850 in core/compile.c.'>WRITE_VALUES</a>(f-&gt;paths, ptr);
+<a id='L873' name='L873'></a>  <a href='../S/9.html#L850' title='Defined at 850 in core/compile.c.'>WRITE_VALUES</a>(f-&gt;locals, ptr);
+<a id='L874' name='L874'></a>  <a href='../S/9.html#L850' title='Defined at 850 in core/compile.c.'>WRITE_VALUES</a>(f-&gt;upvals, ptr);
+<a id='L875' name='L875'></a>  <a href='../S/9.html#L853' title='Defined at 853 in core/compile.c.'>WRITE_PROTOS</a>(f-&gt;protos, ptr);
+<a id='L876' name='L876'></a>  <a href='../S/9.html#L828' title='Defined at 828 in core/compile.c.'>WRITE_PN</a>(<a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(f-&gt;asmb), ptr);
+<a id='L877' name='L877'></a>  <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(ptr, ((PNFlex *)f-&gt;asmb)-&gt;ptr, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>, <a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(f-&gt;asmb));
+<a id='L878' name='L878'></a>  ptr += <a href='../S/24.html#L193' title='Defined at 193 in core/potion.h.'>PN_FLEX_SIZE</a>(f-&gt;asmb);
+<a id='L879' name='L879'></a>  <strong class='reserved'>return</strong> (<strong class='reserved'>char</strong> *)ptr - start;
+<a id='L880' name='L880'></a><em class='brace'>}</em>
+<a id='L881' name='L881'></a>
+<a id='L882' name='L882'></a><em class='comment'>///\memberof PNSource</em>
+<a id='L883' name='L883'></a><em class='comment'>// Low TODO: dump to a stream (if we have not enough memory)</em>
+<a id='L884' name='L884'></a><em class='comment'>// TODO: proto dump methods, for bc, c and exec, also dump as serializable ascii</em>
+<a id='L885' name='L885'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/785.html' title='Multiple referred from 3 places.'>potion_source_dumpbc</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> proto) <em class='brace'>{</em>
+<a id='L886' name='L886'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> pnb = <a href='../S/26.html#L238' title='Defined at 238 in core/string.c.'>potion_bytes</a>(P, 8192);
+<a id='L887' name='L887'></a>  <strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a> h;
+<a id='L888' name='L888'></a>  <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>(h.sig, <a href='../D/412.html' title='Multiple defined in 3 places.'>POTION_SIG</a>, <a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>, 4);
+<a id='L889' name='L889'></a>  h.major = <a href='../S/24.html#L43' title='Defined at 43 in core/potion.h.'>POTION_MAJOR</a>;
+<a id='L890' name='L890'></a>  h.minor = <a href='../S/24.html#L44' title='Defined at 44 in core/potion.h.'>POTION_MINOR</a>;
+<a id='L891' name='L891'></a>  h.vmid = <a href='../S/24.html#L46' title='Defined at 46 in core/potion.h.'>POTION_VMID</a>;
+<a id='L892' name='L892'></a>  h.pn = (<a href='../S/15.html#L11' title='Defined at 11 in core/internal.h.'>u8</a>)<strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>);
+<a id='L893' name='L893'></a>
+<a id='L894' name='L894'></a>  <a href='../S/15.html#L21' title='Defined at 21 in core/internal.h.'>PN_MEMCPY</a>(<a href='../S/24.html#L180' title='Defined at 180 in core/potion.h.'>PN_STR_PTR</a>(pnb), &amp;h, <strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a>);
+<a id='L895' name='L895'></a>  <a href='../S/24.html#L181' title='Defined at 181 in core/potion.h.'>PN_STR_LEN</a>(pnb) = (<strong class='reserved'>long</strong>)<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a>) +
+<a id='L896' name='L896'></a>    <a href='../S/9.html#L864' title='Defined at 864 in core/compile.c.'>potion_proto_dumpbc</a>(P, proto, pnb, <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/15.html#L68' title='Defined at 68 in core/internal.h.'>PNBHeader</a>));
+<a id='L897' name='L897'></a>  <strong class='reserved'>return</strong> pnb;
+<a id='L898' name='L898'></a><em class='brace'>}</em>
+<a id='L899' name='L899'></a>
+<a id='L900' name='L900'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/779.html' title='Multiple referred from 3 places.'>potion_run</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> code, <strong class='reserved'>int</strong> jit) <em class='brace'>{</em>
+<a id='L901' name='L901'></a><em class='sharp'>#ifndef</em> POTION_JIT_TARGET
+<a id='L902' name='L902'></a>  <strong class='reserved'>if</strong> (jit) <em class='brace'>{</em>
+<a id='L903' name='L903'></a>    fprintf(stderr, "** potion not compiled with JIT\n");
+<a id='L904' name='L904'></a>    jit = 0;
+<a id='L905' name='L905'></a>  <em class='brace'>}</em>
+<a id='L906' name='L906'></a><em class='sharp'>#endif</em>
+<a id='L907' name='L907'></a> <strong class='reserved'>if</strong> (jit) <em class='brace'>{</em>
+<a id='L908' name='L908'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl = <a href='../S/21.html#L17' title='Defined at 17 in core/objmodel.c.'>potion_closure_new</a>(P, (PN_F)<a href='../S/33.html#L152' title='Defined at 152 in core/vm.c.'>potion_jit_proto</a>(P, code), <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, 1);
+<a id='L909' name='L909'></a>    <a href='../S/24.html#L183' title='Defined at 183 in core/potion.h.'>PN_CLOSURE</a>(cl)-&gt;data[0] = code;
+<a id='L910' name='L910'></a>    <strong class='reserved'>return</strong> <a href='../S/24.html#L185' title='Defined at 185 in core/potion.h.'>PN_PROTO</a>(code)-&gt;jit(P, cl, P-&gt;lobby);
+<a id='L911' name='L911'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L912' name='L912'></a>    <strong class='reserved'>return</strong> <a href='../S/33.html#L284' title='Defined at 284 in core/vm.c.'>potion_vm</a>(P, code, P-&gt;lobby, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, 0, NULL);
+<a id='L913' name='L913'></a>  <em class='brace'>}</em>
+<a id='L914' name='L914'></a><em class='brace'>}</em>
+<a id='L915' name='L915'></a>
+<a id='L916' name='L916'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/664.html' title='Multiple referred from 4 places.'>potion_eval</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> bytes, <strong class='reserved'>int</strong> jit) <em class='brace'>{</em>
+<a id='L917' name='L917'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> code = <a href='../S/23.html#L51' title='Defined at 51 in core/p2.h.'>potion_parse</a>(P, bytes, "&lt;eval&gt;");
+<a id='L918' name='L918'></a>  <strong class='reserved'>if</strong> (<a href='../S/24.html#L133' title='Defined at 133 in core/potion.h.'>PN_TYPE</a>(code) != <a href='../S/24.html#L119' title='Defined at 119 in core/potion.h.'>PN_TSOURCE</a>) <strong class='reserved'>return</strong> code;
+<a id='L919' name='L919'></a>  code = <a href='../S/24.html#L628' title='Defined at 628 in core/potion.h.'>potion_send</a>(code, PN_compile, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L920' name='L920'></a>  <strong class='reserved'>return</strong> <a href='../D/902.html' title='Multiple defined in 2 places.'>potion_run</a>(P, code, jit);
+<a id='L921' name='L921'></a><em class='brace'>}</em>
+<a id='L922' name='L922'></a>
+<a id='L923' name='L923'></a><strong class='reserved'>void</strong> <a href='../R/646.html' title='Multiple referred from 2 places.'>potion_compiler_init</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
+<a id='L924' name='L924'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> pro_vt = <a href='../S/24.html#L136' title='Defined at 136 in core/potion.h.'>PN_VTABLE</a>(<a href='../S/24.html#L121' title='Defined at 121 in core/potion.h.'>PN_TPROTO</a>);
+<a id='L925' name='L925'></a>  <a href='../S/24.html#L636' title='Defined at 636 in core/potion.h.'>potion_method</a>(pro_vt, "call", <a href='../S/9.html#L47' title='Defined at 47 in core/compile.c.'>potion_proto_call</a>, 0); <em class='comment'>// TODO: args sig missing here</em>
+<a id='L926' name='L926'></a>  <a href='../S/24.html#L636' title='Defined at 636 in core/potion.h.'>potion_method</a>(pro_vt, "tree", <a href='../S/9.html#L40' title='Defined at 40 in core/compile.c.'>potion_proto_tree</a>, 0);
+<a id='L927' name='L927'></a>  <a href='../S/24.html#L636' title='Defined at 636 in core/potion.h.'>potion_method</a>(pro_vt, "string", <a href='../S/9.html#L53' title='Defined at 53 in core/compile.c.'>potion_proto_string</a>, 0);
+<a id='L928' name='L928'></a><em class='brace'>}</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L13'>[^]</a><a href='#L136'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L40'>[^]</a><a href='#L923'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>
