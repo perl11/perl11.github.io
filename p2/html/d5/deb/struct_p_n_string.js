@@ -9,6 +9,7 @@ var struct_p_n_string =
     [ "potion_str_bytes", "d5/deb/struct_p_n_string.html#ad1b536643c43712f975db5e8018b7c61", null ],
     [ "potion_str_add", "d5/deb/struct_p_n_string.html#a37d0b73f90b94f6d2007bd6ad56e239f", null ],
     [ "potion_str_at", "d5/deb/struct_p_n_string.html#aaaa2867c94593f18874db693c48c5035", null ],
+    [ "potion_str_cmp", "d5/deb/struct_p_n_string.html#ae12bb2563915f184600a38d4ea7a43db", null ],
     [ "PN_OBJECT_HEADER", "d5/deb/struct_p_n_string.html#a9021b42f03876a291ea98be815e0ab5e", null ],
     [ "len", "d5/deb/struct_p_n_string.html#a3a930e2ce9a6ed3639e61888b1c4e446", null ],
     [ "chars", "d5/deb/struct_p_n_string.html#a6659f0f6dd47835d4b98427c20934a7f", null ]

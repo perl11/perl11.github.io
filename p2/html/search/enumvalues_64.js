@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['debug_5fcompile',['DEBUG_COMPILE',['../dd/d07/potion_8h.html#ad22983c638a3d30183fd11b959f85aa8ae4320f26d6646108ee1fb1225ea342e1',1,'potion.h']]],
   ['debug_5fgc',['DEBUG_GC',['../dd/d07/potion_8h.html#ad22983c638a3d30183fd11b959f85aa8a853e5b1cacd7fdc50bb5117e76ce34bf',1,'potion.h']]],
   ['debug_5finspect',['DEBUG_INSPECT',['../dd/d07/potion_8h.html#ad22983c638a3d30183fd11b959f85aa8a741aef93907c9bd3ddb57fee0bb0fd8f',1,'potion.h']]],
   ['debug_5fjit',['DEBUG_JIT',['../dd/d07/potion_8h.html#ad22983c638a3d30183fd11b959f85aa8a43ada5ae121e3648147faa463cde86cb',1,'potion.h']]],

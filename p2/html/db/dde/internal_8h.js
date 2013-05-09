@@ -10,6 +10,7 @@ var internal_8h =
     [ "PN_MEMZERO_N", "db/dde/internal_8h.html#a3898152b572ae92d3f672c66827ee470", null ],
     [ "PN_MEMCPY", "db/dde/internal_8h.html#aee4b7530e5577bb97171e5306b10a26d", null ],
     [ "PN_MEMCPY_N", "db/dde/internal_8h.html#afe493b9a52dbc269b8420e260cce22a6", null ],
+    [ "PN_MEMMOVE_N", "db/dde/internal_8h.html#a85ca0c6137d490577ca61c43e3e41ce4", null ],
     [ "min", "db/dde/internal_8h.html#ac6afabdc09a49a433ee19d8a9486056d", null ],
     [ "max", "db/dde/internal_8h.html#affe776513b24d84b39af8ab0930fef7f", null ],
     [ "TYPE_BATCH_SIZE", "db/dde/internal_8h.html#a8c88ac0c97ff6e9bf201b22303f7f73a", null ],

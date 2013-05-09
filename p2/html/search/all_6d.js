@@ -7,6 +7,7 @@ var searchData=
   ['matrix_5fa',['MATRIX_A',['../df/dac/mt19937ar_8c.html#a376c3581bae3c2367fc9ce694e5a8949',1,'mt19937ar.c']]],
   ['max',['max',['../db/dde/internal_8h.html#affe776513b24d84b39af8ab0930fef7f',1,'internal.h']]],
   ['max_5fexec',['MAX_EXEC',['../dd/d07/potion_8h.html#a42e3c1a66ab9b7b29cbaaadb4b9dc135aa2ecebebd51ce8c24af04dfed90a8b26',1,'potion.h']]],
+  ['max_5fins_5fsort',['MAX_INS_SORT',['../dd/d98/table_8h.html#aae6b27713d30dc8d3328f69e05f44f37',1,'table.h']]],
   ['max_5fjumps',['MAX_JUMPS',['../d2/d47/compile_8c.html#ae7250b98fd002b1b450eead1ef84e35f',1,'compile.c']]],
   ['mcache',['mcache',['../d6/d06/struct_p_n_target.html#a76e2987b8fc90d6906adcfa249932fb4',1,'PNTarget::mcache()'],['../d7/de2/struct_p_n_vtable.html#a33f2ba73d74ae8e92ab33f474d5aaf5d',1,'PNVtable::mcache()']]],
   ['mem',['mem',['../d2/dcd/struct_potion___state.html#a70634c909ed3b9dd932937563bed7121',1,'Potion_State']]],

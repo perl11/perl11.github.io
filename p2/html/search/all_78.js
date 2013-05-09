@@ -2,6 +2,7 @@ var searchData=
 [
   ['x86_5fargi',['X86_ARGI',['../db/de5/vm-x86_8c.html#a234bb577bac2bab27e95da19a362712e',1,'vm-x86.c']]],
   ['x86_5fargo',['X86_ARGO',['../db/de5/vm-x86_8c.html#a7391816b06761e47ecf843e5c675021e',1,'vm-x86.c']]],
+  ['x86_5fargo_5fimm',['X86_ARGO_IMM',['../db/de5/vm-x86_8c.html#a1dcad0c9c30f5331db07c48caee07b43',1,'vm-x86.c']]],
   ['x86_5fcmp',['X86_CMP',['../db/de5/vm-x86_8c.html#a5f88c97bd4f725272669db09a8477d08',1,'vm-x86.c']]],
   ['x86_5fdebug',['X86_DEBUG',['../db/de5/vm-x86_8c.html#a2b77ccf82f3ca0665dfc21abfec8eadf',1,'vm-x86.c']]],
   ['x86_5fmath',['X86_MATH',['../db/de5/vm-x86_8c.html#ab8905398903dfc74717f285647cb0bf5',1,'vm-x86.c']]],

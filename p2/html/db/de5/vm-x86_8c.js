@@ -11,6 +11,7 @@ var vm_x86_8c =
     [ "X86_MATH", "db/de5/vm-x86_8c.html#ab8905398903dfc74717f285647cb0bf5", null ],
     [ "X86_CMP", "db/de5/vm-x86_8c.html#a5f88c97bd4f725272669db09a8477d08", null ],
     [ "X86_ARGO", "db/de5/vm-x86_8c.html#a7391816b06761e47ecf843e5c675021e", null ],
+    [ "X86_ARGO_IMM", "db/de5/vm-x86_8c.html#a1dcad0c9c30f5331db07c48caee07b43", null ],
     [ "X86_ARGI", "db/de5/vm-x86_8c.html#a234bb577bac2bab27e95da19a362712e", null ],
     [ "TAG_JMP", "db/de5/vm-x86_8c.html#ad8d5f6e23cf6168570f8ec233dfba690", null ],
     [ "X86_DEBUG", "db/de5/vm-x86_8c.html#a2b77ccf82f3ca0665dfc21abfec8eadf", null ],

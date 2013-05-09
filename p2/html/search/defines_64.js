@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['dbg_5fc',['DBG_c',['../dd/d07/potion_8h.html#a5b59eb922d6cc7233bd1396065ba0dc9',1,'potion.h']]],
   ['dbg_5fg',['dbg_G',['../d8/d16/gc_8c.html#a7ac09e95aedb6e4581c5425b38f6e280',1,'gc.c']]],
   ['dbg_5fgv',['dbg_Gv',['../d8/d16/gc_8c.html#aa8b0afa44ec2982e5a8cbf46bddf907d',1,'gc.c']]],
   ['dbg_5ft',['DBG_t',['../dd/d07/potion_8h.html#ae9ec50e68cc4c5b405946cf5c32a367e',1,'potion.h']]],

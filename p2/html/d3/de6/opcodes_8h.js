@@ -40,7 +40,7 @@ var opcodes_8h =
       [ "OP_BITR", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebac8a2027242f741138733887864810f87", null ],
       [ "OP_DEF", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebabcc7660b4b965fabb50f7f1183ed6855", null ],
       [ "OP_BIND", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaeddb9259ad1cce7db3b01f0e220ad4ea", null ],
-      [ "OP_MESSAGE", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba12d7b0a029ac7615e5f039cab83cc8fe", null ],
+      [ "OP_MSG", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba3bb65d1cf5c25ffaccda90333561d47f", null ],
       [ "OP_JMP", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebafd679fab86e6a91d22c91734e287639b", null ],
       [ "OP_TEST", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba8952e66300f2660060e38c67ccd21c9d", null ],
       [ "OP_TESTJMP", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba3743494b9add1c6086db9246f99b43dc", null ],
