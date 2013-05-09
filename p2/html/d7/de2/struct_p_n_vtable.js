@@ -15,5 +15,9 @@ var struct_p_n_vtable =
     [ "call", "d7/de2/struct_p_n_vtable.html#ab62dae024b49bb5c8f93ebce9b61cff0", null ],
     [ "callset", "d7/de2/struct_p_n_vtable.html#a8636305ef2ae9340b58cd83e98f8e067", null ],
     [ "mcache", "d7/de2/struct_p_n_vtable.html#a33f2ba73d74ae8e92ab33f474d5aaf5d", null ],
-    [ "ivfunc", "d7/de2/struct_p_n_vtable.html#a48a75f479c25842071653d6e81d635c5", null ]
+    [ "ivfunc", "d7/de2/struct_p_n_vtable.html#a48a75f479c25842071653d6e81d635c5", null ],
+    [ "vt", "d7/de2/struct_p_n_vtable.html#a3583e53b97876baeec394f862fcef580", null ],
+    [ "uniq", "d7/de2/struct_p_n_vtable.html#af9db5978a771c3acf131fd94eb8d1ba2", null ],
+    [ "methods", "d7/de2/struct_p_n_vtable.html#afa8586400c964b34c25c7882b4b67806", null ],
+    [ "meta", "d7/de2/struct_p_n_vtable.html#a0774fd51c402356dc9b8c7e5ac880537", null ]
 ];

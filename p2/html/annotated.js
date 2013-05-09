@@ -1,6 +1,7 @@
 var annotated =
 [
     [ "Lobby", "db/dd7/class_lobby.html", "db/dd7/class_lobby" ],
+    [ "M_APM_struct", "dd/dd1/struct_m___a_p_m__struct.html", "dd/dd1/struct_m___a_p_m__struct" ],
     [ "PN_OP", "d6/d0b/struct_p_n___o_p.html", "d6/d0b/struct_p_n___o_p" ],
     [ "PNArg", "d0/d61/struct_p_n_arg.html", "d0/d61/struct_p_n_arg" ],
     [ "PNBHeader", "de/d35/struct_p_n_b_header.html", "de/d35/struct_p_n_b_header" ],
