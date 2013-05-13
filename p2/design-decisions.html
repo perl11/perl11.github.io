@@ -22,279 +22,153 @@
 </pre>
 <div id='central'>
 <h1>design decisions on p2</h1>
-
-
-	<p>With p2 I plan to parse and execute perl5 asis.
-libp2, the compiler and vm based on potion, should be a good target
+<p>With p2 I plan to parse and execute perl5 asis.<br />
+libp2, the compiler and vm based on potion, should be a good target<br />
 for perl6.</p>
-
-
-	<p>But I will not be able to run 100% of <span class="caps">CPAN</span>. I could, but then there
-would be no progress.
+<p>But I will not be able to run 100% of <span class="caps">CPAN</span>. I could, but then there<br />
+would be no progress.<br />
 I plan significant enhancements in perl performance and features.</p>
-
-
-	<h2>Generally</h2>
-
-
-	<p>I go along with _why and every lisp coder.  Good software should be
-beautiful. But not too beautiful. Code is also art not only technology.
-Short, precise, readable. No one wants to work with a big and ugly
-mess, not even companies. Too much code smells.  Rather restrict the
-usage to those who know and can be taught, than sacrifice your system
-for it. On the other hand too beautiful code rarely gets out of a niche.
+<h2>Generally</h2>
+<p>I go along with _why and every lisp coder.  Good software should be<br />
+beautiful. But not too beautiful. Code is also art not only technology.<br />
+Short, precise, readable. No one wants to work with a big and ugly<br />
+mess, not even companies. Too much code smells.  Rather restrict the<br />
+usage to those who know and can be taught, than sacrifice your system<br />
+for it. On the other hand too beautiful code rarely gets out of a niche.<br />
 Worse is better.</p>
-
-
-	<p>Support 90% but do not sacrifice for the rest.
+<p>Support 90% but do not sacrifice for the rest.<br />
 gmake and gcc/clang are available everywhere, even on pure bsd&#8217;s.</p>
-
-
-	<p>Examples:
-no support for MS cl/nmake. people should use mingw with gmake and gcc instead.
-no support for BSDmakefile syntax. see the <code>bsd</code> branch.
-no support for pure strict c++ compilers. see the <code>p2-c++</code> branch.
+<p>Examples:<br />
+no support for MS cl/nmake. people should use mingw with gmake and gcc instead.<br />
+no support for BSDmakefile syntax. see the <code>bsd</code> branch.<br />
+no support for pure strict c++ compilers. see the <code>p2-c++</code> branch.<br />
 no vax, hpux, aix without gnu tools.</p>
-
-
-	<h1>Incompatibilities</h1>
-
-
-	<p>Some functionality will change, some annoying bugs fixed, 
+<h1>Incompatibilities</h1>
+<p>Some functionality will change, some annoying bugs fixed, <br />
 and some functionality might get removed, or not yet supported.</p>
-
-
-	<h2>XS</h2>
-
-
-	<p>Problem will arise with XS code, since the VM is different, and not
-all <span class="caps">XS API</span> functions can be supported.  It should be much easier to
-use XS-like functionality with the new <span class="caps">FFI</span>, or by using extension
-libraries with native calls. See <code>lib/readline</code>. So we will loose
-40% of <span class="caps">CPAN</span> code, but will win on performance, expressibility and
+<h2>XS</h2>
+<p>Problem will arise with XS code, since the VM is different, and not<br />
+all XS <span class="caps">API</span> functions can be supported.  It should be much easier to<br />
+use XS-like functionality with the new <span class="caps">FFI</span>, or by using extension<br />
+libraries with native calls. See <code>lib/readline</code>. So we will loose<br />
+40% of <span class="caps">CPAN</span> code, but will win on performance, expressibility and<br />
 compile-time error checking when binding libs.</p>
-
-
-	<p>There should be a translator of old XS code to check the stack
-(argument + return values) handling macros and convert them to direct
+<p>There should be a translator of old XS code to check the stack<br />
+(argument + return values) handling macros and convert them to direct<br />
 calls.</p>
-
-
-	<h2>functional programming</h2>
-
-
-	<p>p2 is pretty obscene in being a pure functional language, certainly more functional
-than <span class="caps">LISP</span>.
-Internally any non-lexical variable (GV in perl5) is a function, a closure, which means
-it is an object, which means getting the value is done by sending it a message with
-an empty name,
+<h2>functional programming</h2>
+<p>p2 is pretty obscene in being a pure functional language, certainly more functional<br />
+than <span class="caps">LISP</span>.<br />
+Internally any non-lexical variable (GV in perl5) is a function, a closure, which means<br />
+it is an object, which means getting the value is done by sending it a message with<br />
+an empty name,<br />
 and setting the value is done by sending it the &#8220;def&#8221; message.</p>
-
-
-	<pre><code>(message %ENV) =&gt; return value of %ENV
-(message %ENV "def" &#38;env) =&gt; set new value of %ENV</code></pre>
-
-
-	<p>Yes, you smell Smalltalk.
-This is needed to be able to support a proper object system, types and esp.
+(message %<span class="caps">ENV</span>) =&gt; return value of %<span class="caps">ENV</span>
+(message %<span class="caps">ENV</span> &#8220;def&#8221; &amp;env) =&gt; set new value of %<span class="caps">ENV</span>
+<p>Yes, you smell Smalltalk.<br />
+This is needed to be able to support a proper object system, types and esp.<br />
 proper multi-threading.</p>
-
-
-	<p>On the user-side some side-effect-only functions will be changed to return the
-changed argument.
-E.g. chop, chomp, ...
+<p>On the user-side some side-effect-only functions will be changed to return the<br />
+changed argument.<br />
+E.g. chop, chomp, &#8230;<br />
 return $s =~ s///r as default if the left hand side (wantarray) is no list.</p>
-
-
-	<p>The parser simplier and different. All statements return values. Everything can be on a
-right hand side of something.
-E.g. <strong>if</strong> returns the value of the executed branch or
+<p>The parser simplier and different. All statements return values. Everything can be on a<br />
+right hand side of something.<br />
+E.g. <strong>if</strong> returns the value of the executed branch or<br />
 <strong>undef</strong> if no branch is choosen.</p>
-
-
-	<p>bc. {
+<pre><code>{
     $a = if (1) { $c }; #same as: $a = $c;
-}</p>
-
-
-	<h2>order of destruction</h2>
-
-
-	<p>If you don&#8217;t use explicit <span class="caps">DESTROY</span> calls at the end of blocks, the compiler 
-might miss some <span class="caps">DESTROY</span> calls of untyped objects. <span class="caps">DESTROY</span> might be called
+}</code></pre>
+<h2>order of destruction</h2>
+<p>If you don&#8217;t use explicit <span class="caps">DESTROY</span> calls at the end of blocks, the compiler <br />
+might miss some <span class="caps">DESTROY</span> calls of untyped objects. <span class="caps">DESTROY</span> might be called<br />
 later then, as in other GC&#8217;d languages. get over it.</p>
-
-
-	<p>reference counted objects are too dangerous, too hard and too slow.
-cyclic data structures do not play well with refcounts.
-use-after-free bugs are by factor 10 the most exploited security problems
+<p>reference counted objects are too dangerous, too hard and too slow.<br />
+cyclic data structures do not play well with refcounts.<br />
+use-after-free bugs are by factor 10 the most exploited security problems<br />
 nowadays, and perl5 is full of them.</p>
-
-
-	<h2>lexical hash iterators</h2>
-
-
-	<p>iterating a hash twice in lexically scoped blocks does not work in the second, 
-outer iterator, as the iterator in p5p perl is stored in the data. 
+<h2>lexical hash iterators</h2>
+<p>iterating a hash twice in lexically scoped blocks does not work in the second, <br />
+outer iterator, as the iterator in p5p perl is stored in the data. <br />
 This will be changed to be stored in the scope (block).</p>
-
-
-	<p>i.e. using Data::Dumper inside a each %hash loop will restore the position after 
+<p>i.e. using Data::Dumper inside a each %hash loop will restore the position after <br />
 Data::Dumper dumped the hash.</p>
-
-
-	<h1>New features (planned)</h1>
-
-
-	<h3>All data are objects, all declarations can be optionally typed.</h3>
-
-
-	<p>extendability, maintainance</p>
-
-
-	<p>efficient oo and dynamic type system, with compiler support for static types.</p>
-
-
-	<h3>const declarations for lexical data, @ISA, classes and functions/methods</h3>
-
-
-	<p>efficiency</p>
-
-
-	<p>Also needed for threads and oo to avoid generating writer methods.
+<h1>New features (planned)</h1>
+<h3>All data are objects, all declarations can be optionally typed.</h3>
+<p>extendability, maintainance</p>
+<p>efficient oo and dynamic type system, with compiler support for static types.</p>
+<h3>const declarations for lexical data, @ISA, classes and functions/methods</h3>
+<p>efficiency</p>
+<p>Also needed for threads and oo to avoid generating writer methods.<br />
 Define immutable and final classes.</p>
-
-
-	<h3>optional function signatures and type declarations</h3>
-
-
-	<p>efficiency and safety, compile-time checks</p>
-
-
-	<h3>efficient meta-object system, with classes, methods, roles</h3>
-
-
-	<p>like Moose (i.e. <span class="caps">CLOS</span>), but ~800x faster and with native type support.
+<h3>optional function signatures and type declarations</h3>
+<p>efficiency and safety, compile-time checks</p>
+<h3>efficient meta-object system, with classes, methods, roles</h3>
+<p>like Moose (i.e. <span class="caps">CLOS</span>), but ~800x faster and with native type support.<br />
 i.e. compile-time checks.</p>
-
-
-	<h3>sized arrays</h3>
-
-
-	<p>efficiency</p>
-
-
-	<h3>no magic</h3>
-
-
-	<p>efficiency</p>
-
-
-	<h3>match operator</h3>
-
-
-	<p>expressibility</p>
-
-
-	<p>A proper matcher should be able to match structures and types, and to
+<h3>sized arrays</h3>
+<p>efficiency</p>
+<h3>no magic</h3>
+<p>efficiency</p>
+<h3>match operator</h3>
+<p>expressibility</p>
+<p>A proper matcher should be able to match structures and types, and to<br />
 bind result variables.</p>
-
-
-	<h3>dynamic and cleaned up parser</h3>
-
-
-	<p>maintainability.
+<h3>dynamic and cleaned up parser</h3>
+<p>maintainability.<br />
 new technology (risc and code maintainability), but needed for macros.</p>
-
-
-	<p>allow sensible language features, disallowed by p5p or the old yacc
-parser.  the parser grammar needs to be expressive, even for perl,
-which is known to be hard to parse, and dynamic at parse-time
+<p>allow sensible language features, disallowed by p5p or the old yacc<br />
+parser.  the parser grammar needs to be expressive, even for perl,<br />
+which is known to be hard to parse, and dynamic at parse-time<br />
 (prototypes).</p>
-
-
-	<p>new syntactic constructs needs to added to the grammar, not elsewhere
-in the code.  the parser needs to be accessible and extendable at
-compile-time, maybe even run-time, but we cannot use a non-optimized
+<p>new syntactic constructs needs to added to the grammar, not elsewhere<br />
+in the code.  the parser needs to be accessible and extendable at<br />
+compile-time, maybe even run-time, but we cannot use a non-optimized<br />
 pure top-down parser as e.g. lua to enable this.</p>
-
-
-	<p>we need to precompile the base grammar, bootstrap system macros and
-allow user macros. expose the parser <span class="caps">API</span> to the user. query and
-insert rules. use custom rules to parse ffi declarations (c headers)
-templates, ... or even basic, ruby, python or perl6.</p>
-
-
-	<p>bc. {
+<p>we need to precompile the base grammar, bootstrap system macros and<br />
+allow user macros. expose the parser <span class="caps">API</span> to the user. query and<br />
+insert rules. use custom rules to parse ffi declarations (c headers)<br />
+templates, &#8230; or even basic, ruby, python or perl6.</p>
+<pre><code>{
   use v6;
-  # perl6 syntax&#8230;
-}</p>
-
-
-	<p><em>(this will need a pre-compiled <code>syntax-p6.g</code> and scoped syntax)</em></p>
-
-
-	<p>Either done by extending packrat greg (ie leg) by with a parser
-interpreter to add rules at run-time, &#8211; from precompiled rules and
+  # perl6 syntax...
+}</code></pre>
+<p><em>(this will need a pre-compiled <code>syntax-p6.g</code> and scoped syntax)</em></p>
+<p>Either done by extending packrat greg (ie leg) by with a parser<br />
+interpreter to add rules at run-time, &#8211; from precompiled rules and<br />
 user-added rules &#8211; or by extending marpa to be extensible.</p>
-
-
-	<h3>macros as parser extensions</h3>
-
-
-	<p>expressibility (lisp-like)
-keep the vm small, do not prototype everything in the C library.
+<h3>macros as parser extensions</h3>
+<p>expressibility (lisp-like)<br />
+keep the vm small, do not prototype everything in the C library.<br />
 use the existing parser engine.</p>
-
-
-	<p>macro args are rules (non-terminals) and terminals (strings) to be
-added to the parser, the macro block is evaluated at compile-time,
-with `...` expanded at run-time.</p>
-
-
-	<p>so perl will be the first non-lisp like language with a proper macro
-system, i.e. extending parser grammars. perl6 has similar ideas using peg
-at run-time, but their syntactic macros are too complicated for me.
+<p>macro args are rules (non-terminals) and terminals (strings) to be<br />
+added to the parser, the macro block is evaluated at compile-time,<br />
+with `&#8230;` expanded at run-time.</p>
+<p>so perl will be the first non-lisp like language with a proper macro<br />
+system, i.e. extending parser grammars. perl6 has similar ideas using peg<br />
+at run-time, but their syntactic macros are too complicated for me.<br />
 maybe using the perl6 <rule> syntax looks ok. <em>(i.e. <block> below)</em></p>
-
-
-	<p>There are some similar non-mainstream approaches, on mono or java or
+<p>There are some similar non-mainstream approaches, on mono or java or<br />
 haskell, but none on fast, compiled to C scripting languages.</p>
-
-
-	<p>bc. syntax-p5.g:
-    block = &#8216;{&#8217; s:statements* &#8216;}&#8217; { $$ = PN_AST(BLOCK, s); }</p>
-
-
-	<p>bc.  macro ifdebug block &#8216;ifdebug&#8217; {
+<pre><code>syntax-p5.g:
+    block = '{' s:statements* '}' { $$ = PN_AST(BLOCK, s); }</code></pre>
+<pre><code> macro ifdebug block 'ifdebug' {
   if ($DEBUG) `block`;
 }
-{ call() } ifdebug;</p>
-
-
-	<h3>auto-threads</h3>
-
-
-	<p>the p2/potion data-structures, compiler, vm, gc, interpreter are
+{ call() } ifdebug;</code></pre>
+<h3>auto-threads</h3>
+<p>the p2/potion data-structures, compiler, vm, gc, interpreter are<br />
 thread-safe.</p>
-
-
-	<p>with a OO task and scheduler interface as in parrot (pre-create,
-useful esp. for windows alarms),
-or as in Go (similar),
-or maybe only non-autothreaded as in lua, with just first-class
+<p>with a OO task and scheduler interface as in parrot (pre-create,<br />
+useful esp. for windows alarms),<br />
+or as in Go (similar),<br />
+or maybe only non-autothreaded as in lua, with just first-class<br />
   coroutines, methods: create, status, resume, yield, wrap</p>
-
-
-	<h3>ffi</h3>
-
-
-	<p>builtin
+<h3>ffi</h3>
+<p>builtin<br />
 extendability, maintainance</p>
-
-
-	<p>maybe ctypes alike, maybe something simplier or more advanced.
-(i.e. import parses header files and generates all ffi functions
-and types, or on the hand only support the bare cc types:
+<p>maybe ctypes alike, maybe something simplier or more advanced.<br />
+(i.e. import parses header files and generates all ffi functions<br />
+and types, or on the hand only support the bare cc types:<br />
 signed/unsigned, void/byte/short/long/ptr float/double/long double)</p>
 </div></body></html>

@@ -51,6 +51,7 @@ var opcodes_8h =
       [ "OP_TAILCALL", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaff2c07ebfd82aa22cc247e9855a16069", null ],
       [ "OP_RETURN", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebad436c18b194473f5ec64c28b774e41b3", null ],
       [ "OP_PROTO", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba202a2ca4a29bd46ba915789eb5635b51", null ],
-      [ "OP_CLASS", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba1f99e671caee687d352cce89c95e04c9", null ]
+      [ "OP_CLASS", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba1f99e671caee687d352cce89c95e04c9", null ],
+      [ "OP_DEBUG", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba07e8ffc91d643b38a4a26b777bf63a6a", null ]
     ] ]
 ];

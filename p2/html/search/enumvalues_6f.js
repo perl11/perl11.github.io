@@ -9,6 +9,7 @@ var searchData=
   ['op_5fcallset',['OP_CALLSET',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaf73588aae7bc4b33ed536f93a5c0feb7',1,'opcodes.h']]],
   ['op_5fclass',['OP_CLASS',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba1f99e671caee687d352cce89c95e04c9',1,'opcodes.h']]],
   ['op_5fcmp',['OP_CMP',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaf3fba0b80ef291d770690f78541fad49',1,'opcodes.h']]],
+  ['op_5fdebug',['OP_DEBUG',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba07e8ffc91d643b38a4a26b777bf63a6a',1,'opcodes.h']]],
   ['op_5fdef',['OP_DEF',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebabcc7660b4b965fabb50f7f1183ed6855',1,'opcodes.h']]],
   ['op_5fdiv',['OP_DIV',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba719aeab2140dd5f575d1559b95bf74e1',1,'opcodes.h']]],
   ['op_5feq',['OP_EQ',['../d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba1634898deb6e4d1bcb15416034c641c5',1,'opcodes.h']]],

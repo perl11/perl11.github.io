@@ -2,7 +2,7 @@ var searchData=
 [
   ['a',['a',['../d6/d0b/struct_p_n___o_p.html#a31365f4ecf0785e9399dc827163eb14b',1,'PN_OP::a()'],['../dc/dc6/struct_p_n_source.html#a7ed2fe7c6c690c05c1e0c20ce539fdb6',1,'PNSource::a()']]],
   ['ac_5fversion_5fkhash_5fh',['AC_VERSION_KHASH_H',['../d2/deb/khash_8h.html#abf47cefd83221cd88374ea567f53eaa7',1,'khash.h']]],
-  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'compile.c']]],
+  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;compile.c'],['../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;vm.c']]],
   ['arity',['arity',['../d3/de9/struct_p_n_closure.html#aaf0a41ade3f57708c4cf4f02b051dda0',1,'PNClosure::arity()'],['../d6/d4e/struct_p_n_proto.html#ab8e6594f22921ba8c378e83d4fa59a20',1,'PNProto::arity()']]],
   ['as_5fstr',['AS_STR',['../dd/d07/potion_8h.html#a82cd0ad48173068d3b5e161fa66ce808',1,'potion.h']]],
   ['asm',['ASM',['../de/d21/asm_8h.html#a4e323bf268f0d615230e71486ccd1ff3',1,'asm.h']]],
@@ -24,6 +24,7 @@ var searchData=
   ['ast_5fcaret',['AST_CARET',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a68eb699898a19dde7c6fa24dd139b365',1,'potion.h']]],
   ['ast_5fcmp',['AST_CMP',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9ad0e4d40ea063f63efc859bd137309421',1,'potion.h']]],
   ['ast_5fcode',['AST_CODE',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a7551e78e6bdc5979122ef0ff98c880e6',1,'potion.h']]],
+  ['ast_5fdebug',['AST_DEBUG',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9af357d2350773922126444bc4be215820',1,'potion.h']]],
   ['ast_5fdiv',['AST_DIV',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9ab190a6a08dbfda3dc006051b9e2b9956',1,'potion.h']]],
   ['ast_5feq',['AST_EQ',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a30d5969eb20966f8c8f863bd155e883c',1,'potion.h']]],
   ['ast_5fexpr',['AST_EXPR',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a98fd0f03b38f6590eb28c3fe81a46631',1,'potion.h']]],

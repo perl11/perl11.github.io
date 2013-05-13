@@ -4,6 +4,5 @@ var searchData=
   ['value',['value',['../d3/d12/struct_p_n_decimal.html#a8710982b01eec96271fb2d016fa77df9',1,'PNDecimal']]],
   ['values',['values',['../d6/d4e/struct_p_n_proto.html#ad6de6cda73bc9af61d8ccc60c199347b',1,'PNProto']]],
   ['vmid',['vmid',['../de/d35/struct_p_n_b_header.html#a61d993fb9855110dc8a0906b4300e993',1,'PNBHeader']]],
-  ['vt',['vt',['../d7/de2/struct_p_n_vtable.html#a3583e53b97876baeec394f862fcef580',1,'PNVtable::vt()'],['../d3/d73/struct_p_n_table.html#a20b0001e30995e97ebfb653b873872be',1,'PNTable::vt()']]],
   ['vts',['vts',['../d2/dcd/struct_potion___state.html#a63676dbd989945d4a202dc4c3594c40b',1,'Potion_State']]]
 ];

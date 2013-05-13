@@ -9,6 +9,7 @@ var searchData=
   ['ast_5fcaret',['AST_CARET',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a68eb699898a19dde7c6fa24dd139b365',1,'potion.h']]],
   ['ast_5fcmp',['AST_CMP',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9ad0e4d40ea063f63efc859bd137309421',1,'potion.h']]],
   ['ast_5fcode',['AST_CODE',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a7551e78e6bdc5979122ef0ff98c880e6',1,'potion.h']]],
+  ['ast_5fdebug',['AST_DEBUG',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9af357d2350773922126444bc4be215820',1,'potion.h']]],
   ['ast_5fdiv',['AST_DIV',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9ab190a6a08dbfda3dc006051b9e2b9956',1,'potion.h']]],
   ['ast_5feq',['AST_EQ',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a30d5969eb20966f8c8f863bd155e883c',1,'potion.h']]],
   ['ast_5fexpr',['AST_EXPR',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a98fd0f03b38f6590eb28c3fe81a46631',1,'potion.h']]],

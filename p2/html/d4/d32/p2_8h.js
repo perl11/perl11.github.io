@@ -10,5 +10,6 @@ var p2_8h =
     [ "p2_parse", "d4/d32/p2_8h.html#a3f14771e279868eaad3809f6bb9cb523", null ],
     [ "p2_run", "d4/d32/p2_8h.html#a4a9a1fed98a03ae2140724e9a2ee9f06", null ],
     [ "p2_eval", "d4/d32/p2_8h.html#af7934e42352cde99640d849e4f78cac5", null ],
-    [ "p2_sig", "d4/d32/p2_8h.html#ac2efab766a3198e6a5b44b1187c8a907", null ]
+    [ "p2_sig", "d4/d32/p2_8h.html#ac2efab766a3198e6a5b44b1187c8a907", null ],
+    [ "p2_load", "d4/d32/p2_8h.html#a8df160306c10b449335c56c5a7555b2d", null ]
 ];

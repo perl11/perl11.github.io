@@ -1,9 +1,9 @@
 var load_8c =
 [
     [ "LOADER_PATH", "d9/dd4/load_8c.html#adee131353710dde6930d05b557c98b57", null ],
-    [ "potion_load_code", "d9/dd4/load_8c.html#a22259d7917592debefdabb341a702655", null ],
+    [ "potion_load_code", "d9/dd4/load_8c.html#af272617b14943ccfbce1795d07ea7e32", null ],
     [ "potion_initializer_name", "d9/dd4/load_8c.html#a9021436f76b9387a0b58a144fee136a7", null ],
-    [ "potion_load_dylib", "d9/dd4/load_8c.html#aa6ad23649b37123b1c8087af4f4575da", null ],
+    [ "potion_load_dylib", "d9/dd4/load_8c.html#a9f68858986e2c63f6f7f584e1a157035", null ],
     [ "find_extension", "d9/dd4/load_8c.html#ad94616e8ef85a01f7cf848af159d0446", null ],
     [ "potion_find_file", "d9/dd4/load_8c.html#a5746cfc4a0af4f85eb663fffe4c47940", null ],
     [ "potion_load", "d9/dd4/load_8c.html#af1bd5d812f698e40931f2b99c2ecf4d8", null ],
