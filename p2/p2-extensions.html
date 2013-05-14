@@ -43,7 +43,20 @@ my const str $s = "string";
 my const int $h = {foo =&gt; 1, bla =&gt; 0};
 my const int @a = (0..9);</code></pre>
 <h3>const declarations for data, @ISA, classes and functions/methods</h3>
+<p>class and method will be keywords.</p>
 <p>method calls should be inlinable and compile-time optimizable.</p>
+<p>a class is final, methods cannot be changed or added later, the @ISA is readonly.<br />
+todo: use oo =&gt; options;</p>
+<h3>function and method signatures</h3>
+<p>parameters can be declared differently to p5 and p6:</p>
+<p>declare constness with a &#8216;-&#8217; prefix<br />
+declare alias (by ref) with a &#8216;\&#8217; prefix<br />
+declare default values with &#8216;=&#8217; [done]</p>
+<p>- param is ro    =&gt; -param<br />
+- param is alias =&gt; \param</p>
+<pre><code>int method adder (int \$self, int -$a=1) { $self += $a; }
+# or untyped
+method adder (\$self, -$a=1) { $self += $a; }</code></pre>
 <h3>sized arrays</h3>
 <pre><code>my $a[10];
 my int $a[10];</code></pre>
@@ -94,6 +107,10 @@ don&#8217;t need parens.</p>
   if $s say "$s";
   else say "else";
 }</code></pre>
+<p>if statements are expressions, they can be used on the right-hand side.</p>
+<pre><code>$s = if ($a &lt; 1) { "less" } else { "more" }; # [done]
+# or simplier
+$s = if $a &lt; 1 "less" else "more";</code></pre>
 <p><code>for</code> lists should not need parens, the expressions are evaluated in list<br />
 context.</p>
 <pre><code>  for $_ qw(a b c) {
@@ -138,12 +155,17 @@ grammer, i.e. the left hand side of the grammar rules, but the body is<br />
 written in native perl5, with a mix of compile-time and run-time<br />
 expressions.</p>
 <p>e.g.</p>
-<pre><code>syntax-p5.g:
+<pre><code>syntax-p5.y:
     block = '{' s:statements* '}' { $$ = PN_AST(BLOCK, s); }</code></pre>
-<pre><code>macro ifdebug block 'ifdebug' {
+<pre><code>$DEBUG = $Config{ccflags} =~ /-DDEBUGGING/;
+macro ifdebug block "ifdebug" {
     if ($DEBUG) `block`;
 }
 { call() } ifdebug;</code></pre>
+<pre><code>macro ifdebug statements "ifdebug" {
+    if ($DEBUG) { `statements` };
+}
+call() ifdebug;</code></pre>
 <p>A macro can use valid parser expressions, i.e. strings<br />
 (i.e. terminals) or any valid parser rule (i.e. non-terminals) as argument,<br />
 here the rule <code>block</code>, and even <code>b:block</code> to assign the variable <code>b</code><br />
@@ -160,7 +182,9 @@ assertions <code>! &amp;</code> are not needed in marpa, because it embraces a b
 grammar.</p>
 <p>Most keywords should be defined as macros.  E.g. <code>for</code>, <code>while</code> and<br />
 <code>match</code> can be more easily defined as macros. Short circuiting and<br />
-partial evaluation should be possible in macros.</p>
+partial evaluation should be possible in macros.<br />
+Currently most keywords are defined as special compiler rules, and not in the parser,<br />
+to keep the parser clean and you are able to override the compiler.</p>
 <p>Normal functions or methods do not need to be defined in the language,<br />
 they are library calls. 90% of the ops previously defined in perl5 are<br />
 moved to the standard library. Most syntax extending declarations are<br />
@@ -170,12 +194,12 @@ Every statement in a macro, which is not evaluated, is not compiled in,<br />
 it is ignored. E.g. you can simplify all your <code>if $DEBUG</code> statements,<br />
 and extend the expressibility of your code.</p>
 <p><code>()</code> groups list in parse expressions, and does not match perl elements in lists.</p>
-<pre><code>macro dbgprint 'dbgprint' ( s:stmt )* {
+<pre><code>macro dbgprint "dbgprint" ( s:stmt )* {
   if ($DEBUG) {
     print @`s`;
   }
 }</code></pre>
-<pre><code>macro while 'while' - '(' e:expr ')' - '{' b:block '}' {
+<pre><code>macro while "while" - '(' e:expr ')' - '{' b:block '}' {
   my $label = gensym('WHILE');
   $label: if (`e`) {
     @`b`;
