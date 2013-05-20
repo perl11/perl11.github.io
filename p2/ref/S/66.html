@@ -1,78 +1,671 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>lib/readline/linenoise.h</title>
+<title>lib/readline/linenoise.c</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/182.html'>lib</a>/<a href='../files/183.html'>readline</a>/linenoise.h</h2>
-<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/185.html'>lib</a>/<a href='../files/186.html'>readline</a>/linenoise.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L115'>[^]</a><a href='#L610'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
-<h2 class='header'><a href='../J/34.html' title='Multiple included from 2 places.'>INCLUDED FROM</a></h2>
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L115' title='Defined at 115.'>isUnsupportedTerm</a></li>
+<li><a href='#L125' title='Defined at 125.'>freeHistory</a></li>
+<li><a href='#L135' title='Defined at 135.'>enableRawMode</a></li>
+<li><a href='#L170' title='Defined at 170.'>disableRawMode</a></li>
+<li><a href='#L177' title='Defined at 177.'>linenoiseAtExit</a></li>
+<li><a href='#L182' title='Defined at 182.'>getColumns</a></li>
+<li><a href='#L189' title='Defined at 189.'>refreshLine</a></li>
+<li><a href='#L216' title='Defined at 216.'>beep</a></li>
+<li><a href='#L221' title='Defined at 221.'>freeCompletions</a></li>
+<li><a href='#L229' title='Defined at 229.'>completeLine</a></li>
+<li><a href='#L284' title='Defined at 284.'>linenoiseClearScreen</a></li>
+<li><a href='#L290' title='Defined at 290.'>linenoisePrompt</a></li>
+<li><a href='#L490' title='Defined at 490.'>linenoiseRaw</a></li>
+<li><a href='#L514' title='Defined at 514.'>linenoise</a></li>
+<li><a href='#L538' title='Defined at 538.'>linenoiseSetCompletionCallback</a></li>
+<li><a href='#L542' title='Defined at 542.'>linenoiseAddCompletion</a></li>
+<li><a href='#L551' title='Defined at 551.'>linenoiseHistoryAdd</a></li>
+<li><a href='#L572' title='Defined at 572.'>linenoiseHistorySetMaxLen</a></li>
+<li><a href='#L594' title='Defined at 594.'>linenoiseHistorySave</a></li>
+<li><a href='#L610' title='Defined at 610.'>linenoiseHistoryLoad</a></li>
+</ol>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>/* linenoise.h -- guerrilla line editing library against the idea that a</em>
+<a id='L1' name='L1'></a><em class='comment'>/* linenoise.c -- guerrilla line editing library against the idea that a</em>
 <a id='L2' name='L2'></a><em class='comment'> * line editing lib needs to be 20,000 lines of C code.</em>
 <a id='L3' name='L3'></a><em class='comment'> *</em>
-<a id='L4' name='L4'></a><em class='comment'> * See linenoise.c for more information.</em>
-<a id='L5' name='L5'></a><em class='comment'> *</em>
-<a id='L6' name='L6'></a><em class='comment'> * ------------------------------------------------------------------------</em>
+<a id='L4' name='L4'></a><em class='comment'> * You can find the latest source code at:</em>
+<a id='L5' name='L5'></a><em class='comment'> * </em>
+<a id='L6' name='L6'></a><em class='comment'> *   http://github.com/antirez/linenoise</em>
 <a id='L7' name='L7'></a><em class='comment'> *</em>
-<a id='L8' name='L8'></a><em class='comment'> * Copyright (c) 2010, Salvatore Sanfilippo &lt;antirez at gmail dot com&gt;</em>
-<a id='L9' name='L9'></a><em class='comment'> * Copyright (c) 2010, Pieter Noordhuis &lt;pcnoordhuis at gmail dot com&gt;</em>
+<a id='L8' name='L8'></a><em class='comment'> * Does a number of crazy assumptions that happen to be true in 99.9999% of</em>
+<a id='L9' name='L9'></a><em class='comment'> * the 2010 UNIX computers around.</em>
 <a id='L10' name='L10'></a><em class='comment'> *</em>
-<a id='L11' name='L11'></a><em class='comment'> * All rights reserved.</em>
-<a id='L12' name='L12'></a><em class='comment'> * </em>
-<a id='L13' name='L13'></a><em class='comment'> * Redistribution and use in source and binary forms, with or without</em>
-<a id='L14' name='L14'></a><em class='comment'> * modification, are permitted provided that the following conditions are</em>
-<a id='L15' name='L15'></a><em class='comment'> * met:</em>
-<a id='L16' name='L16'></a><em class='comment'> * </em>
-<a id='L17' name='L17'></a><em class='comment'> *  *  Redistributions of source code must retain the above copyright</em>
-<a id='L18' name='L18'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer.</em>
-<a id='L19' name='L19'></a><em class='comment'> *</em>
-<a id='L20' name='L20'></a><em class='comment'> *  *  Redistributions in binary form must reproduce the above copyright</em>
-<a id='L21' name='L21'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer in the</em>
-<a id='L22' name='L22'></a><em class='comment'> *     documentation and/or other materials provided with the distribution.</em>
-<a id='L23' name='L23'></a><em class='comment'> * </em>
-<a id='L24' name='L24'></a><em class='comment'> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS</em>
-<a id='L25' name='L25'></a><em class='comment'> * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT</em>
-<a id='L26' name='L26'></a><em class='comment'> * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR</em>
-<a id='L27' name='L27'></a><em class='comment'> * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT</em>
-<a id='L28' name='L28'></a><em class='comment'> * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,</em>
-<a id='L29' name='L29'></a><em class='comment'> * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT</em>
-<a id='L30' name='L30'></a><em class='comment'> * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,</em>
-<a id='L31' name='L31'></a><em class='comment'> * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY</em>
-<a id='L32' name='L32'></a><em class='comment'> * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</em>
-<a id='L33' name='L33'></a><em class='comment'> * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE</em>
-<a id='L34' name='L34'></a><em class='comment'> * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</em>
-<a id='L35' name='L35'></a><em class='comment'> */</em>
-<a id='L36' name='L36'></a>
-<a id='L37' name='L37'></a><em class='sharp'>#ifndef</em> <a href='../S/66.html#L38' title='Defined at 38 in lib/readline/linenoise.h.'>__LINENOISE_H</a>
-<a id='L38' name='L38'></a><em class='sharp'>#define</em> <a href='../S/66.html#L37' title='Referred from 37 in lib/readline/linenoise.h.'>__LINENOISE_H</a>
-<a id='L39' name='L39'></a>
-<a id='L40' name='L40'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <a href='../R/564.html' title='Multiple referred from 5 places.'>linenoiseCompletions</a> <em class='brace'>{</em>
-<a id='L41' name='L41'></a>  size_t len;
-<a id='L42' name='L42'></a>  <strong class='reserved'>char</strong> **cvec;
-<a id='L43' name='L43'></a><em class='brace'>}</em> <a href='../R/564.html' title='Multiple referred from 5 places.'>linenoiseCompletions</a>;
-<a id='L44' name='L44'></a>
-<a id='L45' name='L45'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>void</strong>(linenoiseCompletionCallback)(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *, <a href='../D/629.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *);
-<a id='L46' name='L46'></a><strong class='reserved'>void</strong> <a href='../S/65.html#L538' title='Defined at 538 in lib/readline/linenoise.c.'>linenoiseSetCompletionCallback</a>(linenoiseCompletionCallback *);
-<a id='L47' name='L47'></a><strong class='reserved'>void</strong> <a href='../S/65.html#L542' title='Defined at 542 in lib/readline/linenoise.c.'>linenoiseAddCompletion</a>(<a href='../D/629.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *, <strong class='reserved'>char</strong> *);
-<a id='L48' name='L48'></a>
-<a id='L49' name='L49'></a><strong class='reserved'>char</strong> *<a href='../S/65.html#L514' title='Defined at 514 in lib/readline/linenoise.c.'>linenoise</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt);
-<a id='L50' name='L50'></a><strong class='reserved'>int</strong> <a href='../S/65.html#L551' title='Defined at 551 in lib/readline/linenoise.c.'>linenoiseHistoryAdd</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *line);
-<a id='L51' name='L51'></a><strong class='reserved'>int</strong> <a href='../S/65.html#L572' title='Defined at 572 in lib/readline/linenoise.c.'>linenoiseHistorySetMaxLen</a>(<strong class='reserved'>int</strong> len);
-<a id='L52' name='L52'></a><strong class='reserved'>int</strong> <a href='../S/65.html#L594' title='Defined at 594 in lib/readline/linenoise.c.'>linenoiseHistorySave</a>(<strong class='reserved'>char</strong> *filename);
-<a id='L53' name='L53'></a><strong class='reserved'>int</strong> <a href='../S/65.html#L610' title='Defined at 610 in lib/readline/linenoise.c.'>linenoiseHistoryLoad</a>(<strong class='reserved'>char</strong> *filename);
-<a id='L54' name='L54'></a><strong class='reserved'>void</strong> <a href='../S/65.html#L284' title='Defined at 284 in lib/readline/linenoise.c.'>linenoiseClearScreen</a>(<strong class='reserved'>void</strong>);
-<a id='L55' name='L55'></a>
-<a id='L56' name='L56'></a><em class='sharp'>#endif</em> <em class='comment'>/* __LINENOISE_H */</em>
+<a id='L11' name='L11'></a><em class='comment'> * ------------------------------------------------------------------------</em>
+<a id='L12' name='L12'></a><em class='comment'> *</em>
+<a id='L13' name='L13'></a><em class='comment'> * Copyright (c) 2010, Salvatore Sanfilippo &lt;antirez at gmail dot com&gt;</em>
+<a id='L14' name='L14'></a><em class='comment'> * Copyright (c) 2010, Pieter Noordhuis &lt;pcnoordhuis at gmail dot com&gt;</em>
+<a id='L15' name='L15'></a><em class='comment'> *</em>
+<a id='L16' name='L16'></a><em class='comment'> * All rights reserved.</em>
+<a id='L17' name='L17'></a><em class='comment'> * </em>
+<a id='L18' name='L18'></a><em class='comment'> * Redistribution and use in source and binary forms, with or without</em>
+<a id='L19' name='L19'></a><em class='comment'> * modification, are permitted provided that the following conditions are</em>
+<a id='L20' name='L20'></a><em class='comment'> * met:</em>
+<a id='L21' name='L21'></a><em class='comment'> * </em>
+<a id='L22' name='L22'></a><em class='comment'> *  *  Redistributions of source code must retain the above copyright</em>
+<a id='L23' name='L23'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer.</em>
+<a id='L24' name='L24'></a><em class='comment'> *</em>
+<a id='L25' name='L25'></a><em class='comment'> *  *  Redistributions in binary form must reproduce the above copyright</em>
+<a id='L26' name='L26'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer in the</em>
+<a id='L27' name='L27'></a><em class='comment'> *     documentation and/or other materials provided with the distribution.</em>
+<a id='L28' name='L28'></a><em class='comment'> * </em>
+<a id='L29' name='L29'></a><em class='comment'> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS</em>
+<a id='L30' name='L30'></a><em class='comment'> * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT</em>
+<a id='L31' name='L31'></a><em class='comment'> * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR</em>
+<a id='L32' name='L32'></a><em class='comment'> * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT</em>
+<a id='L33' name='L33'></a><em class='comment'> * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,</em>
+<a id='L34' name='L34'></a><em class='comment'> * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT</em>
+<a id='L35' name='L35'></a><em class='comment'> * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,</em>
+<a id='L36' name='L36'></a><em class='comment'> * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY</em>
+<a id='L37' name='L37'></a><em class='comment'> * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</em>
+<a id='L38' name='L38'></a><em class='comment'> * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE</em>
+<a id='L39' name='L39'></a><em class='comment'> * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</em>
+<a id='L40' name='L40'></a><em class='comment'> * </em>
+<a id='L41' name='L41'></a><em class='comment'> * ------------------------------------------------------------------------</em>
+<a id='L42' name='L42'></a><em class='comment'> *</em>
+<a id='L43' name='L43'></a><em class='comment'> * References:</em>
+<a id='L44' name='L44'></a><em class='comment'> * - http://invisible-island.net/xterm/ctlseqs/ctlseqs.html</em>
+<a id='L45' name='L45'></a><em class='comment'> * - http://www.3waylabs.com/nw/WWW/products/wizcon/vt220.html</em>
+<a id='L46' name='L46'></a><em class='comment'> *</em>
+<a id='L47' name='L47'></a><em class='comment'> * Todo list:</em>
+<a id='L48' name='L48'></a><em class='comment'> * - Switch to gets() if $TERM is something we can't support.</em>
+<a id='L49' name='L49'></a><em class='comment'> * - Filter bogus Ctrl+&lt;char&gt; combinations.</em>
+<a id='L50' name='L50'></a><em class='comment'> * - Win32 support</em>
+<a id='L51' name='L51'></a><em class='comment'> *</em>
+<a id='L52' name='L52'></a><em class='comment'> * Bloat:</em>
+<a id='L53' name='L53'></a><em class='comment'> * - Completion?</em>
+<a id='L54' name='L54'></a><em class='comment'> * - History search like Ctrl+r in readline?</em>
+<a id='L55' name='L55'></a><em class='comment'> *</em>
+<a id='L56' name='L56'></a><em class='comment'> * List of escape sequences used by this program, we do everything just</em>
+<a id='L57' name='L57'></a><em class='comment'> * with three sequences. In order to be so cheap we may have some</em>
+<a id='L58' name='L58'></a><em class='comment'> * flickering effect with some slow terminal, but the lesser sequences</em>
+<a id='L59' name='L59'></a><em class='comment'> * the more compatible.</em>
+<a id='L60' name='L60'></a><em class='comment'> *</em>
+<a id='L61' name='L61'></a><em class='comment'> * CHA (Cursor Horizontal Absolute)</em>
+<a id='L62' name='L62'></a><em class='comment'> *    Sequence: ESC [ n G</em>
+<a id='L63' name='L63'></a><em class='comment'> *    Effect: moves cursor to column n</em>
+<a id='L64' name='L64'></a><em class='comment'> *</em>
+<a id='L65' name='L65'></a><em class='comment'> * EL (Erase Line)</em>
+<a id='L66' name='L66'></a><em class='comment'> *    Sequence: ESC [ n K</em>
+<a id='L67' name='L67'></a><em class='comment'> *    Effect: if n is 0 or missing, clear from cursor to end of line</em>
+<a id='L68' name='L68'></a><em class='comment'> *    Effect: if n is 1, clear from beginning of line to cursor</em>
+<a id='L69' name='L69'></a><em class='comment'> *    Effect: if n is 2, clear entire line</em>
+<a id='L70' name='L70'></a><em class='comment'> *</em>
+<a id='L71' name='L71'></a><em class='comment'> * CUF (CUrsor Forward)</em>
+<a id='L72' name='L72'></a><em class='comment'> *    Sequence: ESC [ n C</em>
+<a id='L73' name='L73'></a><em class='comment'> *    Effect: moves cursor forward of n chars</em>
+<a id='L74' name='L74'></a><em class='comment'> *</em>
+<a id='L75' name='L75'></a><em class='comment'> * The following are used to clear the screen: ESC [ H ESC [ 2 J</em>
+<a id='L76' name='L76'></a><em class='comment'> * This is actually composed of two sequences:</em>
+<a id='L77' name='L77'></a><em class='comment'> *</em>
+<a id='L78' name='L78'></a><em class='comment'> * cursorhome</em>
+<a id='L79' name='L79'></a><em class='comment'> *    Sequence: ESC [ H</em>
+<a id='L80' name='L80'></a><em class='comment'> *    Effect: moves the cursor to upper left corner</em>
+<a id='L81' name='L81'></a><em class='comment'> *</em>
+<a id='L82' name='L82'></a><em class='comment'> * ED2 (Clear entire screen)</em>
+<a id='L83' name='L83'></a><em class='comment'> *    Sequence: ESC [ 2 J</em>
+<a id='L84' name='L84'></a><em class='comment'> *    Effect: clear the whole screen</em>
+<a id='L85' name='L85'></a><em class='comment'> * </em>
+<a id='L86' name='L86'></a><em class='comment'> */</em>
+<a id='L87' name='L87'></a>
+<a id='L88' name='L88'></a><em class='sharp'>#include</em> &lt;termios.h&gt;
+<a id='L89' name='L89'></a><em class='sharp'>#include</em> &lt;unistd.h&gt;
+<a id='L90' name='L90'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L91' name='L91'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L92' name='L92'></a><em class='sharp'>#include</em> &lt;errno.h&gt;
+<a id='L93' name='L93'></a><em class='sharp'>#include</em> &lt;string.h&gt;
+<a id='L94' name='L94'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L95' name='L95'></a><em class='sharp'>#include</em> &lt;sys/types.h&gt;
+<a id='L96' name='L96'></a><em class='sharp'>#include</em> &lt;sys/ioctl.h&gt;
+<a id='L97' name='L97'></a><em class='sharp'>#include</em> &lt;unistd.h&gt;
+<a id='L98' name='L98'></a><em class='sharp'>#include</em> "<a href='67.html'>linenoise.h</a>"
+<a id='L99' name='L99'></a>
+<a id='L100' name='L100'></a><em class='sharp'>#define</em> <a href='../S/66.html#L108' title='Referred from 108 in lib/readline/linenoise.c.'>LINENOISE_DEFAULT_HISTORY_MAX_LEN</a> 100
+<a id='L101' name='L101'></a><em class='sharp'>#define</em> <a href='../R/145.html' title='Multiple referred from 5 places.'>LINENOISE_MAX_LINE</a> 4096
+<a id='L102' name='L102'></a><strong class='reserved'>static</strong> <strong class='reserved'>char</strong> *unsupported_term[] = <em class='brace'>{</em>"dumb","cons25",NULL<em class='brace'>}</em>;
+<a id='L103' name='L103'></a><strong class='reserved'>static</strong> linenoiseCompletionCallback *completionCallback = NULL;
+<a id='L104' name='L104'></a>
+<a id='L105' name='L105'></a><strong class='reserved'>static</strong> <strong class='reserved'>struct</strong> termios orig_termios; <em class='comment'>/* in order to restore at exit */</em>
+<a id='L106' name='L106'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> rawmode = 0; <em class='comment'>/* for atexit() function to check if restore is needed*/</em>
+<a id='L107' name='L107'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> atexit_registered = 0; <em class='comment'>/* register atexit just 1 time */</em>
+<a id='L108' name='L108'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> history_max_len = <a href='../S/66.html#L100' title='Defined at 100 in lib/readline/linenoise.c.'>LINENOISE_DEFAULT_HISTORY_MAX_LEN</a>;
+<a id='L109' name='L109'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> history_len = 0;
+<a id='L110' name='L110'></a><strong class='reserved'>char</strong> **history = NULL;
+<a id='L111' name='L111'></a>
+<a id='L112' name='L112'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../S/66.html#L177' title='Defined at 177 in lib/readline/linenoise.c.'>linenoiseAtExit</a>(<strong class='reserved'>void</strong>);
+<a id='L113' name='L113'></a><strong class='reserved'>int</strong> <a href='../S/66.html#L551' title='Defined at 551 in lib/readline/linenoise.c.'>linenoiseHistoryAdd</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *line);
+<a id='L114' name='L114'></a>
+<a id='L115' name='L115'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L518' title='Referred from 518 in lib/readline/linenoise.c.'>isUnsupportedTerm</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L116' name='L116'></a>    <strong class='reserved'>char</strong> *term = getenv("TERM");
+<a id='L117' name='L117'></a>    <strong class='reserved'>int</strong> j;
+<a id='L118' name='L118'></a>
+<a id='L119' name='L119'></a>    <strong class='reserved'>if</strong> (term == NULL) <strong class='reserved'>return</strong> 0;
+<a id='L120' name='L120'></a>    <strong class='reserved'>for</strong> (j = 0; unsupported_term[j]; j++)
+<a id='L121' name='L121'></a>        <strong class='reserved'>if</strong> (!strcasecmp(term,unsupported_term[j])) <strong class='reserved'>return</strong> 1;
+<a id='L122' name='L122'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L123' name='L123'></a><em class='brace'>}</em>
+<a id='L124' name='L124'></a>
+<a id='L125' name='L125'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../S/66.html#L179' title='Referred from 179 in lib/readline/linenoise.c.'>freeHistory</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L126' name='L126'></a>    <strong class='reserved'>if</strong> (history) <em class='brace'>{</em>
+<a id='L127' name='L127'></a>        <strong class='reserved'>int</strong> j;
+<a id='L128' name='L128'></a>
+<a id='L129' name='L129'></a>        <strong class='reserved'>for</strong> (j = 0; j &lt; history_len; j++)
+<a id='L130' name='L130'></a>            free(history[j]);
+<a id='L131' name='L131'></a>        free(history);
+<a id='L132' name='L132'></a>    <em class='brace'>}</em>
+<a id='L133' name='L133'></a><em class='brace'>}</em>
+<a id='L134' name='L134'></a>
+<a id='L135' name='L135'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L506' title='Referred from 506 in lib/readline/linenoise.c.'>enableRawMode</a>(<strong class='reserved'>int</strong> fd) <em class='brace'>{</em>
+<a id='L136' name='L136'></a>    <strong class='reserved'>struct</strong> termios raw;
+<a id='L137' name='L137'></a>
+<a id='L138' name='L138'></a>    <strong class='reserved'>if</strong> (!isatty(STDIN_FILENO)) <strong class='reserved'>goto</strong> fatal;
+<a id='L139' name='L139'></a>    <strong class='reserved'>if</strong> (!atexit_registered) <em class='brace'>{</em>
+<a id='L140' name='L140'></a>        atexit(<a href='../S/66.html#L177' title='Defined at 177 in lib/readline/linenoise.c.'>linenoiseAtExit</a>);
+<a id='L141' name='L141'></a>        atexit_registered = 1;
+<a id='L142' name='L142'></a>    <em class='brace'>}</em>
+<a id='L143' name='L143'></a>    <strong class='reserved'>if</strong> (tcgetattr(fd,&amp;orig_termios) == -1) <strong class='reserved'>goto</strong> fatal;
+<a id='L144' name='L144'></a>
+<a id='L145' name='L145'></a>    raw = orig_termios;  <em class='comment'>/* modify the original mode */</em>
+<a id='L146' name='L146'></a>    <em class='comment'>/* input modes: no break, no CR to NL, no parity check, no strip char,</em>
+<a id='L147' name='L147'></a><em class='comment'>     * no start/stop output control. */</em>
+<a id='L148' name='L148'></a>    raw.c_iflag &amp;= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+<a id='L149' name='L149'></a>    <em class='comment'>/* output modes - disable post processing */</em>
+<a id='L150' name='L150'></a>    raw.c_oflag &amp;= ~(OPOST);
+<a id='L151' name='L151'></a>    <em class='comment'>/* control modes - set 8 bit chars */</em>
+<a id='L152' name='L152'></a>    raw.c_cflag |= (CS8);
+<a id='L153' name='L153'></a>    <em class='comment'>/* local modes - choing off, canonical off, no extended functions,</em>
+<a id='L154' name='L154'></a><em class='comment'>     * no signal chars (^Z,^C) */</em>
+<a id='L155' name='L155'></a>    raw.c_lflag &amp;= ~(ECHO | ICANON | IEXTEN | ISIG);
+<a id='L156' name='L156'></a>    <em class='comment'>/* control chars - set return condition: min number of bytes and timer.</em>
+<a id='L157' name='L157'></a><em class='comment'>     * We want read to return every single byte, without timeout. */</em>
+<a id='L158' name='L158'></a>    raw.c_cc[VMIN] = 1; raw.c_cc[VTIME] = 0; <em class='comment'>/* 1 byte, no timer */</em>
+<a id='L159' name='L159'></a>
+<a id='L160' name='L160'></a>    <em class='comment'>/* put terminal in raw mode after flushing */</em>
+<a id='L161' name='L161'></a>    <strong class='reserved'>if</strong> (tcsetattr(fd,TCSAFLUSH,&amp;raw) &lt; 0) <strong class='reserved'>goto</strong> fatal;
+<a id='L162' name='L162'></a>    rawmode = 1;
+<a id='L163' name='L163'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L164' name='L164'></a>
+<a id='L165' name='L165'></a>fatal:
+<a id='L166' name='L166'></a>    errno = ENOTTY;
+<a id='L167' name='L167'></a>    <strong class='reserved'>return</strong> -1;
+<a id='L168' name='L168'></a><em class='brace'>}</em>
+<a id='L169' name='L169'></a>
+<a id='L170' name='L170'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/524.html' title='Multiple referred from 2 places.'>disableRawMode</a>(<strong class='reserved'>int</strong> fd) <em class='brace'>{</em>
+<a id='L171' name='L171'></a>    <em class='comment'>/* Don't even check the return value as it's too late. */</em>
+<a id='L172' name='L172'></a>    <strong class='reserved'>if</strong> (rawmode &amp;&amp; tcsetattr(fd,TCSAFLUSH,&amp;orig_termios) != -1)
+<a id='L173' name='L173'></a>        rawmode = 0;
+<a id='L174' name='L174'></a><em class='brace'>}</em>
+<a id='L175' name='L175'></a>
+<a id='L176' name='L176'></a><em class='comment'>/* At exit we'll try to fix the terminal to the initial conditions. */</em>
+<a id='L177' name='L177'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/567.html' title='Multiple referred from 2 places.'>linenoiseAtExit</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L178' name='L178'></a>    <a href='../S/66.html#L170' title='Defined at 170 in lib/readline/linenoise.c.'>disableRawMode</a>(STDIN_FILENO);
+<a id='L179' name='L179'></a>    <a href='../S/66.html#L125' title='Defined at 125 in lib/readline/linenoise.c.'>freeHistory</a>();
+<a id='L180' name='L180'></a><em class='brace'>}</em>
+<a id='L181' name='L181'></a>
+<a id='L182' name='L182'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L294' title='Referred from 294 in lib/readline/linenoise.c.'>getColumns</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L183' name='L183'></a>    <strong class='reserved'>struct</strong> winsize ws;
+<a id='L184' name='L184'></a>
+<a id='L185' name='L185'></a>    <strong class='reserved'>if</strong> (ioctl(1, TIOCGWINSZ, &amp;ws) == -1) <strong class='reserved'>return</strong> 80;
+<a id='L186' name='L186'></a>    <strong class='reserved'>return</strong> ws.ws_col;
+<a id='L187' name='L187'></a><em class='brace'>}</em>
+<a id='L188' name='L188'></a>
+<a id='L189' name='L189'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/933.html' title='Multiple referred from 18 places.'>refreshLine</a>(<strong class='reserved'>int</strong> fd, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt, <strong class='reserved'>char</strong> *buf, size_t len, size_t pos, size_t cols) <em class='brace'>{</em>
+<a id='L190' name='L190'></a>    <strong class='reserved'>char</strong> seq[64];
+<a id='L191' name='L191'></a>    size_t plen = strlen(prompt);
+<a id='L192' name='L192'></a>    
+<a id='L193' name='L193'></a>    <strong class='reserved'>while</strong>((plen+pos) &gt;= cols) <em class='brace'>{</em>
+<a id='L194' name='L194'></a>        buf++;
+<a id='L195' name='L195'></a>        len--;
+<a id='L196' name='L196'></a>        pos--;
+<a id='L197' name='L197'></a>    <em class='brace'>}</em>
+<a id='L198' name='L198'></a>    <strong class='reserved'>while</strong> (plen+len &gt; cols) <em class='brace'>{</em>
+<a id='L199' name='L199'></a>        len--;
+<a id='L200' name='L200'></a>    <em class='brace'>}</em>
+<a id='L201' name='L201'></a>
+<a id='L202' name='L202'></a>    <em class='comment'>/* Cursor to left edge */</em>
+<a id='L203' name='L203'></a>    snprintf(seq,64,"\x1b[0G");
+<a id='L204' name='L204'></a>    <strong class='reserved'>if</strong> (write(fd,seq,strlen(seq)) == -1) <strong class='reserved'>return</strong>;
+<a id='L205' name='L205'></a>    <em class='comment'>/* Write the prompt and the current buffer content */</em>
+<a id='L206' name='L206'></a>    <strong class='reserved'>if</strong> (write(fd,prompt,strlen(prompt)) == -1) <strong class='reserved'>return</strong>;
+<a id='L207' name='L207'></a>    <strong class='reserved'>if</strong> (write(fd,buf,len) == -1) <strong class='reserved'>return</strong>;
+<a id='L208' name='L208'></a>    <em class='comment'>/* Erase to right */</em>
+<a id='L209' name='L209'></a>    snprintf(seq,64,"\x1b[0K");
+<a id='L210' name='L210'></a>    <strong class='reserved'>if</strong> (write(fd,seq,strlen(seq)) == -1) <strong class='reserved'>return</strong>;
+<a id='L211' name='L211'></a>    <em class='comment'>/* Move cursor to original position. */</em>
+<a id='L212' name='L212'></a>    snprintf(seq,64,"\x1b[0G\x1b[%dC", (<strong class='reserved'>int</strong>)(pos+plen));
+<a id='L213' name='L213'></a>    <strong class='reserved'>if</strong> (write(fd,seq,strlen(seq)) == -1) <strong class='reserved'>return</strong>;
+<a id='L214' name='L214'></a><em class='brace'>}</em>
+<a id='L215' name='L215'></a>
+<a id='L216' name='L216'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/513.html' title='Multiple referred from 2 places.'>beep</a>() <em class='brace'>{</em>
+<a id='L217' name='L217'></a>    fprintf(stderr, "\x7");
+<a id='L218' name='L218'></a>    fflush(stderr);
+<a id='L219' name='L219'></a><em class='brace'>}</em>
+<a id='L220' name='L220'></a>
+<a id='L221' name='L221'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/532.html' title='Multiple referred from 2 places.'>freeCompletions</a>(<a href='../D/635.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *lc) <em class='brace'>{</em>
+<a id='L222' name='L222'></a>    size_t i;
+<a id='L223' name='L223'></a>    <strong class='reserved'>for</strong> (i = 0; i &lt; lc-&gt;len; i++)
+<a id='L224' name='L224'></a>        free(lc-&gt;cvec[i]);
+<a id='L225' name='L225'></a>    <strong class='reserved'>if</strong> (lc-&gt;cvec != NULL)
+<a id='L226' name='L226'></a>        free(lc-&gt;cvec);
+<a id='L227' name='L227'></a><em class='brace'>}</em>
+<a id='L228' name='L228'></a>
+<a id='L229' name='L229'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L319' title='Referred from 319 in lib/readline/linenoise.c.'>completeLine</a>(<strong class='reserved'>int</strong> fd, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt, <strong class='reserved'>char</strong> *buf, size_t buflen, size_t *len, size_t *pos, size_t cols) <em class='brace'>{</em>
+<a id='L230' name='L230'></a>    <a href='../D/635.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> lc = <em class='brace'>{</em> 0, NULL <em class='brace'>}</em>;
+<a id='L231' name='L231'></a>    <strong class='reserved'>int</strong> nread, nwritten;
+<a id='L232' name='L232'></a>    <strong class='reserved'>char</strong> c = 0;
+<a id='L233' name='L233'></a>
+<a id='L234' name='L234'></a>    completionCallback(buf,&amp;lc);
+<a id='L235' name='L235'></a>    <strong class='reserved'>if</strong> (lc.len == 0) <em class='brace'>{</em>
+<a id='L236' name='L236'></a>        <a href='../S/66.html#L216' title='Defined at 216 in lib/readline/linenoise.c.'>beep</a>();
+<a id='L237' name='L237'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L238' name='L238'></a>        size_t stop = 0, i = 0;
+<a id='L239' name='L239'></a>        size_t clen;
+<a id='L240' name='L240'></a>
+<a id='L241' name='L241'></a>        <strong class='reserved'>while</strong>(!stop) <em class='brace'>{</em>
+<a id='L242' name='L242'></a>            <em class='comment'>/* Show completion or original buffer */</em>
+<a id='L243' name='L243'></a>            <strong class='reserved'>if</strong> (i &lt; lc.len) <em class='brace'>{</em>
+<a id='L244' name='L244'></a>                clen = strlen(lc.cvec[i]);
+<a id='L245' name='L245'></a>                <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,lc.cvec[i],clen,clen,cols);
+<a id='L246' name='L246'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L247' name='L247'></a>                <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,*len,*pos,cols);
+<a id='L248' name='L248'></a>            <em class='brace'>}</em>
+<a id='L249' name='L249'></a>
+<a id='L250' name='L250'></a>            nread = read(fd,&amp;c,1);
+<a id='L251' name='L251'></a>            <strong class='reserved'>if</strong> (nread &lt;= 0) <em class='brace'>{</em>
+<a id='L252' name='L252'></a>                <a href='../S/66.html#L221' title='Defined at 221 in lib/readline/linenoise.c.'>freeCompletions</a>(&amp;lc);
+<a id='L253' name='L253'></a>                <strong class='reserved'>return</strong> -1;
+<a id='L254' name='L254'></a>            <em class='brace'>}</em>
+<a id='L255' name='L255'></a>
+<a id='L256' name='L256'></a>            <strong class='reserved'>switch</strong>(c) <em class='brace'>{</em>
+<a id='L257' name='L257'></a>                <strong class='reserved'>case</strong> 9: <em class='comment'>/* tab */</em>
+<a id='L258' name='L258'></a>                    i = (i+1) % (lc.len+1);
+<a id='L259' name='L259'></a>                    <strong class='reserved'>if</strong> (i == lc.len) <a href='../S/66.html#L216' title='Defined at 216 in lib/readline/linenoise.c.'>beep</a>();
+<a id='L260' name='L260'></a>                    <strong class='reserved'>break</strong>;
+<a id='L261' name='L261'></a>                <strong class='reserved'>case</strong> 27: <em class='comment'>/* escape */</em>
+<a id='L262' name='L262'></a>                    <em class='comment'>/* Re-show original buffer */</em>
+<a id='L263' name='L263'></a>                    <strong class='reserved'>if</strong> (i &lt; lc.len) <em class='brace'>{</em>
+<a id='L264' name='L264'></a>                        <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,*len,*pos,cols);
+<a id='L265' name='L265'></a>                    <em class='brace'>}</em>
+<a id='L266' name='L266'></a>                    stop = 1;
+<a id='L267' name='L267'></a>                    <strong class='reserved'>break</strong>;
+<a id='L268' name='L268'></a>                <strong class='reserved'>default</strong>:
+<a id='L269' name='L269'></a>                    <em class='comment'>/* Update buffer and return */</em>
+<a id='L270' name='L270'></a>                    <strong class='reserved'>if</strong> (i &lt; lc.len) <em class='brace'>{</em>
+<a id='L271' name='L271'></a>                        nwritten = snprintf(buf,buflen,"%s",lc.cvec[i]);
+<a id='L272' name='L272'></a>                        *len = *pos = nwritten;
+<a id='L273' name='L273'></a>                    <em class='brace'>}</em>
+<a id='L274' name='L274'></a>                    stop = 1;
+<a id='L275' name='L275'></a>                    <strong class='reserved'>break</strong>;
+<a id='L276' name='L276'></a>            <em class='brace'>}</em>
+<a id='L277' name='L277'></a>        <em class='brace'>}</em>
+<a id='L278' name='L278'></a>    <em class='brace'>}</em>
+<a id='L279' name='L279'></a>
+<a id='L280' name='L280'></a>    <a href='../S/66.html#L221' title='Defined at 221 in lib/readline/linenoise.c.'>freeCompletions</a>(&amp;lc);
+<a id='L281' name='L281'></a>    <strong class='reserved'>return</strong> c; <em class='comment'>/* Return last read character */</em>
+<a id='L282' name='L282'></a><em class='brace'>}</em>
+<a id='L283' name='L283'></a>
+<a id='L284' name='L284'></a><strong class='reserved'>void</strong> <a href='../R/568.html' title='Multiple referred from 2 places.'>linenoiseClearScreen</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L285' name='L285'></a>    <strong class='reserved'>if</strong> (write(STDIN_FILENO,"\x1b[H\x1b[2J",7) &lt;= 0) <em class='brace'>{</em>
+<a id='L286' name='L286'></a>        <em class='comment'>/* nothing to do, just to avoid warning. */</em>
+<a id='L287' name='L287'></a>    <em class='brace'>}</em>
+<a id='L288' name='L288'></a><em class='brace'>}</em>
+<a id='L289' name='L289'></a>
+<a id='L290' name='L290'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L507' title='Referred from 507 in lib/readline/linenoise.c.'>linenoisePrompt</a>(<strong class='reserved'>int</strong> fd, <strong class='reserved'>char</strong> *buf, size_t buflen, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt) <em class='brace'>{</em>
+<a id='L291' name='L291'></a>    size_t plen = strlen(prompt);
+<a id='L292' name='L292'></a>    size_t pos = 0;
+<a id='L293' name='L293'></a>    size_t len = 0;
+<a id='L294' name='L294'></a>    size_t cols = <a href='../S/66.html#L182' title='Defined at 182 in lib/readline/linenoise.c.'>getColumns</a>();
+<a id='L295' name='L295'></a>    <strong class='reserved'>int</strong> history_index = 0;
+<a id='L296' name='L296'></a>    size_t old_pos;
+<a id='L297' name='L297'></a>    size_t diff;
+<a id='L298' name='L298'></a>
+<a id='L299' name='L299'></a>    buf[0] = '\0';
+<a id='L300' name='L300'></a>    buflen--; <em class='comment'>/* Make sure there is always space for the nulterm */</em>
+<a id='L301' name='L301'></a>
+<a id='L302' name='L302'></a>    <em class='comment'>/* The latest history entry is always our current buffer, that</em>
+<a id='L303' name='L303'></a><em class='comment'>     * initially is just an empty string. */</em>
+<a id='L304' name='L304'></a>    <a href='../S/66.html#L551' title='Defined at 551 in lib/readline/linenoise.c.'>linenoiseHistoryAdd</a>("");
+<a id='L305' name='L305'></a>    
+<a id='L306' name='L306'></a>    <strong class='reserved'>if</strong> (write(fd,prompt,plen) == -1) <strong class='reserved'>return</strong> -1;
+<a id='L307' name='L307'></a>    <strong class='reserved'>while</strong>(1) <em class='brace'>{</em>
+<a id='L308' name='L308'></a>        <strong class='reserved'>char</strong> c;
+<a id='L309' name='L309'></a>        <strong class='reserved'>int</strong> nread;
+<a id='L310' name='L310'></a>        <strong class='reserved'>char</strong> seq[2], seq2[2];
+<a id='L311' name='L311'></a>
+<a id='L312' name='L312'></a>        nread = read(fd,&amp;c,1);
+<a id='L313' name='L313'></a>        <strong class='reserved'>if</strong> (nread &lt;= 0) <strong class='reserved'>return</strong> len;
+<a id='L314' name='L314'></a>
+<a id='L315' name='L315'></a>        <em class='comment'>/* Only autocomplete when the callback is set. It returns &lt; 0 when</em>
+<a id='L316' name='L316'></a><em class='comment'>         * there was an error reading from fd. Otherwise it will return the</em>
+<a id='L317' name='L317'></a><em class='comment'>         * character that should be handled next. */</em>
+<a id='L318' name='L318'></a>        <strong class='reserved'>if</strong> (c == 9 &amp;&amp; completionCallback != NULL) <em class='brace'>{</em>
+<a id='L319' name='L319'></a>            c = <a href='../S/66.html#L229' title='Defined at 229 in lib/readline/linenoise.c.'>completeLine</a>(fd,prompt,buf,buflen,&amp;len,&amp;pos,cols);
+<a id='L320' name='L320'></a>            <em class='comment'>/* Return on errors */</em>
+<a id='L321' name='L321'></a>            <strong class='reserved'>if</strong> (c &lt; 0) <strong class='reserved'>return</strong> len;
+<a id='L322' name='L322'></a>            <em class='comment'>/* Read next character when 0 */</em>
+<a id='L323' name='L323'></a>            <strong class='reserved'>if</strong> (c == 0) <strong class='reserved'>continue</strong>;
+<a id='L324' name='L324'></a>        <em class='brace'>}</em>
+<a id='L325' name='L325'></a>
+<a id='L326' name='L326'></a>        <strong class='reserved'>switch</strong>(c) <em class='brace'>{</em>
+<a id='L327' name='L327'></a>        <strong class='reserved'>case</strong> 13:    <em class='comment'>/* enter */</em>
+<a id='L328' name='L328'></a>            history_len--;
+<a id='L329' name='L329'></a>            free(history[history_len]);
+<a id='L330' name='L330'></a>            <strong class='reserved'>return</strong> (<strong class='reserved'>int</strong>)len;
+<a id='L331' name='L331'></a>        <strong class='reserved'>case</strong> 3:     <em class='comment'>/* ctrl-c */</em>
+<a id='L332' name='L332'></a>            errno = EAGAIN;
+<a id='L333' name='L333'></a>            <strong class='reserved'>return</strong> -1;
+<a id='L334' name='L334'></a>        <strong class='reserved'>case</strong> 127:   <em class='comment'>/* backspace */</em>
+<a id='L335' name='L335'></a>        <strong class='reserved'>case</strong> 8:     <em class='comment'>/* ctrl-h */</em>
+<a id='L336' name='L336'></a>            <strong class='reserved'>if</strong> (pos &gt; 0 &amp;&amp; len &gt; 0) <em class='brace'>{</em>
+<a id='L337' name='L337'></a>                memmove(buf+pos-1,buf+pos,len-pos);
+<a id='L338' name='L338'></a>                pos--;
+<a id='L339' name='L339'></a>                len--;
+<a id='L340' name='L340'></a>                buf[len] = '\0';
+<a id='L341' name='L341'></a>                <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L342' name='L342'></a>            <em class='brace'>}</em>
+<a id='L343' name='L343'></a>            <strong class='reserved'>break</strong>;
+<a id='L344' name='L344'></a>        <strong class='reserved'>case</strong> 4:     <em class='comment'>/* ctrl-d, remove char at right of cursor */</em>
+<a id='L345' name='L345'></a>            <strong class='reserved'>if</strong> (len &gt; 1 &amp;&amp; pos &lt; (len-1)) <em class='brace'>{</em>
+<a id='L346' name='L346'></a>                memmove(buf+pos,buf+pos+1,len-pos);
+<a id='L347' name='L347'></a>                len--;
+<a id='L348' name='L348'></a>                buf[len] = '\0';
+<a id='L349' name='L349'></a>                <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L350' name='L350'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (len == 0) <em class='brace'>{</em>
+<a id='L351' name='L351'></a>                history_len--;
+<a id='L352' name='L352'></a>                free(history[history_len]);
+<a id='L353' name='L353'></a>                <strong class='reserved'>return</strong> -1;
+<a id='L354' name='L354'></a>            <em class='brace'>}</em>
+<a id='L355' name='L355'></a>            <strong class='reserved'>break</strong>;
+<a id='L356' name='L356'></a>        <strong class='reserved'>case</strong> 20:    <em class='comment'>/* ctrl-t */</em>
+<a id='L357' name='L357'></a>            <strong class='reserved'>if</strong> (pos &gt; 0 &amp;&amp; pos &lt; len) <em class='brace'>{</em>
+<a id='L358' name='L358'></a>                <strong class='reserved'>int</strong> aux = buf[pos-1];
+<a id='L359' name='L359'></a>                buf[pos-1] = buf[pos];
+<a id='L360' name='L360'></a>                buf[pos] = aux;
+<a id='L361' name='L361'></a>                <strong class='reserved'>if</strong> (pos != len-1) pos++;
+<a id='L362' name='L362'></a>                <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L363' name='L363'></a>            <em class='brace'>}</em>
+<a id='L364' name='L364'></a>            <strong class='reserved'>break</strong>;
+<a id='L365' name='L365'></a>        <strong class='reserved'>case</strong> 2:     <em class='comment'>/* ctrl-b */</em>
+<a id='L366' name='L366'></a>            <strong class='reserved'>goto</strong> left_arrow;
+<a id='L367' name='L367'></a>        <strong class='reserved'>case</strong> 6:     <em class='comment'>/* ctrl-f */</em>
+<a id='L368' name='L368'></a>            <strong class='reserved'>goto</strong> right_arrow;
+<a id='L369' name='L369'></a>        <strong class='reserved'>case</strong> 16:    <em class='comment'>/* ctrl-p */</em>
+<a id='L370' name='L370'></a>            seq[1] = 65;
+<a id='L371' name='L371'></a>            <strong class='reserved'>goto</strong> up_down_arrow;
+<a id='L372' name='L372'></a>        <strong class='reserved'>case</strong> 14:    <em class='comment'>/* ctrl-n */</em>
+<a id='L373' name='L373'></a>            seq[1] = 66;
+<a id='L374' name='L374'></a>            <strong class='reserved'>goto</strong> up_down_arrow;
+<a id='L375' name='L375'></a>            <strong class='reserved'>break</strong>;
+<a id='L376' name='L376'></a>        <strong class='reserved'>case</strong> 27:    <em class='comment'>/* escape sequence */</em>
+<a id='L377' name='L377'></a>            <strong class='reserved'>if</strong> (read(fd,seq,2) == -1) <strong class='reserved'>break</strong>;
+<a id='L378' name='L378'></a>            <strong class='reserved'>if</strong> (seq[0] == 91 &amp;&amp; seq[1] == 68) <em class='brace'>{</em>
+<a id='L379' name='L379'></a>left_arrow:
+<a id='L380' name='L380'></a>                <em class='comment'>/* left arrow */</em>
+<a id='L381' name='L381'></a>                <strong class='reserved'>if</strong> (pos &gt; 0) <em class='brace'>{</em>
+<a id='L382' name='L382'></a>                    pos--;
+<a id='L383' name='L383'></a>                    <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L384' name='L384'></a>                <em class='brace'>}</em>
+<a id='L385' name='L385'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (seq[0] == 91 &amp;&amp; seq[1] == 67) <em class='brace'>{</em>
+<a id='L386' name='L386'></a>right_arrow:
+<a id='L387' name='L387'></a>                <em class='comment'>/* right arrow */</em>
+<a id='L388' name='L388'></a>                <strong class='reserved'>if</strong> (pos != len) <em class='brace'>{</em>
+<a id='L389' name='L389'></a>                    pos++;
+<a id='L390' name='L390'></a>                    <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L391' name='L391'></a>                <em class='brace'>}</em>
+<a id='L392' name='L392'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (seq[0] == 91 &amp;&amp; (seq[1] == 65 || seq[1] == 66)) <em class='brace'>{</em>
+<a id='L393' name='L393'></a>up_down_arrow:
+<a id='L394' name='L394'></a>                <em class='comment'>/* up and down arrow: history */</em>
+<a id='L395' name='L395'></a>                <strong class='reserved'>if</strong> (history_len &gt; 1) <em class='brace'>{</em>
+<a id='L396' name='L396'></a>                    <em class='comment'>/* Update the current history entry before to</em>
+<a id='L397' name='L397'></a><em class='comment'>                     * overwrite it with tne next one. */</em>
+<a id='L398' name='L398'></a>                    free(history[history_len-1-history_index]);
+<a id='L399' name='L399'></a>                    history[history_len-1-history_index] = strdup(buf);
+<a id='L400' name='L400'></a>                    <em class='comment'>/* Show the new entry */</em>
+<a id='L401' name='L401'></a>                    history_index += (seq[1] == 65) ? 1 : -1;
+<a id='L402' name='L402'></a>                    <strong class='reserved'>if</strong> (history_index &lt; 0) <em class='brace'>{</em>
+<a id='L403' name='L403'></a>                        history_index = 0;
+<a id='L404' name='L404'></a>                        <strong class='reserved'>break</strong>;
+<a id='L405' name='L405'></a>                    <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (history_index &gt;= history_len) <em class='brace'>{</em>
+<a id='L406' name='L406'></a>                        history_index = history_len-1;
+<a id='L407' name='L407'></a>                        <strong class='reserved'>break</strong>;
+<a id='L408' name='L408'></a>                    <em class='brace'>}</em>
+<a id='L409' name='L409'></a>                    strncpy(buf,history[history_len-1-history_index],buflen);
+<a id='L410' name='L410'></a>                    buf[buflen] = '\0';
+<a id='L411' name='L411'></a>                    len = pos = strlen(buf);
+<a id='L412' name='L412'></a>                    <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L413' name='L413'></a>                <em class='brace'>}</em>
+<a id='L414' name='L414'></a>            <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (seq[0] == 91 &amp;&amp; seq[1] &gt; 48 &amp;&amp; seq[1] &lt; 55) <em class='brace'>{</em>
+<a id='L415' name='L415'></a>                <em class='comment'>/* extended escape */</em>
+<a id='L416' name='L416'></a>                <strong class='reserved'>if</strong> (read(fd,seq2,2) == -1) <strong class='reserved'>break</strong>;
+<a id='L417' name='L417'></a>                <strong class='reserved'>if</strong> (seq[1] == 51 &amp;&amp; seq2[0] == 126) <em class='brace'>{</em>
+<a id='L418' name='L418'></a>                    <em class='comment'>/* delete */</em>
+<a id='L419' name='L419'></a>                    <strong class='reserved'>if</strong> (len &gt; 0 &amp;&amp; pos &lt; len) <em class='brace'>{</em>
+<a id='L420' name='L420'></a>                        memmove(buf+pos,buf+pos+1,len-pos-1);
+<a id='L421' name='L421'></a>                        len--;
+<a id='L422' name='L422'></a>                        buf[len] = '\0';
+<a id='L423' name='L423'></a>                        <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L424' name='L424'></a>                    <em class='brace'>}</em>
+<a id='L425' name='L425'></a>                <em class='brace'>}</em>
+<a id='L426' name='L426'></a>            <em class='brace'>}</em>
+<a id='L427' name='L427'></a>            <strong class='reserved'>break</strong>;
+<a id='L428' name='L428'></a>        <strong class='reserved'>default</strong>:
+<a id='L429' name='L429'></a>            <strong class='reserved'>if</strong> (len &lt; buflen) <em class='brace'>{</em>
+<a id='L430' name='L430'></a>                <strong class='reserved'>if</strong> (len == pos) <em class='brace'>{</em>
+<a id='L431' name='L431'></a>                    buf[pos] = c;
+<a id='L432' name='L432'></a>                    pos++;
+<a id='L433' name='L433'></a>                    len++;
+<a id='L434' name='L434'></a>                    buf[len] = '\0';
+<a id='L435' name='L435'></a>                    <strong class='reserved'>if</strong> (plen+len &lt; cols) <em class='brace'>{</em>
+<a id='L436' name='L436'></a>                        <em class='comment'>/* Avoid a full update of the line in the</em>
+<a id='L437' name='L437'></a><em class='comment'>                         * trivial case. */</em>
+<a id='L438' name='L438'></a>                        <strong class='reserved'>if</strong> (write(fd,&amp;c,1) == -1) <strong class='reserved'>return</strong> -1;
+<a id='L439' name='L439'></a>                    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L440' name='L440'></a>                        <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L441' name='L441'></a>                    <em class='brace'>}</em>
+<a id='L442' name='L442'></a>                <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L443' name='L443'></a>                    memmove(buf+pos+1,buf+pos,len-pos);
+<a id='L444' name='L444'></a>                    buf[pos] = c;
+<a id='L445' name='L445'></a>                    len++;
+<a id='L446' name='L446'></a>                    pos++;
+<a id='L447' name='L447'></a>                    buf[len] = '\0';
+<a id='L448' name='L448'></a>                    <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L449' name='L449'></a>                <em class='brace'>}</em>
+<a id='L450' name='L450'></a>            <em class='brace'>}</em>
+<a id='L451' name='L451'></a>            <strong class='reserved'>break</strong>;
+<a id='L452' name='L452'></a>        <strong class='reserved'>case</strong> 21: <em class='comment'>/* Ctrl+u, delete the whole line. */</em>
+<a id='L453' name='L453'></a>            buf[0] = '\0';
+<a id='L454' name='L454'></a>            pos = len = 0;
+<a id='L455' name='L455'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L456' name='L456'></a>            <strong class='reserved'>break</strong>;
+<a id='L457' name='L457'></a>        <strong class='reserved'>case</strong> 11: <em class='comment'>/* Ctrl+k, delete from current to end of line. */</em>
+<a id='L458' name='L458'></a>            buf[pos] = '\0';
+<a id='L459' name='L459'></a>            len = pos;
+<a id='L460' name='L460'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L461' name='L461'></a>            <strong class='reserved'>break</strong>;
+<a id='L462' name='L462'></a>        <strong class='reserved'>case</strong> 1: <em class='comment'>/* Ctrl+a, go to the start of the line */</em>
+<a id='L463' name='L463'></a>            pos = 0;
+<a id='L464' name='L464'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L465' name='L465'></a>            <strong class='reserved'>break</strong>;
+<a id='L466' name='L466'></a>        <strong class='reserved'>case</strong> 5: <em class='comment'>/* ctrl+e, go to the end of the line */</em>
+<a id='L467' name='L467'></a>            pos = len;
+<a id='L468' name='L468'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L469' name='L469'></a>            <strong class='reserved'>break</strong>;
+<a id='L470' name='L470'></a>        <strong class='reserved'>case</strong> 12: <em class='comment'>/* ctrl+l, clear screen */</em>
+<a id='L471' name='L471'></a>            <a href='../S/66.html#L284' title='Defined at 284 in lib/readline/linenoise.c.'>linenoiseClearScreen</a>();
+<a id='L472' name='L472'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L473' name='L473'></a>            <strong class='reserved'>break</strong>;
+<a id='L474' name='L474'></a>        <strong class='reserved'>case</strong> 23: <em class='comment'>/* ctrl+w, delete previous word */</em>
+<a id='L475' name='L475'></a>            old_pos = pos;
+<a id='L476' name='L476'></a>            <strong class='reserved'>while</strong> (pos &gt; 0 &amp;&amp; buf[pos-1] == ' ')
+<a id='L477' name='L477'></a>                pos--;
+<a id='L478' name='L478'></a>            <strong class='reserved'>while</strong> (pos &gt; 0 &amp;&amp; buf[pos-1] != ' ')
+<a id='L479' name='L479'></a>                pos--;
+<a id='L480' name='L480'></a>            diff = old_pos - pos;
+<a id='L481' name='L481'></a>            memmove(&amp;buf[pos], &amp;buf[old_pos], len-old_pos+1);
+<a id='L482' name='L482'></a>            len -= diff;
+<a id='L483' name='L483'></a>            <a href='../S/66.html#L189' title='Defined at 189 in lib/readline/linenoise.c.'>refreshLine</a>(fd,prompt,buf,len,pos,cols);
+<a id='L484' name='L484'></a>            <strong class='reserved'>break</strong>;
+<a id='L485' name='L485'></a>        <em class='brace'>}</em>
+<a id='L486' name='L486'></a>    <em class='brace'>}</em>
+<a id='L487' name='L487'></a>    <strong class='reserved'>return</strong> len;
+<a id='L488' name='L488'></a><em class='brace'>}</em>
+<a id='L489' name='L489'></a>
+<a id='L490' name='L490'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong> <a href='../S/66.html#L531' title='Referred from 531 in lib/readline/linenoise.c.'>linenoiseRaw</a>(<strong class='reserved'>char</strong> *buf, size_t buflen, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt) <em class='brace'>{</em>
+<a id='L491' name='L491'></a>    <strong class='reserved'>int</strong> fd = STDIN_FILENO;
+<a id='L492' name='L492'></a>    <strong class='reserved'>int</strong> count;
+<a id='L493' name='L493'></a>
+<a id='L494' name='L494'></a>    <strong class='reserved'>if</strong> (buflen == 0) <em class='brace'>{</em>
+<a id='L495' name='L495'></a>        errno = EINVAL;
+<a id='L496' name='L496'></a>        <strong class='reserved'>return</strong> -1;
+<a id='L497' name='L497'></a>    <em class='brace'>}</em>
+<a id='L498' name='L498'></a>    <strong class='reserved'>if</strong> (!isatty(STDIN_FILENO)) <em class='brace'>{</em>
+<a id='L499' name='L499'></a>        <strong class='reserved'>if</strong> (fgets(buf, buflen, stdin) == NULL) <strong class='reserved'>return</strong> -1;
+<a id='L500' name='L500'></a>        count = strlen(buf);
+<a id='L501' name='L501'></a>        <strong class='reserved'>if</strong> (count &amp;&amp; buf[count-1] == '\n') <em class='brace'>{</em>
+<a id='L502' name='L502'></a>            count--;
+<a id='L503' name='L503'></a>            buf[count] = '\0';
+<a id='L504' name='L504'></a>        <em class='brace'>}</em>
+<a id='L505' name='L505'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L506' name='L506'></a>        <strong class='reserved'>if</strong> (<a href='../S/66.html#L135' title='Defined at 135 in lib/readline/linenoise.c.'>enableRawMode</a>(fd) == -1) <strong class='reserved'>return</strong> -1;
+<a id='L507' name='L507'></a>        count = <a href='../S/66.html#L290' title='Defined at 290 in lib/readline/linenoise.c.'>linenoisePrompt</a>(fd, buf, buflen, prompt);
+<a id='L508' name='L508'></a>        <a href='../S/66.html#L170' title='Defined at 170 in lib/readline/linenoise.c.'>disableRawMode</a>(fd);
+<a id='L509' name='L509'></a>        printf("\n");
+<a id='L510' name='L510'></a>    <em class='brace'>}</em>
+<a id='L511' name='L511'></a>    <strong class='reserved'>return</strong> count;
+<a id='L512' name='L512'></a><em class='brace'>}</em>
+<a id='L513' name='L513'></a>
+<a id='L514' name='L514'></a><strong class='reserved'>char</strong> *<a href='../R/565.html' title='Multiple referred from 2 places.'>linenoise</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt) <em class='brace'>{</em>
+<a id='L515' name='L515'></a>    <strong class='reserved'>char</strong> buf[<a href='../S/66.html#L101' title='Defined at 101 in lib/readline/linenoise.c.'>LINENOISE_MAX_LINE</a>];
+<a id='L516' name='L516'></a>    <strong class='reserved'>int</strong> count;
+<a id='L517' name='L517'></a>
+<a id='L518' name='L518'></a>    <strong class='reserved'>if</strong> (<a href='../S/66.html#L115' title='Defined at 115 in lib/readline/linenoise.c.'>isUnsupportedTerm</a>()) <em class='brace'>{</em>
+<a id='L519' name='L519'></a>        size_t len;
+<a id='L520' name='L520'></a>
+<a id='L521' name='L521'></a>        printf("%s",prompt);
+<a id='L522' name='L522'></a>        fflush(stdout);
+<a id='L523' name='L523'></a>        <strong class='reserved'>if</strong> (fgets(buf,<a href='../S/66.html#L101' title='Defined at 101 in lib/readline/linenoise.c.'>LINENOISE_MAX_LINE</a>,stdin) == NULL) <strong class='reserved'>return</strong> NULL;
+<a id='L524' name='L524'></a>        len = strlen(buf);
+<a id='L525' name='L525'></a>        <strong class='reserved'>while</strong>(len &amp;&amp; (buf[len-1] == '\n' || buf[len-1] == '\r')) <em class='brace'>{</em>
+<a id='L526' name='L526'></a>            len--;
+<a id='L527' name='L527'></a>            buf[len] = '\0';
+<a id='L528' name='L528'></a>        <em class='brace'>}</em>
+<a id='L529' name='L529'></a>        <strong class='reserved'>return</strong> strdup(buf);
+<a id='L530' name='L530'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L531' name='L531'></a>        count = <a href='../S/66.html#L490' title='Defined at 490 in lib/readline/linenoise.c.'>linenoiseRaw</a>(buf,<a href='../S/66.html#L101' title='Defined at 101 in lib/readline/linenoise.c.'>LINENOISE_MAX_LINE</a>,prompt);
+<a id='L532' name='L532'></a>        <strong class='reserved'>if</strong> (count == -1) <strong class='reserved'>return</strong> NULL;
+<a id='L533' name='L533'></a>        <strong class='reserved'>return</strong> strdup(buf);
+<a id='L534' name='L534'></a>    <em class='brace'>}</em>
+<a id='L535' name='L535'></a><em class='brace'>}</em>
+<a id='L536' name='L536'></a>
+<a id='L537' name='L537'></a><em class='comment'>/* Register a callback function to be called for tab-completion. */</em>
+<a id='L538' name='L538'></a><strong class='reserved'>void</strong> <a href='../S/67.html#L46' title='Referred from 46 in lib/readline/linenoise.h.'>linenoiseSetCompletionCallback</a>(linenoiseCompletionCallback *fn) <em class='brace'>{</em>
+<a id='L539' name='L539'></a>    completionCallback = fn;
+<a id='L540' name='L540'></a><em class='brace'>}</em>
+<a id='L541' name='L541'></a>
+<a id='L542' name='L542'></a><strong class='reserved'>void</strong> <a href='../S/67.html#L47' title='Referred from 47 in lib/readline/linenoise.h.'>linenoiseAddCompletion</a>(<a href='../D/635.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *lc, <strong class='reserved'>char</strong> *str) <em class='brace'>{</em>
+<a id='L543' name='L543'></a>    size_t len = strlen(str);
+<a id='L544' name='L544'></a>    <strong class='reserved'>char</strong> *copy = malloc(len+1);
+<a id='L545' name='L545'></a>    memcpy(copy,str,len+1);
+<a id='L546' name='L546'></a>    lc-&gt;cvec = realloc(lc-&gt;cvec,<strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*(lc-&gt;len+1));
+<a id='L547' name='L547'></a>    lc-&gt;cvec[lc-&gt;len++] = copy;
+<a id='L548' name='L548'></a><em class='brace'>}</em>
+<a id='L549' name='L549'></a>
+<a id='L550' name='L550'></a><em class='comment'>/* Using a circular buffer is smarter, but a bit more complex to handle. */</em>
+<a id='L551' name='L551'></a><strong class='reserved'>int</strong> <a href='../R/570.html' title='Multiple referred from 5 places.'>linenoiseHistoryAdd</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *line) <em class='brace'>{</em>
+<a id='L552' name='L552'></a>    <strong class='reserved'>char</strong> *linecopy;
+<a id='L553' name='L553'></a>
+<a id='L554' name='L554'></a>    <strong class='reserved'>if</strong> (history_max_len == 0) <strong class='reserved'>return</strong> 0;
+<a id='L555' name='L555'></a>    <strong class='reserved'>if</strong> (history == NULL) <em class='brace'>{</em>
+<a id='L556' name='L556'></a>        history = malloc(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*history_max_len);
+<a id='L557' name='L557'></a>        <strong class='reserved'>if</strong> (history == NULL) <strong class='reserved'>return</strong> 0;
+<a id='L558' name='L558'></a>        memset(history,0,(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*history_max_len));
+<a id='L559' name='L559'></a>    <em class='brace'>}</em>
+<a id='L560' name='L560'></a>    linecopy = strdup(line);
+<a id='L561' name='L561'></a>    <strong class='reserved'>if</strong> (!linecopy) <strong class='reserved'>return</strong> 0;
+<a id='L562' name='L562'></a>    <strong class='reserved'>if</strong> (history_len == history_max_len) <em class='brace'>{</em>
+<a id='L563' name='L563'></a>        free(history[0]);
+<a id='L564' name='L564'></a>        memmove(history,history+1,<strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*(history_max_len-1));
+<a id='L565' name='L565'></a>        history_len--;
+<a id='L566' name='L566'></a>    <em class='brace'>}</em>
+<a id='L567' name='L567'></a>    history[history_len] = linecopy;
+<a id='L568' name='L568'></a>    history_len++;
+<a id='L569' name='L569'></a>    <strong class='reserved'>return</strong> 1;
+<a id='L570' name='L570'></a><em class='brace'>}</em>
+<a id='L571' name='L571'></a>
+<a id='L572' name='L572'></a><strong class='reserved'>int</strong> <a href='../S/67.html#L51' title='Referred from 51 in lib/readline/linenoise.h.'>linenoiseHistorySetMaxLen</a>(<strong class='reserved'>int</strong> len) <em class='brace'>{</em>
+<a id='L573' name='L573'></a>    <strong class='reserved'>char</strong> **new;
+<a id='L574' name='L574'></a>
+<a id='L575' name='L575'></a>    <strong class='reserved'>if</strong> (len &lt; 1) <strong class='reserved'>return</strong> 0;
+<a id='L576' name='L576'></a>    <strong class='reserved'>if</strong> (history) <em class='brace'>{</em>
+<a id='L577' name='L577'></a>        <strong class='reserved'>int</strong> tocopy = history_len;
+<a id='L578' name='L578'></a>
+<a id='L579' name='L579'></a>        new = malloc(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*len);
+<a id='L580' name='L580'></a>        <strong class='reserved'>if</strong> (new == NULL) <strong class='reserved'>return</strong> 0;
+<a id='L581' name='L581'></a>        <strong class='reserved'>if</strong> (len &lt; tocopy) tocopy = len;
+<a id='L582' name='L582'></a>        memcpy(new,history+(history_max_len-tocopy), <strong class='reserved'>sizeof</strong>(<strong class='reserved'>char</strong>*)*tocopy);
+<a id='L583' name='L583'></a>        free(history);
+<a id='L584' name='L584'></a>        history = new;
+<a id='L585' name='L585'></a>    <em class='brace'>}</em>
+<a id='L586' name='L586'></a>    history_max_len = len;
+<a id='L587' name='L587'></a>    <strong class='reserved'>if</strong> (history_len &gt; history_max_len)
+<a id='L588' name='L588'></a>        history_len = history_max_len;
+<a id='L589' name='L589'></a>    <strong class='reserved'>return</strong> 1;
+<a id='L590' name='L590'></a><em class='brace'>}</em>
+<a id='L591' name='L591'></a>
+<a id='L592' name='L592'></a><em class='comment'>/* Save the history in the specified file. On success 0 is returned</em>
+<a id='L593' name='L593'></a><em class='comment'> * otherwise -1 is returned. */</em>
+<a id='L594' name='L594'></a><strong class='reserved'>int</strong> <a href='../R/572.html' title='Multiple referred from 2 places.'>linenoiseHistorySave</a>(<strong class='reserved'>char</strong> *filename) <em class='brace'>{</em>
+<a id='L595' name='L595'></a>    FILE *fp = fopen(filename,"w");
+<a id='L596' name='L596'></a>    <strong class='reserved'>int</strong> j;
+<a id='L597' name='L597'></a>    
+<a id='L598' name='L598'></a>    <strong class='reserved'>if</strong> (fp == NULL) <strong class='reserved'>return</strong> -1;
+<a id='L599' name='L599'></a>    <strong class='reserved'>for</strong> (j = 0; j &lt; history_len; j++)
+<a id='L600' name='L600'></a>        fprintf(fp,"%s\n",history[j]);
+<a id='L601' name='L601'></a>    fclose(fp);
+<a id='L602' name='L602'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L603' name='L603'></a><em class='brace'>}</em>
+<a id='L604' name='L604'></a>
+<a id='L605' name='L605'></a><em class='comment'>/* Load the history from the specified file. If the file does not exist</em>
+<a id='L606' name='L606'></a><em class='comment'> * zero is returned and no operation is performed.</em>
+<a id='L607' name='L607'></a><em class='comment'> *</em>
+<a id='L608' name='L608'></a><em class='comment'> * If the file exists and the operation succeeded 0 is returned, otherwise</em>
+<a id='L609' name='L609'></a><em class='comment'> * on error -1 is returned. */</em>
+<a id='L610' name='L610'></a><strong class='reserved'>int</strong> <a href='../R/571.html' title='Multiple referred from 2 places.'>linenoiseHistoryLoad</a>(<strong class='reserved'>char</strong> *filename) <em class='brace'>{</em>
+<a id='L611' name='L611'></a>    FILE *fp = fopen(filename,"r");
+<a id='L612' name='L612'></a>    <strong class='reserved'>char</strong> buf[<a href='../S/66.html#L101' title='Defined at 101 in lib/readline/linenoise.c.'>LINENOISE_MAX_LINE</a>];
+<a id='L613' name='L613'></a>    
+<a id='L614' name='L614'></a>    <strong class='reserved'>if</strong> (fp == NULL) <strong class='reserved'>return</strong> -1;
+<a id='L615' name='L615'></a>
+<a id='L616' name='L616'></a>    <strong class='reserved'>while</strong> (fgets(buf,<a href='../S/66.html#L101' title='Defined at 101 in lib/readline/linenoise.c.'>LINENOISE_MAX_LINE</a>,fp) != NULL) <em class='brace'>{</em>
+<a id='L617' name='L617'></a>        <strong class='reserved'>char</strong> *p;
+<a id='L618' name='L618'></a>        
+<a id='L619' name='L619'></a>        p = strchr(buf,'\r');
+<a id='L620' name='L620'></a>        <strong class='reserved'>if</strong> (!p) p = strchr(buf,'\n');
+<a id='L621' name='L621'></a>        <strong class='reserved'>if</strong> (p) *p = '\0';
+<a id='L622' name='L622'></a>        <a href='../S/66.html#L551' title='Defined at 551 in lib/readline/linenoise.c.'>linenoiseHistoryAdd</a>(buf);
+<a id='L623' name='L623'></a>    <em class='brace'>}</em>
+<a id='L624' name='L624'></a>    fclose(fp);
+<a id='L625' name='L625'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L626' name='L626'></a><em class='brace'>}</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L115'>[^]</a><a href='#L610'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>
