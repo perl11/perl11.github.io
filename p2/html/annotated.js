@@ -1,5 +1,7 @@
 var annotated =
 [
+    [ "_GREG", "dd/dde/struct___g_r_e_g.html", "dd/dde/struct___g_r_e_g" ],
+    [ "_yythunk", "df/d3d/struct__yythunk.html", "df/d3d/struct__yythunk" ],
     [ "Lobby", "db/dd7/class_lobby.html", "db/dd7/class_lobby" ],
     [ "PN_OP", "d6/d0b/struct_p_n___o_p.html", "d6/d0b/struct_p_n___o_p" ],
     [ "PNArg", "d0/d61/struct_p_n_arg.html", "d0/d61/struct_p_n_arg" ],

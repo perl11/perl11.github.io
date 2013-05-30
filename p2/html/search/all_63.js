@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['c',['c',['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aafc737ea9ef91f59cf9acd287fb8d085',1,'c():&#160;syntax.c']]],
   ['call',['call',['../d2/dcd/struct_potion___state.html#ab7f95cb7c20e35f3409be0c06e468a74',1,'Potion_State::call()'],['../d7/de2/struct_p_n_vtable.html#ab62dae024b49bb5c8f93ebce9b61cff0',1,'PNVtable::call()']]],
   ['callcc_2ec',['callcc.c',['../da/d23/callcc_8c.html',1,'']]],
   ['callset',['callset',['../d2/dcd/struct_potion___state.html#acdeb83bb765bb713d540a46adf85a483',1,'Potion_State::callset()'],['../d7/de2/struct_p_n_vtable.html#a8636305ef2ae9340b58cd83e98f8e067',1,'PNVtable::callset()']]],
@@ -15,6 +16,5 @@ var searchData=
   ['config_2eh',['config.h',['../db/d16/config_8h.html',1,'']]],
   ['contrib_2ec',['contrib.c',['../da/d73/contrib_8c.html',1,'']]],
   ['cstack',['cstack',['../de/db4/struct_p_n_memory.html#aeecfba5a33e7d306de7f4d4e42ff8656',1,'PNMemory']]],
-  ['ctor',['ctor',['../d7/de2/struct_p_n_vtable.html#acd792ff3f2b84f24ef9fe5ab0031cacc',1,'PNVtable']]],
-  ['cur_5fpkg',['CUR_PKG',['../d6/d69/p2_8c.html#ac67809f84e180a52587ff1911050c78c',1,'p2.c']]]
+  ['ctor',['ctor',['../d7/de2/struct_p_n_vtable.html#acd792ff3f2b84f24ef9fe5ab0031cacc',1,'PNVtable']]]
 ];

@@ -34,10 +34,11 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaddf83bbc02b6a88d325135c880d12184",
-"d9/d08/class_p_n_number.html#aacda22f0ba5e8966aeafc499e77f76f7",
-"dc/df8/internal_8c.html#a68feaba6caad981f27b5374660d89e33",
-"dd/d07/potion_8h.html#aadef2304496ade91d7f123fb8c15819f",
-"df/d47/vm-ppc_8c.html#a66e8e2ed3dacb4458e2eaea847b2aced"
+"da/d23/callcc_8c.html#ace1828053304c272263129a0bfa1b219",
+"dc/df8/internal_8c.html#acf6277168a912c7f78f9e460229f64a3",
+"dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a4dc746267911db63c359d53d4393e3c5",
+"df/d2c/syntax_8c.html#a62d2c83f877d92d87eebbfe7a5a15c4c",
+"df/d8d/primitive_8c.html#a3e5db1ef9254622ca5c82ce211fc533a"
 ];
 
 var navTreeSubIndices = new Array();

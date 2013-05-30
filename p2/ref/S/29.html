@@ -1,244 +1,79 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>core/p2.c</title>
+<title>core/p2.h</title>
 <meta name='robots' content='noindex,nofollow' />
 <meta name='generator' content='GLOBAL-6.2.8' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/183.html'>core</a>/p2.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L35'>[^]</a><a href='#L190'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/183.html'>core</a>/p2.h</h2>
+<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
-<h2 class='header'>DEFINITIONS</h2>
-This source file includes following definitions.
-<ol>
-<li><a href='#L35' title='Defined at 35.'>potion_namespace_create</a></li>
-<li><a href='#L56' title='Defined at 56.'>potion_namespace_put</a></li>
-<li><a href='#L62' title='Defined at 62.'>potion_namespace_at</a></li>
-<li><a href='#L68' title='Defined at 68.'>potion_namespace_name</a></li>
-<li><a href='#L73' title='Defined at 73.'>potion_namespace_string</a></li>
-<li><a href='#L81' title='Defined at 81.'>potion_nstuple_set</a></li>
-<li><a href='#L97' title='Defined at 97.'>potion_nstuple_push</a></li>
-<li><a href='#L104' title='Defined at 104.'>potion_nstuple_pop</a></li>
-<li><a href='#L110' title='Defined at 110.'>potion_pkg_create</a></li>
-<li><a href='#L116' title='Defined at 116.'>potion_pkg_put</a></li>
-<li><a href='#L121' title='Defined at 121.'>potion_pkg_at</a></li>
-<li><a href='#L144' title='Defined at 144.'>potion_pkg_parent</a></li>
-<li><a href='#L161' title='Defined at 161.'>potion_namespace_parent</a></li>
-<li><a href='#L172' title='Defined at 172.'>potion_pkg</a></li>
-<li><a href='#L184' title='Defined at 184.'>potion_sym_at</a></li>
-<li><a href='#L190' title='Defined at 190.'>potion_p2_init</a></li>
-</ol>
+<h2 class='header'><a href='../J/20.html' title='Multiple included from 22 places.'>INCLUDED FROM</a></h2>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>/**\file p2.c</em>
-<a id='L2' name='L2'></a><em class='comment'>  perl specific functions</em>
-<a id='L3' name='L3'></a><em class='comment'></em>
-<a id='L4' name='L4'></a><em class='comment'>  global namespaces (dynamic symbol table lookup)</em>
-<a id='L5' name='L5'></a><em class='comment'>  %main:: = {</em>
-<a id='L6' name='L6'></a><em class='comment'>    hash of symbols, ...</em>
-<a id='L7' name='L7'></a><em class='comment'>    + hash of subpackages::</em>
-<a id='L8' name='L8'></a><em class='comment'>  }</em>
-<a id='L9' name='L9'></a><em class='comment'>  P-&gt;nstuple: stack of nested package blocks, beginning with main::</em>
-<a id='L10' name='L10'></a><em class='comment'>  the last is always the current package.</em>
-<a id='L11' name='L11'></a><em class='comment'>  TODO: put namespace into the env (cl closure)</em>
-<a id='L12' name='L12'></a><em class='comment'></em>
-<a id='L13' name='L13'></a><em class='comment'>  - pkg: namespace helpers work on the current active package/namespace via strings</em>
-<a id='L14' name='L14'></a><em class='comment'>  - namespace: ie PNLick with PNTable as attr</em>
-<a id='L15' name='L15'></a><em class='comment'>                  parent as inner</em>
-<a id='L16' name='L16'></a><em class='comment'>  - nstuple: PNTuple, stack of namespaces, first=main::, last=active</em>
-<a id='L17' name='L17'></a><em class='comment'></em>
-<a id='L18' name='L18'></a><em class='comment'> (c) 2013 by perl11 org</em>
-<a id='L19' name='L19'></a><em class='comment'>*/</em>
-<a id='L20' name='L20'></a>
-<a id='L21' name='L21'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
-<a id='L22' name='L22'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
-<a id='L23' name='L23'></a><em class='sharp'>#include</em> "<a href='30.html'>p2.h</a>"
-<a id='L24' name='L24'></a><em class='sharp'>#include</em> "<a href='21.html'>internal.h</a>"
-<a id='L25' name='L25'></a><em class='sharp'>#include</em> "<a href='35.html'>table.h</a>"
-<a id='L26' name='L26'></a><em class='sharp'>#include</em> "<a href='13.html'>ast.h</a>"
-<a id='L27' name='L27'></a>
-<a id='L28' name='L28'></a><em class='sharp'>#define</em> <a href='../R/52.html' title='Multiple referred from 5 places.'>CUR_PKG</a> <a href='../S/34.html#L254' title='Defined at 254 in core/table.c.'>potion_tuple_last</a>(P, 0, (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple)
-<a id='L29' name='L29'></a><strong class='reserved'>static</strong> <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/29.html#L144' title='Defined at 144 in core/p2.c.'>potion_pkg_parent</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name);
-<a id='L30' name='L30'></a>
-<a id='L31' name='L31'></a><em class='comment'>/**\methodof PNNamespace</em>
-<a id='L32' name='L32'></a><em class='comment'>   create a new subpackage or symbol as child of the given namespace.</em>
-<a id='L33' name='L33'></a><em class='comment'>   \param PNString pkg. if ending with :: creates a subpackage,</em>
-<a id='L34' name='L34'></a><em class='comment'>                        if not creates a new symbol */</em>
-<a id='L35' name='L35'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/756.html' title='Multiple referred from 4 places.'>potion_namespace_create</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> pkg) <em class='brace'>{</em>
-<a id='L36' name='L36'></a>  <strong class='reserved'>char</strong> *p = <a href='../S/31.html#L190' title='Defined at 190 in core/potion.h.'>PN_STR_PTR</a>(pkg);
-<a id='L37' name='L37'></a>  <strong class='reserved'>int</strong> len = <a href='../S/31.html#L191' title='Defined at 191 in core/potion.h.'>PN_STR_LEN</a>(pkg);
-<a id='L38' name='L38'></a>  <strong class='reserved'>if</strong> (p[len -2] == ':' &amp;&amp; p[len - 1] == ':') <em class='brace'>{</em>
-<a id='L39' name='L39'></a>    <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> parent = <a href='../S/29.html#L144' title='Defined at 144 in core/p2.c.'>potion_pkg_parent</a>(P, cl, pkg);
-<a id='L40' name='L40'></a>    <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> new = <a href='../S/34.html#L117' title='Defined at 117 in core/table.c.'>potion_table_set</a>(P, cl, parent, pkg);
-<a id='L41' name='L41'></a>    <strong class='reserved'>if</strong> (!self) <em class='brace'>{</em>
-<a id='L42' name='L42'></a>      <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns = <a href='../S/23.html#L11' title='Defined at 11 in core/lick.c.'>potion_lick</a>(P, pkg, <a href='../S/34.html#L117' title='Defined at 117 in core/table.c.'>potion_table_set</a>(P, cl, new, pkg), parent);
-<a id='L43' name='L43'></a>      <a href='../S/31.html#L134' title='Defined at 134 in core/potion.h.'>PN_VTYPE</a>(ns) = <a href='../S/30.html#L37' title='Defined at 37 in core/p2.h.'>PN_TNAMESPACE</a>;
-<a id='L44' name='L44'></a>      <strong class='reserved'>return</strong> ns;
-<a id='L45' name='L45'></a>    <em class='brace'>}</em>
-<a id='L46' name='L46'></a>  <em class='brace'>}</em>
-<a id='L47' name='L47'></a>  <strong class='reserved'>if</strong> (self) <em class='brace'>{</em>
-<a id='L48' name='L48'></a>    <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns = <a href='../S/23.html#L11' title='Defined at 11 in core/lick.c.'>potion_lick</a>(P, pkg, <a href='../S/34.html#L117' title='Defined at 117 in core/table.c.'>potion_table_set</a>(P, cl, self, pkg), self);
-<a id='L49' name='L49'></a>    <a href='../S/31.html#L134' title='Defined at 134 in core/potion.h.'>PN_VTYPE</a>(ns) = <a href='../S/30.html#L37' title='Defined at 37 in core/p2.h.'>PN_TNAMESPACE</a>;
-<a id='L50' name='L50'></a>    <strong class='reserved'>return</strong> ns;
-<a id='L51' name='L51'></a>  <em class='brace'>}</em>
-<a id='L52' name='L52'></a><em class='brace'>}</em>
-<a id='L53' name='L53'></a><em class='comment'>/**\methodof PNNamespace</em>
-<a id='L54' name='L54'></a><em class='comment'>  put/intern a new symbol and value into the namespace</em>
-<a id='L55' name='L55'></a><em class='comment'>  \param PNString name */</em>
-<a id='L56' name='L56'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/759.html' title='Multiple referred from 2 places.'>potion_namespace_put</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> value) <em class='brace'>{</em>
-<a id='L57' name='L57'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L92' title='Defined at 92 in core/table.c.'>potion_table_put</a>(P, cl, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(self)-&gt;attr, name, value);
-<a id='L58' name='L58'></a><em class='brace'>}</em>
-<a id='L59' name='L59'></a><em class='comment'>/**\methodof PNNamespace</em>
-<a id='L60' name='L60'></a><em class='comment'>   "find" a symbol in the namespace, return its value.</em>
-<a id='L61' name='L61'></a><em class='comment'>   \param PNString name */</em>
-<a id='L62' name='L62'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/755.html' title='Multiple referred from 2 places.'>potion_namespace_at</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> key) <em class='brace'>{</em>
-<a id='L63' name='L63'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L66' title='Defined at 66 in core/table.c.'>potion_table_at</a>(P, cl, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(self)-&gt;attr, key);
-<a id='L64' name='L64'></a><em class='brace'>}</em>
-<a id='L65' name='L65'></a><em class='comment'>/**\methodof PNNamespace</em>
-<a id='L66' name='L66'></a><em class='comment'>  \returns the full name (PNString), such as "main::My::Class::"</em>
-<a id='L67' name='L67'></a><em class='comment'> */</em>
-<a id='L68' name='L68'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/29.html#L195' title='Referred from 195 in core/p2.c.'>potion_namespace_name</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L69' name='L69'></a>  <strong class='reserved'>return</strong> <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(self)-&gt;name;
-<a id='L70' name='L70'></a><em class='brace'>}</em>
-<a id='L71' name='L71'></a><em class='comment'>/**\methodof PNNamespace</em>
-<a id='L72' name='L72'></a><em class='comment'>   \returns a string repr */</em>
-<a id='L73' name='L73'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/29.html#L196' title='Referred from 196 in core/p2.c.'>potion_namespace_string</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L74' name='L74'></a>  <strong class='reserved'>return</strong> <a href='../S/33.html#L80' title='Defined at 80 in core/string.c.'>potion_str_format</a>(P, "&lt;Namespace %s&gt;", <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(self)-&gt;name);
-<a id='L75' name='L75'></a><em class='brace'>}</em>
-<a id='L76' name='L76'></a>
-<a id='L77' name='L77'></a><em class='comment'>/**</em>
-<a id='L78' name='L78'></a><em class='comment'>   set a new namespace in nstuple, overriding old, but not the first - main::.</em>
-<a id='L79' name='L79'></a><em class='comment'>   \param PNString name</em>
-<a id='L80' name='L80'></a><em class='comment'>   Needed for package NAME; */</em>
-<a id='L81' name='L81'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/767.html' title='Multiple referred from 2 places.'>potion_nstuple_set</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name) <em class='brace'>{</em>
-<a id='L82' name='L82'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> t = (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple;
-<a id='L83' name='L83'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns = <a href='../S/29.html#L35' title='Defined at 35 in core/p2.c.'>potion_namespace_create</a>(P, 0, 0, name);
-<a id='L84' name='L84'></a>  <a href='../S/31.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> len = <a href='../S/31.html#L244' title='Defined at 244 in core/potion.h.'>PN_TUPLE_LEN</a>(t);
-<a id='L85' name='L85'></a>  <em class='comment'>// prev ns</em>
-<a id='L86' name='L86'></a>  <strong class='reserved'>if</strong> (len == 1) <em class='brace'>{</em>
-<a id='L87' name='L87'></a>    <strong class='reserved'>return</strong> <a href='../S/34.html#L153' title='Defined at 153 in core/table.c.'>potion_tuple_push</a>(P, t, ns);
-<a id='L88' name='L88'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
-<a id='L89' name='L89'></a>    <strong class='reserved'>return</strong> <a href='../S/34.html#L295' title='Defined at 295 in core/table.c.'>potion_tuple_put</a>(P, 0, t, len-1, ns);
-<a id='L90' name='L90'></a>  <em class='brace'>}</em>
-<a id='L91' name='L91'></a><em class='brace'>}</em>
-<a id='L92' name='L92'></a><em class='comment'>/**</em>
-<a id='L93' name='L93'></a><em class='comment'>   "push" a new namespace to the namespace stack.</em>
-<a id='L94' name='L94'></a><em class='comment'>   Initialized with "main"</em>
-<a id='L95' name='L95'></a><em class='comment'>   \param PNString name</em>
-<a id='L96' name='L96'></a><em class='comment'>   Needed at the beginning of scoped package NAME {} blocks. */</em>
-<a id='L97' name='L97'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L39' title='Referred from 39 in core/p2.h.'>potion_nstuple_push</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name) <em class='brace'>{</em>
-<a id='L98' name='L98'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L153' title='Defined at 153 in core/table.c.'>potion_tuple_push</a>(P, (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple,
-<a id='L99' name='L99'></a>    <a href='../S/29.html#L35' title='Defined at 35 in core/p2.c.'>potion_namespace_create</a>(P, 0, 0, <a href='../S/33.html#L63' title='Defined at 63 in core/string.c.'>potion_strcat</a>(P, <a href='../S/31.html#L190' title='Defined at 190 in core/potion.h.'>PN_STR_PTR</a>(name), "::")));
-<a id='L100' name='L100'></a><em class='brace'>}</em>
-<a id='L101' name='L101'></a><em class='comment'>/**</em>
-<a id='L102' name='L102'></a><em class='comment'>   "pop" the last namespace from the namespace stack and return it.</em>
-<a id='L103' name='L103'></a><em class='comment'>   Needed at the end of scoped package NAME {} blocks. */</em>
-<a id='L104' name='L104'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L40' title='Referred from 40 in core/p2.h.'>potion_nstuple_pop</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
-<a id='L105' name='L105'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L281' title='Defined at 281 in core/table.c.'>potion_tuple_pop</a>(P, 0, (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple);
-<a id='L106' name='L106'></a><em class='brace'>}</em>
-<a id='L107' name='L107'></a>
-<a id='L108' name='L108'></a><em class='comment'>/** create a new subpackage under the current package</em>
-<a id='L109' name='L109'></a><em class='comment'>   \param PNString pkg */</em>
-<a id='L110' name='L110'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L42' title='Referred from 42 in core/p2.h.'>potion_pkg_create</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> pkg) <em class='brace'>{</em>
-<a id='L111' name='L111'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L117' title='Defined at 117 in core/table.c.'>potion_table_set</a>(P, 0, <a href='../S/29.html#L28' title='Defined at 28 in core/p2.c.'>CUR_PKG</a>,
-<a id='L112' name='L112'></a>                          <a href='../S/33.html#L63' title='Defined at 63 in core/string.c.'>potion_strcat</a>(P, <a href='../S/31.html#L190' title='Defined at 190 in core/potion.h.'>PN_STR_PTR</a>(pkg),"::"));
-<a id='L113' name='L113'></a><em class='brace'>}</em>
-<a id='L114' name='L114'></a><em class='comment'>/** put/intern a new symbol and value into the current namespace</em>
-<a id='L115' name='L115'></a><em class='comment'>   \param PNString name */</em>
-<a id='L116' name='L116'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L43' title='Referred from 43 in core/p2.h.'>potion_pkg_put</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> value) <em class='brace'>{</em>
-<a id='L117' name='L117'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L92' title='Defined at 92 in core/table.c.'>potion_table_put</a>(P, 0, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(<a href='../S/29.html#L28' title='Defined at 28 in core/p2.c.'>CUR_PKG</a>)-&gt;attr, name, value);
-<a id='L118' name='L118'></a><em class='brace'>}</em>
-<a id='L119' name='L119'></a><em class='comment'>/** "find" a symbol in the namespace, return its value.</em>
-<a id='L120' name='L120'></a><em class='comment'>   \param PNString name */</em>
-<a id='L121' name='L121'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L44' title='Referred from 44 in core/p2.h.'>potion_pkg_at</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> key) <em class='brace'>{</em>
-<a id='L122' name='L122'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L66' title='Defined at 66 in core/table.c.'>potion_table_at</a>(P, cl, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(<a href='../S/29.html#L28' title='Defined at 28 in core/p2.c.'>CUR_PKG</a>)-&gt;attr, key);
-<a id='L123' name='L123'></a><em class='brace'>}</em>
-<a id='L124' name='L124'></a>
-<a id='L125' name='L125'></a><em class='comment'>// sets ns and p for symbol name</em>
-<a id='L126' name='L126'></a><em class='sharp'>#define</em> <a href='../R/108.html' title='Multiple referred from 2 places.'>DO_PKG_TRAVERSE</a>(name)                           \
-<a id='L127' name='L127'></a>  <strong class='reserved'>char</strong> *p = <a href='../S/31.html#L190' title='Defined at 190 in core/potion.h.'>PN_STR_PTR</a>(name);                           \
-<a id='L128' name='L128'></a>  <strong class='reserved'>char</strong> *c;                                              \
-<a id='L129' name='L129'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns1;                                               \
-<a id='L130' name='L130'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns =  <a href='../S/34.html#L233' title='Defined at 233 in core/table.c.'>potion_tuple_first</a>(P, 0, (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple);    \
-<a id='L131' name='L131'></a>  <strong class='reserved'>if</strong> (memcmp(p, "main::", 6)) <em class='brace'>{</em>                         \
-<a id='L132' name='L132'></a>    p += 6;                                             \
-<a id='L133' name='L133'></a>  <em class='brace'>}</em>                                                     \
-<a id='L134' name='L134'></a>  <strong class='reserved'>while</strong> ((c = strstr(p, "::"))) <em class='brace'>{</em>                       \
-<a id='L135' name='L135'></a>    ns1 = <a href='../S/34.html#L66' title='Defined at 66 in core/table.c.'>potion_table_at</a>(P, 0, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(ns)-&gt;attr, <a href='../S/31.html#L188' title='Defined at 188 in core/potion.h.'>PN_STRN</a>(p, p - c)); \
-<a id='L136' name='L136'></a>    <strong class='reserved'>if</strong> (ns1) ns = ns1;                                  \
-<a id='L137' name='L137'></a>    p = c + 2;                                          \
-<a id='L138' name='L138'></a>  <em class='brace'>}</em>
-<a id='L139' name='L139'></a>
-<a id='L140' name='L140'></a><em class='comment'>/** </em>
-<a id='L141' name='L141'></a><em class='comment'>   \param PNString name</em>
-<a id='L142' name='L142'></a><em class='comment'>   \returns parent the namespace from name.</em>
-<a id='L143' name='L143'></a><em class='comment'>   i.e. My::Class =&gt; My, My =&gt; main */</em>
-<a id='L144' name='L144'></a><strong class='reserved'>static</strong> <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/804.html' title='Multiple referred from 2 places.'>potion_pkg_parent</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name) <em class='brace'>{</em>
-<a id='L145' name='L145'></a>  <em class='comment'>//DO_PKG_TRAVERSE(name)</em>
-<a id='L146' name='L146'></a>  <strong class='reserved'>char</strong> *p = <a href='../S/31.html#L190' title='Defined at 190 in core/potion.h.'>PN_STR_PTR</a>(name);                           
-<a id='L147' name='L147'></a>  <strong class='reserved'>char</strong> *c;                                              
-<a id='L148' name='L148'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns1;                                               
-<a id='L149' name='L149'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns =  <a href='../S/34.html#L233' title='Defined at 233 in core/table.c.'>potion_tuple_first</a>(P, 0, (<a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P-&gt;nstuple);    
-<a id='L150' name='L150'></a>  <strong class='reserved'>if</strong> (memcmp(p, "main::", 6)) <em class='brace'>{</em>                         
-<a id='L151' name='L151'></a>    p += 6;                                             
-<a id='L152' name='L152'></a>  <em class='brace'>}</em>                                                     
-<a id='L153' name='L153'></a>  <strong class='reserved'>while</strong> ((c = strstr(p, "::"))) <em class='brace'>{</em>                       
-<a id='L154' name='L154'></a>    ns1 = <a href='../S/34.html#L66' title='Defined at 66 in core/table.c.'>potion_table_at</a>(P, 0, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(ns)-&gt;attr, <a href='../S/31.html#L188' title='Defined at 188 in core/potion.h.'>PN_STRN</a>(p, p - c)); 
-<a id='L155' name='L155'></a>    <strong class='reserved'>if</strong> (ns1) ns = ns1;                                  
-<a id='L156' name='L156'></a>    p = c + 2;                                          
-<a id='L157' name='L157'></a>  <em class='brace'>}</em>
-<a id='L158' name='L158'></a>  <strong class='reserved'>return</strong> ns;
-<a id='L159' name='L159'></a><em class='brace'>}</em>
-<a id='L160' name='L160'></a>
-<a id='L161' name='L161'></a><strong class='reserved'>static</strong> <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/29.html#L197' title='Referred from 197 in core/p2.c.'>potion_namespace_parent</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L162' name='L162'></a>  <strong class='reserved'>return</strong> <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(self)-&gt;inner;
-<a id='L163' name='L163'></a>  <em class='comment'>//return potion_pkg_parent(P, cl, potion_namespace_name(P, cl, self));</em>
-<a id='L164' name='L164'></a><em class='brace'>}</em>
-<a id='L165' name='L165'></a>
-<a id='L166' name='L166'></a><em class='comment'>/** PNNamespace i.e. a Hash of names</em>
-<a id='L167' name='L167'></a><em class='comment'>    we maintain a stack of current namespaces for scoped package NAME {} blocks, with</em>
-<a id='L168' name='L168'></a><em class='comment'>    main:: always the first, and the current always the last.</em>
-<a id='L169' name='L169'></a><em class='comment'>   \param self if PNString return the package of the symbol name,</em>
-<a id='L170' name='L170'></a><em class='comment'>               if nil, return the current package namespace</em>
-<a id='L171' name='L171'></a><em class='comment'>   \return current namespace, i.e. package hash */</em>
-<a id='L172' name='L172'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/801.html' title='Multiple referred from 3 places.'>potion_pkg</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
-<a id='L173' name='L173'></a>  <strong class='reserved'>if</strong> (!self)
-<a id='L174' name='L174'></a>    <strong class='reserved'>return</strong> <a href='../S/29.html#L28' title='Defined at 28 in core/p2.c.'>CUR_PKG</a>;
-<a id='L175' name='L175'></a>  <strong class='reserved'>if</strong> (<a href='../S/31.html#L167' title='Defined at 167 in core/potion.h.'>PN_IS_STR</a>(self)) <em class='brace'>{</em>
-<a id='L176' name='L176'></a>    <a href='../S/29.html#L126' title='Defined at 126 in core/p2.c.'>DO_PKG_TRAVERSE</a>(self)
-<a id='L177' name='L177'></a>    <strong class='reserved'>return</strong> ns;
-<a id='L178' name='L178'></a>  <em class='brace'>}</em>
-<a id='L179' name='L179'></a>  <strong class='reserved'>return</strong> <a href='../S/29.html#L28' title='Defined at 28 in core/p2.c.'>CUR_PKG</a>;
-<a id='L180' name='L180'></a><em class='brace'>}</em>
-<a id='L181' name='L181'></a><em class='comment'>/** "find" a symbol by traversing the namespace parts+hashes, return its value.</em>
-<a id='L182' name='L182'></a><em class='comment'>   My::Class::$value =&gt; main::-&gt;My::-&gt;Class-&gt;$value</em>
-<a id='L183' name='L183'></a><em class='comment'>   \param PNString name */</em>
-<a id='L184' name='L184'></a><a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/30.html#L45' title='Referred from 45 in core/p2.h.'>potion_sym_at</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> name) <em class='brace'>{</em>
-<a id='L185' name='L185'></a>  <a href='../S/29.html#L126' title='Defined at 126 in core/p2.c.'>DO_PKG_TRAVERSE</a>(name)
-<a id='L186' name='L186'></a>  <strong class='reserved'>if</strong> (!ns) <strong class='reserved'>return</strong> <a href='../S/31.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
-<a id='L187' name='L187'></a>  <strong class='reserved'>return</strong> <a href='../S/34.html#L66' title='Defined at 66 in core/table.c.'>potion_table_at</a>(P, 0, <a href='../S/31.html#L197' title='Defined at 197 in core/potion.h.'>PN_LICK</a>(ns)-&gt;attr, <a href='../S/31.html#L187' title='Defined at 187 in core/potion.h.'>PN_STR</a>(p));
-<a id='L188' name='L188'></a><em class='brace'>}</em>
-<a id='L189' name='L189'></a>
-<a id='L190' name='L190'></a><strong class='reserved'>void</strong> <a href='../R/799.html' title='Multiple referred from 2 places.'>potion_p2_init</a>(<a href='../S/31.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
-<a id='L191' name='L191'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ns_vt = <a href='../S/27.html#L162' title='Defined at 162 in core/objmodel.c.'>potion_type_new2</a>(P, <a href='../S/30.html#L37' title='Defined at 37 in core/p2.h.'>PN_TNAMESPACE</a>, <a href='../S/31.html#L136' title='Defined at 136 in core/potion.h.'>PN_VTABLE</a>(<a href='../S/31.html#L124' title='Defined at 124 in core/potion.h.'>PN_TLICK</a>), <a href='../S/33.html#L33' title='Defined at 33 in core/string.c.'>potion_str</a>(P, "Namespace"));
-<a id='L192' name='L192'></a>  <em class='comment'>//PN sym_vt = potion_type_new2(P, PN_TSYMBOL, PN_VTABLE(PN_TLICK), potion_str(P, "Symbol"));</em>
-<a id='L193' name='L193'></a>  <a href='../S/31.html#L704' title='Defined at 704 in core/potion.h.'>potion_method</a>(P-&gt;lobby, "package", <a href='../S/29.html#L172' title='Defined at 172 in core/p2.c.'>potion_pkg</a>, 0);
-<a id='L194' name='L194'></a>  <a href='../S/31.html#L704' title='Defined at 704 in core/potion.h.'>potion_method</a>(ns_vt, "create",  <a href='../S/29.html#L35' title='Defined at 35 in core/p2.c.'>potion_namespace_create</a>, "name=S");  <em class='comment'>//new subpackage or intern</em>
-<a id='L195' name='L195'></a>  <a href='../S/31.html#L704' title='Defined at 704 in core/potion.h.'>potion_method</a>(ns_vt, "name",    <a href='../S/29.html#L68' title='Defined at 68 in core/p2.c.'>potion_namespace_name</a>, 0);
-<a id='L196' name='L196'></a>  <a href='../S/31.html#L704' title='Defined at 704 in core/potion.h.'>potion_method</a>(ns_vt, "string",  <a href='../S/29.html#L73' title='Defined at 73 in core/p2.c.'>potion_namespace_string</a>, 0);
-<a id='L197' name='L197'></a>  <a href='../S/31.html#L704' title='Defined at 704 in core/potion.h.'>potion_method</a>(ns_vt, "parent",  <a href='../S/29.html#L161' title='Defined at 161 in core/p2.c.'>potion_namespace_parent</a>, 0);
-<a id='L198' name='L198'></a>  <a href='../S/27.html#L168' title='Defined at 168 in core/objmodel.c.'>potion_type_call_is</a>(ns_vt, <a href='../S/31.html#L196' title='Defined at 196 in core/potion.h.'>PN_FUNC</a>(<a href='../S/29.html#L62' title='Defined at 62 in core/p2.c.'>potion_namespace_at</a>, "name=S")); <em class='comment'>//symbol-value by name</em>
-<a id='L199' name='L199'></a>  <a href='../S/27.html#L178' title='Defined at 178 in core/objmodel.c.'>potion_type_callset_is</a>(ns_vt, <a href='../S/31.html#L196' title='Defined at 196 in core/potion.h.'>PN_FUNC</a>(<a href='../S/29.html#L56' title='Defined at 56 in core/p2.c.'>potion_namespace_put</a>, "name=S,value=o")); <em class='comment'>//intern + set</em>
-<a id='L200' name='L200'></a>  <a href='../S/31.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> main_ns = <a href='../S/23.html#L11' title='Defined at 11 in core/lick.c.'>potion_lick</a>(P, <a href='../S/31.html#L188' title='Defined at 188 in core/potion.h.'>PN_STRN</a>("main::",6), <a href='../S/34.html#L38' title='Defined at 38 in core/table.c.'>potion_table_empty</a>(P), 0);
-<a id='L201' name='L201'></a>  <a href='../S/31.html#L134' title='Defined at 134 in core/potion.h.'>PN_VTYPE</a>(main_ns) = <a href='../S/30.html#L37' title='Defined at 37 in core/p2.h.'>PN_TNAMESPACE</a>;
-<a id='L202' name='L202'></a>  P-&gt;nstuple = (<strong class='reserved'>struct</strong> <a href='../S/31.html#L426' title='Defined at 426 in core/potion.h.'>PNTuple</a> *)<a href='../S/34.html#L153' title='Defined at 153 in core/table.c.'>potion_tuple_push</a>(P, <a href='../S/31.html#L238' title='Defined at 238 in core/potion.h.'>PN_TUP0</a>(), main_ns);
-<a id='L203' name='L203'></a><em class='brace'>}</em>
+<a id='L1' name='L1'></a><em class='comment'>//</em>
+<a id='L2' name='L2'></a><em class='comment'>// p2.h</em>
+<a id='L3' name='L3'></a><em class='comment'>//</em>
+<a id='L4' name='L4'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
+<a id='L5' name='L5'></a><em class='comment'>// (c) 2013 by perl11 org</em>
+<a id='L6' name='L6'></a><em class='comment'>//</em>
+<a id='L7' name='L7'></a><em class='sharp'>#ifndef</em> <a href='../S/29.html#L8' title='Defined at 8 in core/p2.h.'>P2_H</a>
+<a id='L8' name='L8'></a><em class='sharp'>#define</em> <a href='../S/29.html#L7' title='Referred from 7 in core/p2.h.'>P2_H</a>
+<a id='L9' name='L9'></a>
+<a id='L10' name='L10'></a><em class='sharp'>#define</em> <a href='../R/235.html' title='Multiple referred from 3 places.'>P2_VERSION</a>  "0.0"
+<a id='L11' name='L11'></a><em class='sharp'>#define</em> P2_MINOR    0
+<a id='L12' name='L12'></a><em class='sharp'>#define</em> P2_MAJOR    0
+<a id='L13' name='L13'></a><em class='sharp'>#define</em> <a href='../S/29.html#L23' title='Referred from 23 in core/p2.h.'>P2_SIG</a>      "p\02\10n"
+<a id='L14' name='L14'></a><em class='sharp'>#define</em> P2_VMID     0x79
+<a id='L15' name='L15'></a>
+<a id='L16' name='L16'></a><em class='sharp'>#include</em> "<a href='30.html'>potion.h</a>"
+<a id='L17' name='L17'></a>
+<a id='L18' name='L18'></a><em class='sharp'>#ifdef</em> <a href='../S/73.html#L12' title='Defined at 12 in syn/syntax-p5.y.'>P2</a>
+<a id='L19' name='L19'></a><em class='sharp'>#  undef</em> <a href='../R/172.html' title='Multiple referred from 3 places.'>NIL_NAME</a>
+<a id='L20' name='L20'></a><em class='sharp'>#  define</em> <a href='../R/172.html' title='Multiple referred from 3 places.'>NIL_NAME</a> "undef" <em class='comment'>// nil =&gt; undef</em>
+<a id='L21' name='L21'></a><em class='sharp'>#  undef</em> <a href='../R/407.html' title='Multiple referred from 2 places.'>POTION_SIG</a> <em class='comment'>// do not mix compiled potion with p2 bytecode,</em>
+<a id='L22' name='L22'></a>                    <em class='comment'>// though it should be compatible for now</em>
+<a id='L23' name='L23'></a><em class='sharp'>#  define</em> <a href='../R/407.html' title='Multiple referred from 2 places.'>POTION_SIG</a> <a href='../S/29.html#L13' title='Defined at 13 in core/p2.h.'>P2_SIG</a>
+<a id='L24' name='L24'></a>
+<a id='L25' name='L25'></a><strong class='reserved'>extern</strong> <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> PN_use;
+<a id='L26' name='L26'></a>
+<a id='L27' name='L27'></a><em class='sharp'>#endif</em>
+<a id='L28' name='L28'></a>
+<a id='L29' name='L29'></a><em class='comment'>//</em>
+<a id='L30' name='L30'></a><em class='comment'>// additional p2 functions</em>
+<a id='L31' name='L31'></a><em class='comment'>//</em>
+<a id='L32' name='L32'></a>
+<a id='L33' name='L33'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p2_source_load(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> buf);
+<a id='L34' name='L34'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p2_parse(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <strong class='reserved'>char</strong>*);
+<a id='L35' name='L35'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p2_run(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <strong class='reserved'>int</strong>);
+<a id='L36' name='L36'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p2_eval(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <strong class='reserved'>int</strong>);
+<a id='L37' name='L37'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p2_sig(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <strong class='reserved'>char</strong> *);
+<a id='L38' name='L38'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/24.html#L192' title='Defined at 192 in core/load.c.'>p2_load</a>(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>);
+<a id='L39' name='L39'></a>
+<a id='L40' name='L40'></a><em class='comment'>// signature syntax is different.</em>
+<a id='L41' name='L41'></a><em class='comment'>// Internally for PN_FUNC we still use the better strongly-typed potion</em>
+<a id='L42' name='L42'></a><em class='comment'>// sigs. i.e "name=S,block=&amp;"</em>
+<a id='L43' name='L43'></a><em class='comment'>// p2_sig should be really p5_sig or p6_sig</em>
+<a id='L44' name='L44'></a><em class='sharp'>#define</em> P2_FUNC(f, s)   <a href='../S/27.html#L17' title='Defined at 17 in core/objmodel.c.'>potion_closure_new</a>(P, (PN_F)f, p2_sig(P, s), 0)
+<a id='L45' name='L45'></a>
+<a id='L46' name='L46'></a><em class='sharp'>#ifdef</em> <a href='../S/73.html#L12' title='Defined at 12 in syn/syntax-p5.y.'>P2</a>
+<a id='L47' name='L47'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/31.html#L18' title='Defined at 18 in core/primitive.c.'>potion_any_is_defined</a>(<a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>);
+<a id='L48' name='L48'></a>
+<a id='L49' name='L49'></a><em class='sharp'>#define</em> <a href='../R/767.html' title='Multiple referred from 2 places.'>potion_load_code</a>   p2_load_code
+<a id='L50' name='L50'></a><em class='sharp'>#define</em> <a href='../R/766.html' title='Multiple referred from 3 places.'>potion_load</a>        <a href='../S/24.html#L192' title='Defined at 192 in core/load.c.'>p2_load</a>
+<a id='L51' name='L51'></a><em class='sharp'>#define</em> <a href='../R/852.html' title='Multiple referred from 4 places.'>potion_source_load</a> p2_source_load
+<a id='L52' name='L52'></a><em class='sharp'>#define</em> <a href='../R/822.html' title='Multiple referred from 6 places.'>potion_parse</a>       p2_parse
+<a id='L53' name='L53'></a><em class='sharp'>#define</em> <a href='../R/839.html' title='Multiple referred from 3 places.'>potion_run</a>         p2_run
+<a id='L54' name='L54'></a><em class='sharp'>#define</em> <a href='../R/724.html' title='Multiple referred from 5 places.'>potion_eval</a>        p2_eval
+<a id='L55' name='L55'></a><em class='sharp'>#endif</em>
+<a id='L56' name='L56'></a>
+<a id='L57' name='L57'></a><em class='sharp'>#endif</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L35'>[^]</a><a href='#L190'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['p',['p',['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c']]],
   ['p2_5ffunc',['P2_FUNC',['../d4/d32/p2_8h.html#a7b9443175f442b061a784f5f31415ee4',1,'p2.h']]],
   ['p2_5fmajor',['P2_MAJOR',['../d4/d32/p2_8h.html#a228a7d6b9e68d2bcb0324db54c833a21',1,'p2.h']]],
   ['p2_5fminor',['P2_MINOR',['../d4/d32/p2_8h.html#a4472b61d9ebad5c7a96e88557dbd91b8',1,'p2.h']]],
@@ -47,7 +48,6 @@ var searchData=
   ['pn_5fis_5fclosure',['PN_IS_CLOSURE',['../dd/d07/potion_8h.html#a572255676aef2dc44ca92e64ed94aca8',1,'potion.h']]],
   ['pn_5fis_5fdecimal',['PN_IS_DECIMAL',['../dd/d07/potion_8h.html#a9dfa98cb821338dd1416d811087b0d0c',1,'potion.h']]],
   ['pn_5fis_5fempty',['PN_IS_EMPTY',['../dd/d07/potion_8h.html#a19982e2ab474f731cb007ab0876d3826',1,'potion.h']]],
-  ['pn_5fis_5flick',['PN_IS_LICK',['../dd/d07/potion_8h.html#a2a42ee1cc43155f30ceae132cf95f707',1,'potion.h']]],
   ['pn_5fis_5fmetaclass',['PN_IS_METACLASS',['../dd/d07/potion_8h.html#a22f91936e8d909a9047dfbce54944303',1,'potion.h']]],
   ['pn_5fis_5fnil',['PN_IS_NIL',['../dd/d07/potion_8h.html#af8d44534de4e7b8457f896ffb9c4687e',1,'potion.h']]],
   ['pn_5fis_5fnum',['PN_IS_NUM',['../dd/d07/potion_8h.html#a2fb09d503fe6c2f0340d749100ccc411',1,'potion.h']]],
@@ -57,7 +57,6 @@ var searchData=
   ['pn_5fis_5fstr',['PN_IS_STR',['../dd/d07/potion_8h.html#a282e5428a7755e1afe2ea57b5c42354e',1,'potion.h']]],
   ['pn_5fis_5ftable',['PN_IS_TABLE',['../dd/d07/potion_8h.html#a6fd3257aa5eca2cecbfbaafdd2e6e26a',1,'potion.h']]],
   ['pn_5fis_5ftuple',['PN_IS_TUPLE',['../dd/d07/potion_8h.html#a696baa8b9dc820d253d0da642cee806e',1,'potion.h']]],
-  ['pn_5flick',['PN_LICK',['../dd/d07/potion_8h.html#a1d8e2b952372c8d2756cd4f62fd0eade',1,'potion.h']]],
   ['pn_5flittle_5fendian',['PN_LITTLE_ENDIAN',['../db/d16/config_8h.html#a8429ff84d8244144dbe9c437c373a1d1',1,'config.h']]],
   ['pn_5fmantissa',['PN_MANTISSA',['../dd/d07/potion_8h.html#a7025cd07f844b90021b980f7d5884f41',1,'potion.h']]],
   ['pn_5fmemcpy',['PN_MEMCPY',['../db/dde/internal_8h.html#aee4b7530e5577bb97171e5306b10a26d',1,'internal.h']]],
