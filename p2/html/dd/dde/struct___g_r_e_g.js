@@ -15,6 +15,5 @@ var struct___g_r_e_g =
     [ "val", "dd/dde/struct___g_r_e_g.html#a4ba4db234cf9a5523283bc9842d7a0a3", null ],
     [ "vals", "dd/dde/struct___g_r_e_g.html#a62c81279e8402933cb6046ba0161a612", null ],
     [ "valslen", "dd/dde/struct___g_r_e_g.html#a3b0b9fe68ef9d219c4ed4d3660ba785c", null ],
-    [ "data", "dd/dde/struct___g_r_e_g.html#af7c3f5ae5f34b097172b0c2933c48619", null ],
-    [ "debug", "dd/dde/struct___g_r_e_g.html#a55705e86fd9809f7d97e7a1ecc65e35d", null ]
+    [ "data", "dd/dde/struct___g_r_e_g.html#af7c3f5ae5f34b097172b0c2933c48619", null ]
 ];

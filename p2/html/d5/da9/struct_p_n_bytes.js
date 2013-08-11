@@ -1,6 +1,6 @@
 var struct_p_n_bytes =
 [
-    [ "potion_str_ord", "d5/da9/struct_p_n_bytes.html#a6b4249e47ac76124b5778a2db246e955", null ],
+    [ "potion_str_ord", "d5/da9/struct_p_n_bytes.html#a290e2512b160970e6eff6c0bee5106c3", null ],
     [ "potion_bytes_append", "d5/da9/struct_p_n_bytes.html#aaeb426421ee2f79484a2912744740cc9", null ],
     [ "potion_bytes_length", "d5/da9/struct_p_n_bytes.html#a53aaf21521cf66efa4cfe6b8a0d03e89", null ],
     [ "potion_bytes_string", "d5/da9/struct_p_n_bytes.html#a08196078bbfcf2537ac0f207820803e5", null ],

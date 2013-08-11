@@ -9,6 +9,7 @@ var searchData=
   ['bjmpc',['bjmpc',['../d1/d49/struct_p_n_loop.html#ad477f45753741aab250d78ec48ec3aaa',1,'PNLoop']]],
   ['bjmps',['bjmps',['../d1/d49/struct_p_n_loop.html#aeb8c9627e41851b99575cc7bf3f3e83a',1,'PNLoop']]],
   ['buf',['buf',['../dd/dde/struct___g_r_e_g.html#a69c15ee71e528826bd0492a4f2a5a040',1,'_GREG']]],
+  ['buffile_2ec',['buffile.c',['../dc/d09/buffile_8c.html',1,'']]],
   ['buflen',['buflen',['../dd/dde/struct___g_r_e_g.html#a9db47bf3d718053880ebf1cef8c1cf3d',1,'_GREG']]],
   ['bytes_5falign',['BYTES_ALIGN',['../d1/db0/string_8c.html#a24c85e6e863a435d368a0d444434107b',1,'string.c']]],
   ['bytes_5fchunk',['BYTES_CHUNK',['../d1/db0/string_8c.html#ab9452682446088dbaf264d24e6cda879',1,'string.c']]],

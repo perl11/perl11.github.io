@@ -5,6 +5,7 @@ var searchData=
   ['pnasm',['PNAsm',['../dc/dbd/struct_p_n_asm.html',1,'']]],
   ['pnbheader',['PNBHeader',['../de/d35/struct_p_n_b_header.html',1,'']]],
   ['pnboolean',['PNBoolean',['../dc/d77/class_p_n_boolean.html',1,'']]],
+  ['pnbuffile',['PNBufFile',['../d0/d7e/struct_p_n_buf_file.html',1,'']]],
   ['pnbytes',['PNBytes',['../d5/da9/struct_p_n_bytes.html',1,'']]],
   ['pnclosure',['PNClosure',['../d3/de9/struct_p_n_closure.html',1,'']]],
   ['pncont',['PNCont',['../d7/da4/struct_p_n_cont.html',1,'']]],

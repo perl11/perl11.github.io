@@ -7,6 +7,8 @@ var searchData=
   ['case_5fop',['CASE_OP',['../de/de9/vm_8c.html#a65a37a7116a55e32f389eb26a744d647',1,'vm.c']]],
   ['char_5fsize_5ft',['CHAR_SIZE_T',['../db/d16/config_8h.html#aa421f0600695b7650d738d129b921a3c',1,'config.h']]],
   ['chars',['chars',['../d5/deb/struct_p_n_string.html#a6659f0f6dd47835d4b98427c20934a7f',1,'PNString::chars()'],['../d5/da9/struct_p_n_bytes.html#ac1ae1ad09e2c5cf19af17f56b6093d3d',1,'PNBytes::chars()']]],
+  ['check_5faio_5fstream',['CHECK_AIO_STREAM',['../d8/d77/aio_8c.html#abccd10de8a14f1ffc1af5654084499ef',1,'aio.c']]],
+  ['check_5faio_5ftype',['CHECK_AIO_TYPE',['../d8/d77/aio_8c.html#aaabdfcb492df9f841be0a06fa685cbee',1,'aio.c']]],
   ['chr',['chr',['../d1/dc2/struct_p_n_error.html#a79bfe57ccf8c1453033f960d6fd538f7',1,'PNError']]],
   ['cjmpc',['cjmpc',['../d1/d49/struct_p_n_loop.html#a0ad061578f7b2f025e7e897b556f2693',1,'PNLoop']]],
   ['cjmps',['cjmps',['../d1/d49/struct_p_n_loop.html#a87049cb385ac6d56f4da55db7ab67332',1,'PNLoop']]],

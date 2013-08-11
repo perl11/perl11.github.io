@@ -21,9 +21,6 @@ var syntax_8c =
     [ "YY_BEGIN", "df/d2c/syntax_8c.html#a2e0ea1be973304d096d7c4cc7a7eb85d", null ],
     [ "YY_END", "df/d2c/syntax_8c.html#aa5146a93dfa269e08b47d3e2ec0a79a5", null ],
     [ "yyprintf", "df/d2c/syntax_8c.html#a996737c3a53baa9924a1f941efcb7d41", null ],
-    [ "yyprintfv", "df/d2c/syntax_8c.html#a5fbc4956ecc762d64322fd3c593f3dfd", null ],
-    [ "yyprintfcontext", "df/d2c/syntax_8c.html#a93dd952159f3724819177007f24ef139", null ],
-    [ "yyprintfvcontext", "df/d2c/syntax_8c.html#aba6a156e726a8526e43eaeaccf9b2539", null ],
     [ "yy", "df/d2c/syntax_8c.html#a2a88d5ca011c4f28b8cadae9bee7d606", null ],
     [ "YYACCEPT", "df/d2c/syntax_8c.html#aa6c7a65b580c214b2ea832fd7bdd472e", null ],
     [ "t", "df/d2c/syntax_8c.html#a1f0cf49f22a9b271d1d9e6e14609faed", null ],
@@ -205,7 +202,7 @@ var syntax_8c =
     [ "YY_PARSE", "df/d2c/syntax_8c.html#a4e663160085abf94540f18882968ac57", null ],
     [ "YY_PARSE", "df/d2c/syntax_8c.html#aa722edadb4ff060a7178a14167715149", null ],
     [ "YY_PARSE", "df/d2c/syntax_8c.html#a0a111ac852e0a2ca21da4624d369e47f", null ],
-    [ "potion_parse", "df/d2c/syntax_8c.html#a9a8787f5b527ca753aedb2ab13502ea8", null ],
+    [ "potion_parse", "df/d2c/syntax_8c.html#a50b3fa74a8eef5f4652878811aa0750e", null ],
     [ "potion_sig", "df/d2c/syntax_8c.html#ab6c5f34095012efec85b977971a0ed32", null ],
     [ "potion_sig_find", "df/d2c/syntax_8c.html#a4004486d5eec9371767fd3986561e797", null ]
 ];

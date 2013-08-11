@@ -8,6 +8,7 @@ var vm_8c =
     [ "potion_vm_init", "de/de9/vm_8c.html#a43f53d1bb0ff2cba095a076fcb9c1ef2", null ],
     [ "potion_vm_proto", "de/de9/vm_8c.html#a2b801f0b4a822dce0c08d9b3515f2d3c", null ],
     [ "potion_vm_class", "de/de9/vm_8c.html#ab63c36540b79de6bd0edad736f30604c", null ],
+    [ "potion_sig_check", "de/de9/vm_8c.html#afb327124a1a180567093be856495b6a9", null ],
     [ "potion_vm", "de/de9/vm_8c.html#af23b54160a0fc75ea32fe1a9b479bbea", null ],
     [ "name", "de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb", null ],
     [ "args", "de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178", null ],

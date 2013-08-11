@@ -10,6 +10,7 @@ var string_8c =
     [ "potion_strcat", "d1/db0/string_8c.html#acf7b7f779595350f29df44c6e4f323ce", null ],
     [ "potion_str_format", "d1/db0/string_8c.html#a3eb7204fcbe483a9c1e5797840983b9f", null ],
     [ "potion_utf8char_offset", "d1/db0/string_8c.html#a352e4f0471191e101c81c1d67b9d0fc9", null ],
+    [ "potion_utf8char_decode", "d1/db0/string_8c.html#a5e0109d9b839842e748706df1c151ccf", null ],
     [ "potion_str_slice_index", "d1/db0/string_8c.html#a339123011f6c43e9518313a455616cd7", null ],
     [ "potion_byte_str", "d1/db0/string_8c.html#a303233a181b750755b10463d5bf5c923", null ],
     [ "potion_byte_str2", "d1/db0/string_8c.html#afd5890fbcf2887d3a4af419ca0ebd822", null ],
@@ -17,5 +18,6 @@ var string_8c =
     [ "pn_printf", "d1/db0/string_8c.html#a2f9ad11f6343d9b2eac3695e91197737", null ],
     [ "potion_bytes_obj_string", "d1/db0/string_8c.html#a89ef0585ab738676e85d2339c9a649b2", null ],
     [ "potion_str_hash_init", "d1/db0/string_8c.html#a4869f95c1e9281e8fa7df512d7adf016", null ],
-    [ "potion_str_init", "d1/db0/string_8c.html#a53451ea1c8ded7f50af20bd7e768703e", null ]
+    [ "potion_str_init", "d1/db0/string_8c.html#a53451ea1c8ded7f50af20bd7e768703e", null ],
+    [ "utf8d", "d1/db0/string_8c.html#ad3b6e3136394f1dfb6e0f390f93bb2e0", null ]
 ];

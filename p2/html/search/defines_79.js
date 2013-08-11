@@ -20,9 +20,6 @@ var searchData=
   ['yy_5fxvar',['YY_XVAR',['../df/d2c/syntax_8c.html#a64528a111eb74c9f256ee00859841d43',1,'syntax.c']]],
   ['yyaccept',['YYACCEPT',['../df/d2c/syntax_8c.html#aa6c7a65b580c214b2ea832fd7bdd472e',1,'syntax.c']]],
   ['yyprintf',['yyprintf',['../df/d2c/syntax_8c.html#a996737c3a53baa9924a1f941efcb7d41',1,'syntax.c']]],
-  ['yyprintfcontext',['yyprintfcontext',['../df/d2c/syntax_8c.html#a93dd952159f3724819177007f24ef139',1,'syntax.c']]],
-  ['yyprintfv',['yyprintfv',['../df/d2c/syntax_8c.html#a5fbc4956ecc762d64322fd3c593f3dfd',1,'syntax.c']]],
-  ['yyprintfvcontext',['yyprintfvcontext',['../df/d2c/syntax_8c.html#aba6a156e726a8526e43eaeaccf9b2539',1,'syntax.c']]],
   ['yyrulecount',['YYRULECOUNT',['../df/d2c/syntax_8c.html#a917e4b1be5ef692f7a7a542ca2076308',1,'syntax.c']]],
   ['yystype',['YYSTYPE',['../df/d2c/syntax_8c.html#a2ceb5b985e149f18e018b142cfdd7264',1,'syntax.c']]]
 ];

@@ -15,6 +15,7 @@ var searchData=
   ['_5f_5fkh_5fset_5fisempty_5ffalse',['__kh_set_isempty_false',['../d2/deb/khash_8h.html#ac1165f99cb52feb5befacca959f84e06',1,'khash.h']]],
   ['_5f_5fkh_5fx31_5fhash_5fstring',['__kh_X31_hash_string',['../d2/deb/khash_8h.html#ae886db94223c67feb22b62796c444fe5',1,'khash.h']]],
   ['_5f_5fluas_5fhash_5fstring',['__luaS_hash_string',['../d2/deb/khash_8h.html#ac7b2c4ab0f271641a0a56e514aa6dae6',1,'khash.h']]],
+  ['_5f_5fuse_5fxopen2k8',['__USE_XOPEN2K8',['../dc/d09/buffile_8c.html#a55eb99244f26f6a99486bb00c529d6d1',1,'buffile.c']]],
   ['_5f_5fwordsize',['__WORDSIZE',['../dd/d07/potion_8h.html#aeea7ec6e47ecea02cc6812b268034b28',1,'potion.h']]],
   ['_5fgreg',['_GREG',['../dd/dde/struct___g_r_e_g.html',1,'']]],
   ['_5fpn',['_PN',['../dd/d07/potion_8h.html#abd590e9c95a330043d1f79e25d55ec42',1,'potion.h']]],
