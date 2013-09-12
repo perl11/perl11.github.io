@@ -1,12 +1,5 @@
 var searchData=
 [
-  ['m_5fapm_5fdata',['m_apm_data',['../dd/dd1/struct_m___a_p_m__struct.html#a65f35ac43192fcffe708ab21152aaa7e',1,'M_APM_struct']]],
-  ['m_5fapm_5fdatalength',['m_apm_datalength',['../dd/dd1/struct_m___a_p_m__struct.html#a852504fef94a0a68076f8c09e0cb48a3',1,'M_APM_struct']]],
-  ['m_5fapm_5fexponent',['m_apm_exponent',['../dd/dd1/struct_m___a_p_m__struct.html#a1cc9b00a4396d968384b6593cb3f7919',1,'M_APM_struct']]],
-  ['m_5fapm_5fid',['m_apm_id',['../dd/dd1/struct_m___a_p_m__struct.html#a52e99f6486a2af2127358e64d52927b3',1,'M_APM_struct']]],
-  ['m_5fapm_5fmalloclength',['m_apm_malloclength',['../dd/dd1/struct_m___a_p_m__struct.html#a7371d55b6bb3ac80bf1215cd0eb66ac5',1,'M_APM_struct']]],
-  ['m_5fapm_5frefcount',['m_apm_refcount',['../dd/dd1/struct_m___a_p_m__struct.html#a951c41f2e342c3fb98ac1ce86edcd287',1,'M_APM_struct']]],
-  ['m_5fapm_5fsign',['m_apm_sign',['../dd/dd1/struct_m___a_p_m__struct.html#a3a486cf08eb803be9bdddc7025e4f308',1,'M_APM_struct']]],
   ['major',['major',['../de/d35/struct_p_n_b_header.html#a054dd4b72c8c88b6fd0219b80c6a7d83',1,'PNBHeader']]],
   ['majors',['majors',['../de/db4/struct_p_n_memory.html#a6a2055746b81e79d1c69ceb629a4f593',1,'PNMemory']]],
   ['mcache',['mcache',['../d6/d06/struct_p_n_target.html#a76e2987b8fc90d6906adcfa249932fb4',1,'PNTarget::mcache()'],['../d7/de2/struct_p_n_vtable.html#a33f2ba73d74ae8e92ab33f474d5aaf5d',1,'PNVtable::mcache()']]],
@@ -16,20 +9,5 @@ var searchData=
   ['minargs',['minargs',['../d3/de9/struct_p_n_closure.html#a42c08849723562c95415d51a3fc3ad45',1,'PNClosure']]],
   ['minor',['minor',['../de/d35/struct_p_n_b_header.html#a0360b14743c794566d7823ddd58535c2',1,'PNBHeader']]],
   ['minors',['minors',['../de/db4/struct_p_n_memory.html#afe81fe620aa9c812d3fbaa202c898b52',1,'PNMemory']]],
-  ['mm_5f2_5fpi',['MM_2_PI',['../d7/ded/m__apm_8h.html#a825809b90a59291194b4b0786fc3c3dd',1,'m_apm.h']]],
-  ['mm_5fe',['MM_E',['../d7/ded/m__apm_8h.html#a0fd8570750c6580339f7d55fccb00864',1,'m_apm.h']]],
-  ['mm_5ffive',['MM_Five',['../d7/ded/m__apm_8h.html#a506c1e94769ea5b2804f74c7c0cc80f8',1,'m_apm.h']]],
-  ['mm_5ffour',['MM_Four',['../d7/ded/m__apm_8h.html#a3d4de5c1c45e06834b0667a556becd31',1,'m_apm.h']]],
-  ['mm_5fhalf_5fpi',['MM_HALF_PI',['../d7/ded/m__apm_8h.html#ab539ff1edb6aa652fc1e475999be2cc9',1,'m_apm.h']]],
-  ['mm_5flog_5f10_5fbase_5fe',['MM_LOG_10_BASE_E',['../d7/ded/m__apm_8h.html#ab74a90da6eae6f479e0a2c2aebe077eb',1,'m_apm.h']]],
-  ['mm_5flog_5f2_5fbase_5fe',['MM_LOG_2_BASE_E',['../d7/ded/m__apm_8h.html#a249a299fef7280d90e9ab0a3222e6c23',1,'m_apm.h']]],
-  ['mm_5flog_5f3_5fbase_5fe',['MM_LOG_3_BASE_E',['../d7/ded/m__apm_8h.html#aa7b4f57c1147d738998d109cb41a3803',1,'m_apm.h']]],
-  ['mm_5flog_5fe_5fbase_5f10',['MM_LOG_E_BASE_10',['../d7/ded/m__apm_8h.html#ad0e07e52981608f4f082d2b32bb17ba7',1,'m_apm.h']]],
-  ['mm_5fone',['MM_One',['../d7/ded/m__apm_8h.html#a1e225d3fc19a77fff2ca4abe20cfd2c3',1,'m_apm.h']]],
-  ['mm_5fpi',['MM_PI',['../d7/ded/m__apm_8h.html#a252ac4ba92dfc1b66b25256ac0bae471',1,'m_apm.h']]],
-  ['mm_5ften',['MM_Ten',['../d7/ded/m__apm_8h.html#a5b9e9bade03131d0f0cddfa46a6948ac',1,'m_apm.h']]],
-  ['mm_5fthree',['MM_Three',['../d7/ded/m__apm_8h.html#a372c4d9238a7aa1bc2a57f8aa1ed8a4b',1,'m_apm.h']]],
-  ['mm_5ftwo',['MM_Two',['../d7/ded/m__apm_8h.html#a336fbe8450df154c833be98089728d16',1,'m_apm.h']]],
-  ['mm_5fzero',['MM_Zero',['../d7/ded/m__apm_8h.html#a7b796a1aba6ba760c25ea5bbb3640d06',1,'m_apm.h']]],
   ['mode',['mode',['../d5/d55/struct_p_n_file.html#a958c8378e4a9d5fbc7036f38c07ffb87',1,'PNFile']]]
 ];

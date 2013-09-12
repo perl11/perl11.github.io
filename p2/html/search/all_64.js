@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['data',['data',['../d1/de5/struct_p_n_data.html#aa11cedbc09f0116855d49f016f5ae1bb',1,'PNData::data()'],['../d3/de9/struct_p_n_closure.html#ab36d51f7e487f3101f2a149f3fe1f33a',1,'PNClosure::data()'],['../d2/d49/struct_p_n_weak_ref.html#ab81c2ec49f00f2a170aafca08314d53a',1,'PNWeakRef::data()'],['../dd/dde/struct___g_r_e_g.html#af7c3f5ae5f34b097172b0c2933c48619',1,'_GREG::data()']]],
+  ['data',['data',['../d1/de5/struct_p_n_data.html#aa11cedbc09f0116855d49f016f5ae1bb',1,'PNData::data()'],['../d3/de9/struct_p_n_closure.html#ab36d51f7e487f3101f2a149f3fe1f33a',1,'PNClosure::data()'],['../d2/d49/struct_p_n_weak_ref.html#ab81c2ec49f00f2a170aafca08314d53a',1,'PNWeakRef::data()']]],
   ['dbg_5fc',['DBG_c',['../dd/d07/potion_8h.html#a5b59eb922d6cc7233bd1396065ba0dc9',1,'potion.h']]],
   ['dbg_5fcheck_5ftype',['DBG_CHECK_TYPE',['../dd/d07/potion_8h.html#ad3e30d9b3d9d7a62e879d8c78ee6f026',1,'potion.h']]],
   ['dbg_5fg',['DBG_G',['../d8/d16/gc_8c.html#a0318366fd4d04e58f65c72431ec31a9c',1,'gc.c']]],

@@ -1,25 +1,4 @@
 var searchData=
 [
-  ['yy',['yy',['../df/d2c/syntax_8c.html#a2a88d5ca011c4f28b8cadae9bee7d606',1,'syntax.c']]],
-  ['yy_5faction',['YY_ACTION',['../df/d2c/syntax_8c.html#af44062d62461b502e1a8f81f6c24211d',1,'syntax.c']]],
-  ['yy_5falloc',['YY_ALLOC',['../df/d2c/syntax_8c.html#a8b39561945009349de706e60d832782f',1,'syntax.c']]],
-  ['yy_5fbegin',['YY_BEGIN',['../df/d2c/syntax_8c.html#a2e0ea1be973304d096d7c4cc7a7eb85d',1,'syntax.c']]],
-  ['yy_5fcalloc',['YY_CALLOC',['../df/d2c/syntax_8c.html#a7e10cd0d3532a2dca7897a9ba90331df',1,'syntax.c']]],
-  ['yy_5fdebug',['YY_DEBUG',['../dd/d07/potion_8h.html#a49e8ed7875842b64bc16d5a3acc23e13',1,'potion.h']]],
-  ['yy_5fend',['YY_END',['../df/d2c/syntax_8c.html#aa5146a93dfa269e08b47d3e2ec0a79a5',1,'syntax.c']]],
-  ['yy_5ffree',['YY_FREE',['../df/d2c/syntax_8c.html#a3f5e62de1a5bf3d485294f4f436abeb5',1,'syntax.c']]],
-  ['yy_5finput',['YY_INPUT',['../df/d2c/syntax_8c.html#ab0e12b028f52fde5a7da94f0f57649b9',1,'syntax.c']]],
-  ['yy_5flocal',['YY_LOCAL',['../df/d2c/syntax_8c.html#a1b85c293e79af4870ec85483cabc779c',1,'syntax.c']]],
-  ['yy_5fname',['YY_NAME',['../df/d2c/syntax_8c.html#a62d2c83f877d92d87eebbfe7a5a15c4c',1,'syntax.c']]],
-  ['yy_5fparse',['YY_PARSE',['../df/d2c/syntax_8c.html#a7bb34e1d397aac89cd27f2b1e7981a74',1,'syntax.c']]],
-  ['yy_5frealloc',['YY_REALLOC',['../df/d2c/syntax_8c.html#ac0f38aa7bf62bccfebe4d1e5b321d287',1,'syntax.c']]],
-  ['yy_5frule',['YY_RULE',['../df/d2c/syntax_8c.html#ae0d43cb6fc4c9029792978a1a144e647',1,'syntax.c']]],
-  ['yy_5ftdec',['YY_TDEC',['../df/d2c/syntax_8c.html#addbb544b01dd76eb8864ab254907bbbe',1,'syntax.c']]],
-  ['yy_5ftnum',['YY_TNUM',['../df/d2c/syntax_8c.html#a35ead3efd5f362d2b51d84ecbab2d983',1,'syntax.c']]],
-  ['yy_5fxtype',['YY_XTYPE',['../df/d2c/syntax_8c.html#a7b12dcac5df94f1acf4c4a669887a407',1,'syntax.c']]],
-  ['yy_5fxvar',['YY_XVAR',['../df/d2c/syntax_8c.html#a64528a111eb74c9f256ee00859841d43',1,'syntax.c']]],
-  ['yyaccept',['YYACCEPT',['../df/d2c/syntax_8c.html#aa6c7a65b580c214b2ea832fd7bdd472e',1,'syntax.c']]],
-  ['yyprintf',['yyprintf',['../df/d2c/syntax_8c.html#a996737c3a53baa9924a1f941efcb7d41',1,'syntax.c']]],
-  ['yyrulecount',['YYRULECOUNT',['../df/d2c/syntax_8c.html#a917e4b1be5ef692f7a7a542ca2076308',1,'syntax.c']]],
-  ['yystype',['YYSTYPE',['../df/d2c/syntax_8c.html#a2ceb5b985e149f18e018b142cfdd7264',1,'syntax.c']]]
+  ['yy_5fdebug',['YY_DEBUG',['../dd/d07/potion_8h.html#a49e8ed7875842b64bc16d5a3acc23e13',1,'potion.h']]]
 ];

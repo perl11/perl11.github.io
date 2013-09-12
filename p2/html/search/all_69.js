@@ -1,8 +1,5 @@
 var searchData=
 [
-  ['i',['i',['../df/d2c/syntax_8c.html#a08582ce460e3d5e1cf0b7fea017d608e',1,'i():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a08582ce460e3d5e1cf0b7fea017d608e',1,'i():&#160;syntax.c']]],
-  ['i1',['i1',['../df/d2c/syntax_8c.html#aab37e37b56dcbb737f240cf221754b2f',1,'i1():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aab37e37b56dcbb737f240cf221754b2f',1,'i1():&#160;syntax.c'],['../df/d2c/syntax_8c.html#aab37e37b56dcbb737f240cf221754b2f',1,'i1():&#160;syntax.c']]],
-  ['i2',['i2',['../df/d2c/syntax_8c.html#a9cf49e97bacbfddbfe651a7ecec4631a',1,'i2():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a9cf49e97bacbfddbfe651a7ecec4631a',1,'i2():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a9cf49e97bacbfddbfe651a7ecec4631a',1,'i2():&#160;syntax.c']]],
   ['in_5fbirth_5fregion',['IN_BIRTH_REGION',['../d0/daa/gc_8h.html#ab8fd3625af607e90d2b442fbf93e0cfe',1,'gc.h']]],
   ['in_5folder_5fregion',['IN_OLDER_REGION',['../d0/daa/gc_8h.html#a64e34db85db167d3c36958d429ad0d4e',1,'gc.h']]],
   ['init_5fby_5farray',['init_by_array',['../df/dac/mt19937ar_8c.html#ac1283f9b1ed571332f5ffe53545ffc16',1,'mt19937ar.c']]],

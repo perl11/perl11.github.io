@@ -11,6 +11,5 @@ var searchData=
   ['gc_5fminor_5fupdate',['GC_MINOR_UPDATE',['../d0/daa/gc_8h.html#ae73cff9fd0f2a006ea83b6fa31bcad95',1,'gc.h']]],
   ['gc_5fminor_5fupdate_5ftable',['GC_MINOR_UPDATE_TABLE',['../d0/daa/gc_8h.html#a19df268093a3f880208b5d910016e294',1,'gc.h']]],
   ['gc_5fprotect',['GC_PROTECT',['../db/dde/internal_8h.html#a0fbd98fa0abf7fa3706001773ef56d76',1,'internal.h']]],
-  ['get',['GET',['../dc/d33/table_8c.html#aceadef70aa432003d4797ded0232c54b',1,'table.c']]],
-  ['greg',['GREG',['../df/d2c/syntax_8c.html#a91bc3c46fd1ee5b28860bf9e46b568f5',1,'syntax.c']]]
+  ['get',['GET',['../dc/d33/table_8c.html#aceadef70aa432003d4797ded0232c54b',1,'table.c']]]
 ];

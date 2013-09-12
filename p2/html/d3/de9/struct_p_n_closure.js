@@ -10,5 +10,6 @@ var struct_p_n_closure =
     [ "arity", "d3/de9/struct_p_n_closure.html#aaf0a41ade3f57708c4cf4f02b051dda0", null ],
     [ "minargs", "d3/de9/struct_p_n_closure.html#a42c08849723562c95415d51a3fc3ad45", null ],
     [ "extra", "d3/de9/struct_p_n_closure.html#aaa541be2f4689dc3c61d484bafd0030b", null ],
+    [ "name", "d3/de9/struct_p_n_closure.html#a12094fbe3f8e68d14f0ebeb4ffc5185a", null ],
     [ "data", "d3/de9/struct_p_n_closure.html#ab36d51f7e487f3101f2a149f3fe1f33a", null ]
 ];

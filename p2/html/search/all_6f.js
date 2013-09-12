@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['o',['o',['../df/d2c/syntax_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'o():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'o():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'o():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'o():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'o():&#160;syntax.c']]],
   ['o_5fbinary',['O_BINARY',['../db/dde/internal_8h.html#a36fa9b2e726512bc17a7a6d3e39002be',1,'internal.h']]],
   ['objmodel_2ec',['objmodel.c',['../d4/ddb/objmodel_8c.html',1,'']]],
   ['old_5fcur',['old_cur',['../de/db4/struct_p_n_memory.html#adcc808c0b3deef1a445fbb0be629af31',1,'PNMemory']]],

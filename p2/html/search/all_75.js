@@ -1,7 +1,6 @@
 var searchData=
 [
   ['u8',['u8',['../db/dde/internal_8h.html#aed742c436da53c1080638ce6ef7d13de',1,'internal.h']]],
-  ['uchar',['UCHAR',['../d7/ded/m__apm_8h.html#a4f4bb67531a9bf6f0b9c6ad76aeba587',1,'m_apm.h']]],
   ['umask',['UMASK',['../df/dac/mt19937ar_8c.html#abc83d313581e501ef608cf2bd7db2816',1,'mt19937ar.c']]],
   ['unclosed',['unclosed',['../d2/dcd/struct_potion___state.html#a23a75cc4addbf6d4eefaeddd512b3586',1,'Potion_State']]],
   ['upvals',['upvals',['../d6/d4e/struct_p_n_proto.html#ad85cdcd2010fef66d4be3aa3f508497a',1,'PNProto::upvals()'],['../d6/d06/struct_p_n_target.html#a3882dd45692c248b05355ca70d7e0763',1,'PNTarget::upvals()']]],

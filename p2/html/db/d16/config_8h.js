@@ -16,6 +16,7 @@ var config_8h =
     [ "POTION_JIT_NAME", "db/d16/config_8h.html#a005dc80cef01584875711c0f819badac", null ],
     [ "HAVE_LIBUDIS86", "db/d16/config_8h.html#a8d0f95306939c65004b17c9c93deae04", null ],
     [ "JIT_DEBUG", "db/d16/config_8h.html#af8d4ea267aa62b4f8927741c2d9407d3", null ],
+    [ "HAVE_PCRE", "db/d16/config_8h.html#a3db59589be9be679100b2a21a88572fe", null ],
     [ "DEBUG", "db/d16/config_8h.html#ad72dbcf6d0153db1b8d8a58001feed83", null ],
     [ "POTION_PLATFORM", "db/d16/config_8h.html#a16143015c87bb1afe2508137da21714e", null ],
     [ "POTION_LIBEXT", "db/d16/config_8h.html#a91d4db31b26ba38119062e488992b1e9", null ],

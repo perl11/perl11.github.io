@@ -19,5 +19,6 @@ var struct_p_n_proto =
     [ "upvalsize", "d6/d4e/struct_p_n_proto.html#a2193f711a7393ad8e0b201dacdd5513e", null ],
     [ "asmb", "d6/d4e/struct_p_n_proto.html#a80f9de48a38df7f3f4225850f7256c1d", null ],
     [ "jit", "d6/d4e/struct_p_n_proto.html#a524194e02d51d0dea9aa1617bfc66a12", null ],
-    [ "arity", "d6/d4e/struct_p_n_proto.html#ab8e6594f22921ba8c378e83d4fa59a20", null ]
+    [ "arity", "d6/d4e/struct_p_n_proto.html#ab8e6594f22921ba8c378e83d4fa59a20", null ],
+    [ "name", "d6/d4e/struct_p_n_proto.html#ada1ca004e344ef44d138954f4524fea7", null ]
 ];

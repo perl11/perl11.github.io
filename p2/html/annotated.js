@@ -1,7 +1,5 @@
 var annotated =
 [
-    [ "_GREG", "dd/dde/struct___g_r_e_g.html", "dd/dde/struct___g_r_e_g" ],
-    [ "_yythunk", "df/d3d/struct__yythunk.html", "df/d3d/struct__yythunk" ],
     [ "Aio", "da/d46/class_aio.html", "da/d46/class_aio" ],
     [ "Aio_barrier", "d0/dac/class_aio__barrier.html", null ],
     [ "Aio_check", "da/dae/class_aio__check.html", "da/dae/class_aio__check" ],
@@ -29,7 +27,6 @@ var annotated =
     [ "Aio_work", "d5/d06/class_aio__work.html", null ],
     [ "Aio_write", "d4/d52/class_aio__write.html", null ],
     [ "Lobby", "db/dd7/class_lobby.html", "db/dd7/class_lobby" ],
-    [ "M_APM_struct", "dd/dd1/struct_m___a_p_m__struct.html", "dd/dd1/struct_m___a_p_m__struct" ],
     [ "PN_OP", "d6/d0b/struct_p_n___o_p.html", "d6/d0b/struct_p_n___o_p" ],
     [ "PNArg", "d0/d61/struct_p_n_arg.html", "d0/d61/struct_p_n_arg" ],
     [ "PNAsm", "dc/dbd/struct_p_n_asm.html", "dc/dbd/struct_p_n_asm" ],
