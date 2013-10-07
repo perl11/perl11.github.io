@@ -1,0 +1,949 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>core/vm-x86.c</title>
+<meta name='robots' content='noindex,nofollow' />
+<meta name='generator' content='GLOBAL-6.2.8' />
+<meta http-equiv='Content-Style-Type' content='text/css' />
+<link rel='stylesheet' type='text/css' href='../style.css' />
+</head>
+<body>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/166.html'>core</a>/vm-x86.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L97'>[^]</a><a href='#L841'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<hr />
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L97' title='Defined at 97.'>potion_x86_debug</a></li>
+<li><a href='#L143' title='Defined at 143.'>potion_x86_c_arg</a></li>
+<li><a href='#L232' title='Defined at 232.'>potion_x86_setup</a></li>
+<li><a href='#L237' title='Defined at 237.'>potion_x86_stack</a></li>
+<li><a href='#L250' title='Defined at 250.'>potion_x86_registers</a></li>
+<li><a href='#L266' title='Defined at 266.'>potion_x86_local</a></li>
+<li><a href='#L270' title='Defined at 270.'>potion_x86_upvals</a></li>
+<li><a href='#L280' title='Defined at 280.'>potion_x86_jmpedit</a></li>
+<li><a href='#L284' title='Defined at 284.'>potion_x86_move</a></li>
+<li><a href='#L290' title='Defined at 290.'>potion_x86_loadpn</a></li>
+<li><a href='#L295' title='Defined at 295.'>potion_f_values</a></li>
+<li><a href='#L299' title='Defined at 299.'>potion_x86_loadk</a></li>
+<li><a href='#L311' title='Defined at 311.'>potion_x86_self</a></li>
+<li><a href='#L319' title='Defined at 319.'>potion_x86_getlocal</a></li>
+<li><a href='#L336' title='Defined at 336.'>potion_x86_setlocal</a></li>
+<li><a href='#L354' title='Defined at 354.'>potion_x86_getupval</a></li>
+<li><a href='#L362' title='Defined at 362.'>potion_x86_setupval</a></li>
+<li><a href='#L369' title='Defined at 369.'>potion_x86_global</a></li>
+<li><a href='#L380' title='Defined at 380.'>potion_x86_newtuple</a></li>
+<li><a href='#L388' title='Defined at 388.'>potion_x86_settuple</a></li>
+<li><a href='#L398' title='Defined at 398.'>potion_x86_settable</a></li>
+<li><a href='#L409' title='Defined at 409.'>potion_x86_newlick</a></li>
+<li><a href='#L432' title='Defined at 432.'>potion_x86_getpath</a></li>
+<li><a href='#L442' title='Defined at 442.'>potion_x86_setpath</a></li>
+<li><a href='#L452' title='Defined at 452.'>potion_x86_add</a></li>
+<li><a href='#L459' title='Defined at 459.'>potion_x86_sub</a></li>
+<li><a href='#L467' title='Defined at 467.'>potion_x86_mult</a></li>
+<li><a href='#L477' title='Defined at 477.'>potion_x86_div</a></li>
+<li><a href='#L490' title='Defined at 490.'>potion_x86_rem</a></li>
+<li><a href='#L503' title='Defined at 503.'>potion_x86_pow</a></li>
+<li><a href='#L513' title='Defined at 513.'>potion_x86_neq</a></li>
+<li><a href='#L518' title='Defined at 518.'>potion_x86_eq</a></li>
+<li><a href='#L523' title='Defined at 523.'>potion_x86_lt</a></li>
+<li><a href='#L528' title='Defined at 528.'>potion_x86_lte</a></li>
+<li><a href='#L533' title='Defined at 533.'>potion_x86_gt</a></li>
+<li><a href='#L538' title='Defined at 538.'>potion_x86_gte</a></li>
+<li><a href='#L543' title='Defined at 543.'>potion_x86_bitn</a></li>
+<li><a href='#L551' title='Defined at 551.'>potion_x86_bitl</a></li>
+<li><a href='#L563' title='Defined at 563.'>potion_x86_bitr</a></li>
+<li><a href='#L575' title='Defined at 575.'>potion_x86_def</a></li>
+<li><a href='#L586' title='Defined at 586.'>potion_x86_bind</a></li>
+<li><a href='#L596' title='Defined at 596.'>potion_x86_message</a></li>
+<li><a href='#L606' title='Defined at 606.'>potion_x86_jmp</a></li>
+<li><a href='#L611' title='Defined at 611.'>potion_x86_test_asm</a></li>
+<li><a href='#L623' title='Defined at 623.'>potion_x86_test</a></li>
+<li><a href='#L627' title='Defined at 627.'>potion_x86_not</a></li>
+<li><a href='#L631' title='Defined at 631.'>potion_x86_cmp</a></li>
+<li><a href='#L635' title='Defined at 635.'>potion_x86_testjmp</a></li>
+<li><a href='#L645' title='Defined at 645.'>potion_x86_notjmp</a></li>
+<li><a href='#L656' title='Defined at 656.'>potion_x86_named</a></li>
+<li><a href='#L676' title='Defined at 676.'>potion_x86_call</a></li>
+<li><a href='#L746' title='Defined at 746.'>potion_x86_callset</a></li>
+<li><a href='#L755' title='Defined at 755.'>potion_x86_return</a></li>
+<li><a href='#L760' title='Defined at 760.'>potion_f_protos</a></li>
+<li><a href='#L770' title='Defined at 770.'>potion_x86_method</a></li>
+<li><a href='#L802' title='Defined at 802.'>potion_x86_class</a></li>
+<li><a href='#L812' title='Defined at 812.'>potion_x86_finish</a></li>
+<li><a href='#L815' title='Defined at 815.'>potion_x86_mcache</a></li>
+<li><a href='#L841' title='Defined at 841.'>potion_x86_ivars</a></li>
+</ol>
+<hr />
+<pre>
+<a id='L1' name='L1'></a><em class='comment'>/**\file vm-x86.c</em>
+<a id='L2' name='L2'></a><em class='comment'>the x86 and x86_64 jit.</em>
+<a id='L3' name='L3'></a><em class='comment'>\see core/vm.c and INTERNALS.md</em>
+<a id='L4' name='L4'></a><em class='comment'></em>
+<a id='L5' name='L5'></a><em class='comment'>(c) 2008 why the lucky stiff, the freelance professor</em>
+<a id='L6' name='L6'></a><em class='comment'>(c) 2013 perl11 org</em>
+<a id='L7' name='L7'></a><em class='comment'>*/</em>
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L10' name='L10'></a><em class='sharp'>#include</em> &lt;math.h&gt;
+<a id='L11' name='L11'></a><em class='sharp'>#include</em> "<a href='24.html'>potion.h</a>"
+<a id='L12' name='L12'></a><em class='sharp'>#include</em> "<a href='15.html'>internal.h</a>"
+<a id='L13' name='L13'></a><em class='sharp'>#include</em> "<a href='22.html'>opcodes.h</a>"
+<a id='L14' name='L14'></a><em class='sharp'>#include</em> "<a href='5.html'>asm.h</a>"
+<a id='L15' name='L15'></a><em class='sharp'>#include</em> "<a href='16.html'>khash.h</a>"
+<a id='L16' name='L16'></a><em class='sharp'>#include</em> "<a href='29.html'>table.h</a>"
+<a id='L17' name='L17'></a>
+<a id='L18' name='L18'></a><em class='sharp'>#define</em> <a href='../R/409.html' title='Multiple referred from 30 places.'>RBP</a>(x)  (0x100 - ((x + 1) * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)))
+<a id='L19' name='L19'></a><em class='sharp'>#define</em> RBPI(x) (0x100 - ((x + 1) * <strong class='reserved'>sizeof</strong>(<strong class='reserved'>int</strong>)))
+<a id='L20' name='L20'></a>
+<a id='L21' name='L21'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L22' name='L22'></a><em class='sharp'>#define</em> X86_PRE_T 0
+<a id='L23' name='L23'></a><em class='sharp'>#define</em> <a href='../R/477.html' title='Multiple referred from 85 places.'>X86_PRE</a>()
+<a id='L24' name='L24'></a><em class='sharp'>#define</em> X86_POST()
+<a id='L25' name='L25'></a><em class='sharp'>#define</em> <a href='../R/469.html' title='Multiple referred from 24 places.'>X86C</a>(op32, op64) op32
+<a id='L26' name='L26'></a><em class='sharp'>#else</em>
+<a id='L27' name='L27'></a><em class='sharp'>#define</em> X86_PRE_T 1
+<a id='L28' name='L28'></a><em class='sharp'>#define</em> <a href='../R/477.html' title='Multiple referred from 85 places.'>X86_PRE</a>()  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x48)
+<a id='L29' name='L29'></a><em class='sharp'>#define</em> X86_POST() <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x48); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x98)
+<a id='L30' name='L30'></a><em class='sharp'>#define</em> <a href='../R/469.html' title='Multiple referred from 24 places.'>X86C</a>(op32, op64) op64
+<a id='L31' name='L31'></a><em class='sharp'>#endif</em>
+<a id='L32' name='L32'></a>
+<a id='L33' name='L33'></a><em class='sharp'>#define</em> <a href='../R/476.html' title='Multiple referred from 38 places.'>X86_MOV_RBP</a>(reg, x) \
+<a id='L34' name='L34'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(reg); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(x))
+<a id='L35' name='L35'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L36' name='L36'></a><em class='sharp'># define</em> <a href='../R/475.html' title='Multiple referred from 10 places.'>X86_MOVQ</a>(reg, x) \
+<a id='L37' name='L37'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC7);                      <em class='comment'>/* movl */</em> \
+<a id='L38' name='L38'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(reg));       <em class='comment'>/* -A(%rbp) */</em> \
+<a id='L39' name='L39'></a>        <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>((<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)(x))
+<a id='L40' name='L40'></a><em class='sharp'>#else</em>
+<a id='L41' name='L41'></a><em class='sharp'># define</em> <a href='../R/475.html' title='Multiple referred from 10 places.'>X86_MOVQ</a>(reg, x) \
+<a id='L42' name='L42'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xb8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>((<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)(x));                    <em class='comment'>/* movq x, %rax */</em> \
+<a id='L43' name='L43'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89);                                   <em class='comment'>/* movq */</em> \
+<a id='L44' name='L44'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(reg));                               <em class='comment'>/* %rax, -A(%rbp) */</em>
+<a id='L45' name='L45'></a><em class='sharp'>#endif</em>
+<a id='L46' name='L46'></a><em class='sharp'>#define</em> <a href='../R/474.html' title='Multiple referred from 8 places.'>X86_MATH</a>(two, func, ops) (<em class='brace'>{</em> \
+<a id='L47' name='L47'></a>        <strong class='reserved'>int</strong> asmpos = 0; \
+<a id='L48' name='L48'></a>        <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.a);                                        <em class='comment'>/* mov -A(%rbp) %eax */</em> \
+<a id='L49' name='L49'></a>        <strong class='reserved'>if</strong> (two) <em class='brace'>{</em> <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.b)); <em class='brace'>}</em>   <em class='comment'>/* mov -B(%rbp) %edx */</em> \
+<a id='L50' name='L50'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF6); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01);                                <em class='comment'>/* test 0x1 %al */</em> \
+<a id='L51' name='L51'></a>        asmpos = (*asmp)-&gt;len; \
+<a id='L52' name='L52'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0);                                              <em class='comment'>/* je [a] */</em> \
+<a id='L53' name='L53'></a>        <strong class='reserved'>if</strong> (two) <em class='brace'>{</em> <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF6); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01);                     <em class='comment'>/* test 0x1 %dl */</em> <em class='brace'>}</em> \
+<a id='L54' name='L54'></a>        <strong class='reserved'>if</strong> (two) <em class='brace'>{</em> <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0);                                   <em class='comment'>/* je [a] */</em> <em class='brace'>}</em> \
+<a id='L55' name='L55'></a>        ops; <em class='comment'>/* add, sub, ... */</em> \
+<a id='L56' name='L56'></a>        (*asmp)-&gt;ptr[asmpos + 1] = ((*asmp)-&gt;len - asmpos); \
+<a id='L57' name='L57'></a>        <strong class='reserved'>if</strong> (two) <em class='brace'>{</em> (*asmp)-&gt;ptr[asmpos + 6] = ((*asmp)-&gt;len - asmpos) - 5; <em class='brace'>}</em> \
+<a id='L58' name='L58'></a>        asmpos = (*asmp)-&gt;len; \
+<a id='L59' name='L59'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEB); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0);                                              <em class='comment'>/*  jmp [b] */</em> \
+<a id='L60' name='L60'></a>        <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                                    <em class='comment'>/* [a]: mov &amp;P  0(%esp) */</em> \
+<a id='L61' name='L61'></a>        <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);                                              <em class='comment'>/* mov &amp;CL 1(%esp) */</em> \
+<a id='L62' name='L62'></a>        <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 2);                                              <em class='comment'>/* mov B   2(%esp) */</em> \
+<a id='L63' name='L63'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(func);                               <em class='comment'>/* mov &amp;func %rax */</em> \
+<a id='L64' name='L64'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                                           <em class='comment'>/* callq %rax */</em> \
+<a id='L65' name='L65'></a>        (*asmp)-&gt;ptr[asmpos + 1] = ((*asmp)-&gt;len - asmpos) - 2; \
+<a id='L66' name='L66'></a>        <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                                        <em class='comment'>/* mov -B(%rbp) %eax */</em> \
+<a id='L67' name='L67'></a><em class='brace'>}</em>)
+<a id='L68' name='L68'></a><em class='sharp'>#define</em> <a href='../R/473.html' title='Multiple referred from 6 places.'>X86_CMP</a>(ops) \
+<a id='L69' name='L69'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));<em class='comment'>/* mov -A(%rbp) %edx */</em> \
+<a id='L70' name='L70'></a>        <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.b);                        <em class='comment'>/* mov -B(%rbp) %eax */</em> \
+<a id='L71' name='L71'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x39); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);                <em class='comment'>/* cmp %rax %rdx */</em> \
+<a id='L72' name='L72'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(ops); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(9, 16));                     <em class='comment'>/* jle +10 */</em> \
+<a id='L73' name='L73'></a>        <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, <a href='../S/24.html#L142' title='Defined at 142 in core/potion.h.'>PN_TRUE</a>);                        <em class='comment'>/* -A(%rbp) = TRUE */</em> \
+<a id='L74' name='L74'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEB); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(7, 14));                    <em class='comment'>/* jmp +7 */</em> \
+<a id='L75' name='L75'></a>        <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, <a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>)                        <em class='comment'>/* -A(%rbp) = FALSE */</em>
+<a id='L76' name='L76'></a><em class='sharp'>#define</em> <a href='../R/471.html' title='Multiple referred from 62 places.'>X86_ARGO</a>(regn, argn) <a href='../S/33.html#L143' title='Defined at 143 in core/vm-x86.c.'>potion_x86_c_arg</a>(P, asmp, 1, regn, argn)
+<a id='L77' name='L77'></a><em class='sharp'>#define</em> <a href='../S/33.html#L739' title='Referred from 739 in core/vm-x86.c.'>X86_ARGO_IMM</a>(regn, argn) <a href='../S/33.html#L143' title='Defined at 143 in core/vm-x86.c.'>potion_x86_c_arg</a>(P, asmp, 2, regn, argn)
+<a id='L78' name='L78'></a><em class='sharp'>#define</em> <a href='../R/470.html' title='Multiple referred from 5 places.'>X86_ARGI</a>(regn, argn) <a href='../S/33.html#L143' title='Defined at 143 in core/vm-x86.c.'>potion_x86_c_arg</a>(P, asmp, 0, regn, argn)
+<a id='L79' name='L79'></a><em class='sharp'>#define</em> <a href='../R/455.html' title='Multiple referred from 6 places.'>TAG_JMP</a>(jpos) \
+<a id='L80' name='L80'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE9); \
+<a id='L81' name='L81'></a>        <strong class='reserved'>if</strong> ((<strong class='reserved'>int</strong>)jpos &gt;= (<strong class='reserved'>int</strong>)pos) <em class='brace'>{</em> \
+<a id='L82' name='L82'></a>          jmps[*jmpc].from = asmp[0]-&gt;len; \
+<a id='L83' name='L83'></a>          <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(0); \
+<a id='L84' name='L84'></a>          jmps[*jmpc].to = jpos + 1; \
+<a id='L85' name='L85'></a>          *jmpc = *jmpc + 1; \
+<a id='L86' name='L86'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> ((<strong class='reserved'>int</strong>)jpos &lt; (<strong class='reserved'>int</strong>)pos) <em class='brace'>{</em> \
+<a id='L87' name='L87'></a>          <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(offs[jpos + 1] - ((asmp[0]-&gt;len) + 4)); \
+<a id='L88' name='L88'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> \
+<a id='L89' name='L89'></a>          <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(0); \
+<a id='L90' name='L90'></a>        <em class='brace'>}</em>
+<a id='L91' name='L91'></a>
+<a id='L92' name='L92'></a><em class='sharp'>#define</em> X86_DEBUG() \
+<a id='L93' name='L93'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/33.html#L97' title='Defined at 97 in core/vm-x86.c.'>potion_x86_debug</a>); \
+<a id='L94' name='L94'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0)
+<a id='L95' name='L95'></a>
+<a id='L96' name='L96'></a><em class='comment'>// TODO: finish jit backtraces using this</em>
+<a id='L97' name='L97'></a><strong class='reserved'>void</strong> <a href='../S/33.html#L93' title='Referred from 93 in core/vm-x86.c.'>potion_x86_debug</a>() <em class='brace'>{</em>
+<a id='L98' name='L98'></a>  <a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P;
+<a id='L99' name='L99'></a>  <strong class='reserved'>int</strong> n = 0;
+<a id='L100' name='L100'></a>  <a href='../S/24.html#L78' title='Defined at 78 in core/potion.h.'>_PN</a> rax, *rbp, *sp;
+<a id='L101' name='L101'></a>
+<a id='L102' name='L102'></a><em class='sharp'>#if</em> <a href='../S/24.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a> == POTION_JIT_TARGET
+<a id='L103' name='L103'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L104' name='L104'></a>  <strong class='reserved'>__asm__</strong> ("mov %%eax, %0;"
+<a id='L105' name='L105'></a><em class='sharp'>#else</em>
+<a id='L106' name='L106'></a>  <strong class='reserved'>__asm__</strong> ("mov %%rax, %0;"
+<a id='L107' name='L107'></a><em class='sharp'>#endif</em>
+<a id='L108' name='L108'></a>           :"=r"(rax)
+<a id='L109' name='L109'></a>          );
+<a id='L110' name='L110'></a>
+<a id='L111' name='L111'></a>  printf("RAX = %lx (%u)\n", rax, <a href='../S/24.html#L470' title='Defined at 470 in core/potion.h.'>potion_type</a>(rax));
+<a id='L112' name='L112'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L113' name='L113'></a>  <strong class='reserved'>__asm__</strong> ("mov %%ebp, %0;"
+<a id='L114' name='L114'></a><em class='sharp'>#else</em>
+<a id='L115' name='L115'></a>  <strong class='reserved'>__asm__</strong> ("mov %%rbp, %0;"
+<a id='L116' name='L116'></a><em class='sharp'>#endif</em>
+<a id='L117' name='L117'></a>           :"=r"(sp)
+<a id='L118' name='L118'></a>          );
+<a id='L119' name='L119'></a><em class='sharp'>#endif</em>
+<a id='L120' name='L120'></a>
+<a id='L121' name='L121'></a>  P = (<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *)sp[2];
+<a id='L122' name='L122'></a>  printf("Potion: %p (%p)\n", P, &amp;P);
+<a id='L123' name='L123'></a>
+<a id='L124' name='L124'></a>again:
+<a id='L125' name='L125'></a>  n = 0;
+<a id='L126' name='L126'></a>  rbp = (<strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong> *)*sp;
+<a id='L127' name='L127'></a>  <strong class='reserved'>if</strong> (rbp &gt; sp - 2 &amp;&amp; sp[2] == (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)P) <em class='brace'>{</em>
+<a id='L128' name='L128'></a>    printf("RBP = %lx (%lx), SP = %lx\n", (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)rbp, *rbp, (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp);
+<a id='L129' name='L129'></a>    <strong class='reserved'>while</strong> (sp &lt; rbp) <em class='brace'>{</em>
+<a id='L130' name='L130'></a>      printf("STACK[%d] = %lx\n", n++, *sp);
+<a id='L131' name='L131'></a>      sp++;
+<a id='L132' name='L132'></a>    <em class='brace'>}</em>
+<a id='L133' name='L133'></a>    <strong class='reserved'>goto</strong> again;
+<a id='L134' name='L134'></a>  <em class='brace'>}</em>
+<a id='L135' name='L135'></a><em class='brace'>}</em>
+<a id='L136' name='L136'></a>
+<a id='L137' name='L137'></a><em class='comment'>/** mimick c calling convention</em>
+<a id='L138' name='L138'></a><em class='comment'>  \see http://en.wikipedia.org/wiki/X86_calling_conventions</em>
+<a id='L139' name='L139'></a><em class='comment'>  \param asmp: jit buffer</em>
+<a id='L140' name='L140'></a><em class='comment'>  \param out: 1 out-param only, 2 out+immediate, 0 in-param also</em>
+<a id='L141' name='L141'></a><em class='comment'>  \param regn: value (usually indirect stack ptr, relative to ebp)</em>
+<a id='L142' name='L142'></a><em class='comment'>  \param argn: argument index (0-5 in regs on 64bit) */</em>
+<a id='L143' name='L143'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/912.html' title='Multiple referred from 3 places.'>potion_x86_c_arg</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>int</strong> out, <strong class='reserved'>int</strong> regn, <strong class='reserved'>int</strong> argn) <em class='brace'>{</em>
+<a id='L144' name='L144'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L145' name='L145'></a>    <em class='comment'>// IA-32 cdecl ABI, non-microsoft only. TODO: win32 stdcall for the w32api ffi</em>
+<a id='L146' name='L146'></a>    <strong class='reserved'>if</strong> (argn == 0) <em class='brace'>{</em>
+<a id='L147' name='L147'></a>      <em class='comment'>// OPT: the first argument is always (Potion *)</em>
+<a id='L148' name='L148'></a>      <strong class='reserved'>if</strong> (!out) <em class='brace'>{</em>
+<a id='L149' name='L149'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8b); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(2 * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>));
+<a id='L150' name='L150'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x14); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x24);
+<a id='L151' name='L151'></a>      <em class='brace'>}</em>
+<a id='L152' name='L152'></a>    <em class='brace'>}</em>
+<a id='L153' name='L153'></a>    <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L154' name='L154'></a>      <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em>
+<a id='L155' name='L155'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x24); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(argn * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn); <em class='comment'>//mov $regn, argn(%esp)</em>
+<a id='L156' name='L156'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (out) <em class='brace'>{</em>
+<a id='L157' name='L157'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8b); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn)); <em class='comment'>//mov -0x8(%ebp), %edx</em>
+<a id='L158' name='L158'></a>      <em class='brace'>}</em>
+<a id='L159' name='L159'></a>      <strong class='reserved'>if</strong> (!out) argn += 2;
+<a id='L160' name='L160'></a>      <strong class='reserved'>if</strong> (out == 1) <em class='brace'>{</em>
+<a id='L161' name='L161'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x54); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x24); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(argn * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)); <em class='comment'>//mov %edx, argn(%esp)</em>
+<a id='L162' name='L162'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (!out) <em class='brace'>{</em>
+<a id='L163' name='L163'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8b); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(argn * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>));
+<a id='L164' name='L164'></a>      <em class='brace'>}</em>
+<a id='L165' name='L165'></a>      <strong class='reserved'>if</strong> (!out) <em class='brace'>{</em>
+<a id='L166' name='L166'></a>        <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L167' name='L167'></a>      <em class='brace'>}</em>
+<a id='L168' name='L168'></a>    <em class='brace'>}</em>
+<a id='L169' name='L169'></a><em class='sharp'>#else</em>
+<a id='L170' name='L170'></a>  <em class='comment'>// sysv amd64 only (rdi,rsi,rdx,rcx,r8,r9), windows msvc not supported (rcx,rdx,r8,r9)</em>
+<a id='L171' name='L171'></a>  <em class='comment'>// xmm0-7 not yet</em>
+<a id='L172' name='L172'></a>  <strong class='reserved'>switch</strong> (argn) <em class='brace'>{</em>
+<a id='L173' name='L173'></a>  <strong class='reserved'>case</strong> 0: <em class='comment'>//rdi Potion *P</em>
+<a id='L174' name='L174'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// unused - mov $regn, %rdi</em>
+<a id='L175' name='L175'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L176' name='L176'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %rdi</em>
+<a id='L177' name='L177'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x7d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L178' name='L178'></a>    <em class='brace'>}</em>
+<a id='L179' name='L179'></a>    <strong class='reserved'>break</strong>;
+<a id='L180' name='L180'></a>  <strong class='reserved'>case</strong> 1: <em class='comment'>//rsi PN cl</em>
+<a id='L181' name='L181'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// unused - mov $regn, %rsi</em>
+<a id='L182' name='L182'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc6); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L183' name='L183'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %rsi</em>
+<a id='L184' name='L184'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L185' name='L185'></a>    <em class='brace'>}</em>
+<a id='L186' name='L186'></a>    <strong class='reserved'>break</strong>;
+<a id='L187' name='L187'></a>  <strong class='reserved'>case</strong> 2: <em class='comment'>//rdx self</em>
+<a id='L188' name='L188'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// unused - mov $regn, %rdx</em>
+<a id='L189' name='L189'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc2); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L190' name='L190'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %rdx</em>
+<a id='L191' name='L191'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L192' name='L192'></a>    <em class='brace'>}</em>
+<a id='L193' name='L193'></a>    <strong class='reserved'>break</strong>;
+<a id='L194' name='L194'></a>  <strong class='reserved'>case</strong> 3: <em class='comment'>//rcx</em>
+<a id='L195' name='L195'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// 1st default arg - mov $regn, %rcx</em>
+<a id='L196' name='L196'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc1); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L197' name='L197'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %rcx</em>
+<a id='L198' name='L198'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x4d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L199' name='L199'></a>    <em class='brace'>}</em>
+<a id='L200' name='L200'></a>    <strong class='reserved'>break</strong>;
+<a id='L201' name='L201'></a>  <strong class='reserved'>case</strong> 4: <em class='comment'>//r8</em>
+<a id='L202' name='L202'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// 2nd default arg - mov $regn, %r8</em>
+<a id='L203' name='L203'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x49); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc0); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L204' name='L204'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %r8</em>
+<a id='L205' name='L205'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x4c); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L206' name='L206'></a>    <em class='brace'>}</em>
+<a id='L207' name='L207'></a>    <strong class='reserved'>break</strong>;
+<a id='L208' name='L208'></a>  <strong class='reserved'>case</strong> 5: <em class='comment'>//r9</em>
+<a id='L209' name='L209'></a>    <strong class='reserved'>if</strong> (out == 2) <em class='brace'>{</em> <em class='comment'>// 3rd default arg - mov $regn, %r9</em>
+<a id='L210' name='L210'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x49); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xc1); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(regn);
+<a id='L211' name='L211'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em> <em class='comment'>// mov -regn(%rbp), %r9</em>
+<a id='L212' name='L212'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x4c); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(out ? 0x8b : 0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x4d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn));
+<a id='L213' name='L213'></a>    <em class='brace'>}</em>
+<a id='L214' name='L214'></a>    <strong class='reserved'>break</strong>;
+<a id='L215' name='L215'></a>    <strong class='reserved'>default</strong>: <em class='comment'>// can only pass max 6 arg via regs, rest on stack</em>
+<a id='L216' name='L216'></a>      <strong class='reserved'>if</strong> (out) <em class='brace'>{</em>
+<a id='L217' name='L217'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn)); <em class='comment'>// mov %rbp(A) %rbx</em>
+<a id='L218' name='L218'></a>        <strong class='reserved'>if</strong> (argn == 6) <em class='brace'>{</em>
+<a id='L219' name='L219'></a>          <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x1c); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x24);    <em class='comment'>// mov %rbx (%rsp)</em>
+<a id='L220' name='L220'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L221' name='L221'></a>          <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5c); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x24); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>((argn - 6) * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)); <em class='comment'>// mov %rbx N(%rsp)</em>
+<a id='L222' name='L222'></a>        <em class='brace'>}</em>
+<a id='L223' name='L223'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L224' name='L224'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8b); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>((argn - 4) * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>));
+<a id='L225' name='L225'></a>        <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5d); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regn)); <em class='comment'>// mov %rbp(A) %rbx</em>
+<a id='L226' name='L226'></a>      <em class='brace'>}</em>
+<a id='L227' name='L227'></a>    <strong class='reserved'>break</strong>;
+<a id='L228' name='L228'></a>  <em class='brace'>}</em>
+<a id='L229' name='L229'></a><em class='sharp'>#endif</em>
+<a id='L230' name='L230'></a><em class='brace'>}</em>
+<a id='L231' name='L231'></a>
+<a id='L232' name='L232'></a><strong class='reserved'>void</strong> potion_x86_setup(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp) <em class='brace'>{</em>
+<a id='L233' name='L233'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55);                            <em class='comment'>// push %rbp</em>
+<a id='L234' name='L234'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE5);      <em class='comment'>// mov %rsp,%rbp</em>
+<a id='L235' name='L235'></a><em class='brace'>}</em>
+<a id='L236' name='L236'></a>
+<a id='L237' name='L237'></a><strong class='reserved'>void</strong> potion_x86_stack(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>long</strong> need) <em class='brace'>{</em>
+<a id='L238' name='L238'></a>  <em class='comment'>/* maintain 16-byte stack alignment.  OS X in particular requires it, because</em>
+<a id='L239' name='L239'></a><em class='comment'>   * it expects to be able to use movdqa on things on the stack.</em>
+<a id='L240' name='L240'></a><em class='comment'>   * we factor in the offset from our saved ebp and return address, so that</em>
+<a id='L241' name='L241'></a><em class='comment'>   * adds 8 for x86 and 0 (mod 16) for x86_64.  */</em>
+<a id='L242' name='L242'></a>  <strong class='reserved'>int</strong> rsp = <a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(16,0)+((need-<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(8,0)+15)&amp;~(15));
+<a id='L243' name='L243'></a>  <strong class='reserved'>if</strong> (rsp &gt;= 0x80) <em class='brace'>{</em>
+<a id='L244' name='L244'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEC); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(rsp); <em class='comment'>// sub rsp, %esp</em>
+<a id='L245' name='L245'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L246' name='L246'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x83); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEC); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(rsp);  <em class='comment'>// sub rsp, %esp</em>
+<a id='L247' name='L247'></a>  <em class='brace'>}</em>
+<a id='L248' name='L248'></a><em class='brace'>}</em>
+<a id='L249' name='L249'></a>
+<a id='L250' name='L250'></a><strong class='reserved'>void</strong> potion_x86_registers(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L251' name='L251'></a>  <a href='../S/5.html#L87' title='Defined at 87 in core/asm.h.'>PN_HAS_UPVALS</a>(up);
+<a id='L252' name='L252'></a>  <em class='comment'>// (Potion *, self) in the first argument slot, self in the first register </em>
+<a id='L253' name='L253'></a>  <a href='../S/33.html#L78' title='Defined at 78 in core/vm-x86.c.'>X86_ARGI</a>(start - 3, 0);
+<a id='L254' name='L254'></a>  <a href='../S/33.html#L78' title='Defined at 78 in core/vm-x86.c.'>X86_ARGI</a>(start - 2, 1);
+<a id='L255' name='L255'></a>  <a href='../S/33.html#L78' title='Defined at 78 in core/vm-x86.c.'>X86_ARGI</a>(start - 1, 2);
+<a id='L256' name='L256'></a>  <a href='../S/33.html#L78' title='Defined at 78 in core/vm-x86.c.'>X86_ARGI</a>(0, 2);
+<a id='L257' name='L257'></a>  <em class='comment'>// empty locals, since use of setlocal requires something there</em>
+<a id='L258' name='L258'></a>  <strong class='reserved'>if</strong> (up) <em class='brace'>{</em>
+<a id='L259' name='L259'></a>    <strong class='reserved'>int</strong> argx = 0, regs = <a href='../S/24.html#L174' title='Defined at 174 in core/potion.h.'>PN_INT</a>(f-&gt;stack);
+<a id='L260' name='L260'></a>    <strong class='reserved'>for</strong> (argx = 0; argx &lt; <a href='../S/24.html#L230' title='Defined at 230 in core/potion.h.'>PN_TUPLE_LEN</a>(f-&gt;locals); argx++) <em class='brace'>{</em>
+<a id='L261' name='L261'></a>      <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(regs + argx, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L262' name='L262'></a>    <em class='brace'>}</em>
+<a id='L263' name='L263'></a>  <em class='brace'>}</em>
+<a id='L264' name='L264'></a><em class='brace'>}</em>
+<a id='L265' name='L265'></a>
+<a id='L266' name='L266'></a><strong class='reserved'>void</strong> potion_x86_local(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>long</strong> reg, <strong class='reserved'>long</strong> arg) <em class='brace'>{</em>
+<a id='L267' name='L267'></a>  <a href='../S/33.html#L78' title='Defined at 78 in core/vm-x86.c.'>X86_ARGI</a>(reg, 3 + arg);
+<a id='L268' name='L268'></a><em class='brace'>}</em>
+<a id='L269' name='L269'></a>
+<a id='L270' name='L270'></a><strong class='reserved'>void</strong> potion_x86_upvals(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>long</strong> lregs, <strong class='reserved'>long</strong> start, <strong class='reserved'>int</strong> upc) <em class='brace'>{</em>
+<a id='L271' name='L271'></a>  <strong class='reserved'>int</strong> upi;
+<a id='L272' name='L272'></a>  <strong class='reserved'>for</strong> (upi = 0; upi &lt; upc; upi++) <em class='brace'>{</em>
+<a id='L273' name='L273'></a>    <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, start - 2);
+<a id='L274' name='L274'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x40);
+<a id='L275' name='L275'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L335' title='Defined at 335 in core/potion.h.'>PNClosure</a>) + ((upi + 1) * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>))); <em class='comment'>// 0x30(%rax)</em>
+<a id='L276' name='L276'></a>    <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, lregs + upi);
+<a id='L277' name='L277'></a>  <em class='brace'>}</em>
+<a id='L278' name='L278'></a><em class='brace'>}</em>
+<a id='L279' name='L279'></a>
+<a id='L280' name='L280'></a><strong class='reserved'>void</strong> potion_x86_jmpedit(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong> *asmj, <strong class='reserved'>int</strong> dist) <em class='brace'>{</em>
+<a id='L281' name='L281'></a>  *((<strong class='reserved'>int</strong> *)asmj) = dist;
+<a id='L282' name='L282'></a><em class='brace'>}</em>
+<a id='L283' name='L283'></a>
+<a id='L284' name='L284'></a><strong class='reserved'>void</strong> potion_x86_move(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L285' name='L285'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L286' name='L286'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.b);
+<a id='L287' name='L287'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);
+<a id='L288' name='L288'></a><em class='brace'>}</em>
+<a id='L289' name='L289'></a>
+<a id='L290' name='L290'></a><strong class='reserved'>void</strong> potion_x86_loadpn(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L291' name='L291'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L292' name='L292'></a>  <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, op.b);
+<a id='L293' name='L293'></a><em class='brace'>}</em>
+<a id='L294' name='L294'></a>
+<a id='L295' name='L295'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/33.html#L303' title='Referred from 303 in core/vm-x86.c.'>potion_f_values</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl) <em class='brace'>{</em>
+<a id='L296' name='L296'></a>  <strong class='reserved'>return</strong> <a href='../S/24.html#L489' title='Defined at 489 in core/potion.h.'>potion_fwd</a>(<a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(<a href='../S/24.html#L184' title='Defined at 184 in core/potion.h.'>PN_CLOSURE</a>(cl)-&gt;data[0])-&gt;values);
+<a id='L297' name='L297'></a><em class='brace'>}</em>
+<a id='L298' name='L298'></a>
+<a id='L299' name='L299'></a><strong class='reserved'>void</strong> potion_x86_loadk(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L300' name='L300'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L301' name='L301'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L302' name='L302'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 2, 1);
+<a id='L303' name='L303'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/33.html#L295' title='Defined at 295 in core/vm-x86.c.'>potion_f_values</a>);          <em class='comment'>// mov &amp;potion_f_values %rax</em>
+<a id='L304' name='L304'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                                 <em class='comment'>// callq %rax</em>
+<a id='L305' name='L305'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x05); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L416' title='Defined at 416 in core/potion.h.'>PNTuple</a>)
+<a id='L306' name='L306'></a>                             + (op.b * <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)));    <em class='comment'>// add N,%rax</em>
+<a id='L307' name='L307'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0);                         <em class='comment'>// mov (%rax) %rax</em>
+<a id='L308' name='L308'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);
+<a id='L309' name='L309'></a><em class='brace'>}</em>
+<a id='L310' name='L310'></a>
+<a id='L311' name='L311'></a><strong class='reserved'>void</strong> potion_x86_self(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L312' name='L312'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L313' name='L313'></a>  <em class='comment'>// TODO: optimize so that if this is followed by a BIND or MSG, it'll just</em>
+<a id='L314' name='L314'></a>  <em class='comment'>// use the self register directly.</em>
+<a id='L315' name='L315'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, start - 1);
+<a id='L316' name='L316'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);
+<a id='L317' name='L317'></a><em class='brace'>}</em>
+<a id='L318' name='L318'></a>
+<a id='L319' name='L319'></a><strong class='reserved'>void</strong> potion_x86_getlocal(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> regs) <em class='brace'>{</em>
+<a id='L320' name='L320'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L321' name='L321'></a>  <a href='../S/5.html#L87' title='Defined at 87 in core/asm.h.'>PN_HAS_UPVALS</a>(up);
+<a id='L322' name='L322'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, regs + op.b);               <em class='comment'>// mov %rsp(B) %rax</em>
+<a id='L323' name='L323'></a>  <strong class='reserved'>if</strong> (up) <em class='brace'>{</em>
+<a id='L324' name='L324'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF6); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01);            <em class='comment'>// test 0x1 %al</em>
+<a id='L325' name='L325'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(19, 20));               <em class='comment'>// jnz [b]</em>
+<a id='L326' name='L326'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L144' title='Defined at 144 in core/potion.h.'>PN_REF_MASK</a>);    <em class='comment'>// test REFMASK %eax</em>
+<a id='L327' name='L327'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(11, 12));               <em class='comment'>// jz [b]</em>
+<a id='L328' name='L328'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x38); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L112' title='Defined at 112 in core/potion.h.'>PN_TWEAK</a>);       <em class='comment'>// cmpq WEAK (%rax)</em>
+<a id='L329' name='L329'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(3, 4));                 <em class='comment'>// jnz [a]</em>
+<a id='L330' name='L330'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x40);
+<a id='L331' name='L331'></a>               <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L259' title='Defined at 259 in core/potion.h.'>PNObject</a>));    <em class='comment'>// mov N(%rax) %rax</em>
+<a id='L332' name='L332'></a>  <em class='brace'>}</em>
+<a id='L333' name='L333'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                 <em class='comment'>// [a]: mov %rax %rsp(A)</em>
+<a id='L334' name='L334'></a><em class='brace'>}</em>
+<a id='L335' name='L335'></a>
+<a id='L336' name='L336'></a><strong class='reserved'>void</strong> potion_x86_setlocal(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> regs) <em class='brace'>{</em>
+<a id='L337' name='L337'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L338' name='L338'></a>  <a href='../S/5.html#L87' title='Defined at 87 in core/asm.h.'>PN_HAS_UPVALS</a>(up);
+<a id='L339' name='L339'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %rsp(A) %rdx</em>
+<a id='L340' name='L340'></a>  <strong class='reserved'>if</strong> (up) <em class='brace'>{</em>
+<a id='L341' name='L341'></a>    <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, regs + op.b);                     <em class='comment'>// mov %rsp(B) %rax</em>
+<a id='L342' name='L342'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF6); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01);                    <em class='comment'>// test 0x1 %al</em>
+<a id='L343' name='L343'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(19, 20));                       <em class='comment'>// jnz [b]</em>
+<a id='L344' name='L344'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L144' title='Defined at 144 in core/potion.h.'>PN_REF_MASK</a>);            <em class='comment'>// test REFMASK %eax</em>
+<a id='L345' name='L345'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(11, 12));                       <em class='comment'>// jz [b]</em>
+<a id='L346' name='L346'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x38); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L112' title='Defined at 112 in core/potion.h.'>PN_TWEAK</a>);               <em class='comment'>// cmpq WEAK (%rax)</em>
+<a id='L347' name='L347'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(3, 4));                         <em class='comment'>// jnz [a]</em>
+<a id='L348' name='L348'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x50);
+<a id='L349' name='L349'></a>               <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L259' title='Defined at 259 in core/potion.h.'>PNObject</a>));            <em class='comment'>// mov N(%rax) %rax</em>
+<a id='L350' name='L350'></a>  <em class='brace'>}</em>
+<a id='L351' name='L351'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(regs + op.b)); <em class='comment'>// mov %rdx %rsp(B)</em>
+<a id='L352' name='L352'></a><em class='brace'>}</em>
+<a id='L353' name='L353'></a>
+<a id='L354' name='L354'></a><strong class='reserved'>void</strong> potion_x86_getupval(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> lregs) <em class='brace'>{</em>
+<a id='L355' name='L355'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L356' name='L356'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, lregs + op.b);
+<a id='L357' name='L357'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x40); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L259' title='Defined at 259 in core/potion.h.'>PNObject</a>));
+<a id='L358' name='L358'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);
+<a id='L359' name='L359'></a><em class='brace'>}</em>
+<a id='L360' name='L360'></a>
+<a id='L361' name='L361'></a><em class='comment'>// TODO: place the upval in the write barrier (or have stack scanning handle weak refs)</em>
+<a id='L362' name='L362'></a><strong class='reserved'>void</strong> potion_x86_setupval(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> lregs) <em class='brace'>{</em>
+<a id='L363' name='L363'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L364' name='L364'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));              <em class='comment'>// mov -A(%rbp) %edx</em>
+<a id='L365' name='L365'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, lregs + op.b);                              <em class='comment'>// mov %rsp(B) %rax</em>
+<a id='L366' name='L366'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x50); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L259' title='Defined at 259 in core/potion.h.'>PNObject</a>));<em class='comment'>// mov %rdx %rax.data</em>
+<a id='L367' name='L367'></a><em class='brace'>}</em>
+<a id='L368' name='L368'></a>
+<a id='L369' name='L369'></a><strong class='reserved'>void</strong> potion_x86_global(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L370' name='L370'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L371' name='L371'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L372' name='L372'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);
+<a id='L373' name='L373'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 2);
+<a id='L374' name='L374'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L491' title='Defined at 491 in core/objmodel.c.'>potion_define_global</a>);
+<a id='L375' name='L375'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);
+<a id='L376' name='L376'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.b);                              <em class='comment'>// mov -B(%rbp) %eax</em>
+<a id='L377' name='L377'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %eax -A(%rbp)</em>
+<a id='L378' name='L378'></a><em class='brace'>}</em>
+<a id='L379' name='L379'></a>
+<a id='L380' name='L380'></a><strong class='reserved'>void</strong> potion_x86_newtuple(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L381' name='L381'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L382' name='L382'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L383' name='L383'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/28.html#L135' title='Defined at 135 in core/table.c.'>potion_tuple_empty</a>);<em class='comment'>// mov &amp;potion_tuple_empty %rax</em>
+<a id='L384' name='L384'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                          <em class='comment'>// callq %rax</em>
+<a id='L385' name='L385'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                       <em class='comment'>// mov %rax local</em>
+<a id='L386' name='L386'></a><em class='brace'>}</em>
+<a id='L387' name='L387'></a>
+<a id='L388' name='L388'></a><strong class='reserved'>void</strong> potion_x86_settuple(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L389' name='L389'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L390' name='L390'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L391' name='L391'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);
+<a id='L392' name='L392'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 2);
+<a id='L393' name='L393'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/28.html#L151' title='Defined at 151 in core/table.c.'>potion_tuple_push</a>);<em class='comment'>// mov &amp;potion_tuple_push %rax</em>
+<a id='L394' name='L394'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L395' name='L395'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L396' name='L396'></a><em class='brace'>}</em>
+<a id='L397' name='L397'></a>
+<a id='L398' name='L398'></a><strong class='reserved'>void</strong> potion_x86_settable(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L399' name='L399'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L400' name='L400'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L401' name='L401'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);
+<a id='L402' name='L402'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a + 1, 2);
+<a id='L403' name='L403'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 3);
+<a id='L404' name='L404'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/28.html#L115' title='Defined at 115 in core/table.c.'>potion_table_set</a>); <em class='comment'>// mov &amp;potion_table_set %rax</em>
+<a id='L405' name='L405'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L406' name='L406'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L407' name='L407'></a><em class='brace'>}</em>
+<a id='L408' name='L408'></a>
+<a id='L409' name='L409'></a><strong class='reserved'>void</strong> potion_x86_newlick(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L410' name='L410'></a>  <strong class='reserved'>int</strong> nnil = 0;
+<a id='L411' name='L411'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L412' name='L412'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L413' name='L413'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);
+<a id='L414' name='L414'></a>  <strong class='reserved'>if</strong> (op.b &gt; op.a) <em class='brace'>{</em>
+<a id='L415' name='L415'></a>    <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a + 1, 2);
+<a id='L416' name='L416'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L417' name='L417'></a>    nnil = 1;
+<a id='L418' name='L418'></a>    <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L419' name='L419'></a>    <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L420' name='L420'></a>  <em class='brace'>}</em>
+<a id='L421' name='L421'></a>  <strong class='reserved'>if</strong> (op.b &gt; op.a + 1) <em class='brace'>{</em>
+<a id='L422' name='L422'></a>    <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 3);
+<a id='L423' name='L423'></a>  <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L424' name='L424'></a>    <strong class='reserved'>if</strong> (!nnil) <em class='brace'>{</em> <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>); <em class='brace'>}</em>
+<a id='L425' name='L425'></a>    <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 3);
+<a id='L426' name='L426'></a>  <em class='brace'>}</em>
+<a id='L427' name='L427'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/17.html#L11' title='Defined at 11 in core/lick.c.'>potion_lick</a>);      <em class='comment'>// mov &amp;potion_lick %rax</em>
+<a id='L428' name='L428'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L429' name='L429'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L430' name='L430'></a><em class='brace'>}</em>
+<a id='L431' name='L431'></a>
+<a id='L432' name='L432'></a><strong class='reserved'>void</strong> potion_x86_getpath(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L433' name='L433'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L434' name='L434'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L435' name='L435'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L436' name='L436'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 3);
+<a id='L437' name='L437'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L255' title='Defined at 255 in core/objmodel.c.'>potion_obj_get</a>);   <em class='comment'>// mov &amp;potion_obj_get %rax</em>
+<a id='L438' name='L438'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L439' name='L439'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L440' name='L440'></a><em class='brace'>}</em>
+<a id='L441' name='L441'></a>
+<a id='L442' name='L442'></a><strong class='reserved'>void</strong> potion_x86_setpath(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L443' name='L443'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L444' name='L444'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L445' name='L445'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L446' name='L446'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a + 1, 3);
+<a id='L447' name='L447'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 4);
+<a id='L448' name='L448'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L262' title='Defined at 262 in core/objmodel.c.'>potion_obj_set</a>);   <em class='comment'>// mov &amp;potion_obj_set %rax</em>
+<a id='L449' name='L449'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L450' name='L450'></a><em class='brace'>}</em>
+<a id='L451' name='L451'></a>
+<a id='L452' name='L452'></a><strong class='reserved'>void</strong> potion_x86_add(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L453' name='L453'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L454' name='L454'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L356' title='Defined at 356 in core/objmodel.c.'>potion_obj_add</a>, <em class='brace'>{</em>
+<a id='L455' name='L455'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8D); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x10); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <em class='comment'>// lea -1(%eax,%edx,1),%eax</em>
+<a id='L456' name='L456'></a>  <em class='brace'>}</em>);
+<a id='L457' name='L457'></a><em class='brace'>}</em>
+<a id='L458' name='L458'></a>
+<a id='L459' name='L459'></a><strong class='reserved'>void</strong> potion_x86_sub(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L460' name='L460'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L461' name='L461'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L360' title='Defined at 360 in core/objmodel.c.'>potion_obj_sub</a>, <em class='brace'>{</em>
+<a id='L462' name='L462'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x29); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0); <em class='comment'>// sub %edx %eax</em>
+<a id='L463' name='L463'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <em class='comment'>// inc %eax</em>
+<a id='L464' name='L464'></a>  <em class='brace'>}</em>);
+<a id='L465' name='L465'></a><em class='brace'>}</em>
+<a id='L466' name='L466'></a>
+<a id='L467' name='L467'></a><strong class='reserved'>void</strong> potion_x86_mult(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L468' name='L468'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L469' name='L469'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L364' title='Defined at 364 in core/objmodel.c.'>potion_obj_mult</a>, <em class='brace'>{</em>
+<a id='L470' name='L470'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA);            <em class='comment'>// sar %rdx</em>
+<a id='L471' name='L471'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC8);            <em class='comment'>// dec %rax</em>
+<a id='L472' name='L472'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x0F); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xAF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2); <em class='comment'>// imul %rdx %rax</em>
+<a id='L473' name='L473'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0);            <em class='comment'>// inc %rax</em>
+<a id='L474' name='L474'></a>  <em class='brace'>}</em>);
+<a id='L475' name='L475'></a><em class='brace'>}</em>
+<a id='L476' name='L476'></a>
+<a id='L477' name='L477'></a><strong class='reserved'>void</strong> potion_x86_div(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L478' name='L478'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L479' name='L479'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L368' title='Defined at 368 in core/objmodel.c.'>potion_obj_div</a>, <em class='brace'>{</em>
+<a id='L480' name='L480'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);                       <em class='comment'>// sar %rax</em>
+<a id='L481' name='L481'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA);                       <em class='comment'>// sar %edx</em>
+<a id='L482' name='L482'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1);                       <em class='comment'>// mov %edx %ecx</em>
+<a id='L483' name='L483'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);                       <em class='comment'>// mov %eax %edx</em>
+<a id='L484' name='L484'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x1F);            <em class='comment'>// sar 0x1f %edx</em>
+<a id='L485' name='L485'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF9);                       <em class='comment'>// idiv %ecx</em>
+<a id='L486' name='L486'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8D); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x00); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01); <em class='comment'>// lea 0x1(%eax,%eax,1),%eax</em>
+<a id='L487' name='L487'></a>  <em class='brace'>}</em>);
+<a id='L488' name='L488'></a><em class='brace'>}</em>
+<a id='L489' name='L489'></a>
+<a id='L490' name='L490'></a><strong class='reserved'>void</strong> potion_x86_rem(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L491' name='L491'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L492' name='L492'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L372' title='Defined at 372 in core/objmodel.c.'>potion_obj_rem</a>, <em class='brace'>{</em>
+<a id='L493' name='L493'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);               <em class='comment'>// sar %rax</em>
+<a id='L494' name='L494'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA);               <em class='comment'>// sar %edx</em>
+<a id='L495' name='L495'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1);               <em class='comment'>// mov %edx %ecx</em>
+<a id='L496' name='L496'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);               <em class='comment'>// mov %eax %edx</em>
+<a id='L497' name='L497'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x1F);    <em class='comment'>// sar 0x1f %edx</em>
+<a id='L498' name='L498'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF9);               <em class='comment'>// idiv %ecx</em>
+<a id='L499' name='L499'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8D); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x12); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01); <em class='comment'>// lea 0x1(%edx,%edx,1),%eax</em>
+<a id='L500' name='L500'></a>  <em class='brace'>}</em>);
+<a id='L501' name='L501'></a><em class='brace'>}</em>
+<a id='L502' name='L502'></a>
+<a id='L503' name='L503'></a><strong class='reserved'>void</strong> potion_x86_pow(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L504' name='L504'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L505' name='L505'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L506' name='L506'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L507' name='L507'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 3);
+<a id='L508' name='L508'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/20.html#L30' title='Defined at 30 in core/number.c.'>potion_pow</a>);<em class='comment'>// mov &amp;potion_pow %rax</em>
+<a id='L509' name='L509'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                  <em class='comment'>// callq %rax</em>
+<a id='L510' name='L510'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);               <em class='comment'>// mov %rax local</em>
+<a id='L511' name='L511'></a><em class='brace'>}</em>
+<a id='L512' name='L512'></a>
+<a id='L513' name='L513'></a><strong class='reserved'>void</strong> potion_x86_neq(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L514' name='L514'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L515' name='L515'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x74); <em class='comment'>// je</em>
+<a id='L516' name='L516'></a><em class='brace'>}</em>
+<a id='L517' name='L517'></a>
+<a id='L518' name='L518'></a><strong class='reserved'>void</strong> potion_x86_eq(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L519' name='L519'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L520' name='L520'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x75); <em class='comment'>// jne</em>
+<a id='L521' name='L521'></a><em class='brace'>}</em>
+<a id='L522' name='L522'></a>
+<a id='L523' name='L523'></a><strong class='reserved'>void</strong> potion_x86_lt(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L524' name='L524'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L525' name='L525'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x7D); <em class='comment'>// jge</em>
+<a id='L526' name='L526'></a><em class='brace'>}</em>
+<a id='L527' name='L527'></a>
+<a id='L528' name='L528'></a><strong class='reserved'>void</strong> potion_x86_lte(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L529' name='L529'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L530' name='L530'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x7F); <em class='comment'>// jg</em>
+<a id='L531' name='L531'></a><em class='brace'>}</em>
+<a id='L532' name='L532'></a>
+<a id='L533' name='L533'></a><strong class='reserved'>void</strong> potion_x86_gt(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L534' name='L534'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L535' name='L535'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x7E); <em class='comment'>// jle</em>
+<a id='L536' name='L536'></a><em class='brace'>}</em>
+<a id='L537' name='L537'></a>
+<a id='L538' name='L538'></a><strong class='reserved'>void</strong> potion_x86_gte(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L539' name='L539'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L540' name='L540'></a>  <a href='../S/33.html#L68' title='Defined at 68 in core/vm-x86.c.'>X86_CMP</a>(0x7C); <em class='comment'>// jl</em>
+<a id='L541' name='L541'></a><em class='brace'>}</em>
+<a id='L542' name='L542'></a>
+<a id='L543' name='L543'></a><strong class='reserved'>void</strong> potion_x86_bitn(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L544' name='L544'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L545' name='L545'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(0, <a href='../S/21.html#L376' title='Defined at 376 in core/objmodel.c.'>potion_obj_bitn</a>, <em class='brace'>{</em>
+<a id='L546' name='L546'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0); <em class='comment'>// not %eax</em>
+<a id='L547' name='L547'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <em class='comment'>// inc %rax</em>
+<a id='L548' name='L548'></a>  <em class='brace'>}</em>);
+<a id='L549' name='L549'></a><em class='brace'>}</em>
+<a id='L550' name='L550'></a>
+<a id='L551' name='L551'></a><strong class='reserved'>void</strong> potion_x86_bitl(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L552' name='L552'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L553' name='L553'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L380' title='Defined at 380 in core/objmodel.c.'>potion_obj_bitl</a>, <em class='brace'>{</em>
+<a id='L554' name='L554'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);                       <em class='comment'>// sar %eax</em>
+<a id='L555' name='L555'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA);                       <em class='comment'>// sar %edx</em>
+<a id='L556' name='L556'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1);                       <em class='comment'>// mov %edx %ecx</em>
+<a id='L557' name='L557'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);                       <em class='comment'>// mov %eax %edx</em>
+<a id='L558' name='L558'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD3); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE0);                       <em class='comment'>// sar %cl %eax</em>
+<a id='L559' name='L559'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8D); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x00); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01); <em class='comment'>// lea 0x1(%eax,%eax,1),%eax</em>
+<a id='L560' name='L560'></a>  <em class='brace'>}</em>);
+<a id='L561' name='L561'></a><em class='brace'>}</em>
+<a id='L562' name='L562'></a>
+<a id='L563' name='L563'></a><strong class='reserved'>void</strong> potion_x86_bitr(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L564' name='L564'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L565' name='L565'></a>  <a href='../S/33.html#L46' title='Defined at 46 in core/vm-x86.c.'>X86_MATH</a>(1, <a href='../S/21.html#L384' title='Defined at 384 in core/objmodel.c.'>potion_obj_bitr</a>, <em class='brace'>{</em>
+<a id='L566' name='L566'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);                       <em class='comment'>// sar %rax</em>
+<a id='L567' name='L567'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFA);                       <em class='comment'>// sar %edx</em>
+<a id='L568' name='L568'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD1);                       <em class='comment'>// mov %edx %ecx</em>
+<a id='L569' name='L569'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);                       <em class='comment'>// mov %eax %edx</em>
+<a id='L570' name='L570'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD3); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);                       <em class='comment'>// sar %cl %eax</em>
+<a id='L571' name='L571'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8D); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x44); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x00); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01); <em class='comment'>// lea 0x1(%eax,%eax,1),%eax</em>
+<a id='L572' name='L572'></a>  <em class='brace'>}</em>);
+<a id='L573' name='L573'></a><em class='brace'>}</em>
+<a id='L574' name='L574'></a>
+<a id='L575' name='L575'></a><strong class='reserved'>void</strong> potion_x86_def(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L576' name='L576'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L577' name='L577'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L578' name='L578'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L579' name='L579'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a + 1, 3);
+<a id='L580' name='L580'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 4);
+<a id='L581' name='L581'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L279' title='Defined at 279 in core/objmodel.c.'>potion_def_method</a>); <em class='comment'>// mov &amp;potion_def_method %rax</em>
+<a id='L582' name='L582'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0); <em class='comment'>// callq %rax</em>
+<a id='L583' name='L583'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a); <em class='comment'>// mov %rax local</em>
+<a id='L584' name='L584'></a><em class='brace'>}</em>
+<a id='L585' name='L585'></a>
+<a id='L586' name='L586'></a><strong class='reserved'>void</strong> potion_x86_bind(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L587' name='L587'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L588' name='L588'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                       <em class='comment'>// mov &amp;P 0(%esp)           (0, 3)</em>
+<a id='L589' name='L589'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 1);                            <em class='comment'>// mov B  1(%esp) - new env (7, 3)</em>
+<a id='L590' name='L590'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);                            <em class='comment'>// mov A  2(%esp)           (7, 3)</em>
+<a id='L591' name='L591'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L329' title='Defined at 329 in core/objmodel.c.'>potion_bind</a>);      <em class='comment'>// mov &amp;potion_bind %rax</em>
+<a id='L592' name='L592'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L593' name='L593'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L594' name='L594'></a><em class='brace'>}</em>
+<a id='L595' name='L595'></a>
+<a id='L596' name='L596'></a><strong class='reserved'>void</strong> potion_x86_message(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L597' name='L597'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L598' name='L598'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                       <em class='comment'>// mov &amp;P 0(%esp)           (0, 3)</em>
+<a id='L599' name='L599'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 1);                            <em class='comment'>// mov B  1(%esp) - new env (7, 3)</em>
+<a id='L600' name='L600'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);                            <em class='comment'>// mov A  2(%esp)           (7, 3)</em>
+<a id='L601' name='L601'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L349' title='Defined at 349 in core/objmodel.c.'>potion_message</a>);   <em class='comment'>// mov &amp;potion_message %rax</em>
+<a id='L602' name='L602'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L603' name='L603'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L604' name='L604'></a><em class='brace'>}</em>
+<a id='L605' name='L605'></a>
+<a id='L606' name='L606'></a><strong class='reserved'>void</strong> potion_x86_jmp(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <a href='../S/5.html#L23' title='Defined at 23 in core/asm.h.'>PNJumps</a> *jmps, size_t *offs, <strong class='reserved'>int</strong> *jmpc) <em class='brace'>{</em>
+<a id='L607' name='L607'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L608' name='L608'></a>  <a href='../D/525.html' title='Multiple defined in 2 places.'>TAG_JMP</a>(pos + op.a);
+<a id='L609' name='L609'></a><em class='brace'>}</em>
+<a id='L610' name='L610'></a>
+<a id='L611' name='L611'></a><strong class='reserved'>void</strong> <a href='../R/914.html' title='Multiple referred from 3 places.'>potion_x86_test_asm</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>int</strong> test) <em class='brace'>{</em>
+<a id='L612' name='L612'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L613' name='L613'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.a);                              <em class='comment'>// mov -A(%rbp) %rax</em>
+<a id='L614' name='L614'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x83); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>);       <em class='comment'>// cmp FALSE %rax</em>
+<a id='L615' name='L615'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(13, 21));                         <em class='comment'>// je +10</em>
+<a id='L616' name='L616'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x85); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0);                      <em class='comment'>// test %rax %rax</em>
+<a id='L617' name='L617'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(9, 16));                          <em class='comment'>// je +5</em>
+<a id='L618' name='L618'></a>  <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, test ? <a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a> : <a href='../S/24.html#L142' title='Defined at 142 in core/potion.h.'>PN_TRUE</a>);            <em class='comment'>// -A(%rbp) = TRUE</em>
+<a id='L619' name='L619'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEB); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(7, 14));                          <em class='comment'>// jmp +7</em>
+<a id='L620' name='L620'></a>  <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, test ? <a href='../S/24.html#L142' title='Defined at 142 in core/potion.h.'>PN_TRUE</a> : <a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>);            <em class='comment'>// -A(%rbp) = FALSE</em>
+<a id='L621' name='L621'></a><em class='brace'>}</em>
+<a id='L622' name='L622'></a>
+<a id='L623' name='L623'></a><strong class='reserved'>void</strong> potion_x86_test(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L624' name='L624'></a>  <a href='../S/33.html#L611' title='Defined at 611 in core/vm-x86.c.'>potion_x86_test_asm</a>(P, f, asmp, pos, 0);
+<a id='L625' name='L625'></a><em class='brace'>}</em>
+<a id='L626' name='L626'></a>
+<a id='L627' name='L627'></a><strong class='reserved'>void</strong> potion_x86_not(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L628' name='L628'></a>  <a href='../S/33.html#L611' title='Defined at 611 in core/vm-x86.c.'>potion_x86_test_asm</a>(P, f, asmp, pos, 1);
+<a id='L629' name='L629'></a><em class='brace'>}</em>
+<a id='L630' name='L630'></a>
+<a id='L631' name='L631'></a><strong class='reserved'>void</strong> potion_x86_cmp(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L632' name='L632'></a>  <a href='../S/33.html#L611' title='Defined at 611 in core/vm-x86.c.'>potion_x86_test_asm</a>(P, f, asmp, pos, 0);
+<a id='L633' name='L633'></a><em class='brace'>}</em>
+<a id='L634' name='L634'></a>
+<a id='L635' name='L635'></a><strong class='reserved'>void</strong> potion_x86_testjmp(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <a href='../S/5.html#L23' title='Defined at 23 in core/asm.h.'>PNJumps</a> *jmps, size_t *offs, <strong class='reserved'>int</strong> *jmpc) <em class='brace'>{</em>
+<a id='L636' name='L636'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L637' name='L637'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.a);                              <em class='comment'>// mov -A(%rbp) %rax</em>
+<a id='L638' name='L638'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x83); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>);       <em class='comment'>// cmp FALSE %rax</em>
+<a id='L639' name='L639'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(9, 10));                          <em class='comment'>// jz +10</em>
+<a id='L640' name='L640'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x85); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0);                      <em class='comment'>// test %rax %rax</em>
+<a id='L641' name='L641'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(5);
+<a id='L642' name='L642'></a>  <a href='../D/525.html' title='Multiple defined in 2 places.'>TAG_JMP</a>(pos + op.b);
+<a id='L643' name='L643'></a><em class='brace'>}</em>
+<a id='L644' name='L644'></a>
+<a id='L645' name='L645'></a><strong class='reserved'>void</strong> potion_x86_notjmp(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <a href='../S/5.html#L23' title='Defined at 23 in core/asm.h.'>PNJumps</a> *jmps, size_t *offs, <strong class='reserved'>int</strong> *jmpc) <em class='brace'>{</em>
+<a id='L646' name='L646'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L647' name='L647'></a>  <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>("; notjmp %d =&gt; %d\n", op.a, op.b);
+<a id='L648' name='L648'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.a);                              <em class='comment'>// mov -A(%rbp) %rax</em>
+<a id='L649' name='L649'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x83); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../S/24.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>);       <em class='comment'>// cmp FALSE %rax</em>
+<a id='L650' name='L650'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(4, 5));                           <em class='comment'>// jz +5</em>
+<a id='L651' name='L651'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x85); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0);                      <em class='comment'>// test %rax %rax</em>
+<a id='L652' name='L652'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(5);                                    <em class='comment'>// jnz +5</em>
+<a id='L653' name='L653'></a>  <a href='../D/525.html' title='Multiple defined in 2 places.'>TAG_JMP</a>(pos + op.b);
+<a id='L654' name='L654'></a><em class='brace'>}</em>
+<a id='L655' name='L655'></a>
+<a id='L656' name='L656'></a><strong class='reserved'>void</strong> potion_x86_named(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L657' name='L657'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L658' name='L658'></a>  <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>("; named %d %d\n", op.a, op.b);
+<a id='L659' name='L659'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                               <em class='comment'>//P</em>
+<a id='L660' name='L660'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);                                    <em class='comment'>//cl</em>
+<a id='L661' name='L661'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b - 1, 2);                                <em class='comment'>//name</em>
+<a id='L662' name='L662'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(potion_sig_find);          <em class='comment'>// mov &amp;potion_sig_find %rax</em>
+<a id='L663' name='L663'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                                 <em class='comment'>// callq %eax</em>
+<a id='L664' name='L664'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x85); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0);                                 <em class='comment'>// test %eax %eax</em>
+<a id='L665' name='L665'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x78); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(9, 12));                          <em class='comment'>// js +12</em>
+<a id='L666' name='L666'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD8);                      <em class='comment'>// neg %rax</em>
+<a id='L667' name='L667'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.b));      <em class='comment'>// mov -B(%rbp) %rdx</em>
+<a id='L668' name='L668'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L669' name='L669'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x54); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x85); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a + 2));  <em class='comment'>// mov %edx -A(%ebp,%eax,4)</em>
+<a id='L670' name='L670'></a><em class='sharp'>#else</em>
+<a id='L671' name='L671'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x54); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC5); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a + 2)); <em class='comment'>// mov %rdx -A(%rbp,%rax,8)</em>
+<a id='L672' name='L672'></a><em class='sharp'>#endif</em>
+<a id='L673' name='L673'></a><em class='brace'>}</em>
+<a id='L674' name='L674'></a>
+<a id='L675' name='L675'></a><em class='comment'>// TODO: check for bytecode nodes and jit them as well?</em>
+<a id='L676' name='L676'></a><strong class='reserved'>void</strong> potion_x86_call(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L677' name='L677'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L678' name='L678'></a>  <strong class='reserved'>int</strong> argc = op.b - op.a; <em class='comment'>// including self</em>
+<a id='L679' name='L679'></a>  <strong class='reserved'>int</strong> i;
+<a id='L680' name='L680'></a>
+<a id='L681' name='L681'></a>  <em class='comment'>// check type of the closure</em>
+<a id='L682' name='L682'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %rbp(A) %rax</em>
+<a id='L683' name='L683'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF6); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x01);                      <em class='comment'>// test 0x1 %al</em>
+<a id='L684' name='L684'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(56, 68));                         <em class='comment'>// jne [a]</em>
+<a id='L685' name='L685'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF7); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC0); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L144' title='Defined at 144 in core/potion.h.'>PN_REF_MASK</a>);              <em class='comment'>// test REFMASK %eax</em>
+<a id='L686' name='L686'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(48, 60));                         <em class='comment'>// je [a]</em>
+<a id='L687' name='L687'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x83); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE0); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xF8);           <em class='comment'>// and ~PRIMITIVE %rax</em>
+<a id='L688' name='L688'></a>
+<a id='L689' name='L689'></a>  <em class='comment'>// if a class, pull out the constructor</em>
+<a id='L690' name='L690'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x38); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L118' title='Defined at 118 in core/potion.h.'>PN_TVTABLE</a>);               <em class='comment'>// cmpq VTABLE (%eax)</em>
+<a id='L691' name='L691'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(26, 36));                         <em class='comment'>// jnz [c]</em>
+<a id='L692' name='L692'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                               <em class='comment'>// mov &amp;P 0(%esp)</em>
+<a id='L693' name='L693'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);                                    <em class='comment'>// mov A 2(%esp)</em>
+<a id='L694' name='L694'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L443' title='Defined at 443 in core/objmodel.c.'>potion_object_new</a>);        <em class='comment'>// mov &amp;potion_object_new %rax</em>
+<a id='L695' name='L695'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                                 <em class='comment'>// callq %rax</em>
+<a id='L696' name='L696'></a>
+<a id='L697' name='L697'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a + 1);                     <em class='comment'>// [c]: mov %rax local</em>
+<a id='L698' name='L698'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %rbp(A) %rax</em>
+<a id='L699' name='L699'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x40);
+<a id='L700' name='L700'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>((<strong class='reserved'>char</strong> *)&amp;((<strong class='reserved'>struct</strong> <a href='../S/29.html#L24' title='Defined at 24 in core/table.h.'>PNVtable</a> *)P-&gt;lobby)-&gt;ctor
+<a id='L701' name='L701'></a>        - (<strong class='reserved'>char</strong> *)P-&gt;lobby);                            <em class='comment'>// mov N(%rax) %rax</em>
+<a id='L702' name='L702'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %rax %rbp(A)</em>
+<a id='L703' name='L703'></a>
+<a id='L704' name='L704'></a>  <em class='comment'>// check type of the closure</em>
+<a id='L705' name='L705'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x38); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L113' title='Defined at 113 in core/potion.h.'>PN_TCLOSURE</a>);              <em class='comment'>// cmpq CLOSURE (%eax)</em>
+<a id='L706' name='L706'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x74); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(22, 30));                         <em class='comment'>// jz [a]</em>
+<a id='L707' name='L707'></a>
+<a id='L708' name='L708'></a>  <em class='comment'>// if not a closure, get the type's closure</em>
+<a id='L709' name='L709'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, op.a);
+<a id='L710' name='L710'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a + 1);
+<a id='L711' name='L711'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);                               <em class='comment'>// mov &amp;P 0(%esp)</em>
+<a id='L712' name='L712'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);                                    <em class='comment'>// mov A 1(%esp)</em>
+<a id='L713' name='L713'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L168' title='Defined at 168 in core/objmodel.c.'>potion_obj_get_call</a>);      <em class='comment'>// mov &amp;potion_obj_get_call %rax</em>
+<a id='L714' name='L714'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                            <em class='comment'>// [b]: callq *%rax</em>
+<a id='L715' name='L715'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xEB); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(3, 4));                           <em class='comment'>// jmp [b]</em>
+<a id='L716' name='L716'></a>
+<a id='L717' name='L717'></a>  <em class='comment'>//[a]: get the closure's function</em>
+<a id='L718' name='L718'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a)); <em class='comment'>// [a]: mov %rbp(A) %rax</em>
+<a id='L719' name='L719'></a>  <em class='comment'>//[b]: got the method, call it (first special slot from PNClosure)</em>
+<a id='L720' name='L720'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x40);
+<a id='L721' name='L721'></a>             <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L259' title='Defined at 259 in core/potion.h.'>PNObject</a>));         <em class='comment'>// [b]: mov N(%rax) %rax</em>
+<a id='L722' name='L722'></a>
+<a id='L723' name='L723'></a>  <em class='comment'>// (Potion *, CL) as the first arguments</em>
+<a id='L724' name='L724'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L725' name='L725'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 1);
+<a id='L726' name='L726'></a>  <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>("; call %ld[0] %d[1] ", start-3, op.a);
+<a id='L727' name='L727'></a>  <strong class='reserved'>for</strong> (i=2; i &lt;= argc+1; i++) <em class='brace'>{</em>
+<a id='L728' name='L728'></a>    <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>("%d[%d] ", op.a + i - 1, i);
+<a id='L729' name='L729'></a>    <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a + i - 1, i);                          <em class='comment'>// mov regn, i(%esp)</em>
+<a id='L730' name='L730'></a>  <em class='brace'>}</em>
+<a id='L731' name='L731'></a>  <em class='comment'>// fill in defaults, arity from protos[0], not f</em>
+<a id='L732' name='L732'></a>  <strong class='reserved'>if</strong> (!<a href='../S/24.html#L223' title='Defined at 223 in core/potion.h.'>PN_IS_EMPTY</a>(f-&gt;protos)) <em class='brace'>{</em>
+<a id='L733' name='L733'></a>    <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto) c = (<a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Proto)) <a href='../S/24.html#L231' title='Defined at 231 in core/potion.h.'>PN_TUPLE_AT</a>(f-&gt;protos, 0);
+<a id='L734' name='L734'></a>    <strong class='reserved'>if</strong> ((argc-1 &lt; c-&gt;arity) &amp;&amp; c-&gt;arity) <em class='brace'>{</em>
+<a id='L735' name='L735'></a>      <strong class='reserved'>for</strong> (i = argc+1; i &lt;= c-&gt;arity+1; i++) <em class='brace'>{</em> <em class='comment'>//2: [0,1],2,3</em>
+<a id='L736' name='L736'></a>        <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> sig = <a href='../S/21.html#L95' title='Defined at 95 in core/objmodel.c.'>potion_sig_at</a>(P, c-&gt;sig, i-2);
+<a id='L737' name='L737'></a>        <strong class='reserved'>if</strong> (sig &amp;&amp; <a href='../S/24.html#L230' title='Defined at 230 in core/potion.h.'>PN_TUPLE_LEN</a>(sig) == 3) <em class='brace'>{</em>
+<a id='L738' name='L738'></a>          <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>(":=*%s[%d] ", <a href='../S/24.html#L203' title='Defined at 203 in core/potion.h.'>AS_STR</a>(<a href='../S/24.html#L231' title='Defined at 231 in core/potion.h.'>PN_TUPLE_AT</a>(sig, 2)), i+1);
+<a id='L739' name='L739'></a>          <a href='../S/33.html#L77' title='Defined at 77 in core/vm-x86.c.'>X86_ARGO_IMM</a>(<a href='../S/24.html#L231' title='Defined at 231 in core/potion.h.'>PN_TUPLE_AT</a>(sig, 2), i+1);       <em class='comment'>// mov $value, i(%esp) - default</em>
+<a id='L740' name='L740'></a>        <em class='brace'>}</em><em class='brace'>}</em><em class='brace'>}</em><em class='brace'>}</em>
+<a id='L741' name='L741'></a>  <a href='../D/93.html' title='Multiple defined in 2 places.'>DBG_t</a>("\n");
+<a id='L742' name='L742'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                                 <em class='comment'>// callq *%rax</em>
+<a id='L743' name='L743'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x45); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(op.a));      <em class='comment'>// mov %rbp(A) %rax</em>
+<a id='L744' name='L744'></a><em class='brace'>}</em>
+<a id='L745' name='L745'></a>
+<a id='L746' name='L746'></a><strong class='reserved'>void</strong> potion_x86_callset(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L747' name='L747'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L748' name='L748'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L749' name='L749'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 1);
+<a id='L750' name='L750'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L178' title='Defined at 178 in core/objmodel.c.'>potion_obj_get_callset</a>); <em class='comment'>// mov &amp;potion_obj_get %rax</em>
+<a id='L751' name='L751'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0); <em class='comment'>// callq %rax</em>
+<a id='L752' name='L752'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a); <em class='comment'>// mov %rax local</em>
+<a id='L753' name='L753'></a><em class='brace'>}</em>
+<a id='L754' name='L754'></a>
+<a id='L755' name='L755'></a><strong class='reserved'>void</strong> potion_x86_return(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos) <em class='brace'>{</em>
+<a id='L756' name='L756'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, 0); <em class='comment'>// mov -0(%rbp) %eax</em>
+<a id='L757' name='L757'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC9); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC3); <em class='comment'>// leave; ret</em>
+<a id='L758' name='L758'></a><em class='brace'>}</em>
+<a id='L759' name='L759'></a>
+<a id='L760' name='L760'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/33.html#L777' title='Referred from 777 in core/vm-x86.c.'>potion_f_protos</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> i) <em class='brace'>{</em>
+<a id='L761' name='L761'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> p = <a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(<a href='../S/24.html#L184' title='Defined at 184 in core/potion.h.'>PN_CLOSURE</a>(cl)-&gt;data[0])-&gt;protos;
+<a id='L762' name='L762'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> proto = <a href='../S/24.html#L231' title='Defined at 231 in core/potion.h.'>PN_TUPLE_AT</a>(p, i);
+<a id='L763' name='L763'></a>  <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Closure) c = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L335' title='Defined at 335 in core/potion.h.'>PNClosure</a> *)<a href='../S/21.html#L17' title='Defined at 17 in core/objmodel.c.'>potion_closure_new</a>(P, NULL,
+<a id='L764' name='L764'></a>    <a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(proto)-&gt;sig, <a href='../S/24.html#L230' title='Defined at 230 in core/potion.h.'>PN_TUPLE_LEN</a>(<a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(proto)-&gt;upvals) + 1);
+<a id='L765' name='L765'></a>  c-&gt;method = <a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(proto)-&gt;jit;
+<a id='L766' name='L766'></a>  c-&gt;data[0] = proto;
+<a id='L767' name='L767'></a>  <strong class='reserved'>return</strong> (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)c;
+<a id='L768' name='L768'></a><em class='brace'>}</em>
+<a id='L769' name='L769'></a>
+<a id='L770' name='L770'></a><strong class='reserved'>void</strong> potion_x86_method(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> *pos, <strong class='reserved'>long</strong> lregs, <strong class='reserved'>long</strong> start, <strong class='reserved'>long</strong> regs) <em class='brace'>{</em>
+<a id='L771' name='L771'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, *pos);
+<a id='L772' name='L772'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> proto = <a href='../S/24.html#L231' title='Defined at 231 in core/potion.h.'>PN_TUPLE_AT</a>(f-&gt;protos, op.b);
+<a id='L773' name='L773'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L774' name='L774'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 2, 1);
+<a id='L775' name='L775'></a>  <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(op.a, op.b);
+<a id='L776' name='L776'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L777' name='L777'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/33.html#L760' title='Defined at 760 in core/vm-x86.c.'>potion_f_protos</a>);  <em class='comment'>// mov &amp;potion_f_values %rax</em>
+<a id='L778' name='L778'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L779' name='L779'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);
+<a id='L780' name='L780'></a>  <a href='../D/555.html' title='Multiple defined in 2 places.'>X86_MOVQ</a>(start - 3, P);
+<a id='L781' name='L781'></a>  <a href='../S/24.html#L232' title='Defined at 232 in core/potion.h.'>PN_TUPLE_COUNT</a>(<a href='../S/24.html#L186' title='Defined at 186 in core/potion.h.'>PN_PROTO</a>(proto)-&gt;upvals, i, <em class='brace'>{</em>
+<a id='L782' name='L782'></a>    (*pos)++;
+<a id='L783' name='L783'></a>    <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> opp = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, *pos);
+<a id='L784' name='L784'></a>    <strong class='reserved'>if</strong> (opp.code == <a href='../S/22.html#L42' title='Defined at 42 in core/opcodes.h.'>OP_GETUPVAL</a>) <em class='brace'>{</em>
+<a id='L785' name='L785'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/444.html' title='Multiple defined in 2 places.'>RBP</a>(lregs + opp.b)); <em class='comment'>// mov upval %rdx</em>
+<a id='L786' name='L786'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (opp.code == <a href='../S/22.html#L40' title='Defined at 40 in core/opcodes.h.'>OP_GETLOCAL</a>) <em class='brace'>{</em>
+<a id='L787' name='L787'></a>      <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L788' name='L788'></a>      <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(regs + opp.b, 1);
+<a id='L789' name='L789'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/21.html#L393' title='Defined at 393 in core/objmodel.c.'>potion_ref</a>);   <em class='comment'>// mov &amp;potion_ref %rax</em>
+<a id='L790' name='L790'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                     <em class='comment'>// callq %rax</em>
+<a id='L791' name='L791'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC2);          <em class='comment'>// mov %rax %rdx</em>
+<a id='L792' name='L792'></a>      <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, regs + opp.b);          <em class='comment'>// mov %rax local</em>
+<a id='L793' name='L793'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L794' name='L794'></a>      fprintf(stderr, "** missing an upval to proto %p\n", (<strong class='reserved'>void</strong> *)proto);
+<a id='L795' name='L795'></a>    <em class='brace'>}</em>
+<a id='L796' name='L796'></a>    <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x8B, opp.a);                   <em class='comment'>// mov cl %rax</em>
+<a id='L797' name='L797'></a>    <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x50);            <em class='comment'>// mov %rdx N(%rax)</em>
+<a id='L798' name='L798'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/24.html#L335' title='Defined at 335 in core/potion.h.'>PNClosure</a>) + (<strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>) * (i + 1)));
+<a id='L799' name='L799'></a>  <em class='brace'>}</em>);
+<a id='L800' name='L800'></a><em class='brace'>}</em>
+<a id='L801' name='L801'></a>
+<a id='L802' name='L802'></a><strong class='reserved'>void</strong> potion_x86_class(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp, <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> pos, <strong class='reserved'>long</strong> start) <em class='brace'>{</em>
+<a id='L803' name='L803'></a>  <a href='../D/325.html' title='Multiple defined in 2 places.'>PN_OP</a> op = <a href='../S/22.html#L29' title='Defined at 29 in core/opcodes.h.'>PN_OP_AT</a>(f-&gt;asmb, pos);
+<a id='L804' name='L804'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(start - 3, 0);
+<a id='L805' name='L805'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.b, 1);
+<a id='L806' name='L806'></a>  <a href='../S/33.html#L76' title='Defined at 76 in core/vm-x86.c.'>X86_ARGO</a>(op.a, 2);
+<a id='L807' name='L807'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/34.html#L134' title='Defined at 134 in core/vm.c.'>potion_vm_class</a>);  <em class='comment'>// mov &amp;potion_vm_class %rax</em>
+<a id='L808' name='L808'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xFF); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xD0);                         <em class='comment'>// callq %rax</em>
+<a id='L809' name='L809'></a>  <a href='../S/33.html#L33' title='Defined at 33 in core/vm-x86.c.'>X86_MOV_RBP</a>(0x89, op.a);                      <em class='comment'>// mov %rax local</em>
+<a id='L810' name='L810'></a><em class='brace'>}</em>
+<a id='L811' name='L811'></a>
+<a id='L812' name='L812'></a><strong class='reserved'>void</strong> potion_x86_finish(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <strong class='reserved'>struct</strong> <a href='../S/24.html#L395' title='Defined at 395 in core/potion.h.'>PNProto</a> * <strong class='reserved'>volatile</strong> f, PNAsm * <strong class='reserved'>volatile</strong> *asmp) <em class='brace'>{</em>
+<a id='L813' name='L813'></a><em class='brace'>}</em>
+<a id='L814' name='L814'></a>
+<a id='L815' name='L815'></a><strong class='reserved'>void</strong> potion_x86_mcache(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Vtable) vt, PNAsm * <strong class='reserved'>volatile</strong> *asmp) <em class='brace'>{</em>
+<a id='L816' name='L816'></a>  <strong class='reserved'>unsigned</strong> k;
+<a id='L817' name='L817'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L818' name='L818'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55);                                                    <em class='comment'>// push %ebp</em>
+<a id='L819' name='L819'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE5);                                         <em class='comment'>// mov %esp %ebp</em>
+<a id='L820' name='L820'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x08);                              <em class='comment'>// mov 0x8(%ebp) %edx</em>
+<a id='L821' name='L821'></a><em class='sharp'>#endif</em>
+<a id='L822' name='L822'></a>  <strong class='reserved'>for</strong> (k = <a href='../S/16.html#L229' title='Defined at 229 in core/khash.h.'>kh_end</a>(vt-&gt;methods); k &gt; <a href='../S/16.html#L228' title='Defined at 228 in core/khash.h.'>kh_begin</a>(vt-&gt;methods); k--) <em class='brace'>{</em>
+<a id='L823' name='L823'></a>    <strong class='reserved'>if</strong> (<a href='../S/16.html#L225' title='Defined at 225 in core/khash.h.'>kh_exist</a>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, vt-&gt;methods, k - 1)) <em class='brace'>{</em>
+<a id='L824' name='L824'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(0xFA, 0xFF));
+<a id='L825' name='L825'></a>        <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L201' title='Defined at 201 in core/potion.h.'>PN_UNIQ</a>(<a href='../S/16.html#L226' title='Defined at 226 in core/khash.h.'>kh_key</a>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, vt-&gt;methods, k - 1)));          <em class='comment'>// cmp NAME %edi</em>
+<a id='L826' name='L826'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(7, 11));                              <em class='comment'>// jne +11</em>
+<a id='L827' name='L827'></a>      <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(<a href='../S/16.html#L227' title='Defined at 227 in core/khash.h.'>kh_val</a>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, vt-&gt;methods, k - 1)); <em class='comment'>// mov CL %rax</em>
+<a id='L828' name='L828'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L829' name='L829'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5D);
+<a id='L830' name='L830'></a><em class='sharp'>#endif</em>
+<a id='L831' name='L831'></a>      <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC3); <em class='comment'>// retq</em>
+<a id='L832' name='L832'></a>    <em class='brace'>}</em>
+<a id='L833' name='L833'></a>  <em class='brace'>}</em>
+<a id='L834' name='L834'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(0); <em class='comment'>// mov NIL %eax</em>
+<a id='L835' name='L835'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L836' name='L836'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5D);
+<a id='L837' name='L837'></a><em class='sharp'>#endif</em>
+<a id='L838' name='L838'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC3); <em class='comment'>// retq</em>
+<a id='L839' name='L839'></a><em class='brace'>}</em>
+<a id='L840' name='L840'></a>
+<a id='L841' name='L841'></a><strong class='reserved'>void</strong> potion_x86_ivars(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ivars, PNAsm * <strong class='reserved'>volatile</strong> *asmp) <em class='brace'>{</em>
+<a id='L842' name='L842'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L843' name='L843'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55);                            <em class='comment'>// push %ebp</em>
+<a id='L844' name='L844'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x89); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xE5);                 <em class='comment'>// mov %esp %ebp</em>
+<a id='L845' name='L845'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x8B); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x55); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x08);      <em class='comment'>// mov 0x8(%ebp) %edx</em>
+<a id='L846' name='L846'></a><em class='sharp'>#else</em>
+<a id='L847' name='L847'></a><em class='sharp'>#endif</em>
+<a id='L848' name='L848'></a>  <a href='../S/24.html#L239' title='Defined at 239 in core/potion.h.'>PN_TUPLE_EACH</a>(ivars, i, v, <em class='brace'>{</em>
+<a id='L849' name='L849'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x81); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(0xFA, 0xFF));
+<a id='L850' name='L850'></a>      <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(<a href='../S/24.html#L201' title='Defined at 201 in core/potion.h.'>PN_UNIQ</a>(v));                 <em class='comment'>// cmp UNIQ %edi</em>
+<a id='L851' name='L851'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x75); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(<a href='../D/548.html' title='Multiple defined in 2 places.'>X86C</a>(7, 6));         <em class='comment'>// jne +7</em>
+<a id='L852' name='L852'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L99' title='Defined at 99 in core/asm.h.'>ASMI</a>(i);                 <em class='comment'>// mov i %rax</em>
+<a id='L853' name='L853'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L854' name='L854'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5D);
+<a id='L855' name='L855'></a><em class='sharp'>#endif</em>
+<a id='L856' name='L856'></a>    <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC3);                          <em class='comment'>// retq</em>
+<a id='L857' name='L857'></a>  <em class='brace'>}</em>);
+<a id='L858' name='L858'></a>  <a href='../D/558.html' title='Multiple defined in 2 places.'>X86_PRE</a>(); <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xB8); <a href='../S/5.html#L100' title='Defined at 100 in core/asm.h.'>ASMN</a>(-1);       <em class='comment'>// mov -1 %rax</em>
+<a id='L859' name='L859'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> != 64
+<a id='L860' name='L860'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0x5D);
+<a id='L861' name='L861'></a><em class='sharp'>#endif</em>
+<a id='L862' name='L862'></a>  <a href='../S/5.html#L97' title='Defined at 97 in core/asm.h.'>ASM</a>(0xC3);                            <em class='comment'>// retq</em>
+<a id='L863' name='L863'></a><em class='brace'>}</em>
+<a id='L864' name='L864'></a>
+<a id='L865' name='L865'></a><a href='../S/5.html#L25' title='Defined at 25 in core/asm.h.'>MAKE_TARGET</a>(x86);
+</pre>
+<hr />
+<a id='BOTTOM' name='BOTTOM'></a>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L97'>[^]</a><a href='#L841'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+</body>
+</html>

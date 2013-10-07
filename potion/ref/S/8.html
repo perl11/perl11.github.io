@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>core/callcc.c</title>
+<meta name='robots' content='noindex,nofollow' />
+<meta name='generator' content='GLOBAL-6.2.8' />
+<meta http-equiv='Content-Style-Type' content='text/css' />
+<link rel='stylesheet' type='text/css' href='../style.css' />
+</head>
+<body>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/166.html'>core</a>/callcc.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L18'>[^]</a><a href='#L164'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<hr />
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L18' title='Defined at 18.'>potion_continuation_yield</a></li>
+<li><a href='#L102' title='Defined at 102.'>potion_callcc</a></li>
+<li><a href='#L164' title='Defined at 164.'>potion_cont_init</a></li>
+</ol>
+<hr />
+<pre>
+<a id='L1' name='L1'></a><em class='comment'>///\file callcc.c</em>
+<a id='L2' name='L2'></a><em class='comment'>/// creation and calling of continuations, in non-portable asm, x86 only yet</em>
+<a id='L3' name='L3'></a><em class='comment'>//</em>
+<a id='L4' name='L4'></a><em class='comment'>// NOTE: these hacks make use of the frame pointer, so they must</em>
+<a id='L5' name='L5'></a><em class='comment'>// be compiled -fno-omit-frame-pointer!</em>
+<a id='L6' name='L6'></a><em class='comment'>//</em>
+<a id='L7' name='L7'></a><em class='comment'>// (c) 2008 why the lucky stiff, the freelance professor</em>
+<a id='L8' name='L8'></a><em class='comment'>//</em>
+<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L10' name='L10'></a><em class='sharp'>#include</em> "<a href='24.html'>potion.h</a>"
+<a id='L11' name='L11'></a><em class='sharp'>#include</em> "<a href='15.html'>internal.h</a>"
+<a id='L12' name='L12'></a>
+<a id='L13' name='L13'></a><em class='comment'>/**\memberof PNCont</em>
+<a id='L14' name='L14'></a><em class='comment'>  "yield" method</em>
+<a id='L15' name='L15'></a><em class='comment'>  \param self PNCont</em>
+<a id='L16' name='L16'></a><em class='comment'>  \see potion_callcc()</em>
+<a id='L17' name='L17'></a><em class='comment'>  \returns does not return, continues execution at the position of the given PNCont */</em>
+<a id='L18' name='L18'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/8.html#L166' title='Referred from 166 in core/callcc.c.'>potion_continuation_yield</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L19' name='L19'></a>  <strong class='reserved'>struct</strong> <a href='../S/24.html#L457' title='Defined at 457 in core/potion.h.'>PNCont</a> *cc = (<strong class='reserved'>struct</strong> <a href='../S/24.html#L457' title='Defined at 457 in core/potion.h.'>PNCont</a> *)self;
+<a id='L20' name='L20'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *start, *<a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>, *sp1 = P-&gt;mem-&gt;cstack;
+<a id='L21' name='L21'></a><em class='sharp'>#if</em> POTION_STACK_DIR &gt; 0
+<a id='L22' name='L22'></a>  start = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[0];
+<a id='L23' name='L23'></a>  <a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a> = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[1];
+<a id='L24' name='L24'></a><em class='sharp'>#else</em>
+<a id='L25' name='L25'></a>  start = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[1];
+<a id='L26' name='L26'></a>  <a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a> = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *)cc-&gt;stack[0];
+<a id='L27' name='L27'></a><em class='sharp'>#endif</em>
+<a id='L28' name='L28'></a>
+<a id='L29' name='L29'></a>  <strong class='reserved'>if</strong> ((<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp1 != cc-&gt;stack[0]) <em class='brace'>{</em>
+<a id='L30' name='L30'></a>    fprintf(stderr, "** TODO: continuations which switch stacks must be rewritten. (%p != %p)\n",
+<a id='L31' name='L31'></a>      sp1, (<strong class='reserved'>void</strong> *)(cc-&gt;stack[0]));
+<a id='L32' name='L32'></a>    <strong class='reserved'>return</strong> <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L33' name='L33'></a>  <em class='brace'>}</em>
+<a id='L34' name='L34'></a>  <a href='../D/96.html' title='Multiple defined in 2 places.'>DBG_vt</a>("\nyield: start=%p, end=%p, cc=%p\n", start, <a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>, cc-&gt;stack);
+<a id='L35' name='L35'></a>
+<a id='L36' name='L36'></a>  <em class='comment'>//</em>
+<a id='L37' name='L37'></a>  <em class='comment'>// move stack pointer, fill in stack, resume</em>
+<a id='L38' name='L38'></a>  cc-&gt;stack[3] = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cc;
+<a id='L39' name='L39'></a><em class='sharp'>#if</em> <a href='../S/24.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a> == POTION_JIT_TARGET
+<a id='L40' name='L40'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64
+<a id='L41' name='L41'></a>  <strong class='reserved'>__asm__</strong> ("mov 0x8(%2), %%rsp;"
+<a id='L42' name='L42'></a>           "mov 0x10(%2), %%rbp;"
+<a id='L43' name='L43'></a>           "mov %2, %%rbx;"
+<a id='L44' name='L44'></a>           "add $0x48, %2;"
+<a id='L45' name='L45'></a>        "loop:"
+<a id='L46' name='L46'></a>           "mov (%2), %%rax;"
+<a id='L47' name='L47'></a>           "add $0x8, %0;"
+<a id='L48' name='L48'></a>           "mov %%rax, (%0);"
+<a id='L49' name='L49'></a>           "add $0x8, %2;"
+<a id='L50' name='L50'></a>           "cmp %0, %1;"
+<a id='L51' name='L51'></a>           "jne loop;"
+<a id='L52' name='L52'></a>           "mov 0x18(%%rbx), %%rax;"
+<a id='L53' name='L53'></a>           "movq $0x0, 0x18(%%rbx);"
+<a id='L54' name='L54'></a>           "mov 0x28(%%rbx), %%r12;"
+<a id='L55' name='L55'></a>           "mov 0x30(%%rbx), %%r13;"
+<a id='L56' name='L56'></a>           "mov 0x38(%%rbx), %%r14;"
+<a id='L57' name='L57'></a>           "mov 0x40(%%rbx), %%r15;"
+<a id='L58' name='L58'></a>           "mov 0x20(%%rbx), %%rbx;"
+<a id='L59' name='L59'></a>           "leave; ret"
+<a id='L60' name='L60'></a>           :<em class='comment'>/* no output */</em>
+<a id='L61' name='L61'></a>           :"r"(start), "r"(<a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>), "r"(cc-&gt;stack)
+<a id='L62' name='L62'></a>           :"%rax", "%rsp", "%rbx"
+<a id='L63' name='L63'></a>          );
+<a id='L64' name='L64'></a><em class='sharp'>#else</em>
+<a id='L65' name='L65'></a>  <strong class='reserved'>__asm__</strong> ("mov 0x4(%2), %%esp;"
+<a id='L66' name='L66'></a>           "mov 0x8(%2), %%ebp;"
+<a id='L67' name='L67'></a>           "mov %2, %%esi;"
+<a id='L68' name='L68'></a>           "add $0x1c, %2;"
+<a id='L69' name='L69'></a>        "loop:"
+<a id='L70' name='L70'></a>           "mov (%2), %%eax;"
+<a id='L71' name='L71'></a>           "add $0x4, %0;"
+<a id='L72' name='L72'></a>           "mov %%eax, (%0);"
+<a id='L73' name='L73'></a>           "add $0x4, %2;"
+<a id='L74' name='L74'></a>           "cmp %0, %1;"
+<a id='L75' name='L75'></a>           "jne loop;"
+<a id='L76' name='L76'></a>           "mov 0xc(%%esi), %%eax;"
+<a id='L77' name='L77'></a>           "mov 0x14(%%esi), %%edi;"
+<a id='L78' name='L78'></a>           "mov 0x18(%%esi), %%ebx;"
+<a id='L79' name='L79'></a>           "mov 0x10(%%esi), %%esi;"
+<a id='L80' name='L80'></a>           "leave; ret"
+<a id='L81' name='L81'></a>           :<em class='comment'>/* no output */</em>
+<a id='L82' name='L82'></a>           :"r"(start), "r"(<a href='../S/156.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>), "r"(cc-&gt;stack)
+<a id='L83' name='L83'></a>           :"%eax", "%esp", <em class='comment'>/*"%ebp",*/</em> "%esi"
+<a id='L84' name='L84'></a>          );
+<a id='L85' name='L85'></a>  <em class='comment'>//DBG_vt("yield =&gt; start=%p, end=%p, cc=%p\n", start, end, cc-&gt;stack);</em>
+<a id='L86' name='L86'></a><em class='sharp'>#endif</em>
+<a id='L87' name='L87'></a><em class='sharp'>#else</em>
+<a id='L88' name='L88'></a>  fprintf(stderr, "** TODO: callcc/yield does not work outside of X86 yet.\n");
+<a id='L89' name='L89'></a><em class='sharp'>#endif</em>
+<a id='L90' name='L90'></a><em class='sharp'>#ifdef</em> DEBUG
+<a id='L91' name='L91'></a>  <strong class='reserved'>if</strong> (!P-&gt;strings || !P-&gt;lobby || !P-&gt;mem)
+<a id='L92' name='L92'></a>    <a href='../S/14.html#L240' title='Defined at 240 in core/internal.c.'>potion_fatal</a>("fatal: yield stack underflow\n");
+<a id='L93' name='L93'></a><em class='sharp'>#endif</em>
+<a id='L94' name='L94'></a>  <strong class='reserved'>return</strong> self;
+<a id='L95' name='L95'></a><em class='brace'>}</em>
+<a id='L96' name='L96'></a>
+<a id='L97' name='L97'></a><em class='comment'>/**\memberof PNVtable</em>
+<a id='L98' name='L98'></a><em class='comment'>   global "here" method</em>
+<a id='L99' name='L99'></a><em class='comment'>   \see potion_continuation_yield()</em>
+<a id='L100' name='L100'></a><em class='comment'>   \returns a PNCont continuation object which can be yield'ed to later */</em>
+<a id='L101' name='L101'></a><a href='../D/45.html' title='Multiple defined in 2 places.'>ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS</a>
+<a id='L102' name='L102'></a><a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/663.html' title='Multiple referred from 2 places.'>potion_callcc</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L103' name='L103'></a>  <strong class='reserved'>struct</strong> <a href='../S/24.html#L457' title='Defined at 457 in core/potion.h.'>PNCont</a> *cc;
+<a id='L104' name='L104'></a>  <a href='../S/24.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> n;
+<a id='L105' name='L105'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *start, *sp1 = P-&gt;mem-&gt;cstack, *sp2, *sp3;
+<a id='L106' name='L106'></a><em class='sharp'>#if</em> <strong class='reserved'>defined</strong>(DEBUG) &amp;&amp; (<a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64)
+<a id='L107' name='L107'></a>  <strong class='reserved'>if</strong> ((<a href='../S/24.html#L78' title='Defined at 78 in core/potion.h.'>_PN</a>)sp1 &amp; 0x1F) <em class='brace'>{</em>
+<a id='L108' name='L108'></a>    fprintf(stderr,"P-&gt;mem-&gt;cstack=0x%lx ", (<a href='../S/24.html#L78' title='Defined at 78 in core/potion.h.'>_PN</a>)sp1);
+<a id='L109' name='L109'></a>    <a href='../S/14.html#L240' title='Defined at 240 in core/internal.c.'>potion_fatal</a>("stack not 32byte aligned");
+<a id='L110' name='L110'></a>  <em class='brace'>}</em>
+<a id='L111' name='L111'></a><em class='sharp'>#endif</em>
+<a id='L112' name='L112'></a>  <a href='../D/401.html' title='Multiple defined in 3 places.'>POTION_ESP</a>(&amp;sp2); <em class='comment'>// usually P</em>
+<a id='L113' name='L113'></a>  <a href='../D/400.html' title='Multiple defined in 3 places.'>POTION_EBP</a>(&amp;sp3);
+<a id='L114' name='L114'></a><em class='sharp'>#if</em> POTION_STACK_DIR &gt; 0
+<a id='L115' name='L115'></a>  n = sp2 - sp1;
+<a id='L116' name='L116'></a>  start = sp1;
+<a id='L117' name='L117'></a><em class='sharp'>#else</em>
+<a id='L118' name='L118'></a>  n = sp1 - sp2 + 1;
+<a id='L119' name='L119'></a>  start = sp2;
+<a id='L120' name='L120'></a><em class='sharp'>#endif</em>
+<a id='L121' name='L121'></a>
+<a id='L122' name='L122'></a>  cc = <a href='../S/15.html#L14' title='Defined at 14 in core/internal.h.'>PN_ALLOC_N</a>(<a href='../S/24.html#L128' title='Defined at 128 in core/potion.h.'>PN_TCONT</a>, <strong class='reserved'>struct</strong> <a href='../S/24.html#L457' title='Defined at 457 in core/potion.h.'>PNCont</a>, <strong class='reserved'>sizeof</strong>(<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>) * (n + 3 + <a href='../D/341.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>));
+<a id='L123' name='L123'></a>  cc-&gt;len = n + 3;
+<a id='L124' name='L124'></a>  cc-&gt;stack[0] = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp1;
+<a id='L125' name='L125'></a>  cc-&gt;stack[1] = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp2;
+<a id='L126' name='L126'></a>  cc-&gt;stack[2] = (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)sp3;
+<a id='L127' name='L127'></a>  cc-&gt;stack[3] = <a href='../S/24.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L128' name='L128'></a>  <a href='../D/96.html' title='Multiple defined in 2 places.'>DBG_vt</a>("\ncallcc: start=%p, end=%p, cc=%p\n", start, sp2, cc-&gt;stack);
+<a id='L129' name='L129'></a><em class='sharp'>#if</em> <a href='../S/24.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a> == POTION_JIT_TARGET
+<a id='L130' name='L130'></a><em class='sharp'>#if</em> <a href='../D/590.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64
+<a id='L131' name='L131'></a>  <strong class='reserved'>__asm__</strong> ("mov %%rbx, 0x20(%0);"
+<a id='L132' name='L132'></a>           "mov %%r12, 0x28(%0);"
+<a id='L133' name='L133'></a>           "mov %%r13, 0x30(%0);"
+<a id='L134' name='L134'></a>           "mov %%r14, 0x38(%0);"
+<a id='L135' name='L135'></a>           "mov %%r15, 0x40(%0);"::"r"(cc-&gt;stack));
+<a id='L136' name='L136'></a><em class='sharp'>#else</em>
+<a id='L137' name='L137'></a>  <strong class='reserved'>__asm__</strong> ("mov %%esi, 0x10(%0);"
+<a id='L138' name='L138'></a>           "mov %%edi, 0x14(%0);"
+<a id='L139' name='L139'></a>           "mov %%ebx, 0x18(%0)"::"r"(cc-&gt;stack));
+<a id='L140' name='L140'></a><em class='sharp'>#endif</em>
+<a id='L141' name='L141'></a><em class='sharp'>#endif</em>
+<a id='L142' name='L142'></a>
+<a id='L143' name='L143'></a><em class='comment'>// avoid wrong asan stack underflow, caught in memcpy</em>
+<a id='L144' name='L144'></a><em class='sharp'>#if</em> <strong class='reserved'>defined</strong>(__clang__) &amp;&amp; <strong class='reserved'>defined</strong>(__SANITIZE_ADDRESS__)
+<a id='L145' name='L145'></a>  <em class='brace'>{</em>
+<a id='L146' name='L146'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *s = start + 1;
+<a id='L147' name='L147'></a>    <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> *d = cc-&gt;stack + 4 + <a href='../D/341.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>;
+<a id='L148' name='L148'></a>    <strong class='reserved'>for</strong> (<strong class='reserved'>int</strong> i=0; i &lt; n - 1; i++) <em class='brace'>{</em>
+<a id='L149' name='L149'></a>      *d++ = *s++;
+<a id='L150' name='L150'></a>    <em class='brace'>}</em>
+<a id='L151' name='L151'></a>  <em class='brace'>}</em>
+<a id='L152' name='L152'></a><em class='sharp'>#else</em>
+<a id='L153' name='L153'></a>  <a href='../S/15.html#L22' title='Defined at 22 in core/internal.h.'>PN_MEMCPY_N</a>((<strong class='reserved'>char</strong> *)(cc-&gt;stack + 4 + <a href='../D/341.html' title='Multiple defined in 3 places.'>PN_SAVED_REGS</a>), start + 1, <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>, n - 1);
+<a id='L154' name='L154'></a><em class='sharp'>#endif</em>
+<a id='L155' name='L155'></a><em class='comment'>// stack-buffer-underflow sanity check, should not overwrite P</em>
+<a id='L156' name='L156'></a><em class='sharp'>#ifdef</em> DEBUG
+<a id='L157' name='L157'></a>  <strong class='reserved'>if</strong> (!P-&gt;strings || !P-&gt;lobby || !P-&gt;mem)
+<a id='L158' name='L158'></a>      <a href='../S/14.html#L240' title='Defined at 240 in core/internal.c.'>potion_fatal</a>("fatal: callcc stack underflow\n");
+<a id='L159' name='L159'></a><em class='sharp'>#endif</em>
+<a id='L160' name='L160'></a>  <strong class='reserved'>return</strong> (<a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cc;
+<a id='L161' name='L161'></a><em class='brace'>}</em>
+<a id='L162' name='L162'></a>
+<a id='L163' name='L163'></a><em class='comment'>// callcc is the "here" method of lobby</em>
+<a id='L164' name='L164'></a><strong class='reserved'>void</strong> <a href='../R/677.html' title='Multiple referred from 2 places.'>potion_cont_init</a>(<a href='../S/24.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
+<a id='L165' name='L165'></a>  <a href='../S/24.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cnt_vt = <a href='../S/24.html#L136' title='Defined at 136 in core/potion.h.'>PN_VTABLE</a>(<a href='../S/24.html#L128' title='Defined at 128 in core/potion.h.'>PN_TCONT</a>);
+<a id='L166' name='L166'></a>  <a href='../S/21.html#L164' title='Defined at 164 in core/objmodel.c.'>potion_type_call_is</a>(cnt_vt, <a href='../S/24.html#L187' title='Defined at 187 in core/potion.h.'>PN_FUNC</a>(<a href='../S/8.html#L18' title='Defined at 18 in core/callcc.c.'>potion_continuation_yield</a>, 0));
+<a id='L167' name='L167'></a><em class='brace'>}</em>
+</pre>
+<hr />
+<a id='BOTTOM' name='BOTTOM'></a>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L18'>[^]</a><a href='#L164'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+</body>
+</html>
