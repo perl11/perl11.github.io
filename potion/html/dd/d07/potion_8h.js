@@ -70,6 +70,8 @@ var potion_8h =
     [ "PN_NONE", "dd/d07/potion_8h.html#a4d2444370609f6f8e1ee590a5ae8d716", null ],
     [ "POTION_FWD", "dd/d07/potion_8h.html#a132b54b8443f5026260fb3f5f4a0b901", null ],
     [ "POTION_COPIED", "dd/d07/potion_8h.html#a66b716ef90f5401fc4f4af3e6a31967e", null ],
+    [ "NIL_NAME", "dd/d07/potion_8h.html#ab0efd3d7b9b5b69cf8e55afe02ffaf59", null ],
+    [ "NILKIND_NAME", "dd/d07/potion_8h.html#a8e24dd47fedebec9efce7f4faddbeacc", null ],
     [ "PN_FNUMBER", "dd/d07/potion_8h.html#a53dc44e50f7f285a2934f65215e5ca7c", null ],
     [ "PN_FBOOLEAN", "dd/d07/potion_8h.html#a78cea841aa4a9287645669e622eb0e44", null ],
     [ "PN_TEST", "dd/d07/potion_8h.html#aae8999ca8dcec58a671360e3dfd05604", null ],

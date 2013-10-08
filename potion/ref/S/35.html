@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<title>core/vm-dis.c</title>
+<meta name='robots' content='noindex,nofollow' />
+<meta name='generator' content='GLOBAL-6.2.8' />
+<meta http-equiv='Content-Style-Type' content='text/css' />
+<link rel='stylesheet' type='text/css' href='../style.css' />
+</head>
+<body>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/173.html'>core</a>/vm-dis.c</h2>
+<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<hr />
+<pre>
+<a id='L1' name='L1'></a><em class='comment'>/**\file vm-dis.c</em>
+<a id='L2' name='L2'></a><em class='comment'>  interface to various jit disassembler libs. currently x86 only. usage: -DJ</em>
+<a id='L3' name='L3'></a><em class='comment'></em>
+<a id='L4' name='L4'></a><em class='comment'> - http://udis86.sourceforge.net/ x86 16,32,64 bit</em>
+<a id='L5' name='L5'></a><em class='comment'>   \code port install udis86 \endcode</em>
+<a id='L6' name='L6'></a><em class='comment'> - http://ragestorm.net/distorm/ x86 16,32,64 bit with all intel/amd extensions</em>
+<a id='L7' name='L7'></a><em class='comment'>   \code apt-get install libdistorm64-dev \endcode</em>
+<a id='L8' name='L8'></a><em class='comment'> - http://bastard.sourceforge.net/libdisasm.html 386 32bit only</em>
+<a id='L9' name='L9'></a><em class='comment'>   \code apt-get install libdisasm-dev \endcode</em>
+<a id='L10' name='L10'></a><em class='comment'></em>
+<a id='L11' name='L11'></a><em class='comment'>  written by Reini Urban</em>
+<a id='L12' name='L12'></a><em class='comment'>*/</em>
+<a id='L13' name='L13'></a>
+<a id='L14' name='L14'></a><em class='sharp'>#if</em> <strong class='reserved'>defined</strong>(JIT_DEBUG)
+<a id='L15' name='L15'></a>  printf("-- jit --\n");
+<a id='L16' name='L16'></a>  printf("; function definition: %p ; %u bytes\n", asmb-&gt;ptr, asmb-&gt;len);
+<a id='L17' name='L17'></a><em class='sharp'>#  if</em> <strong class='reserved'>defined</strong>(HAVE_LIBUDIS86) &amp;&amp; (POTION_JIT_TARGET == <a href='../S/29.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a>)
+<a id='L18' name='L18'></a>  <em class='brace'>{</em>
+<a id='L19' name='L19'></a>    ud_t ud_obj;
+<a id='L20' name='L20'></a>
+<a id='L21' name='L21'></a>    ud_init(&amp;ud_obj);
+<a id='L22' name='L22'></a>    ud_set_input_buffer(&amp;ud_obj, asmb-&gt;ptr, asmb-&gt;len);
+<a id='L23' name='L23'></a>    ud_set_mode(&amp;ud_obj, <a href='../D/626.html' title='Multiple defined in 2 places.'>__WORDSIZE</a> == 64 ? 64 : 32);
+<a id='L24' name='L24'></a>    ud_set_syntax(&amp;ud_obj, UD_SYN_ATT);
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a>    <strong class='reserved'>while</strong> (ud_disassemble(&amp;ud_obj)) <em class='brace'>{</em>
+<a id='L27' name='L27'></a>      printf("0x%012lx 0x%lx %-24s \t%s\n", (<strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong>)(ud_insn_off(&amp;ud_obj)+(<strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong>)asmb-&gt;ptr),
+<a id='L28' name='L28'></a>             (<strong class='reserved'>long</strong>)ud_insn_off(&amp;ud_obj), ud_insn_hex(&amp;ud_obj), ud_insn_asm(&amp;ud_obj));
+<a id='L29' name='L29'></a>    <em class='brace'>}</em>
+<a id='L30' name='L30'></a>  <em class='brace'>}</em>
+<a id='L31' name='L31'></a><em class='sharp'>#  else</em>
+<a id='L32' name='L32'></a><em class='sharp'>#  if</em> <strong class='reserved'>defined</strong>(HAVE_LIBDISTORM64) &amp;&amp; (POTION_JIT_TARGET == <a href='../S/29.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a>)
+<a id='L33' name='L33'></a>  <em class='brace'>{</em>
+<a id='L34' name='L34'></a><em class='sharp'>    #define</em> <a href='../R/175.html' title='Multiple referred from 2 places.'>MAX_INSTRUCTIONS</a> 2048
+<a id='L35' name='L35'></a><em class='sharp'>    #define</em> <a href='../S/35.html#L41' title='Referred from 41 in core/vm-dis.c.'>MAX_TEXT_SIZE</a> (60)
+<a id='L36' name='L36'></a>    <strong class='reserved'>typedef</strong> <strong class='reserved'>enum</strong> <em class='brace'>{</em>Decode16Bits = 0, Decode32Bits = 1, Decode64Bits = 2<em class='brace'>}</em> _DecodeType;
+<a id='L37' name='L37'></a>    <strong class='reserved'>typedef</strong> <strong class='reserved'>enum</strong> <em class='brace'>{</em>DECRES_NONE, DECRES_SUCCESS, DECRES_MEMORYERR, DECRES_INPUTERR<em class='brace'>}</em> <a href='../S/35.html#L50' title='Referred from 50 in core/vm-dis.c.'>_DecodeResult</a>;
+<a id='L38' name='L38'></a>    <strong class='reserved'>typedef</strong> <strong class='reserved'>long</strong> <a href='../R/520.html' title='Multiple referred from 3 places.'>_OffsetType</a>;
+<a id='L39' name='L39'></a>    <strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <em class='brace'>{</em>
+<a id='L40' name='L40'></a>      <strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong> pos;
+<a id='L41' name='L41'></a>      int8_t p[<a href='../S/35.html#L35' title='Defined at 35 in core/vm-dis.c.'>MAX_TEXT_SIZE</a>];
+<a id='L42' name='L42'></a>    <em class='brace'>}</em> <a href='../R/526.html' title='Multiple referred from 3 places.'>_WString</a>;
+<a id='L43' name='L43'></a>    <strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <em class='brace'>{</em>
+<a id='L44' name='L44'></a>      <a href='../S/35.html#L42' title='Defined at 42 in core/vm-dis.c.'>_WString</a> mnemonic;
+<a id='L45' name='L45'></a>      <a href='../S/35.html#L42' title='Defined at 42 in core/vm-dis.c.'>_WString</a> operands;
+<a id='L46' name='L46'></a>      <a href='../S/35.html#L42' title='Defined at 42 in core/vm-dis.c.'>_WString</a> instructionHex;
+<a id='L47' name='L47'></a>      <strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong> size;
+<a id='L48' name='L48'></a>      <a href='../S/35.html#L38' title='Defined at 38 in core/vm-dis.c.'>_OffsetType</a> offset;
+<a id='L49' name='L49'></a>    <em class='brace'>}</em> <a href='../R/519.html' title='Multiple referred from 2 places.'>_DecodedInst</a>;
+<a id='L50' name='L50'></a>    <a href='../S/35.html#L37' title='Defined at 37 in core/vm-dis.c.'>_DecodeResult</a> distorm_decode64(<a href='../S/35.html#L38' title='Defined at 38 in core/vm-dis.c.'>_OffsetType</a>,
+<a id='L51' name='L51'></a>                         <strong class='reserved'>const</strong> <strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong>*,
+<a id='L52' name='L52'></a>                         <strong class='reserved'>long</strong>,
+<a id='L53' name='L53'></a>                         <strong class='reserved'>int</strong>,
+<a id='L54' name='L54'></a>                         <a href='../S/35.html#L49' title='Defined at 49 in core/vm-dis.c.'>_DecodedInst</a>*,
+<a id='L55' name='L55'></a>                         <strong class='reserved'>int</strong>,
+<a id='L56' name='L56'></a>                         <strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>*);
+<a id='L57' name='L57'></a>
+<a id='L58' name='L58'></a>    <a href='../S/35.html#L49' title='Defined at 49 in core/vm-dis.c.'>_DecodedInst</a> disassembled[<a href='../S/35.html#L34' title='Defined at 34 in core/vm-dis.c.'>MAX_INSTRUCTIONS</a>];
+<a id='L59' name='L59'></a>    <strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong> decodedInstructionsCount = 0;
+<a id='L60' name='L60'></a>    <a href='../S/35.html#L38' title='Defined at 38 in core/vm-dis.c.'>_OffsetType</a> offset = 0;
+<a id='L61' name='L61'></a>    <strong class='reserved'>int</strong> i;
+<a id='L62' name='L62'></a>
+<a id='L63' name='L63'></a>    distorm_decode64(offset,
+<a id='L64' name='L64'></a>      (<strong class='reserved'>const</strong> <strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong>*)asmb-&gt;ptr,
+<a id='L65' name='L65'></a>      asmb-&gt;len,
+<a id='L66' name='L66'></a>      PN_SIZE_T == 8 ? 2 : 1,
+<a id='L67' name='L67'></a>      disassembled,
+<a id='L68' name='L68'></a>      <a href='../S/35.html#L34' title='Defined at 34 in core/vm-dis.c.'>MAX_INSTRUCTIONS</a>,
+<a id='L69' name='L69'></a>      &amp;decodedInstructionsCount);
+<a id='L70' name='L70'></a>    <strong class='reserved'>for</strong> (i = 0; i &lt; decodedInstructionsCount; i++) <em class='brace'>{</em>
+<a id='L71' name='L71'></a>      printf("0x%012lx 0x%04x (%02d) %-24s %s%s%s\r\n",
+<a id='L72' name='L72'></a>             disassembled[i].offset + (<strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong>)asmb-&gt;ptr,
+<a id='L73' name='L73'></a>             (<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)disassembled[i].offset,
+<a id='L74' name='L74'></a>             disassembled[i].size,
+<a id='L75' name='L75'></a>             (<strong class='reserved'>char</strong>*)disassembled[i].instructionHex.p,
+<a id='L76' name='L76'></a>             (<strong class='reserved'>char</strong>*)disassembled[i].mnemonic.p,
+<a id='L77' name='L77'></a>             disassembled[i].operands.pos != 0 ? " " : "",
+<a id='L78' name='L78'></a>             (<strong class='reserved'>char</strong>*)disassembled[i].operands.p);
+<a id='L79' name='L79'></a>    <em class='brace'>}</em>
+<a id='L80' name='L80'></a>  <em class='brace'>}</em>
+<a id='L81' name='L81'></a><em class='sharp'>#  else</em>
+<a id='L82' name='L82'></a><em class='sharp'>#  if</em> <strong class='reserved'>defined</strong>(HAVE_LIBDISASM) &amp;&amp; (POTION_JIT_TARGET == <a href='../S/29.html#L49' title='Defined at 49 in core/potion.h.'>POTION_X86</a>)
+<a id='L83' name='L83'></a><em class='sharp'>#    define</em> <a href='../R/166.html' title='Multiple referred from 2 places.'>LINE_SIZE</a> 255
+<a id='L84' name='L84'></a>  <em class='brace'>{</em>
+<a id='L85' name='L85'></a>    <strong class='reserved'>char</strong> line[<a href='../S/35.html#L83' title='Defined at 83 in core/vm-dis.c.'>LINE_SIZE</a>];
+<a id='L86' name='L86'></a>    <strong class='reserved'>int</strong> pos = 0;
+<a id='L87' name='L87'></a>    <strong class='reserved'>int</strong> size = asmb-&gt;len;
+<a id='L88' name='L88'></a>    <strong class='reserved'>int</strong> insnsize;            <em class='comment'>/* size of instruction */</em>
+<a id='L89' name='L89'></a>    x86_insn_t insn;         <em class='comment'>/* one instruction */</em>
+<a id='L90' name='L90'></a>
+<a id='L91' name='L91'></a>    <em class='comment'>// only stable for 32bit</em>
+<a id='L92' name='L92'></a>    x86_init(opt_none, NULL, NULL);
+<a id='L93' name='L93'></a>    <strong class='reserved'>while</strong> ( pos &lt; size ) <em class='brace'>{</em>
+<a id='L94' name='L94'></a>      insnsize = x86_disasm(asmb-&gt;ptr, size, 0, pos, &amp;insn);
+<a id='L95' name='L95'></a>      <strong class='reserved'>if</strong> ( insnsize ) <em class='brace'>{</em>
+<a id='L96' name='L96'></a>        <strong class='reserved'>int</strong> i;
+<a id='L97' name='L97'></a>        x86_format_insn(&amp;insn, line, <a href='../S/35.html#L83' title='Defined at 83 in core/vm-dis.c.'>LINE_SIZE</a>, att_syntax);
+<a id='L98' name='L98'></a>        printf("0x%x\t", pos);
+<a id='L99' name='L99'></a>        <strong class='reserved'>for</strong> ( i = 0; i &lt; 10; i++ ) <em class='brace'>{</em>
+<a id='L100' name='L100'></a>          <strong class='reserved'>if</strong> ( i &lt; insn.size ) printf("%02x", insn.bytes[i]);
+<a id='L101' name='L101'></a>          <strong class='reserved'>else</strong> printf("  ");
+<a id='L102' name='L102'></a>        <em class='brace'>}</em>
+<a id='L103' name='L103'></a>        printf("%s\n", line);
+<a id='L104' name='L104'></a>        pos += insnsize;
+<a id='L105' name='L105'></a>      <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L106' name='L106'></a>        printf("Invalid instruction at 0x%x. size=0x%x\n", pos, size);
+<a id='L107' name='L107'></a>        pos++;
+<a id='L108' name='L108'></a>      <em class='brace'>}</em>
+<a id='L109' name='L109'></a>    <em class='brace'>}</em>
+<a id='L110' name='L110'></a>    x86_cleanup();
+<a id='L111' name='L111'></a>  <em class='brace'>}</em>
+<a id='L112' name='L112'></a><em class='sharp'>#else</em>
+<a id='L113' name='L113'></a>  <strong class='reserved'>long</strong> ai = 0;
+<a id='L114' name='L114'></a>  <strong class='reserved'>for</strong> (ai = 0; ai &lt; asmb-&gt;len; ai++) <em class='brace'>{</em>
+<a id='L115' name='L115'></a>    printf("%x ", asmb-&gt;ptr[ai]);
+<a id='L116' name='L116'></a>  <em class='brace'>}</em>
+<a id='L117' name='L117'></a>  printf("\n");
+<a id='L118' name='L118'></a><em class='sharp'>#  endif</em>
+<a id='L119' name='L119'></a><em class='sharp'>#  endif</em>
+<a id='L120' name='L120'></a><em class='sharp'>#  endif</em>
+<a id='L121' name='L121'></a><em class='sharp'>#endif</em>
+</pre>
+<hr />
+<a id='BOTTOM' name='BOTTOM'></a>
+<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+</body>
+</html>

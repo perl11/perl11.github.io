@@ -1,10 +1,11 @@
 var struct_p_n_source =
 [
-    [ "potion_source_size", "dc/dc6/struct_p_n_source.html#a188b170ac83b1309671e151dfabd725a", null ],
-    [ "potion_source_name", "dc/dc6/struct_p_n_source.html#ac3dc6c471c70a346e451ae5eb2fcb9ed", null ],
-    [ "potion_source_file", "dc/dc6/struct_p_n_source.html#a74267a37242fac99e31caa6bad48430b", null ],
-    [ "potion_source_line", "dc/dc6/struct_p_n_source.html#ab47dfd1ab7760b04dd8173922e945267", null ],
-    [ "potion_source_string", "dc/dc6/struct_p_n_source.html#afe0853d0a729c4268813e46aeb045966", null ],
+    [ "potion_source_size", "dc/dc6/struct_p_n_source.html#a16449dc812c6a2e44adcbb55dd01bfbd", null ],
+    [ "potion_source_name", "dc/dc6/struct_p_n_source.html#a53e0adfed5a8e5f81d76131b17d2fe12", null ],
+    [ "potion_source_file", "dc/dc6/struct_p_n_source.html#aa062ba90ea8e719f5fc1a18cd6c957e9", null ],
+    [ "potion_source_lineno", "dc/dc6/struct_p_n_source.html#ac993344a906e2d7466c6dcb285baa056", null ],
+    [ "potion_source_line", "dc/dc6/struct_p_n_source.html#aad02e1d80af0fc858b74d078ceb453e3", null ],
+    [ "potion_source_string", "dc/dc6/struct_p_n_source.html#ab9b035937b6ddd66b082815cff9c21fe", null ],
     [ "potion_source_compile", "dc/dc6/struct_p_n_source.html#a69d50f370231214cff2f91196ba24bc8", null ],
     [ "potion_source_load", "dc/dc6/struct_p_n_source.html#a151e2c8be44d7a886347ca3f88b91755", null ],
     [ "potion_source_dumpbc", "dc/dc6/struct_p_n_source.html#a53d3d107a4c4ee91c05a1ad3fb6dc8cb", null ],

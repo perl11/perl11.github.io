@@ -6,5 +6,7 @@ var searchData=
   ['new_5ftuple',['NEW_TUPLE',['../dc/d33/table_8c.html#a11c013fe48bd9ee1923e6ad12580dda4',1,'table.c']]],
   ['next',['next',['../df/dac/mt19937ar_8c.html#ac68daf2bcc2adb77f62b5dd17eb769b7',1,'mt19937ar.c']]],
   ['next_5fstate',['next_state',['../df/dac/mt19937ar_8c.html#a6d769044ee5e3370e83b2a2024c14c4b',1,'mt19937ar.c']]],
+  ['nil_5fname',['NIL_NAME',['../dd/d07/potion_8h.html#ab0efd3d7b9b5b69cf8e55afe02ffaf59',1,'potion.h']]],
+  ['nilkind_5fname',['NILKIND_NAME',['../dd/d07/potion_8h.html#a8e24dd47fedebec9efce7f4faddbeacc',1,'potion.h']]],
   ['number_2ec',['number.c',['../de/d2f/number_8c.html',1,'']]]
 ];
