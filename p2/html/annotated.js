@@ -26,6 +26,8 @@ var annotated =
     [ "Aio_udp_send", "d8/d6b/class_aio__udp__send.html", null ],
     [ "Aio_work", "d5/d06/class_aio__work.html", null ],
     [ "Aio_write", "d4/d52/class_aio__write.html", null ],
+    [ "block_t", "da/d3f/structblock__t.html", "da/d3f/structblock__t" ],
+    [ "blockp_t", "d6/d0f/structblockp__t.html", "d6/d0f/structblockp__t" ],
     [ "Lobby", "db/dd7/class_lobby.html", "db/dd7/class_lobby" ],
     [ "PN_OP", "d6/d0b/struct_p_n___o_p.html", "d6/d0b/struct_p_n___o_p" ],
     [ "PNArg", "d0/d61/struct_p_n_arg.html", "d0/d61/struct_p_n_arg" ],

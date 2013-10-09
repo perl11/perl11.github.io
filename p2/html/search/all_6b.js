@@ -28,8 +28,8 @@ var searchData=
   ['khash_5fflag',['KHASH_FLAG',['../d2/deb/khash_8h.html#a2fcaaa88ad3b193a660c4b42cc6276ce',1,'khash.h']]],
   ['khash_5finit',['KHASH_INIT',['../d2/deb/khash_8h.html#a8e7746fe70638f7c1172c67a9a4fedc7',1,'khash.h']]],
   ['khash_5fkey',['KHASH_KEY',['../d2/deb/khash_8h.html#a3b263e1bc5eef59f469363360f08f5da',1,'khash.h']]],
-  ['khash_5fmap_5finit_5fpn',['KHASH_MAP_INIT_PN',['../d2/deb/khash_8h.html#a01cf89cbc5b183a02f819130ac46addb',1,'KHASH_MAP_INIT_PN():&#160;khash.h'],['../dd/d98/table_8h.html#ae0d0ea02284a0d8de5e668c52b8d1615',1,'KHASH_MAP_INIT_PN(PN, struct PNTable):&#160;table.h']]],
-  ['khash_5fmap_5finit_5fstr',['KHASH_MAP_INIT_STR',['../d2/deb/khash_8h.html#a66e2410439ff9ad518f40ff76ee5c0b3',1,'KHASH_MAP_INIT_STR():&#160;khash.h'],['../dd/d98/table_8h.html#ab7cd2a25ae24c76360b55aa83365df04',1,'KHASH_MAP_INIT_STR(str, struct PNTable):&#160;table.h']]],
+  ['khash_5fmap_5finit_5fpn',['KHASH_MAP_INIT_PN',['../d2/deb/khash_8h.html#a01cf89cbc5b183a02f819130ac46addb',1,'khash.h']]],
+  ['khash_5fmap_5finit_5fstr',['KHASH_MAP_INIT_STR',['../d2/deb/khash_8h.html#a66e2410439ff9ad518f40ff76ee5c0b3',1,'khash.h']]],
   ['khash_5fval',['KHASH_VAL',['../d2/deb/khash_8h.html#aa789529dc59171b8cc081d74867e690b',1,'khash.h']]],
   ['khint_5ft',['khint_t',['../d2/deb/khash_8h.html#a16631ac6535cfad33ad40ad038d05911',1,'khash.h']]],
   ['khiter_5ft',['khiter_t',['../d2/deb/khash_8h.html#a3583e51109969a55bff12293f468da5e',1,'khash.h']]]

@@ -2,13 +2,14 @@ var NAVTREE =
 [
   [ "p2", "index.html", [
     [ "potion + p2", "index.html", null ],
-    [ "~ readme ~", "d3/dcc/md__r_e_a_d_m_e.html", null ],
+    [ "~ p2 ~", "d3/dcc/md__r_e_a_d_m_e.html", null ],
     [ "~ the nature of potion's insides ~", "df/d98/md__i_n_t_e_r_n_a_l_s.html", null ],
     [ "~ building potion ~", "d8/de3/md__i_n_s_t_a_l_l.html", null ],
     [ "Todo List", "dd/da0/todo.html", null ],
     [ "Data Structures", null, [
       [ "Data Structures", "annotated.html", "annotated" ],
       [ "Data Structure Index", "classes.html", null ],
+      [ "Class Hierarchy", "hierarchy.html", "hierarchy" ],
       [ "Data Fields", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
@@ -34,12 +35,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/d73/struct_p_n_table.html#a48698f6a39e84385de49921d2f5b7cba",
-"d6/d92/class_aio__loop.html",
-"d9/dd4/load_8c.html#a5746cfc4a0af4f85eb663fffe4c47940",
-"dc/dc6/struct_p_n_source.html#afe0853d0a729c4268813e46aeb045966",
-"dd/d07/potion_8h.html#a95e4cb30fa7e242ac6cd9446abaf5962",
-"df/d30/struct_p_n_tuple.html#a3207500b3bba8ed10b5ed238a0fcf6f7"
+"d3/d73/struct_p_n_table.html#a2c433402a93ac8f67b80c3149b6f5c63",
+"d6/d4e/struct_p_n_proto.html#ac4183f24e29bb870443b6b21922ed359",
+"d8/d77/aio_8c_source.html",
+"dc/d33/table_8c.html#a6ecad7238d89976d5cd05a8a2edcdbaf",
+"dd/d07/potion_8h.html#a755c95f77cd7db0eaeaf6e616b6b64a4",
+"de/db4/struct_p_n_memory.html#a94e8c6d6f3c2777596c10d5b30063cdb",
+"globals_defs_0x65.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -2,14 +2,13 @@ var objmodel_8c =
 [
     [ "FUNCNAME", "d4/ddb/objmodel_8c.html#a5df244c7c088a1952d4fa26ec9d82fd8", null ],
     [ "LOBBY_NAME", "d4/ddb/objmodel_8c.html#a6654992642685d828ba3f7cddd5fa845", null ],
-    [ "NILKIND_NAME", "d4/ddb/objmodel_8c.html#a8e24dd47fedebec9efce7f4faddbeacc", null ],
     [ "NUMBER_NAME", "d4/ddb/objmodel_8c.html#a34c9b7febe2131a3a126b2b523f62e7c", null ],
     [ "STRING_NAME", "d4/ddb/objmodel_8c.html#a3aaebdc8f4248444a5fca0799f71b13c", null ],
-    [ "pdump", "d4/ddb/objmodel_8c.html#acdefece9684d17888d279450b8141ad3", null ],
     [ "potion_closure_new", "d4/ddb/objmodel_8c.html#af176fae8c0849a0eeb9c990f17b87280", null ],
     [ "potion_sig_arity", "d4/ddb/objmodel_8c.html#a8045688a8179fd44ef5a7864c0608a31", null ],
     [ "potion_sig_minargs", "d4/ddb/objmodel_8c.html#a7a06d5a878d8c15e1e15053ba689973c", null ],
     [ "potion_sig_at", "d4/ddb/objmodel_8c.html#a586d025a628ab0d116aec6f00dea75a1", null ],
+    [ "potion_sig_name_at", "d4/ddb/objmodel_8c.html#a81d414c904569453c13d6f1ba2ca8b32", null ],
     [ "potion_no_call", "d4/ddb/objmodel_8c.html#a949d454f9b4e1d3f87115852639a0886", null ],
     [ "potion_add_metaclass", "d4/ddb/objmodel_8c.html#a670ff1b0bfc88ba21f2e9ebcf9db7511", null ],
     [ "potion_type_new", "d4/ddb/objmodel_8c.html#a60035322826e60b3c6a64ba6cab26485", null ],
@@ -43,6 +42,5 @@ var objmodel_8c =
     [ "potion_init_class_reference", "d4/ddb/objmodel_8c.html#a0736d637b67de0ab155aa5ce1e71f693", null ],
     [ "potion_define_global", "d4/ddb/objmodel_8c.html#a969cc2103b3bc543f0d86ae0247c8448", null ],
     [ "potion_object_init", "d4/ddb/objmodel_8c.html#a1626db1b1c545e28cc43cc4189346d51", null ],
-    [ "potion_lobby_init", "d4/ddb/objmodel_8c.html#a2baf518b25e759a95286524d602b45b0", null ],
-    [ "potion_dump", "d4/ddb/objmodel_8c.html#afb2304978c84f7388fb4621749009639", null ]
+    [ "potion_lobby_init", "d4/ddb/objmodel_8c.html#a2baf518b25e759a95286524d602b45b0", null ]
 ];
