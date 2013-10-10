@@ -2,6 +2,7 @@ var searchData=
 [
   ['rbp',['RBP',['../df/d47/vm-ppc_8c.html#a4a80a26e6eee4304feed7588f82d5a74',1,'RBP():&#160;vm-ppc.c'],['../db/de5/vm-x86_8c.html#a4a80a26e6eee4304feed7588f82d5a74',1,'RBP():&#160;vm-x86.c']]],
   ['rbpi',['RBPI',['../db/de5/vm-x86_8c.html#a148a30b2c1f27edd48ea6c74d17471e2',1,'vm-x86.c']]],
+  ['rbpn',['RBPN',['../db/de5/vm-x86_8c.html#a55f7de14f3b038e1e8216651a5b6e150',1,'vm-x86.c']]],
   ['read_5fconst',['READ_CONST',['../d2/d47/compile_8c.html#a90d082d58a557fd6d32370f6eab8c571',1,'compile.c']]],
   ['read_5fpn',['READ_PN',['../d2/d47/compile_8c.html#ae9fc363e7ea63a37620a0c12db8246f5',1,'compile.c']]],
   ['read_5fprotos',['READ_PROTOS',['../d2/d47/compile_8c.html#aa5859af30fdbb698f6fa20169271228c',1,'compile.c']]],

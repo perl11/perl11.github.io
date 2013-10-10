@@ -1,11 +1,13 @@
 var vm_x86_8c =
 [
     [ "RBP", "db/de5/vm-x86_8c.html#a4a80a26e6eee4304feed7588f82d5a74", null ],
+    [ "RBPN", "db/de5/vm-x86_8c.html#a55f7de14f3b038e1e8216651a5b6e150", null ],
     [ "RBPI", "db/de5/vm-x86_8c.html#a148a30b2c1f27edd48ea6c74d17471e2", null ],
     [ "X86_PRE_T", "db/de5/vm-x86_8c.html#ad13a668a2659d0373c9ccfb827247727", null ],
     [ "X86_PRE", "db/de5/vm-x86_8c.html#a2b56cd1a417efe8ecb1d5ad3c35c0b7a", null ],
     [ "X86_POST", "db/de5/vm-x86_8c.html#a4a3f8de1cb9221f5ae3499b9cb3f902e", null ],
     [ "X86C", "db/de5/vm-x86_8c.html#a5fb55374e059831ebf81c43143d15a94", null ],
+    [ "ASM_MOV_EBP", "db/de5/vm-x86_8c.html#a26243c3aebda2ab5ede37152b6d4cfa6", null ],
     [ "X86_MOV_RBP", "db/de5/vm-x86_8c.html#a24cec266b41dcb9dc66722a881b9738f", null ],
     [ "X86_MOVQ", "db/de5/vm-x86_8c.html#a7aa80d039275c59080bfcb4403986b35", null ],
     [ "X86_MATH", "db/de5/vm-x86_8c.html#ab8905398903dfc74717f285647cb0bf5", null ],

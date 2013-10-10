@@ -1,5 +1,7 @@
 var NAVTREEINDEX5 =
 {
+"df/d30/struct_p_n_tuple.html#a7feb9beb5f05174d9c47999894a0a380":[4,0,25,2],
+"df/d30/struct_p_n_tuple.html#a867e921fef73b2d9ba8498382ddb2e13":[4,0,25,20],
 "df/d30/struct_p_n_tuple.html#a88d109d726af52569015d19de3252cd4":[4,0,25,18],
 "df/d30/struct_p_n_tuple.html#a900ceb58422f8f2b334dc4c5a9aee2d9":[4,0,25,23],
 "df/d30/struct_p_n_tuple.html#ab07419f41b8bdce0bbc44c91e26fef53":[4,0,25,16],
@@ -128,8 +130,8 @@ var NAVTREEINDEX5 =
 "df/dfc/version_8h.html#a9acd6c85fc84585708781400643cd83d":[5,0,26,0],
 "df/dfc/version_8h_source.html":[5,0,26],
 "files.html":[5,0],
-"functions.html":[4,2,0,0],
 "functions.html":[4,2,0],
+"functions.html":[4,2,0,0],
 "functions_0x62.html":[4,2,0,1],
 "functions_0x63.html":[4,2,0,2],
 "functions_0x64.html":[4,2,0,3],
@@ -212,7 +214,6 @@ var NAVTREEINDEX5 =
 "globals_func_0x6d.html":[5,1,1,4],
 "globals_func_0x6e.html":[5,1,1,5],
 "globals_func_0x70.html":[5,1,1,6],
-"globals_func_0x76.html":[5,1,1,7],
 "globals_type.html":[5,1,3],
 "globals_vars.html":[5,1,2],
 "index.html":[],

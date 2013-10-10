@@ -1,5 +1,7 @@
 var NAVTREEINDEX4 =
 {
+"dd/d07/potion_8h.html#a96d4472473cb580c2c892e666e7e70ae":[5,0,21,76],
+"dd/d07/potion_8h.html#a97959d41bf9282095d5d25dfffa799b0":[5,0,21,103],
 "dd/d07/potion_8h.html#a97e0efc36f8744005f1f6066cda0b5e9":[5,0,21,21],
 "dd/d07/potion_8h.html#a99096466280974cc92e66522b0a258ed":[5,0,21,178],
 "dd/d07/potion_8h.html#a99bc45b85db92614154a63544b8e4ef8":[5,0,21,66],
@@ -247,7 +249,5 @@ var NAVTREEINDEX4 =
 "df/d30/struct_p_n_tuple.html#a4d031ba68453bc1e8b5489cdaf708bed":[4,0,25,4],
 "df/d30/struct_p_n_tuple.html#a4f1336e49066f1aa41b1bcd6dd3ac57e":[4,0,25,21],
 "df/d30/struct_p_n_tuple.html#a60e94ef4bf6d3550637807593e522cc3":[4,0,25,19],
-"df/d30/struct_p_n_tuple.html#a65fef0e3947165851dbe8721a019d390":[4,0,25,22],
-"df/d30/struct_p_n_tuple.html#a7feb9beb5f05174d9c47999894a0a380":[4,0,25,2],
-"df/d30/struct_p_n_tuple.html#a867e921fef73b2d9ba8498382ddb2e13":[4,0,25,20]
+"df/d30/struct_p_n_tuple.html#a65fef0e3947165851dbe8721a019d390":[4,0,25,22]
 };

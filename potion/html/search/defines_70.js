@@ -125,7 +125,6 @@ var searchData=
   ['pn_5fvtable',['PN_VTABLE',['../dd/d07/potion_8h.html#ad303df4a17eda78803d5f22a3b499d04',1,'potion.h']]],
   ['pn_5fvtype',['PN_VTYPE',['../dd/d07/potion_8h.html#a3c0767990aa846514c719797282e0c96',1,'potion.h']]],
   ['pn_5fzero',['PN_ZERO',['../dd/d07/potion_8h.html#ab3972e316f033ddf152185e67014fc81',1,'potion.h']]],
-  ['potion_5fargs_5fdir',['POTION_ARGS_DIR',['../db/d16/config_8h.html#abe90386fbd1e150540e803a1fefad952',1,'config.h']]],
   ['potion_5farm',['POTION_ARM',['../dd/d07/potion_8h.html#a3a6a49f4ab6a0f784c027f3f787cd822',1,'potion.h']]],
   ['potion_5fbirth_5fsize',['POTION_BIRTH_SIZE',['../d0/daa/gc_8h.html#a4087294250263f6432ee60bec62fb914',1,'gc.h']]],
   ['potion_5fcc',['POTION_CC',['../db/d16/config_8h.html#acaf0e857581d8d418d85d3e0335ef092',1,'config.h']]],

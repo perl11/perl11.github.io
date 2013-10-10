@@ -11,6 +11,7 @@ var searchData=
   ['asm_2ec',['asm.c',['../d3/d33/asm_8c.html',1,'']]],
   ['asm_2eh',['asm.h',['../de/d21/asm_8h.html',1,'']]],
   ['asm2',['ASM2',['../de/d21/asm_8h.html#a32e6917d1ab664c93ae8f7f7261e465b',1,'asm.h']]],
+  ['asm_5fmov_5febp',['ASM_MOV_EBP',['../db/de5/vm-x86_8c.html#a26243c3aebda2ab5ede37152b6d4cfa6',1,'vm-x86.c']]],
   ['asm_5funit',['ASM_UNIT',['../de/d21/asm_8h.html#aacf91ef8f7f5d89d3d15514ac675ea0f',1,'asm.h']]],
   ['asmb',['asmb',['../d6/d4e/struct_p_n_proto.html#a80f9de48a38df7f3f4225850f7256c1d',1,'PNProto']]],
   ['asmi',['ASMI',['../de/d21/asm_8h.html#ae4f929c3f6a534b165bcdb91c767b0ba',1,'asm.h']]],

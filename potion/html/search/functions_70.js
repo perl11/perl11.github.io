@@ -107,7 +107,7 @@ var searchData=
   ['potion_5finit',['potion_init',['../dc/df8/internal_8c.html#a3952cff400c87ae24f9a6a4ac5b68380',1,'internal.c']]],
   ['potion_5finit_5fclass_5freference',['potion_init_class_reference',['../d4/ddb/objmodel_8c.html#a0736d637b67de0ab155aa5ce1e71f693',1,'objmodel.c']]],
   ['potion_5finitializer_5fname',['potion_initializer_name',['../d9/dd4/load_8c.html#a9021436f76b9387a0b58a144fee136a7',1,'load.c']]],
-  ['potion_5fio_5ferror',['potion_io_error',['../dd/d07/potion_8h.html#ae4a7f202a7de199715b3e1678b31b51e',1,'potion.h']]],
+  ['potion_5fio_5ferror',['potion_io_error',['../d6/d13/file_8c.html#ac8f8c9b5ad80ce132691ec80e252d966',1,'potion_io_error(Potion *P, const char *msg):&#160;file.c'],['../dd/d07/potion_8h.html#ae4a7f202a7de199715b3e1678b31b51e',1,'potion_io_error(Potion *, const char *):&#160;file.c']]],
   ['potion_5fivars',['potion_ivars',['../d4/ddb/objmodel_8c.html#a0865b3c14681d4ea9de14240374d5a86',1,'potion_ivars(Potion *P, PN cl, PN self, PN ivars):&#160;objmodel.c'],['../dd/d07/potion_8h.html#a0a20add9dec7f3cdfbea92be6228ef2e',1,'potion_ivars(Potion *, PN, PN, PN):&#160;objmodel.c']]],
   ['potion_5fjit_5fproto',['potion_jit_proto',['../dd/d07/potion_8h.html#aaed667804b37e65c80a79bd132b4bc25',1,'potion.h']]],
   ['potion_5fkind_5fof',['potion_kind_of',['../dc/df8/internal_8c.html#aa1f5049deb6de8a0990d55fdc45c1eac',1,'potion_kind_of(PN obj):&#160;internal.c'],['../dd/d07/potion_8h.html#a43b4d9ad408f496db3115a81ff71f371',1,'potion_kind_of(PN):&#160;internal.c']]],

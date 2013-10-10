@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"dc/df8/internal_8c.html#a2ef9ddf82bcd121a399856a22ba658b6":[5,0,11,6],
+"dc/df8/internal_8c.html#a3780bbb45bea9e265860288b79926970":[5,0,11,15],
 "dc/df8/internal_8c.html#a3952cff400c87ae24f9a6a4ac5b68380":[5,0,11,4],
 "dc/df8/internal_8c.html#a3c95a832786e1840322482a4dbc3a85c":[5,0,11,17],
 "dc/df8/internal_8c.html#a4ac25c450acf97b4db7f95c6242e4876":[5,0,11,36],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "dd/d07/potion_8h.html#a95e4cb30fa7e242ac6cd9446abaf5962":[5,0,21,235],
 "dd/d07/potion_8h.html#a967c3781a4d3be50a1dae0e3f8b951d5":[5,0,21,146],
 "dd/d07/potion_8h.html#a9698945584d1579a81605fa650ddc53e":[5,0,21,311],
-"dd/d07/potion_8h.html#a96c6b949ef9a3fa992b27d2a0055c559":[5,0,21,142],
-"dd/d07/potion_8h.html#a96d4472473cb580c2c892e666e7e70ae":[5,0,21,76],
-"dd/d07/potion_8h.html#a97959d41bf9282095d5d25dfffa799b0":[5,0,21,103]
+"dd/d07/potion_8h.html#a96c6b949ef9a3fa992b27d2a0055c559":[5,0,21,142]
 };

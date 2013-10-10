@@ -30,6 +30,5 @@ var config_8h =
     [ "PN_LITTLE_ENDIAN", "db/d16/config_8h.html#a8429ff84d8244144dbe9c437c373a1d1", null ],
     [ "POTION_PAGESIZE", "db/d16/config_8h.html#a1dad0c484f3a6da1efe0f3b1e9b18d1d", null ],
     [ "POTION_STACK_DIR", "db/d16/config_8h.html#ac2b6cd6a5e7c081d784168281b0a5aab", null ],
-    [ "POTION_ARGS_DIR", "db/d16/config_8h.html#abe90386fbd1e150540e803a1fefad952", null ],
     [ "HAVE_ASAN_ATTR", "db/d16/config_8h.html#a651616c50be0ce326276a81c9f19b8d6", null ]
 ];
