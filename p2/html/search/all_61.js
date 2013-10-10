@@ -200,7 +200,7 @@ var searchData=
   ['aio_5fwrite_5fnew',['aio_write_new',['../d8/d77/aio_8c.html#a8d6e37a88096ac4b3a7630a5d3342f1f',1,'aio.c']]],
   ['aio_5fwrite_5ftype',['aio_write_type',['../d8/d77/aio_8c.html#a0b97fde7a0c0f58ddd0eb5b73046592c',1,'aio.c']]],
   ['alloc',['alloc',['../df/d30/struct_p_n_tuple.html#a900ceb58422f8f2b334dc4c5a9aee2d9',1,'PNTuple']]],
-  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'compile.c']]],
+  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;compile.c'],['../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;vm.c']]],
   ['arity',['arity',['../d3/de9/struct_p_n_closure.html#aaf0a41ade3f57708c4cf4f02b051dda0',1,'PNClosure::arity()'],['../d6/d4e/struct_p_n_proto.html#ab8e6594f22921ba8c378e83d4fa59a20',1,'PNProto::arity()']]],
   ['as_5fstr',['AS_STR',['../dd/d07/potion_8h.html#a82cd0ad48173068d3b5e161fa66ce808',1,'potion.h']]],
   ['asm',['ASM',['../de/d21/asm_8h.html#a4e323bf268f0d615230e71486ccd1ff3',1,'asm.h']]],

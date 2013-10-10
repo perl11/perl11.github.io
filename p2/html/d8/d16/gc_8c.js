@@ -1,8 +1,9 @@
 var gc_8c =
 [
-    [ "DBG_Gv", "d8/d16/gc_8c.html#aa4007edaf0380d45dca9700f6538ef04", null ],
-    [ "DBG_G", "d8/d16/gc_8c.html#a4a458a9638c11091d9c1b0f35749e8d5", null ],
+    [ "DBG_Gv", "d8/d16/gc_8c.html#ae08db7137221b629c2587f3677fdb4db", null ],
+    [ "DBG_G", "d8/d16/gc_8c.html#a0318366fd4d04e58f65c72431ec31a9c", null ],
     [ "HAS_REAL_TYPE", "d8/d16/gc_8c.html#a2639bafa4db608c1ca0774252fae24fd", null ],
+    [ "mytime", "d8/d16/gc_8c.html#a5e5b2c4f31dcdcb61a751480532c9273", null ],
     [ "potion_stack_len", "d8/d16/gc_8c.html#a555b59448becce9fb329d28c940bcfc8", null ],
     [ "pngc_mark_array", "d8/d16/gc_8c.html#af8db49fc0181e64d937dbafed3c63813", null ],
     [ "potion_mark_stack", "d8/d16/gc_8c.html#a38dcab727fd43b5257713939f81ab093", null ],
