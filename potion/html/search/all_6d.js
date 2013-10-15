@@ -22,6 +22,5 @@ var searchData=
   ['mixbits',['MIXBITS',['../df/dac/mt19937ar_8c.html#a67ca431ffe3023cd012e3716a006539f',1,'mt19937ar.c']]],
   ['mode',['mode',['../d5/d55/struct_p_n_file.html#a958c8378e4a9d5fbc7036f38c07ffb87',1,'PNFile']]],
   ['mode_5fstd',['MODE_STD',['../dd/d07/potion_8h.html#af76ca71c3aee0c7c92c70a31b60354eea95a17981aacdfd8fe339d3fb99a7c94b',1,'potion.h']]],
-  ['mt19937ar_2ec',['mt19937ar.c',['../df/dac/mt19937ar_8c.html',1,'']]],
-  ['mytime',['mytime',['../d8/d16/gc_8c.html#a5e5b2c4f31dcdcb61a751480532c9273',1,'gc.c']]]
+  ['mt19937ar_2ec',['mt19937ar.c',['../df/dac/mt19937ar_8c.html',1,'']]]
 ];

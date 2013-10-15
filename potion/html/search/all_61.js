@@ -4,7 +4,7 @@ var searchData=
   ['ac_5fversion_5fkhash_5fh',['AC_VERSION_KHASH_H',['../d2/deb/khash_8h.html#abf47cefd83221cd88374ea567f53eaa7',1,'khash.h']]],
   ['addmodule',['addmodule',['../d5/d1a/potion_8c.html#ab93e4d46a24314377811a8b6fe07be23',1,'potion.c']]],
   ['alloc',['alloc',['../df/d30/struct_p_n_tuple.html#a900ceb58422f8f2b334dc4c5a9aee2d9',1,'PNTuple']]],
-  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;compile.c'],['../de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'args():&#160;vm.c']]],
+  ['args',['args',['../d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178',1,'compile.c']]],
   ['arity',['arity',['../d3/de9/struct_p_n_closure.html#aaf0a41ade3f57708c4cf4f02b051dda0',1,'PNClosure::arity()'],['../d6/d4e/struct_p_n_proto.html#ab8e6594f22921ba8c378e83d4fa59a20',1,'PNProto::arity()']]],
   ['as_5fstr',['AS_STR',['../dd/d07/potion_8h.html#a82cd0ad48173068d3b5e161fa66ce808',1,'potion.h']]],
   ['asm',['ASM',['../de/d21/asm_8h.html#a4e323bf268f0d615230e71486ccd1ff3',1,'asm.h']]],
