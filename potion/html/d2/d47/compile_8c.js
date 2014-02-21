@@ -36,5 +36,5 @@ var compile_8c =
     [ "potion_compiler_init", "d2/d47/compile_8c.html#a56f0842affd37dac20753d9d3ba35292", null ],
     [ "name", "d2/d47/compile_8c.html#a8f8f80d37794cde9472343e4487ba3eb", null ],
     [ "args", "d2/d47/compile_8c.html#a696b922b70259bfcac0d3acf49cdf178", null ],
-    [ "potion_ops", "d2/d47/compile_8c.html#ad16d449009a0f5a96f0d41527aed780a", null ]
+    [ "potion_ops", "d2/d47/compile_8c.html#a1a987da93279b71d0a36883524971be4", null ]
 ];

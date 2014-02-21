@@ -2,7 +2,7 @@ var NAVTREE =
 [
   [ "potion", "index.html", [
     [ "~ readme ~", "d3/dcc/md__r_e_a_d_m_e.html", null ],
-    [ "~ the nature of potion's insides ~", "df/d98/md__i_n_t_e_r_n_a_l_s.html", null ],
+    [ "~ the nature of potion's insides ~", "d2/dda/md_doc__i_n_t_e_r_n_a_l_s.html", null ],
     [ "~ building potion ~", "d8/de3/md__i_n_s_t_a_l_l.html", null ],
     [ "Todo List", "dd/da0/todo.html", null ],
     [ "Data Structures", null, [
@@ -33,13 +33,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebabcc7660b4b965fabb50f7f1183ed6855",
-"d9/dd4/load_8c.html#a522836aaad340c867e9afa7e28fbf158",
-"dc/df8/internal_8c.html#a3780bbb45bea9e265860288b79926970",
-"dd/d07/potion_8h.html#a99bc45b85db92614154a63544b8e4ef8",
-"df/d47/vm-ppc_8c.html"
+"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebab34a8eaf6d32d3c41810653d9eb99c1a",
+"d9/d08/class_p_n_number.html#ac07737af0275161c4dfb904155eae3b3",
+"dc/df8/internal_8c.html",
+"dd/d07/potion_8h.html#a8d25f0017f842c9b5308675e50752511",
+"de/de9/vm_8c.html#afcab46b56d9082d983c0b03989e590ee"
 ];
 
+var SYNCONMSG = 'click to disable panel synchronisation';
+var SYNCOFFMSG = 'click to enable panel synchronisation';
 var SYNCONMSG = 'click to disable panel synchronisation';
 var SYNCOFFMSG = 'click to enable panel synchronisation';
 var navTreeSubIndices = new Array();
@@ -122,12 +124,12 @@ function createIndent(o,domNode,node,level)
   var level=-1;
   var n = node;
   while (n.parentNode) { level++; n=n.parentNode; }
-  var imgNode = document.createElement("img");
-  imgNode.style.paddingLeft=(16*level).toString()+'px';
-  imgNode.width  = 16;
-  imgNode.height = 22;
-  imgNode.border = 0;
   if (node.childrenData) {
+    var imgNode = document.createElement("img");
+    imgNode.style.paddingLeft=(16*level).toString()+'px';
+    imgNode.width  = 16;
+    imgNode.height = 22;
+    imgNode.border = 0;
     node.plus_img = imgNode;
     node.expandToggle = document.createElement("a");
     node.expandToggle.href = "javascript:void(0)";
@@ -144,8 +146,12 @@ function createIndent(o,domNode,node,level)
     domNode.appendChild(node.expandToggle);
     imgNode.src = node.relpath+"ftv2pnode.png";
   } else {
-    imgNode.src = node.relpath+"ftv2node.png";
-    domNode.appendChild(imgNode);
+    var span = document.createElement("span");
+    span.style.display = 'inline-block';
+    span.style.width   = 16*(level+1)+'px';
+    span.style.height  = '22px';
+    span.innerHTML = '&#160;';
+    domNode.appendChild(span);
   } 
 }
 
@@ -364,7 +370,7 @@ function showNode(o, node, index, hash)
       if (!node.childrenVisited) {
         getNode(o, node);
       }
-      $(node.getChildrenUL()).show();
+      $(node.getChildrenUL()).css({'display':'block'});
       if (node.isLast) {
         node.plus_img.src = node.relpath+"ftv2mlastnode.png";
       } else {
@@ -396,8 +402,22 @@ function showNode(o, node, index, hash)
   }
 }
 
+function removeToInsertLater(element) {
+  var parentNode = element.parentNode;
+  var nextSibling = element.nextSibling;
+  parentNode.removeChild(element);
+  return function() {
+    if (nextSibling) {
+      parentNode.insertBefore(element, nextSibling);
+    } else {
+      parentNode.appendChild(element);
+    }
+  };
+}
+
 function getNode(o, po)
 {
+  var insertFunction = removeToInsertLater(po.li);
   po.childrenVisited = true;
   var l = po.childrenData.length-1;
   for (var i in po.childrenData) {
@@ -405,6 +425,7 @@ function getNode(o, po)
     po.children[i] = newNode(o, po, nodeData[0], nodeData[1], nodeData[2],
       i==l);
   }
+  insertFunction();
 }
 
 function gotoNode(o,subIndex,root,hash,relpath)
@@ -508,7 +529,10 @@ function initNavTree(toroot,relpath)
     navSync.click(function(){ toggleSyncButton(relpath); });
   }
 
-  navTo(o,toroot,window.location.hash,relpath);
+  $(window).load(function(){
+    navTo(o,toroot,window.location.hash,relpath);
+    showRoot();
+  });
 
   $(window).bind('hashchange', function(){
      if (window.location.hash && window.location.hash.length>1){
@@ -531,7 +555,5 @@ function initNavTree(toroot,relpath)
        navTo(o,toroot,window.location.hash,relpath);
      }
   })
-
-  $(window).load(showRoot);
 }
 

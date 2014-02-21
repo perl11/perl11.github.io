@@ -6,6 +6,7 @@ var internal_8h =
     [ "PN_CALLOC_N", "db/dde/internal_8h.html#add42e47f73b2cfd330c4be7dec0b3c20", null ],
     [ "PN_REALLOC", "db/dde/internal_8h.html#a602dba3827e000da73bdc35e7c380c33", null ],
     [ "PN_DALLOC_N", "db/dde/internal_8h.html#a6a581271a537ba934e1b091dc0d70eb7", null ],
+    [ "PN_STRDUP", "db/dde/internal_8h.html#a4e6137de66c07fd838c3f9157e08b997", null ],
     [ "PN_MEMZERO", "db/dde/internal_8h.html#a084e6319708344afbe89004eda4b114b", null ],
     [ "PN_MEMZERO_N", "db/dde/internal_8h.html#a3898152b572ae92d3f672c66827ee470", null ],
     [ "PN_MEMCPY", "db/dde/internal_8h.html#aee4b7530e5577bb97171e5306b10a26d", null ],
