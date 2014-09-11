@@ -3,7 +3,7 @@ var NAVTREE =
   [ "p2", "index.html", [
     [ "potion + p2", "index.html", null ],
     [ "~ p2 ~", "d3/dcc/md__r_e_a_d_m_e.html", null ],
-    [ "~ the nature of potion's insides ~", "df/d98/md__i_n_t_e_r_n_a_l_s.html", null ],
+    [ "~ the nature of potion's insides ~", "d2/dda/md_doc__i_n_t_e_r_n_a_l_s.html", null ],
     [ "~ building potion ~", "d8/de3/md__i_n_s_t_a_l_l.html", null ],
     [ "Todo List", "dd/da0/todo.html", null ],
     [ "Data Structures", null, [
@@ -35,15 +35,17 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/d73/struct_p_n_table.html#a2c433402a93ac8f67b80c3149b6f5c63",
-"d6/d4e/struct_p_n_proto.html#ac34fbd0a132ed2f04f2063bbaab24373",
-"d8/d77/aio_8c.html#aff75b5bda8cfaa531c483c1457e176dd",
-"dc/d33/table_8c.html#a3a2a61a72b2b1f20842dc781b0b5996b",
-"dd/d07/potion_8h.html#a6dbf0222e27efb5e5c3e0f47e469543a",
-"de/d35/struct_p_n_b_header.html",
-"globals_0x6e.html"
+"d3/d73/struct_p_n_table.html#a14e413cb41193d5f7965d21156a1f333",
+"d6/d4e/struct_p_n_proto.html#a524194e02d51d0dea9aa1617bfc66a12",
+"d8/d77/aio_8c.html#af9aff7d2738331db62d2014ce3ff844b",
+"dc/d09/buffile_8c.html#a55eb99244f26f6a99486bb00c529d6d1",
+"dd/d07/potion_8h.html#a692c7a60104a29ffeb935352e2fc1441",
+"de/d2f/number_8c.html#a555b60427755719a0b00265253ee108f",
+"globals_defs_f.html"
 ];
 
+var SYNCONMSG = 'click to disable panel synchronisation';
+var SYNCOFFMSG = 'click to enable panel synchronisation';
 var SYNCONMSG = 'click to disable panel synchronisation';
 var SYNCOFFMSG = 'click to enable panel synchronisation';
 var navTreeSubIndices = new Array();
@@ -126,12 +128,12 @@ function createIndent(o,domNode,node,level)
   var level=-1;
   var n = node;
   while (n.parentNode) { level++; n=n.parentNode; }
-  var imgNode = document.createElement("img");
-  imgNode.style.paddingLeft=(16*level).toString()+'px';
-  imgNode.width  = 16;
-  imgNode.height = 22;
-  imgNode.border = 0;
   if (node.childrenData) {
+    var imgNode = document.createElement("img");
+    imgNode.style.paddingLeft=(16*level).toString()+'px';
+    imgNode.width  = 16;
+    imgNode.height = 22;
+    imgNode.border = 0;
     node.plus_img = imgNode;
     node.expandToggle = document.createElement("a");
     node.expandToggle.href = "javascript:void(0)";
@@ -148,8 +150,12 @@ function createIndent(o,domNode,node,level)
     domNode.appendChild(node.expandToggle);
     imgNode.src = node.relpath+"ftv2pnode.png";
   } else {
-    imgNode.src = node.relpath+"ftv2node.png";
-    domNode.appendChild(imgNode);
+    var span = document.createElement("span");
+    span.style.display = 'inline-block';
+    span.style.width   = 16*(level+1)+'px';
+    span.style.height  = '22px';
+    span.innerHTML = '&#160;';
+    domNode.appendChild(span);
   } 
 }
 
@@ -368,7 +374,7 @@ function showNode(o, node, index, hash)
       if (!node.childrenVisited) {
         getNode(o, node);
       }
-      $(node.getChildrenUL()).show();
+      $(node.getChildrenUL()).css({'display':'block'});
       if (node.isLast) {
         node.plus_img.src = node.relpath+"ftv2mlastnode.png";
       } else {
@@ -400,8 +406,22 @@ function showNode(o, node, index, hash)
   }
 }
 
+function removeToInsertLater(element) {
+  var parentNode = element.parentNode;
+  var nextSibling = element.nextSibling;
+  parentNode.removeChild(element);
+  return function() {
+    if (nextSibling) {
+      parentNode.insertBefore(element, nextSibling);
+    } else {
+      parentNode.appendChild(element);
+    }
+  };
+}
+
 function getNode(o, po)
 {
+  var insertFunction = removeToInsertLater(po.li);
   po.childrenVisited = true;
   var l = po.childrenData.length-1;
   for (var i in po.childrenData) {
@@ -409,6 +429,7 @@ function getNode(o, po)
     po.children[i] = newNode(o, po, nodeData[0], nodeData[1], nodeData[2],
       i==l);
   }
+  insertFunction();
 }
 
 function gotoNode(o,subIndex,root,hash,relpath)
@@ -512,7 +533,10 @@ function initNavTree(toroot,relpath)
     navSync.click(function(){ toggleSyncButton(relpath); });
   }
 
-  navTo(o,toroot,window.location.hash,relpath);
+  $(window).load(function(){
+    navTo(o,toroot,window.location.hash,relpath);
+    showRoot();
+  });
 
   $(window).bind('hashchange', function(){
      if (window.location.hash && window.location.hash.length>1){
@@ -535,7 +559,5 @@ function initNavTree(toroot,relpath)
        navTo(o,toroot,window.location.hash,relpath);
      }
   })
-
-  $(window).load(showRoot);
 }
 

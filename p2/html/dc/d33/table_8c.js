@@ -6,6 +6,7 @@ var table_8c =
     [ "SWAP", "dc/d33/table_8c.html#aac9153aee4bdb92701df902e06a74eb3", null ],
     [ "potion_table_cast", "dc/d33/table_8c.html#ae5187b1ac6aedc512ef8bc76d9859be2", null ],
     [ "potion_table_set", "dc/d33/table_8c.html#a3a2a61a72b2b1f20842dc781b0b5996b", null ],
+    [ "potion_table_clone", "dc/d33/table_8c.html#aa513f9071c1e85587f609b9e9f7b8b2e", null ],
     [ "potion_tuple_empty", "dc/d33/table_8c.html#a3013c8452f0690264621c28949853867", null ],
     [ "potion_tuple_with_size", "dc/d33/table_8c.html#a303816cb44b685f58c998837459cc134", null ],
     [ "potion_tuple_new", "dc/d33/table_8c.html#a69a0ec62d617a4eb49e0450071c5f37c", null ],
