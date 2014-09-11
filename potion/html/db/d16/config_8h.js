@@ -1,5 +1,8 @@
 var config_8h =
 [
+    [ "POTION_MAJOR", "db/d16/config_8h.html#a1b6e1b76135e5aa5272de2f9d221e4d7", null ],
+    [ "POTION_MINOR", "db/d16/config_8h.html#a49d7eba38d20eebcc3886dcd86f01b0f", null ],
+    [ "POTION_VERSION", "db/d16/config_8h.html#a97e0efc36f8744005f1f6066cda0b5e9", null ],
     [ "POTION_DATE", "db/d16/config_8h.html#a9acd6c85fc84585708781400643cd83d", null ],
     [ "POTION_COMMIT", "db/d16/config_8h.html#a336b8f36669d3d2ea6905f1442ce8f19", null ],
     [ "POTION_REV", "db/d16/config_8h.html#a8df8b7cd36a24a05e5c20f4c9353b062", null ],
@@ -15,9 +18,7 @@ var config_8h =
     [ "POTION_JIT", "db/d16/config_8h.html#ac5a253de521fa039cac7f59bee839043", null ],
     [ "POTION_JIT_TARGET", "db/d16/config_8h.html#a099aaecb3d238f5655019e2849072637", null ],
     [ "POTION_JIT_NAME", "db/d16/config_8h.html#a005dc80cef01584875711c0f819badac", null ],
-    [ "HAVE_LIBUDIS86", "db/d16/config_8h.html#a8d0f95306939c65004b17c9c93deae04", null ],
-    [ "JIT_DEBUG", "db/d16/config_8h.html#af8d4ea267aa62b4f8927741c2d9407d3", null ],
-    [ "DEBUG", "db/d16/config_8h.html#ad72dbcf6d0153db1b8d8a58001feed83", null ],
+    [ "CGOTO", "db/d16/config_8h.html#aecfa1a0a6cda82c17ba22492786a7a24", null ],
     [ "POTION_PLATFORM", "db/d16/config_8h.html#a16143015c87bb1afe2508137da21714e", null ],
     [ "POTION_LIBEXT", "db/d16/config_8h.html#a91d4db31b26ba38119062e488992b1e9", null ],
     [ "PN_SIZE_T", "db/d16/config_8h.html#ae89ae7c9a1cf297108ea10607c7bccbf", null ],

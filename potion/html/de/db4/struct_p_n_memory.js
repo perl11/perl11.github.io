@@ -13,6 +13,5 @@ var struct_p_n_memory =
     [ "majors", "de/db4/struct_p_n_memory.html#a6a2055746b81e79d1c69ceb629a4f593", null ],
     [ "minors", "de/db4/struct_p_n_memory.html#afe81fe620aa9c812d3fbaa202c898b52", null ],
     [ "cstack", "de/db4/struct_p_n_memory.html#aeecfba5a33e7d306de7f4d4e42ff8656", null ],
-    [ "protect", "de/db4/struct_p_n_memory.html#a6ff90035d7886e6287c50d424f10060c", null ],
-    [ "time", "de/db4/struct_p_n_memory.html#a4e935da9826c82c7472edcf1e8e82d57", null ]
+    [ "protect", "de/db4/struct_p_n_memory.html#a6ff90035d7886e6287c50d424f10060c", null ]
 ];

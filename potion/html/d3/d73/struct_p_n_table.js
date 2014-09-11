@@ -12,5 +12,5 @@ var struct_p_n_table =
     [ "potion_table_values", "d3/d73/struct_p_n_table.html#a14e413cb41193d5f7965d21156a1f333", null ],
     [ "PN_OBJECT_HEADER", "d3/d73/struct_p_n_table.html#a25ee0dce5438965456ae738e9ce329a6", null ],
     [ "PN_TABLE_HEADER", "d3/d73/struct_p_n_table.html#a112d91bb2e60e7e3235f923affefc9e8", null ],
-    [ "table", "d3/d73/struct_p_n_table.html#a4bc4665f60766a23e1d1b26fe0ed330a", null ]
+    [ "table", "d3/d73/struct_p_n_table.html#ad8083da31162eb11791d24e0d913e285", null ]
 ];

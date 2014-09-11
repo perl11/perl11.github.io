@@ -5,5 +5,5 @@ var struct_p_n_b_header =
     [ "minor", "de/d35/struct_p_n_b_header.html#a0360b14743c794566d7823ddd58535c2", null ],
     [ "vmid", "de/d35/struct_p_n_b_header.html#a61d993fb9855110dc8a0906b4300e993", null ],
     [ "pn", "de/d35/struct_p_n_b_header.html#a4854331471a28f9e346558d39ace93db", null ],
-    [ "proto", "de/d35/struct_p_n_b_header.html#abbf7dd6869b18f13ed10bda5f7208dad", null ]
+    [ "proto", "de/d35/struct_p_n_b_header.html#a00557e6b076203b95b24943d4aa22e25", null ]
 ];
