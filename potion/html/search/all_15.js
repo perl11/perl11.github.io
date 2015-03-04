@@ -1,9 +1,10 @@
 var searchData=
 [
   ['v',['v',['../d0/d61/struct_p_n_arg.html#a09e6b424f20fafb4dd958be1a4a6065f',1,'PNArg']]],
-  ['value',['value',['../d3/d12/struct_p_n_decimal.html#a8710982b01eec96271fb2d016fa77df9',1,'PNDecimal']]],
+  ['value',['value',['../d1/dc7/struct_p_n_double.html#a87cd7f6e3affe2f0a45a0d188df37a07',1,'PNDouble']]],
   ['values',['values',['../d6/d4e/struct_p_n_proto.html#ad6de6cda73bc9af61d8ccc60c199347b',1,'PNProto']]],
   ['version_2eh',['version.h',['../df/dfc/version_8h.html',1,'']]],
+  ['vm_2darm_2ec',['vm-arm.c',['../d6/d44/vm-arm_8c.html',1,'']]],
   ['vm_2ddis_2ec',['vm-dis.c',['../d3/dea/vm-dis_8c.html',1,'']]],
   ['vm_2dppc_2ec',['vm-ppc.c',['../df/d47/vm-ppc_8c.html',1,'']]],
   ['vm_2dx86_2ec',['vm-x86.c',['../db/de5/vm-x86_8c.html',1,'']]],

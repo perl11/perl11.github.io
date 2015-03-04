@@ -3,6 +3,7 @@ var class_lobby =
     [ "potion_lobby_read", "db/dd7/class_lobby.html#af71a3d1a17315e1eff7ee2b0a129c90c", null ],
     [ "potion_srand", "db/dd7/class_lobby.html#a58b7528876043870b5caf01d76ff52f2", null ],
     [ "potion_rand", "db/dd7/class_lobby.html#a5f42b4d5cef7a8a66c273a3befe7126a", null ],
+    [ "potion_lobby_isa", "db/dd7/class_lobby.html#ae179dfde7a69d2c1bfb03a850c078f7f", null ],
     [ "potion_lobby_self", "db/dd7/class_lobby.html#a2a94d1d544281cef4977301a7bab7737", null ],
     [ "potion_lobby_string", "db/dd7/class_lobby.html#a8277158027116002282c129670b3fd72", null ],
     [ "potion_lobby_kind", "db/dd7/class_lobby.html#a09754979748e35b4aa05dec90cdfb432", null ],

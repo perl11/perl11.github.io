@@ -2,6 +2,7 @@ var internal_8c =
 [
     [ "PN_EXIT_ERROR", "dc/df8/internal_8c.html#abac6b87849d69935f41dda38b1d63c6e", null ],
     [ "PN_EXIT_FATAL", "dc/df8/internal_8c.html#a68ab3e08d1123287ba532d7b78ed66ad", null ],
+    [ "pdump", "dc/df8/internal_8c.html#acdefece9684d17888d279450b8141ad3", null ],
     [ "potion_allocate", "dc/df8/internal_8c.html#a7f7b3f083484561979d74325ef3904a1", null ],
     [ "potion_init", "dc/df8/internal_8c.html#a3952cff400c87ae24f9a6a4ac5b68380", null ],
     [ "potion_create", "dc/df8/internal_8c.html#a9519c7ec83f58fc12c9af46d298429c7", null ],
@@ -18,10 +19,12 @@ var internal_8c =
     [ "potion_type_error", "dc/df8/internal_8c.html#a3780bbb45bea9e265860288b79926970", null ],
     [ "potion_type_error_want", "dc/df8/internal_8c.html#afff5e754351c336019623f13928b76bf", null ],
     [ "potion_fatal", "dc/df8/internal_8c.html#a3c95a832786e1840322482a4dbc3a85c", null ],
-    [ "potion_syntax_error", "dc/df8/internal_8c.html#a80c1a971bf049f5a20a61080a2a11801", null ],
+    [ "potion_syntax_error", "dc/df8/internal_8c.html#a17ad30150f1d6c6a7d4557b7d80f1622", null ],
     [ "potion_allocation_error", "dc/df8/internal_8c.html#a6595b1e95c9f208c2f7ff578f738a842", null ],
     [ "potion_p", "dc/df8/internal_8c.html#a0e448310dd6ea3d1dd4b4bcec7094b0b", null ],
     [ "potion_esp", "dc/df8/internal_8c.html#a02ffa0896ce6ea5673a6bdb67e964894", null ],
+    [ "potion_dump", "dc/df8/internal_8c.html#afb2304978c84f7388fb4621749009639", null ],
+    [ "potion_dump_stack", "dc/df8/internal_8c.html#ac297f4d4c9bb8266511bdde72a2f1144", null ],
     [ "PN_allocate", "dc/df8/internal_8c.html#ada47533cf99d74a5bd159ecbc6440081", null ],
     [ "PN_break", "dc/df8/internal_8c.html#aa29f0c173cd4cf7c25ac1c78bb6834d3", null ],
     [ "PN_call", "dc/df8/internal_8c.html#a134c6cd00fe613020ad482035d00361e", null ],
@@ -54,6 +57,7 @@ var internal_8c =
     [ "PN_length", "dc/df8/internal_8c.html#a19be2d4a6783f548c8b710f391f6c856", null ],
     [ "PN_size", "dc/df8/internal_8c.html#a8bb92fac30c68ce1da6329d082181a5c", null ],
     [ "PN_STR0", "dc/df8/internal_8c.html#af323151713ac4372cc5e760016e46c10", null ],
-    [ "pn_filenames", "dc/df8/internal_8c.html#ad9ac97f31fa66bb29fe4f0865f68507f", null ],
-    [ "PN_extern", "dc/df8/internal_8c.html#a03108c90d13dc4c0d5eeeb0847320175", null ]
+    [ "PN_extern", "dc/df8/internal_8c.html#a03108c90d13dc4c0d5eeeb0847320175", null ],
+    [ "PN_integer", "dc/df8/internal_8c.html#a935a2c1d93318f895e5018c6ec2cd4c7", null ],
+    [ "pn_filenames", "dc/df8/internal_8c.html#ad9ac97f31fa66bb29fe4f0865f68507f", null ]
 ];

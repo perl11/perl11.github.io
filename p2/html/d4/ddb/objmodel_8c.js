@@ -2,7 +2,10 @@ var objmodel_8c =
 [
     [ "FUNCNAME", "d4/ddb/objmodel_8c.html#a5df244c7c088a1952d4fa26ec9d82fd8", null ],
     [ "LOBBY_NAME", "d4/ddb/objmodel_8c.html#a6654992642685d828ba3f7cddd5fa845", null ],
+    [ "BOOLEAN_NAME", "d4/ddb/objmodel_8c.html#a40a34919d846bd5e054de08b653e27e3", null ],
     [ "NUMBER_NAME", "d4/ddb/objmodel_8c.html#a34c9b7febe2131a3a126b2b523f62e7c", null ],
+    [ "INTEGER_NAME", "d4/ddb/objmodel_8c.html#aeac2d15c593716d91bd7860b664c61eb", null ],
+    [ "DOUBLE_NAME", "d4/ddb/objmodel_8c.html#ace8568d2af77cc2921e3bf40c6a39467", null ],
     [ "STRING_NAME", "d4/ddb/objmodel_8c.html#a3aaebdc8f4248444a5fca0799f71b13c", null ],
     [ "potion_closure_new", "d4/ddb/objmodel_8c.html#af176fae8c0849a0eeb9c990f17b87280", null ],
     [ "potion_sig_arity", "d4/ddb/objmodel_8c.html#a8045688a8179fd44ef5a7864c0608a31", null ],

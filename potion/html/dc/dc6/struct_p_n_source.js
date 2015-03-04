@@ -6,6 +6,7 @@ var struct_p_n_source =
     [ "potion_source_lineno", "dc/dc6/struct_p_n_source.html#ac993344a906e2d7466c6dcb285baa056", null ],
     [ "potion_source_line", "dc/dc6/struct_p_n_source.html#aad02e1d80af0fc858b74d078ceb453e3", null ],
     [ "potion_source_string", "dc/dc6/struct_p_n_source.html#ab9b035937b6ddd66b082815cff9c21fe", null ],
+    [ "potion_source_loc", "dc/dc6/struct_p_n_source.html#a4032617053df33b5bb74df08456782bf", null ],
     [ "potion_source_compile", "dc/dc6/struct_p_n_source.html#a69d50f370231214cff2f91196ba24bc8", null ],
     [ "potion_source_load", "dc/dc6/struct_p_n_source.html#a151e2c8be44d7a886347ca3f88b91755", null ],
     [ "potion_source_dumpbc", "dc/dc6/struct_p_n_source.html#a53d3d107a4c4ee91c05a1ad3fb6dc8cb", null ],

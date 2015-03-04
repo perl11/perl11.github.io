@@ -16,7 +16,7 @@ var indexSectionsWithContent =
   6: "eps",
   7: "ademo",
   8: "p",
-  9: "_abcdeghijklmnoprstuvwx",
+  9: "_abcdeghijklmnoprstuvwxy",
   10: "pt"
 };
 

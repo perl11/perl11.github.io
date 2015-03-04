@@ -10,6 +10,7 @@ var opcodes_8h =
       [ "OP_LOADPN", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba97b47454c7491c4e21659b32d21620c2", null ],
       [ "OP_SELF", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba64bea18253f9e73c4c5fcfa6b0d5abd2", null ],
       [ "OP_NEWTUPLE", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba4171bbde2b2bb720a439e99a85f86ab0", null ],
+      [ "OP_GETTUPLE", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebaedf9a7f9323e7528cf92754496647fee", null ],
       [ "OP_SETTUPLE", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba6d8ee596cca01de060d939f91ee83429", null ],
       [ "OP_GETLOCAL", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba7244587c9db8f1ec6788551bf9f20b21", null ],
       [ "OP_SETLOCAL", "d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba379a65ea2cf131520b9e0755226e8952", null ],

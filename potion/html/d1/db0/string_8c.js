@@ -10,6 +10,7 @@ var string_8c =
     [ "potion_strcat", "d1/db0/string_8c.html#acf7b7f779595350f29df44c6e4f323ce", null ],
     [ "potion_str_format", "d1/db0/string_8c.html#a3eb7204fcbe483a9c1e5797840983b9f", null ],
     [ "potion_utf8char_offset", "d1/db0/string_8c.html#a352e4f0471191e101c81c1d67b9d0fc9", null ],
+    [ "potion_utf8char_nextchar", "d1/db0/string_8c.html#a856d0637f33bf4cded73ea63ccbc6453", null ],
     [ "potion_utf8char_decode", "d1/db0/string_8c.html#a5e0109d9b839842e748706df1c151ccf", null ],
     [ "potion_str_slice_index", "d1/db0/string_8c.html#a339123011f6c43e9518313a455616cd7", null ],
     [ "potion_byte_str", "d1/db0/string_8c.html#a303233a181b750755b10463d5bf5c923", null ],

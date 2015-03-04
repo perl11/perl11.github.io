@@ -33,11 +33,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3ebab34a8eaf6d32d3c41810653d9eb99c1a",
-"d9/d08/class_p_n_number.html#ac28fc48b5b4da3a8623ecfdeb87189fc",
-"dc/df8/internal_8c.html",
-"dd/d07/potion_8h.html#a928fc0cf171833538b6ace550990253f",
-"df/d30/struct_p_n_tuple.html#a2cbc2fa934a4913be0d5297e1f9d982f"
+"d3/de6/opcodes_8h.html#a508f0cb15c69e44bd305f0705fe9c3eba719aeab2140dd5f575d1559b95bf74e1",
+"d6/d4e/struct_p_n_proto.html#ac34fbd0a132ed2f04f2063bbaab24373",
+"db/de5/vm-x86_8c.html#ad8d5f6e23cf6168570f8ec233dfba690",
+"dd/d07/potion_8h.html#a42e3c1a66ab9b7b29cbaaadb4b9dc135a669ddfd0980b5cb690852428528aae7f",
+"dd/d07/potion_8h.html#aee096de1b6222841103a0355eeefb735",
+"df/dad/struct_p_n_lick.html#abbba33898a80f8f4ee0c27fea8dc4485"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

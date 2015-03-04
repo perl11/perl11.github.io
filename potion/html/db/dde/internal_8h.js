@@ -27,5 +27,7 @@ var internal_8h =
     [ "u8", "db/dde/internal_8h.html#aed742c436da53c1080638ce6ef7d13de", null ],
     [ "potion_cp_strlen_utf8", "db/dde/internal_8h.html#a1b5a5e7a1e246f209569bb50fb469113", null ],
     [ "potion_mmap", "db/dde/internal_8h.html#af36d7898f44475f1d4ed2580eee7d794", null ],
-    [ "potion_munmap", "db/dde/internal_8h.html#a2f972a310c9f03c68fe87aaca60dbbce", null ]
+    [ "potion_munmap", "db/dde/internal_8h.html#a2f972a310c9f03c68fe87aaca60dbbce", null ],
+    [ "potion_vm_eq", "db/dde/internal_8h.html#a9c16e4b4094a6603a1e4217cde914535", null ],
+    [ "potion_vm_neq", "db/dde/internal_8h.html#aa575eff8a9da25d7f5a26199c01f5728", null ]
 ];

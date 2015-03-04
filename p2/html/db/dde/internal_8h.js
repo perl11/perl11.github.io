@@ -6,6 +6,7 @@ var internal_8h =
     [ "PN_CALLOC_N", "db/dde/internal_8h.html#add42e47f73b2cfd330c4be7dec0b3c20", null ],
     [ "PN_REALLOC", "db/dde/internal_8h.html#a602dba3827e000da73bdc35e7c380c33", null ],
     [ "PN_DALLOC_N", "db/dde/internal_8h.html#a6a581271a537ba934e1b091dc0d70eb7", null ],
+    [ "PN_STRDUP", "db/dde/internal_8h.html#a4e6137de66c07fd838c3f9157e08b997", null ],
     [ "PN_MEMZERO", "db/dde/internal_8h.html#a084e6319708344afbe89004eda4b114b", null ],
     [ "PN_MEMZERO_N", "db/dde/internal_8h.html#a3898152b572ae92d3f672c66827ee470", null ],
     [ "PN_MEMCPY", "db/dde/internal_8h.html#aee4b7530e5577bb97171e5306b10a26d", null ],
@@ -26,5 +27,7 @@ var internal_8h =
     [ "u8", "db/dde/internal_8h.html#aed742c436da53c1080638ce6ef7d13de", null ],
     [ "potion_cp_strlen_utf8", "db/dde/internal_8h.html#a1b5a5e7a1e246f209569bb50fb469113", null ],
     [ "potion_mmap", "db/dde/internal_8h.html#af36d7898f44475f1d4ed2580eee7d794", null ],
-    [ "potion_munmap", "db/dde/internal_8h.html#a2f972a310c9f03c68fe87aaca60dbbce", null ]
+    [ "potion_munmap", "db/dde/internal_8h.html#a2f972a310c9f03c68fe87aaca60dbbce", null ],
+    [ "potion_vm_eq", "db/dde/internal_8h.html#a9c16e4b4094a6603a1e4217cde914535", null ],
+    [ "potion_vm_neq", "db/dde/internal_8h.html#aa575eff8a9da25d7f5a26199c01f5728", null ]
 ];

@@ -27,6 +27,7 @@ var files =
     [ "table.c", "dc/d33/table_8c.html", "dc/d33/table_8c" ],
     [ "table.h", "dd/d98/table_8h.html", "dd/d98/table_8h" ],
     [ "version.h", "df/dfc/version_8h.html", "df/dfc/version_8h" ],
+    [ "vm-arm.c", "d6/d44/vm-arm_8c.html", "d6/d44/vm-arm_8c" ],
     [ "vm-dis.c", "d3/dea/vm-dis_8c.html", null ],
     [ "vm-ppc.c", "df/d47/vm-ppc_8c.html", "df/d47/vm-ppc_8c" ],
     [ "vm-x86.c", "db/de5/vm-x86_8c.html", "db/de5/vm-x86_8c" ],

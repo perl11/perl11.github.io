@@ -4,7 +4,7 @@ var searchData=
   ['main',['main',['../d5/d1a/potion_8c.html#a0ddf1224851353fc92bfbff6f499fa97',1,'potion.c']]],
   ['major',['major',['../de/d35/struct_p_n_b_header.html#a054dd4b72c8c88b6fd0219b80c6a7d83',1,'PNBHeader']]],
   ['majors',['majors',['../de/db4/struct_p_n_memory.html#a6a2055746b81e79d1c69ceb629a4f593',1,'PNMemory']]],
-  ['make_5ftarget',['MAKE_TARGET',['../de/d21/asm_8h.html#a38230a131cc52561973d7798fa751eae',1,'MAKE_TARGET():&#160;asm.h'],['../df/d47/vm-ppc_8c.html#a333f0b0bef3534352cac0cf685cb1b8b',1,'MAKE_TARGET(ppc):&#160;vm-ppc.c'],['../db/de5/vm-x86_8c.html#aa453c1857dc94c434d041a5ee92db8cd',1,'MAKE_TARGET(x86):&#160;vm-x86.c']]],
+  ['make_5ftarget',['MAKE_TARGET',['../de/d21/asm_8h.html#a38230a131cc52561973d7798fa751eae',1,'MAKE_TARGET():&#160;asm.h'],['../d6/d44/vm-arm_8c.html#ad59f4e315e47c5771752587356a9af63',1,'MAKE_TARGET(arm):&#160;vm-arm.c'],['../df/d47/vm-ppc_8c.html#a333f0b0bef3534352cac0cf685cb1b8b',1,'MAKE_TARGET(ppc):&#160;vm-ppc.c'],['../db/de5/vm-x86_8c.html#aa453c1857dc94c434d041a5ee92db8cd',1,'MAKE_TARGET(x86):&#160;vm-x86.c']]],
   ['matrix_5fa',['MATRIX_A',['../df/dac/mt19937ar_8c.html#a376c3581bae3c2367fc9ce694e5a8949',1,'mt19937ar.c']]],
   ['max',['max',['../db/dde/internal_8h.html#affe776513b24d84b39af8ab0930fef7f',1,'internal.h']]],
   ['max_5fexec',['MAX_EXEC',['../dd/d07/potion_8h.html#a42e3c1a66ab9b7b29cbaaadb4b9dc135aa2ecebebd51ce8c24af04dfed90a8b26',1,'potion.h']]],
@@ -22,5 +22,6 @@ var searchData=
   ['mixbits',['MIXBITS',['../df/dac/mt19937ar_8c.html#a67ca431ffe3023cd012e3716a006539f',1,'mt19937ar.c']]],
   ['mode',['mode',['../d5/d55/struct_p_n_file.html#a958c8378e4a9d5fbc7036f38c07ffb87',1,'PNFile']]],
   ['mode_5fstd',['MODE_STD',['../dd/d07/potion_8h.html#af76ca71c3aee0c7c92c70a31b60354eea95a17981aacdfd8fe339d3fb99a7c94b',1,'potion.h']]],
-  ['mt19937ar_2ec',['mt19937ar.c',['../df/dac/mt19937ar_8c.html',1,'']]]
+  ['mt19937ar_2ec',['mt19937ar.c',['../df/dac/mt19937ar_8c.html',1,'']]],
+  ['mytime',['mytime',['../d8/d16/gc_8c.html#a5e5b2c4f31dcdcb61a751480532c9273',1,'gc.c']]]
 ];
