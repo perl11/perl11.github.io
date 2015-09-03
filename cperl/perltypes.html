@@ -1,0 +1,331 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@tenten-slave.macports.org" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Dynamic-types">Dynamic types</a></li>
+      <li><a href="#Static-types">Static types</a></li>
+      <li><a href="#Why-types-Types-are-unperlish">Why types? Types are unperlish</a></li>
+      <li><a href="#coretypes">coretypes</a></li>
+      <li><a href="#native-types">native types</a></li>
+      <li><a href="#type-checker">type checker</a></li>
+      <li><a href="#type-inference">type inference</a></li>
+      <li><a href="#nominal-type-system">nominal type system</a></li>
+      <li><a href="#Compile-time-type-optimizations">Compile-time type optimizations</a>
+        <ul>
+          <li><a href="#Constant-folding">Constant folding</a></li>
+          <li><a href="#const-packages">:const packages</a></li>
+          <li><a href="#Types-and-const-inheritance">Types and const inheritance</a></li>
+          <li><a href="#Lexical-subs-NYI---move-to-perlsub.pod">Lexical subs NYI - move to perlsub.pod</a></li>
+          <li><a href="#External-type-modules">External type modules</a></li>
+        </ul>
+      </li>
+      <li><a href="#XXX-__PACKAGE__-types-questionable">XXX __PACKAGE__ types questionable</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perltypes - Perl type support</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h2 id="Dynamic-types">Dynamic types</h2>
+
+<p>Perl is a dynamic language with dynamic data types. The actual type is typically determined at run-time, context-dependent and usually the operator leads to automatic type conversions, cached in the data.</p>
+
+<h2 id="Static-types">Static types</h2>
+
+<p>Perl always allowed optional declaration of static types, i.e. an existing package name, for lexical variables and with cperl also for function signatures. Lexicals are stored in pads, the package name, i.e. the <code>type</code>, is stored in the stash part of the <code>comppad_name</code> slot for each pad. Perl itself does not use these types for checks and optimizations, only external modules or cperl do.</p>
+
+<p>Remember: A type is implemented as package. A valid type must be an existing and loaded package. Type expressions, like parametric types or unions cannot be stored in pad stashes yet.</p>
+
+<p>Global variables can not store types, ony lexicals. Constants are implicitly typed.</p>
+
+<p><b>cperl</b> adds support for builtin coretypes, has type declarations for most internal ops, and can optimize based in type inference or declared types.</p>
+
+<h2 id="Why-types-Types-are-unperlish">Why types? Types are unperlish</h2>
+
+<p>No, they are not. Types for lexical variables are permitted since 2001 and used in a few CPAN modules, i.e. Net::DNS. Perl6 uses types all over. Every perl5 value is typed. Just all the normal ops are generic and are allowed to change the type of its arguments and its result at will.</p>
+
+<p>Types allow dramatic performance and size optimizations, lead to better documented code and lead to earlier compile-time errors, which less need to test all possible run-time types with extensive test suites, which rarely cover all type cases.</p>
+
+<p>Natively types arrays are 4x smaller and faster, typed loops can lead to static loop optimizations, array elements do not need to be checked for out-of-bounds at run-time. There&#39;s no need to check for tied methods or other magic for typed variables. Most of the run-time <i>magic</i>, i.e. checking for extraordinary conditions can be bypassed with typed variants. And with unboxed native types all the arithmetic ops are at least 2-4x faster.</p>
+
+<p>Without types no multi-dispatch, no proper object system. There&#39;s no need to overload internal methods anymore. The compiler and run-time can dispatch on the types of its arguments.</p>
+
+<p>Without types no builtin FFI, foreign function interface. You still need to call an external FFI module or write a XS function, but loose all the benefits of builtin types.</p>
+
+<p>But even without explicit type declarations the compiler internally can handle the arguments and result types much better as e.g. the javascript v8 engine does, but observing the run-time types and optimize dynamically. You don&#39;t need dart to run fast javascript but it helps.</p>
+
+<h2 id="coretypes">coretypes</h2>
+
+<p>The builtin <code>coretypes</code> module implements efficient implementations and <b>strict types</b> of <code>Int</code>, <code>UInt</code>, <code>Num</code> and <code>Str</code>, which can be applied to scalars, arrays, hashes and functions, in lexical variable declarations and in signature declarations before the variable name, or afterwards as attribute.</p>
+
+<p>Any type change for those strictly typed variables will be detected at compile-time and if this fails at run-time. The type <code>Int</code> is interpreted as IV, <code>Num</code> as NV and <code>Str</code> as PV only. There is no stringification for IV and NV, no magic such as <a href="/pod/perlfunc.html#tie">&quot;tie&quot; in perlfunc</a>, no setting to <code>undef</code> allowed.</p>
+
+<pre><code>    my Int @a = (0..9);
+    tie @a, &#39;Tie::Array&#39;;
+    =&gt; compile-time error: Invalid tie for typed array</code></pre>
+
+<p>We provide fast ops variants for these types to omit type checks and magic calls at run-time.</p>
+
+<p>Operations on typed <code>Int</code> will not promote to double on overflow, such as under <code>use integer</code>, but arithmetic on untyped IVs will promote to doubles.</p>
+
+<p>The <code>@ISA</code> of the coretypes are guaranteed to be empty. Thus there will no parent of all, such as a generic type <code>Object</code>, <code>Scalar</code> or <code>Dynamic</code> to override coretypes, but there will be <i>subtyped</i> children of coretypes to allow stringification and undef. So it is safe to optimize coretypes to its native operations at compile-time.</p>
+
+<p>See also <a href="/pod/perldata.html#coretypes">&quot;coretypes&quot; in perldata</a> for examples.</p>
+
+<h2 id="native-types">native types</h2>
+
+<p>Types for perl objects should have classnames names starting as uppercase, with several reserved names for core types, see above.</p>
+
+<p>The lower case variants <b>int</b>, <b>uint</b>, <b>num</b> and <b>str</b> are used to handle raw unboxed values directly, not refcounted, and are permitted for rare cases: in special sequences of ops which do understand them. They are also useful for the <b>ffi</b> (&quot;foreign function interface&quot;) in core, which is in development.</p>
+
+<p>The compiler handles boxing and unboxing automatically for the parts where unboxed values are not permitted on the stack. Thus you are allowed to use native types instead of coretypes overall, and the compiler uses the boxed variants instead as it sees fit.</p>
+
+<p>Note that you are safe to declare native types to all your lexicals, even you want to declare them only as Int, Num or Str, i.e. boxed. A type <code>int</code> is a hint to declare the SV a possible native <code>int</code> type, but initially every <code>int</code> is treated as <code>Int</code> type, a normal IV.</p>
+
+<p>This reduces memory four to ten times per scalar, and speeds up combinations of pure arithmetic code and natively typed arrays.</p>
+
+<p>Operations on native type int will not promote to double on overflow, arithmetic on untyped IV will promote to doubles.</p>
+
+<p><b>Internally</b></p>
+
+<p>The native op variants start with <code>int_</code>, <code>uint_</code>, <code>num_</code>, <code>str_</code>. Any sequence of natively typed ops might need to start with an <code>unbox_</code> op to convert the vaues on the stack from boxed to unboxed, and end with either a <code>box_</code> op or the <code>OPpBOXRET</code> private flag in the op. This unboxing and boxing adds some runtime costs, so the compiler is free to omit such type promotions at it sees fit. However with the new FFI the native type declaration is guaranteed to be observed by the compiler, and the unbox and box ops are added automatically.</p>
+
+<p>Unboxed native values can appear on the stack, on pads and in const ops.</p>
+
+<h2 id="type-checker">type checker</h2>
+
+<p>Compile-time type checks need to be enabled with <code>use types</code>.</p>
+
+<h2 id="type-inference">type inference</h2>
+
+<p>The inferencer runs automatically on some very limited syntax and can currently only infer <code>Int</code> on array indices, ranges and <code>Str</code> on hash keys, but has to give up on magic, dualvars, and <code>no strict &#39;refs&#39;</code>. But the current type inference is fast. With the help of added declarations and type checks, as e.g. in <code>smartmatch</code> or <code>given</code>/<code>when</code> with type support it can infer much more.</p>
+
+<pre><code>    if (type $a == &quot;int&quot;) {  =&gt; $a is an int in this scope }</code></pre>
+
+<p>Typed lexicals and signatures lead to a typical performance win to ~2x faster, you get compile-time type warnings, a business friendly coding environment and the possibility to display and put infered types automatically in your code, with a cooperating editor. e.g.</p>
+
+<pre><code>    my $n = 1000;
+    for (my $i=0; $i&lt;$n; $i++) { }
+=&gt;
+    my int $n :const = 1000;
+    for (my int $i=0; $i&lt;$n; $i++) { }</code></pre>
+
+<p><b>Note</b>: When in doubt leave out types. If the inferer cannot find it, it might not be worth the trouble. But for hot code always use types, as compile-time types prevent from costly run-time checks for types and magic hooks.</p>
+
+<h2 id="nominal-type-system">nominal type system</h2>
+
+<p>cperl implements so far a simple nominal type, in contrast to a structural type system such as in C or C++. The name of the class or type and its subtypes specify correctness, not the list of object fields and methods.</p>
+
+<p>TODO: co-variant vs contra-variant</p>
+
+<h2 id="Compile-time-type-optimizations">Compile-time type optimizations</h2>
+
+<p>Since Perl 5 core does not deal with types stored in <code>comppad_name</code> per se, type checks and optimizations were usually deferred to the modules which implement respective types checks and optimizations, and all those modules were broken with 5.10.</p>
+
+<p>The only type optimization currently in effect in Perl 5 is constant folding and use integer.</p>
+
+<p><b>cperl</b> has type declarations for most internal ops, and can optimize these ops depending on the argument types. <i>opnames.h</i> stores <code>PL_op_type_variants</code>, all possible type promotions and demotions for each op. <i>opcode.h</i> stores <code>PL_op_type</code> with the type declarations of all ops.</p>
+
+<p>cperl is able the change of compile-time static method calls, determined either by name or by type and const-ness of all searched packages to static function calls. Thus the dynamic method search, in which object this method is implemented is avoided. This is about ~10% faster.</p>
+
+<p> </p>
+
+<h3 id="Constant-folding">Constant folding</h3>
+
+<p>Right-hand-side expressions or <code>:const</code> function bodies or function bodies with an empty prototype <code>()</code> which resolve at compile-time to constant literals may be optimized to a CONST value, and left-hand-side numeric ops may be optimized to use their optimized <code>i_</code> or even <code>int_</code> counterparts. Note that <code>i_</code> ops do not overflow, the integer values just wrap around. So the type and data range must be determined in advance and if not possible i_opt promotion it is forbidden.</p>
+
+<pre><code>    my $c = $a + (1 &lt;&lt; 8);
+    =&gt; my $c = $a + 256;  # add $a CONST(IV 256)
+
+    use coretypes;
+    my int $a;
+    my $c = $a + (1 &lt;&lt; 8);
+    =&gt; my $c = $a + 256;  # i_add $a CONST(IV 256)
+
+    { use integer;
+      my $a = 1;
+      my $c = $a + (1 &lt;&lt; 8);
+    }
+    =&gt; my $c = $a + 256;   # padsv($a) CONST(IV 1); i_add $a CONST(IV 256)
+
+    { use integer;
+      my $c = 1 + (1 &lt;&lt; 8);
+    }
+    =&gt; my $c = 257;       # CONST(IV 257)
+
+    my $a :const = 1;
+    my $c = $a + (1 &lt;&lt; 8);
+    =&gt; my $c = 257;       # CONST(IV 257)</code></pre>
+
+<p>Unlike perl5, cperl does constant folding of function bodies even without an empty prototype.</p>
+
+<pre><code>    sub PI { 3.1415 }</code></pre>
+
+<p>which is the same as the old syntax <code>sub PI () { 3.1415 }</code></p>
+
+<h3 id="const-packages">:const packages</h3>
+
+<pre><code>    package MyBase 0.01 :const {
+      our @ISA = ();
+      sub new { bless { @_ }, shift }
+    }
+    package MyChild 0.01 :const {
+      our @ISA :const = (&#39;MyBase&#39;);
+    }
+
+    my $obj = MyChild-&gt;new;
+    =&gt; MyClass::new()</code></pre>
+
+<p>When the method search goes only through const packages and their const <code>@ISA</code>, it is not possible to inject another package at run-time into the method search, thus the method call can be short-cut. This classes can be <b>finialized</b>, and all those method calls can be resolved at compile-time to static function calls, and can be inlined, and therefore even more optimized.</p>
+
+<p>Note that the <code>package MyBase</code> must be constant here. Otherwise <code>&amp;MyBase::new</code> can be deleted and <code>@MyBase::ISA</code> be changed to lead a parent object at run-time.</p>
+
+<h3 id="Types-and-const-inheritance">Types and const inheritance</h3>
+
+<pre><code>    package MyBase 0.01 {
+      our @ISA = ();
+      sub new { bless { @_ }, shift }
+    }
+    package MyChild 0.01 {
+      our @ISA = (&#39;MyBase&#39;);
+    }
+
+    # closed call.
+    my MyChild $obj = MyChild-&gt;new;
+    =&gt; MyBase::new()</code></pre>
+
+<p>When the left-hand side of a method call is typed, the result of the method call must be of this type or any dependent type. <code>$obj</code> is already declared of type <code>MyChild</code>, thus it cannot be of any other run-time injected package.</p>
+
+<pre><code>    package MyBase 0.01 {
+      our @ISA = ();
+      sub new { bless { @_ }, shift }
+    }
+    package MyChild 0.01 :const {
+      our @ISA :const = (&#39;MyBase&#39;);
+    }
+
+    # open call. MyChild is of type MyBase
+    my MyBase $obj = MyChild-&gt;new;
+    =&gt; MyBase::new()</code></pre>
+
+<p>When the left-hand side of a method call is typed, the result of the method call must be of this type or any dependent type (i.e., <code>MyBase</code> or <code>MyChild</code>). Since <code>MyChild</code> is constant, i.e. no <code>&amp;MyChild::new</code> method can be added at run-time, and <code>@MyChild::ISA</code> is also constant, it can only be <code>&amp;MyBase::new</code>, even if <code>MyBase</code> itself is not constant.</p>
+
+<h3 id="Lexical-subs-NYI---move-to-perlsub.pod">Lexical subs <i>NYI - move to perlsub.pod</i></h3>
+
+<p>Lexically defined subs in classes or package blocks are private methods, invisible and unchangable.</p>
+
+<pre><code>    package MyClass 0.01 {
+      our @ISA = ();
+      my sub _new { bless { @_ }, shift }
+      sub new (...) { $_[0]-&gt;_new(...) }
+      my $private; # pad in maincv
+      our $open;   # in stash
+    }
+
+    ...
+    package main;
+    my $obj = new MyClass; # i.e MyClass-&gt;new is valid and optimized.
+                           # Indirect method call syntax helps.
+
+    my $obj = MyClass::_new(); # invalid
+    =&gt; Undefined subroutine &amp;MyClass::_new called</code></pre>
+
+<p>Since <code>&amp;MyClass::_new</code> is lexically defined in the package scope, the compiler may statically optimize all method calls to <code>&amp;MyClass::_new</code> to an improved entersub (the CV being on a pad) without namespace lookup and dynamic method resolution, without having to const <code>%MyClass::</code> and const <code>@MyClass::ISA</code>.</p>
+
+<p>Lexical definition guarantees compile-time definition, which is not overridable dynamically at run-time.</p>
+
+<h3 id="External-type-modules">External type modules</h3>
+
+<p>External modules, such as <a>types</a>, <a>typesafety</a> or <a>Moose</a>, implement their type checks or optimizations for the types they declare or allow declaration for during execution of <a href="/pod/perlmod.html#CHECK">&quot;CHECK&quot; in perlmod</a> blocks.</p>
+
+<h2 id="XXX-__PACKAGE__-types-questionable">XXX __PACKAGE__ types <i>questionable</i></h2>
+
+<p>As convenience for module authors it was asked to allow declarations, like</p>
+
+<pre><code>    package MyClass;
+    my __PACKAGE__ $obj = __PACKAGE__-&gt;new;</code></pre>
+
+<p>Currently only the right-hand side is valid Perl.</p>
+
+<p>This looks awful though. Refactoring of the package name should really refactor the internal types also, besides the type of all library users. But it would be consistent. See <a href="http://www.perl.com/pub/2000/06/p5pdigest/THISWEEK-20000625.html#my___PACKAGE___obj_">http://www.perl.com/pub/2000/06/p5pdigest/THISWEEK-20000625.html#my___PACKAGE___obj_</a></p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>See <a href="/pod/perldata.html#Constant-and-typed-lexical-variables">&quot;Constant and typed lexical variables&quot; in perldata</a> for the syntax of Perl&#39;s built-in type declarations for variables, and <a href="https://github.com/stevan/p5-mop/wiki/Signatures-and-Parameters">https://github.com/stevan/p5-mop/wiki/Signatures-and-Parameters</a> for the syntax of Perl&#39;s future argument and return type declarations.</p>
+
+<p><a href="http://perl.plover.com/classes/typing/">http://perl.plover.com/classes/typing/</a> <i>Strong Typing Doesn&#39;t Have to Suck</i></p>
+
+<p>Most dynamic languages are currently in the process to get type support:</p>
+
+<dl>
+
+<dt id="http:-www.typescriptlang.org-Content-TypeScript-20Language-20Specification.pdf-microsofts-javascript-with-types"><a href="http://www.typescriptlang.org/Content/TypeScript%20Language%20Specification.pdf">http://www.typescriptlang.org/Content/TypeScript%20Language%20Specification.pdf</a> (microsoft&#39;s javascript with types)</dt>
+<dd>
+
+</dd>
+<dt id="https:-code.facebook.com-posts-1505962329687926-flow-a-new-static-type-checker-for-javascript-facebooks-javascript-with-types"><a href="https://code.facebook.com/posts/1505962329687926/flow-a-new-static-type-checker-for-javascript/">https://code.facebook.com/posts/1505962329687926/flow-a-new-static-type-checker-for-javascript/</a> (facebook&#39;s javascript with types)</dt>
+<dd>
+
+</dd>
+<dt id="https:-github.com-rwaldron-tc39-notes-blob-master-es6-2015-01-JSExperimentalDirections.pdf-Soundscript-googles-javascript-with-types"><a href="https://github.com/rwaldron/tc39-notes/blob/master/es6/2015-01/JSExperimentalDirections.pdf">https://github.com/rwaldron/tc39-notes/blob/master/es6/2015-01/JSExperimentalDirections.pdf</a> Soundscript, google&#39;s javascript with types</dt>
+<dd>
+
+</dd>
+<dt id="https:-www.python.org-dev-peps-pep-0484-planned-python-with-types"><a href="https://www.python.org/dev/peps/pep-0484/">https://www.python.org/dev/peps/pep-0484/</a> (planned python with types)</dt>
+<dd>
+
+</dd>
+<dt id="http:-www.mypy-lang.org-existing-python-with-types"><a href="http://www.mypy-lang.org/">http://www.mypy-lang.org/</a> (existing python with types)</dt>
+<dd>
+
+</dd>
+<dt id="https:-news.ycombinator.com-item-id-8620129-ruby-3.0-planned-with-types"><a href="https://news.ycombinator.com/item?id=8620129">https://news.ycombinator.com/item?id=8620129</a> (ruby 3.0 planned with types)</dt>
+<dd>
+
+</dd>
+<dt id="http:-crystal-lang.org-a-good-existing-ruby-with-types"><a href="http://crystal-lang.org/">http://crystal-lang.org/</a> (a good existing ruby with types)</dt>
+<dd>
+
+</dd>
+<dt id="http:-hacklang.org-facebooks-php-with-types"><a href="http://hacklang.org/">http://hacklang.org/</a> (facebook&#39;s php with types)</dt>
+<dd>
+
+</dd>
+<dt id="http:-blog.pascal-martin.fr-post-in-favor-of-rfc-scalar-type-hints.html-php-7-types-overview"><a href="http://blog.pascal-martin.fr/post/in-favor-of-rfc-scalar-type-hints.html">http://blog.pascal-martin.fr/post/in-favor-of-rfc-scalar-type-hints.html</a> (php 7 types overview)</dt>
+<dd>
+
+</dd>
+<dt id="https:-wiki.php.net-rfc-scalar_type_hints-php-7"><a href="https://wiki.php.net/rfc/scalar_type_hints">https://wiki.php.net/rfc/scalar_type_hints</a> (php 7)</dt>
+<dd>
+
+</dd>
+<dt id="https:-wiki.php.net-rfc-return_types-php-7"><a href="https://wiki.php.net/rfc/return_types">https://wiki.php.net/rfc/return_types</a> (php 7)</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</body>
+
+</html>
+
+
