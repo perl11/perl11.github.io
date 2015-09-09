@@ -273,7 +273,7 @@
 
 <p><b>WARNING</b>: Subroutine signatures are experimental. The feature may be modified or removed in future versions of Perl.</p>
 
-<p>Perl has an experimental facility to allow a subroutine&#39;s formal parameters to be introduced by special syntax, separate from the procedural code of the subroutine body. The formal parameter list is known as a <i>signature</i>. The facility must be enabled first by a pragmatic declaration, <code>use feature &#39;signatures&#39;</code>, and it will produce a warning unless the &quot;experimental::signatures&quot; warnings category is disabled.</p>
+<p>Perl has an experimental facility to allow a subroutine&#39;s formal parameters to be introduced by special syntax, separate from the procedural code of the subroutine body. The formal parameter list is known as a <i>signature</i>. The facility must be enabled first by a pragmatic declaration, <code>use feature &#39;signatures&#39;</code>, and might produce a warning unless the &quot;experimental::signatures&quot; warnings category is disabled.</p>
 
 <p>The signature is part of a subroutine&#39;s body. Normally the body of a subroutine is simply a braced block of code. When using a signature, the signature is a parenthesised list that goes immediately after the subroutine name. The signature declares lexical variables that are in scope for the block. When the subroutine is called, the signature takes control first. It populates the signature variables from the list of arguments that were passed. If the argument list doesn&#39;t meet the requirements of the signature, then it will throw an exception. When the signature processing is complete, control passes to the block.</p>
 
@@ -366,7 +366,15 @@
         return 123;
     }</code></pre>
 
-<p>When using a signature, the arguments are still available in the special array variable <code>@_</code>, in addition to the lexical variables of the signature. There is a difference between the two ways of accessing the arguments: <code>@_</code> <i>aliases</i> the arguments, but the signature variables get <i>copies</i> of the arguments. So writing to a signature variable only changes that variable, and has no effect on the caller&#39;s variables, but writing to an element of <code>@_</code> modifies whatever the caller used to supply that argument.</p>
+<p>A parameter by reference does not copy the variable into the body, it allows destructive modification of the variable. This is the same as using the old <code>$_[0]</code> syntax:</p>
+
+<pre><code>    sub foo (\$thing) { $thing++ }</code></pre>
+
+<p>vs:</p>
+
+<pre><code>    sub foo { $_[0]++ }</code></pre>
+
+<p>When using a signature, all processed arguments are not available in the special array variable <code>@_</code> anymore, as if they are shifted from <code>@_</code>. There is a difference between the two ways of accessing the arguments: <code>@_</code> <i>aliases</i> the arguments, but the signature variables get <i>copies</i> of the arguments. So writing to a signature variable which is not referenced only changes that variable, and has no effect on the caller&#39;s variables, but using a reference variable or without signatures writing to an element of <code>@_</code> modifies whatever the caller used to supply that argument.</p>
 
 <p>There is a potential syntactic ambiguity between signatures and prototypes (see <a href="#Prototypes">&quot;Prototypes&quot;</a>), because both start with an opening parenthesis and both can appear in some of the same places, such as just after the name in a subroutine declaration. For historical reasons, when signatures are not enabled, any opening parenthesis in such a context will trigger very forgiving prototype parsing. Most signatures will be interpreted as prototypes in those circumstances, but won&#39;t be valid prototypes. (A valid prototype cannot contain any alphabetic character.) This will lead to somewhat confusing error messages.</p>
 
@@ -381,6 +389,14 @@
     }</code></pre>
 
 <p>The prototype attribute, and any other attributes, come after the signature.</p>
+
+<p>As with lexical variable declarations you may declare the types of parameters, and you may declare the return type of the subroutine with a final type attribute:</p>
+
+<pre><code>    sub foo (int $left, str $right) :int {
+        return $left + int($right);
+    }</code></pre>
+
+<p>Those types must be existing packages. Those additional types declarations help the compiler to produce better code and to throw early compile-time errors if possible.</p>
 
 <h2 id="Private-Variables-via-my">Private Variables via my()       </h2>
 
@@ -1142,11 +1158,15 @@ or
 
 <h2 id="Constant-Functions">Constant Functions </h2>
 
+<p>Functions declared with the attribute <code>:const</code> are compile-time evaluated and inlined.</p>
+
 <p>Functions with a prototype of <code>()</code> are potential candidates for inlining. If the result after optimization and constant folding is either a constant or a lexically-scoped scalar which has no other references, then it will be used in place of function calls made without <code>&amp;</code>. Calls made using <code>&amp;</code> are never inlined. (See <i>constant.pm</i> for an easy way to declare most constants.)</p>
 
 <p>The following functions would all be inlined:</p>
 
-<pre><code>    sub pi ()           { 3.14159 }             # Not exact, but close.
+<pre><code>    sub PI :const       { 4 * atan2 1, 1 }      # compile-time evaluated
+
+    sub pi ()           { 3.14159 }             # Not exact, but close.
     sub PI ()           { 4 * atan2 1, 1 }      # As good as it gets,
                                                 # and it&#39;s inlined, too!
     sub ST_DEV ()       { 0 }
