@@ -14,7 +14,7 @@ var searchData=
   ['internals_2emd',['INTERNALS.md',['../d6/d63/_i_n_t_e_r_n_a_l_s_8md.html',1,'']]],
   ['is_5fgc_5fprotected',['IS_GC_PROTECTED',['../d0/daa/gc_8h.html#a3f7358b8fd42f85daed5ef32cb2a6cb3',1,'gc.h']]],
   ['is_5fnew_5fptr',['IS_NEW_PTR',['../d0/daa/gc_8h.html#acce85f74c1b5430b73ac663cb56a95bc',1,'gc.h']]],
-  ['ivars',['ivars',['../da/dbb/struct_p_n_object.html#ac955b687b67a3c4b81946d531142377b',1,'PNObject::ivars()'],['../d6/d06/struct_p_n_target.html#ab443dba8702240c9518327990d388119',1,'PNTarget::ivars()'],['../d7/de2/struct_p_n_vtable.html#a15a55be183f2929341874cae0a4e6d4a',1,'PNVtable::ivars()']]],
+  ['ivars',['ivars',['../da/dbb/struct_p_n_object.html#ac955b687b67a3c4b81946d531142377b',1,'PNObject::ivars()'],['../d6/d06/struct_p_n_target.html#a06596b2b097cd013747cca786b2da4ba',1,'PNTarget::ivars()'],['../d7/de2/struct_p_n_vtable.html#a15a55be183f2929341874cae0a4e6d4a',1,'PNVtable::ivars()']]],
   ['ivfunc',['ivfunc',['../d7/de2/struct_p_n_vtable.html#a48a75f479c25842071653d6e81d635c5',1,'PNVtable']]],
   ['ivlen',['ivlen',['../d7/de2/struct_p_n_vtable.html#a7a135198985df5f95b712939fe7fd296',1,'PNVtable']]]
 ];

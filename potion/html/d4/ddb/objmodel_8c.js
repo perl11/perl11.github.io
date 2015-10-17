@@ -27,6 +27,7 @@ var objmodel_8c =
     [ "potion_lookup", "d4/ddb/objmodel_8c.html#abc1c1ff5808ee47211af44a191b735eb", null ],
     [ "potion_bind", "d4/ddb/objmodel_8c.html#a31b34265bd95480de92189a7e6a8bccc", null ],
     [ "potion_message", "d4/ddb/objmodel_8c.html#a27abfa75bd7a4df98440e2582c4e32c8", null ],
+    [ "potion_lobby_methods", "d4/ddb/objmodel_8c.html#a198059087bffd4eff25d60497671aefa", null ],
     [ "potion_obj_add", "d4/ddb/objmodel_8c.html#ada18f4d8bc63f1566389a24733bae5c9", null ],
     [ "potion_obj_sub", "d4/ddb/objmodel_8c.html#ab014bcb2ab6af21cc78934de7c607f04", null ],
     [ "potion_obj_mult", "d4/ddb/objmodel_8c.html#aa09f351ea1aaaee389aac6c6cb878e07", null ],
