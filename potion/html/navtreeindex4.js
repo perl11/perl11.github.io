@@ -1,5 +1,7 @@
 var NAVTREEINDEX4 =
 {
+"dd/d07/potion_8h.html#a4ac25c450acf97b4db7f95c6242e4876":[5,0,21,320],
+"dd/d07/potion_8h.html#a4ccb94717850e476c4793718591596bf":[5,0,21,298],
 "dd/d07/potion_8h.html#a4d2444370609f6f8e1ee590a5ae8d716":[5,0,21,65],
 "dd/d07/potion_8h.html#a4e664b823209423bce34bcafe041bcc0":[5,0,21,328],
 "dd/d07/potion_8h.html#a4e6ca7c3353e4bd92ade12542d6f4255":[5,0,21,319],
@@ -247,7 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d07/potion_8h.html#af072120028f05d800c926e4dd0a210fc":[5,0,21,316],
 "dd/d07/potion_8h.html#af0a7b58c2cd68a3d234ec60e7d229706":[5,0,21,327],
 "dd/d07/potion_8h.html#af1eecf1ebd261d39f6b801d11c753a70":[5,0,21,150],
-"dd/d07/potion_8h.html#af2cd330a0ac2756e085eb6bb37ce1536":[5,0,21,304],
-"dd/d07/potion_8h.html#af2f024615e88b61be3d613e74ac7d3fb":[5,0,21,172],
-"dd/d07/potion_8h.html#af323151713ac4372cc5e760016e46c10":[5,0,21,339]
+"dd/d07/potion_8h.html#af2cd330a0ac2756e085eb6bb37ce1536":[5,0,21,304]
 };

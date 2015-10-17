@@ -3,6 +3,7 @@ var searchData=
   ['v',['v',['../d0/d61/struct_p_n_arg.html#a09e6b424f20fafb4dd958be1a4a6065f',1,'PNArg']]],
   ['value',['value',['../d1/dc7/struct_p_n_double.html#a87cd7f6e3affe2f0a45a0d188df37a07',1,'PNDouble']]],
   ['values',['values',['../d6/d4e/struct_p_n_proto.html#ad6de6cda73bc9af61d8ccc60c199347b',1,'PNProto']]],
+  ['vasprintf',['vasprintf',['../da/d73/contrib_8c.html#a5ec7fd90ebe6015636bce974c192c86a',1,'contrib.c']]],
   ['version_2eh',['version.h',['../df/dfc/version_8h.html',1,'']]],
   ['vm_2darm_2ec',['vm-arm.c',['../d6/d44/vm-arm_8c.html',1,'']]],
   ['vm_2ddis_2ec',['vm-dis.c',['../d3/dea/vm-dis_8c.html',1,'']]],

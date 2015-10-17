@@ -26,6 +26,7 @@ var searchData=
   ['asmi',['ASMI',['../de/d21/asm_8h.html#ae4f929c3f6a534b165bcdb91c767b0ba',1,'asm.h']]],
   ['asmn',['ASMN',['../de/d21/asm_8h.html#a5c6819752147e49ec415ec338c97f9fb',1,'asm.h']]],
   ['asms',['ASMS',['../de/d21/asm_8h.html#ac423a8d73670d4c450dac19e451d39f5',1,'asm.h']]],
+  ['asprintf',['asprintf',['../da/d73/contrib_8c.html#a2a5709e682b0b9602dd22f2d9c86e365',1,'contrib.c']]],
   ['ast_2ec',['ast.c',['../d8/d01/ast_8c.html',1,'']]],
   ['ast_2eh',['ast.h',['../db/df0/ast_8h.html',1,'']]],
   ['ast_5famp',['AST_AMP',['../dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a79af01e41e95cf68645c72737bfdf6bc',1,'potion.h']]],

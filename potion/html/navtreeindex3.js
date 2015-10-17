@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"db/de5/vm-x86_8c.html#ad7c7c2337071af4e866e30d70873fae5":[5,0,30,67],
+"db/de5/vm-x86_8c.html#ad8d5f6e23cf6168570f8ec233dfba690":[5,0,30,25],
 "db/de5/vm-x86_8c.html#ad90617f3e8020a9a163987054ee11fcd":[5,0,30,70],
 "db/de5/vm-x86_8c.html#adc685b273c69683283c5f184a575c151":[5,0,30,12],
 "db/de5/vm-x86_8c.html#adefc524b9aa3b88886ec557e6a0c9745":[5,0,30,17],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "dd/d07/potion_8h.html#a42e3c1a66ab9b7b29cbaaadb4b9dc135a669ddfd0980b5cb690852428528aae7f":[5,0,21,164,4],
 "dd/d07/potion_8h.html#a42e3c1a66ab9b7b29cbaaadb4b9dc135aa2ecebebd51ce8c24af04dfed90a8b26":[5,0,21,164,5],
 "dd/d07/potion_8h.html#a437a5600a15cd74789037184f34510c2":[5,0,21,120],
-"dd/d07/potion_8h.html#a43b4d9ad408f496db3115a81ff71f371":[5,0,21,191],
-"dd/d07/potion_8h.html#a4ac25c450acf97b4db7f95c6242e4876":[5,0,21,320],
-"dd/d07/potion_8h.html#a4ccb94717850e476c4793718591596bf":[5,0,21,298]
+"dd/d07/potion_8h.html#a43b4d9ad408f496db3115a81ff71f371":[5,0,21,191]
 };
