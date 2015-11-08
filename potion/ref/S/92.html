@@ -1,31 +1,33 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>test/api/gc-bench.c</title>
+<title>test/api/gc-test.c</title>
 <meta name='robots' content='noindex,nofollow' />
-<meta name='generator' content='GLOBAL-6.2.8' />
+<meta name='generator' content='GLOBAL-6.5.1' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/206.html'>test</a>/<a href='../files/207.html'>api</a>/gc-bench.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L35'>[^]</a><a href='#L90'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/206.html'>test</a>/<a href='../files/207.html'>api</a>/gc-test.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L33'>[^]</a><a href='#L106'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
 <h2 class='header'>DEFINITIONS</h2>
 This source file includes following definitions.
 <ol>
-<li><a href='#L35' title='Defined at 35.'>current_time</a></li>
-<li><a href='#L48' title='Defined at 48.'>gc_make_tree</a></li>
-<li><a href='#L61' title='Defined at 61.'>gc_populate_tree</a></li>
-<li><a href='#L80' title='Defined at 80.'>gc_tree_depth</a></li>
-<li><a href='#L86' title='Defined at 86.'>tree_size</a></li>
-<li><a href='#L90' title='Defined at 90.'>main</a></li>
+<li><a href='#L33' title='Defined at 33.'>gc_test_start</a></li>
+<li><a href='#L42' title='Defined at 42.'>gc_test_alloc1</a></li>
+<li><a href='#L49' title='Defined at 49.'>gc_test_gc_minor</a></li>
+<li><a href='#L57' title='Defined at 57.'>gc_test_gc_major</a></li>
+<li><a href='#L65' title='Defined at 65.'>gc_test_alloc4</a></li>
+<li><a href='#L78' title='Defined at 78.'>gc_test_forward</a></li>
+<li><a href='#L93' title='Defined at 93.'>gc_suite</a></li>
+<li><a href='#L106' title='Defined at 106.'>main</a></li>
 </ol>
 <hr />
 <pre>
 <a id='L1' name='L1'></a><em class='comment'>//</em>
-<a id='L2' name='L2'></a><em class='comment'>// gc-bench.c</em>
-<a id='L3' name='L3'></a><em class='comment'>// benchmarking creation and copying of a b-tree</em>
+<a id='L2' name='L2'></a><em class='comment'>// gc-test.c</em>
+<a id='L3' name='L3'></a><em class='comment'>// rudimentary garbage collection testing</em>
 <a id='L4' name='L4'></a><em class='comment'>// (see core/gc.c for the lightweight garbage collector,</em>
 <a id='L5' name='L5'></a><em class='comment'>// based on ideas from Qish by Basile Starynkevitch.)</em>
 <a id='L6' name='L6'></a><em class='comment'>//</em>
@@ -34,151 +36,134 @@ This source file includes following definitions.
 <a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
 <a id='L10' name='L10'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
 <a id='L11' name='L11'></a><em class='sharp'>#include</em> &lt;string.h&gt;
-<a id='L12' name='L12'></a><em class='sharp'>#include</em> &lt;sys/time.h&gt;
-<a id='L13' name='L13'></a><em class='sharp'>#include</em> &lt;sys/times.h&gt;
-<a id='L14' name='L14'></a><em class='sharp'>#include</em> "<a href='30.html'>potion.h</a>"
-<a id='L15' name='L15'></a><em class='sharp'>#include</em> "<a href='21.html'>internal.h</a>"
-<a id='L16' name='L16'></a><em class='sharp'>#include</em> "<a href='19.html'>gc.h</a>"
-<a id='L17' name='L17'></a><em class='sharp'>#include</em> "<a href='22.html'>khash.h</a>"
-<a id='L18' name='L18'></a><em class='sharp'>#include</em> "<a href='35.html'>table.h</a>"
-<a id='L19' name='L19'></a>
-<a id='L20' name='L20'></a><a href='../S/30.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P;
-<a id='L21' name='L21'></a>
-<a id='L22' name='L22'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> tree_stretch = 20;
-<a id='L23' name='L23'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> tree_long_lived = 18;
-<a id='L24' name='L24'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> array_size = 2000000;
-<a id='L25' name='L25'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> min_tree = 4;
-<a id='L26' name='L26'></a><strong class='reserved'>static</strong> <strong class='reserved'>const</strong> <strong class='reserved'>int</strong> max_tree = 20;
-<a id='L27' name='L27'></a>
-<a id='L28' name='L28'></a><strong class='reserved'>static</strong> <a href='../S/30.html#L79' title='Defined at 79 in core/potion.h.'>PNType</a> tree_type;
-<a id='L29' name='L29'></a>
-<a id='L30' name='L30'></a><em class='comment'>//#define PN_ALLOC_N(V,T,C) (T *)potion_gc_alloc(P, V, sizeof(T)+C)</em>
-<a id='L31' name='L31'></a><em class='comment'>//#define ALLOC_NODE() PN_ALLOC_N(tree_type, struct PNObject, 2 * sizeof(PN))</em>
-<a id='L32' name='L32'></a><em class='sharp'>#define</em> <a href='../R/5.html' title='Multiple referred from 8 places.'>ALLOC_NODE</a>() (<a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/30.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, tree_type, <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> PNObject)+ (2*<strong class='reserved'>sizeof</strong>(<a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)))
-<a id='L33' name='L33'></a>
-<a id='L34' name='L34'></a><strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong>
-<a id='L35' name='L35'></a><a href='../R/702.html' title='Multiple referred from 4 places.'>current_time</a>(<strong class='reserved'>void</strong>)
-<a id='L36' name='L36'></a><em class='brace'>{</em>
-<a id='L37' name='L37'></a>  <strong class='reserved'>struct</strong> timeval t;
-<a id='L38' name='L38'></a>  <strong class='reserved'>struct</strong> <a href='../S/87.html#L418' title='Defined at 418 in lib/readline/win32fixes.c.'>timezone</a> tz;
-<a id='L39' name='L39'></a>
-<a id='L40' name='L40'></a>  <strong class='reserved'>if</strong> (<a href='../S/87.html#L424' title='Defined at 424 in lib/readline/win32fixes.c.'>gettimeofday</a> (&amp;t, &amp;tz) == -1)
-<a id='L41' name='L41'></a>    <strong class='reserved'>return</strong> 0;
-<a id='L42' name='L42'></a>  <strong class='reserved'>return</strong> (t.tv_sec * 1000 + t.tv_usec / 1000);
-<a id='L43' name='L43'></a><em class='brace'>}</em>
-<a id='L44' name='L44'></a>
-<a id='L45' name='L45'></a><em class='comment'>//</em>
-<a id='L46' name='L46'></a><em class='comment'>// TODO: use a b-tree class rather than tuples</em>
-<a id='L47' name='L47'></a><em class='comment'>//</em>
-<a id='L48' name='L48'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/721.html' title='Multiple referred from 4 places.'>gc_make_tree</a>(<strong class='reserved'>int</strong> depth, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> PN_left, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> PN_right) <em class='brace'>{</em>
-<a id='L49' name='L49'></a>  <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> x, l, r;
-<a id='L50' name='L50'></a>  <strong class='reserved'>if</strong> (depth &lt;= 0)
-<a id='L51' name='L51'></a>    <strong class='reserved'>return</strong> <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L52' name='L52'></a>
-<a id='L53' name='L53'></a>  l = <a href='../S/92.html#L48' title='Defined at 48 in test/api/gc-bench.c.'>gc_make_tree</a>(depth - 1, PN_left, PN_right);
-<a id='L54' name='L54'></a>  r = <a href='../S/92.html#L48' title='Defined at 48 in test/api/gc-bench.c.'>gc_make_tree</a>(depth - 1, PN_left, PN_right);
-<a id='L55' name='L55'></a>  x = <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L56' name='L56'></a>  <a href='../S/27.html#L329' title='Defined at 329 in core/objmodel.c.'>potion_obj_set</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, x, PN_left, l);
-<a id='L57' name='L57'></a>  <a href='../S/27.html#L329' title='Defined at 329 in core/objmodel.c.'>potion_obj_set</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, x, PN_right, r);
-<a id='L58' name='L58'></a>  <strong class='reserved'>return</strong> x;
-<a id='L59' name='L59'></a><em class='brace'>}</em>
-<a id='L60' name='L60'></a>
-<a id='L61' name='L61'></a><a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/722.html' title='Multiple referred from 4 places.'>gc_populate_tree</a>(<a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> node, <strong class='reserved'>int</strong> depth, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> PN_left, <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> PN_right) <em class='brace'>{</em>
-<a id='L62' name='L62'></a>  <strong class='reserved'>if</strong> (depth &lt;= 0)
-<a id='L63' name='L63'></a>    <strong class='reserved'>return</strong>;
+<a id='L12' name='L12'></a><em class='sharp'>#include</em> "<a href='26.html'>potion.h</a>"
+<a id='L13' name='L13'></a><em class='sharp'>#include</em> "<a href='17.html'>internal.h</a>"
+<a id='L14' name='L14'></a><em class='sharp'>#include</em> "<a href='15.html'>gc.h</a>"
+<a id='L15' name='L15'></a><em class='sharp'>#include</em> "<a href='90.html'>CuTest.h</a>"
+<a id='L16' name='L16'></a>
+<a id='L17' name='L17'></a><a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P;
+<a id='L18' name='L18'></a>
+<a id='L19' name='L19'></a><em class='sharp'>#if</em> <strong class='reserved'>defined</strong>(DEBUG)
+<a id='L20' name='L20'></a><em class='sharp'>#define</em> <a href='../R/109.html' title='Multiple referred from 8 places.'>DBG_Gv</a>(P,...)                           \
+<a id='L21' name='L21'></a>  <strong class='reserved'>if</strong> (P-&gt;flags &amp; (<a href='../S/26.html#L638' title='Defined at 638 in core/potion.h.'>DEBUG_GC</a> | <a href='../S/26.html#L631' title='Defined at 631 in core/potion.h.'>DEBUG_VERBOSE</a>)) <em class='brace'>{</em>  \
+<a id='L22' name='L22'></a>    printf(__VA_ARGS__);                        \
+<a id='L23' name='L23'></a>  <em class='brace'>}</em>
+<a id='L24' name='L24'></a><em class='sharp'>#define</em> <a href='../R/108.html' title='Multiple referred from 4 places.'>DBG_G</a>(P,...)           \
+<a id='L25' name='L25'></a>  <strong class='reserved'>if</strong> (P-&gt;flags &amp; <a href='../S/26.html#L638' title='Defined at 638 in core/potion.h.'>DEBUG_GC</a>) <em class='brace'>{</em>   \
+<a id='L26' name='L26'></a>    printf(__VA_ARGS__);       \
+<a id='L27' name='L27'></a>  <em class='brace'>}</em>
+<a id='L28' name='L28'></a><em class='sharp'>#else</em>
+<a id='L29' name='L29'></a><em class='sharp'>#define</em> <a href='../R/109.html' title='Multiple referred from 8 places.'>DBG_Gv</a>(...)
+<a id='L30' name='L30'></a><em class='sharp'>#define</em> <a href='../R/108.html' title='Multiple referred from 4 places.'>DBG_G</a>(...)
+<a id='L31' name='L31'></a><em class='sharp'>#endif</em>
+<a id='L32' name='L32'></a>
+<a id='L33' name='L33'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L95' title='Referred from 95 in test/api/gc-test.c.'>gc_test_start</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L34' name='L34'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "GC struct isn't at start of first page", P-&gt;mem == P-&gt;mem-&gt;birth_lo);
+<a id='L35' name='L35'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "stack length is not a positive number", <a href='../S/14.html#L50' title='Defined at 50 in core/gc.c.'>potion_stack_len</a>(P, NULL) &gt; 0);
+<a id='L36' name='L36'></a><em class='brace'>}</em>
+<a id='L37' name='L37'></a>
+<a id='L38' name='L38'></a><em class='comment'>//</em>
+<a id='L39' name='L39'></a><em class='comment'>// everything allocated in alloc1 and alloc4 tests goes out of scope, so will</em>
+<a id='L40' name='L40'></a><em class='comment'>// not be moved to the old generation. data in the `forward` test will be copied.</em>
+<a id='L41' name='L41'></a><em class='comment'>//</em>
+<a id='L42' name='L42'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L97' title='Referred from 97 in test/api/gc-test.c.'>gc_test_alloc1</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L43' name='L43'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L44' name='L44'></a>  <a href='../S/26.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> count = <a href='../S/14.html#L98' title='Defined at 98 in core/gc.c.'>potion_mark_stack</a>(P, 0);
+<a id='L45' name='L45'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr));
+<a id='L46' name='L46'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "only one or two allocations should be found", count &gt;= 1 &amp;&amp; count &lt;= 2);
+<a id='L47' name='L47'></a><em class='brace'>}</em>
+<a id='L48' name='L48'></a>
+<a id='L49' name='L49'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L101' title='Referred from 101 in test/api/gc-test.c.'>gc_test_gc_minor</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L50' name='L50'></a>  <a href='../S/28.html#L487' title='Defined at 487 in core/string.c.'>potion_str_hash_init</a>(P);
+<a id='L51' name='L51'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L52' name='L52'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> s1 = <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>("teststring");
+<a id='L53' name='L53'></a>  <a href='../S/14.html#L266' title='Defined at 266 in core/gc.c.'>potion_garbagecollect</a>(P, POTION_PAGESIZE, 0);
+<a id='L54' name='L54'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr));
+<a id='L55' name='L55'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "s1", <a href='../S/26.html#L166' title='Defined at 166 in core/potion.h.'>PN_IS_STR</a>(s1));
+<a id='L56' name='L56'></a><em class='brace'>}</em>
+<a id='L57' name='L57'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L102' title='Referred from 102 in test/api/gc-test.c.'>gc_test_gc_major</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L58' name='L58'></a>  <a href='../S/26.html#L683' title='Defined at 683 in core/potion.h.'>POTION_INIT_STACK</a>(sp);
+<a id='L59' name='L59'></a>  P = <a href='../S/16.html#L120' title='Defined at 120 in core/internal.c.'>potion_create</a>(sp);
+<a id='L60' name='L60'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L61' name='L61'></a>  <a href='../S/14.html#L266' title='Defined at 266 in core/gc.c.'>potion_garbagecollect</a>(P, POTION_PAGESIZE, 1);
+<a id='L62' name='L62'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr));
+<a id='L63' name='L63'></a><em class='brace'>}</em>
 <a id='L64' name='L64'></a>
-<a id='L65' name='L65'></a>  depth--;
-<a id='L66' name='L66'></a>  <a href='../S/27.html#L329' title='Defined at 329 in core/objmodel.c.'>potion_obj_set</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, node, PN_left, <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>());
-<a id='L67' name='L67'></a>  <a href='../S/30.html#L222' title='Defined at 222 in core/potion.h.'>PN_TOUCH</a>(node);
-<a id='L68' name='L68'></a><em class='sharp'>#ifdef</em> HOLES
-<a id='L69' name='L69'></a>  n = <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L70' name='L70'></a><em class='sharp'>#endif</em>
-<a id='L71' name='L71'></a>  <a href='../S/27.html#L329' title='Defined at 329 in core/objmodel.c.'>potion_obj_set</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, node, PN_right, <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>());
-<a id='L72' name='L72'></a>  <a href='../S/30.html#L222' title='Defined at 222 in core/potion.h.'>PN_TOUCH</a>(node);
-<a id='L73' name='L73'></a><em class='sharp'>#ifdef</em> HOLES
-<a id='L74' name='L74'></a>  n = <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L75' name='L75'></a><em class='sharp'>#endif</em>
-<a id='L76' name='L76'></a>  <a href='../S/92.html#L61' title='Defined at 61 in test/api/gc-bench.c.'>gc_populate_tree</a>(<a href='../S/27.html#L322' title='Defined at 322 in core/objmodel.c.'>potion_obj_get</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, node, PN_left), depth, PN_left, PN_right);
-<a id='L77' name='L77'></a>  <a href='../S/92.html#L61' title='Defined at 61 in test/api/gc-bench.c.'>gc_populate_tree</a>(<a href='../S/27.html#L322' title='Defined at 322 in core/objmodel.c.'>potion_obj_get</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, node, PN_right), depth, PN_left, PN_right);
-<a id='L78' name='L78'></a><em class='brace'>}</em>
-<a id='L79' name='L79'></a>
-<a id='L80' name='L80'></a><strong class='reserved'>int</strong> <a href='../S/92.html#L83' title='Referred from 83 in test/api/gc-bench.c.'>gc_tree_depth</a>(<a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> node, <strong class='reserved'>int</strong> side, <strong class='reserved'>int</strong> depth) <em class='brace'>{</em>
-<a id='L81' name='L81'></a>  <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> n = ((<strong class='reserved'>struct</strong> PNObject *)node)-&gt;ivars[side];
-<a id='L82' name='L82'></a>  <strong class='reserved'>if</strong> (n == <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>) <strong class='reserved'>return</strong> depth;
-<a id='L83' name='L83'></a>  <strong class='reserved'>return</strong> <a href='../S/92.html#L80' title='Defined at 80 in test/api/gc-bench.c.'>gc_tree_depth</a>(n, side, depth + 1);
-<a id='L84' name='L84'></a><em class='brace'>}</em>
-<a id='L85' name='L85'></a>
-<a id='L86' name='L86'></a><strong class='reserved'>int</strong> <a href='../S/92.html#L120' title='Referred from 120 in test/api/gc-bench.c.'>tree_size</a>(<strong class='reserved'>int</strong> i) <em class='brace'>{</em>
-<a id='L87' name='L87'></a>  <strong class='reserved'>return</strong> ((1 &lt;&lt; (i + 1)) - 1);
-<a id='L88' name='L88'></a><em class='brace'>}</em>
-<a id='L89' name='L89'></a>
-<a id='L90' name='L90'></a><strong class='reserved'>int</strong> <a href='../S/197.html#L185' title='Referred from 185 in tools/greg.y.'>main</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
-<a id='L91' name='L91'></a>  <a href='../S/30.html#L683' title='Defined at 683 in core/potion.h.'>POTION_INIT_STACK</a>(sp);
-<a id='L92' name='L92'></a>  <a href='../S/30.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> klass, ary, temp, long_lived, PN_left, PN_right;
-<a id='L93' name='L93'></a>  <strong class='reserved'>int</strong> i, j;
-<a id='L94' name='L94'></a>
-<a id='L95' name='L95'></a>  P = <a href='../S/20.html#L120' title='Defined at 120 in core/internal.c.'>potion_create</a>(sp);
-<a id='L96' name='L96'></a>  ary = <a href='../S/34.html#L242' title='Defined at 242 in core/table.c.'>potion_tuple_with_size</a>(P, 2);
-<a id='L97' name='L97'></a>  <a href='../S/30.html#L269' title='Defined at 269 in core/potion.h.'>PN_TUPLE_AT</a>(ary, 0) = PN_left = <a href='../S/32.html#L33' title='Defined at 33 in core/string.c.'>potion_str</a>(P, "left");
-<a id='L98' name='L98'></a>  <a href='../S/30.html#L269' title='Defined at 269 in core/potion.h.'>PN_TUPLE_AT</a>(ary, 1) = PN_right = <a href='../S/32.html#L33' title='Defined at 33 in core/string.c.'>potion_str</a>(P, "right");
-<a id='L99' name='L99'></a>  klass = <a href='../S/27.html#L252' title='Defined at 252 in core/objmodel.c.'>potion_class</a>(P, <a href='../S/30.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, P-&gt;lobby, ary);
-<a id='L100' name='L100'></a>  tree_type = ((<strong class='reserved'>struct</strong> <a href='../S/35.html#L24' title='Defined at 24 in core/table.h.'>PNVtable</a> *)klass)-&gt;type;
-<a id='L101' name='L101'></a>
-<a id='L102' name='L102'></a>  printf("Stretching memory with a binary tree of depth %d\n",
-<a id='L103' name='L103'></a>    tree_stretch);
-<a id='L104' name='L104'></a>  temp = <a href='../S/92.html#L48' title='Defined at 48 in test/api/gc-bench.c.'>gc_make_tree</a>(tree_stretch, PN_left, PN_right);
-<a id='L105' name='L105'></a>  temp = 0;
-<a id='L106' name='L106'></a>
-<a id='L107' name='L107'></a>  printf("Creating a long-lived binary tree of depth %d\n",
-<a id='L108' name='L108'></a>    tree_long_lived);
-<a id='L109' name='L109'></a>  long_lived = <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L110' name='L110'></a>  <a href='../S/92.html#L61' title='Defined at 61 in test/api/gc-bench.c.'>gc_populate_tree</a>(long_lived, tree_long_lived, PN_left, PN_right);
-<a id='L111' name='L111'></a>
-<a id='L112' name='L112'></a>  printf("Creating a long-lived array of %d doubles\n",
-<a id='L113' name='L113'></a>    array_size);
-<a id='L114' name='L114'></a>  ary = <a href='../S/34.html#L242' title='Defined at 242 in core/table.c.'>potion_tuple_with_size</a>(P, array_size);
-<a id='L115' name='L115'></a>  <strong class='reserved'>for</strong> (i = 0; i &lt; array_size / 2; ++i)
-<a id='L116' name='L116'></a>    <a href='../S/30.html#L269' title='Defined at 269 in core/potion.h.'>PN_TUPLE_AT</a>(ary, i) = <a href='../S/30.html#L204' title='Defined at 204 in core/potion.h.'>PN_NUM</a>(1.0 / i);
-<a id='L117' name='L117'></a>
-<a id='L118' name='L118'></a>  <strong class='reserved'>for</strong> (i = min_tree; i &lt;= max_tree; i += 2) <em class='brace'>{</em>
-<a id='L119' name='L119'></a>    <strong class='reserved'>long</strong> start, finish;
-<a id='L120' name='L120'></a>    <strong class='reserved'>int</strong> iter = 2 * <a href='../S/92.html#L86' title='Defined at 86 in test/api/gc-bench.c.'>tree_size</a>(tree_stretch) / <a href='../S/92.html#L86' title='Defined at 86 in test/api/gc-bench.c.'>tree_size</a>(i);
-<a id='L121' name='L121'></a>    printf ("Creating %d trees of depth %d\n", iter, i);
-<a id='L122' name='L122'></a>
-<a id='L123' name='L123'></a>    start = <a href='../S/92.html#L35' title='Defined at 35 in test/api/gc-bench.c.'>current_time</a>();
-<a id='L124' name='L124'></a>    <strong class='reserved'>for</strong> (j = 0; j &lt; iter; ++j) <em class='brace'>{</em>
-<a id='L125' name='L125'></a>      temp = <a href='../S/92.html#L32' title='Defined at 32 in test/api/gc-bench.c.'>ALLOC_NODE</a>();
-<a id='L126' name='L126'></a>      <a href='../S/92.html#L61' title='Defined at 61 in test/api/gc-bench.c.'>gc_populate_tree</a>(temp, i, PN_left, PN_right);
-<a id='L127' name='L127'></a>    <em class='brace'>}</em>
-<a id='L128' name='L128'></a>    finish = <a href='../S/92.html#L35' title='Defined at 35 in test/api/gc-bench.c.'>current_time</a>();
-<a id='L129' name='L129'></a>    printf("\tTop down construction took %lu msec\n",
-<a id='L130' name='L130'></a>           finish - start);
-<a id='L131' name='L131'></a>
-<a id='L132' name='L132'></a>    start = <a href='../S/92.html#L35' title='Defined at 35 in test/api/gc-bench.c.'>current_time</a>();
-<a id='L133' name='L133'></a>    <strong class='reserved'>for</strong> (j = 0; j &lt; iter; ++j) <em class='brace'>{</em>
-<a id='L134' name='L134'></a>      temp = <a href='../S/92.html#L48' title='Defined at 48 in test/api/gc-bench.c.'>gc_make_tree</a>(i, PN_left, PN_right);
-<a id='L135' name='L135'></a>      temp = 0;
-<a id='L136' name='L136'></a>    <em class='brace'>}</em>
-<a id='L137' name='L137'></a>    finish = <a href='../S/92.html#L35' title='Defined at 35 in test/api/gc-bench.c.'>current_time</a>();
-<a id='L138' name='L138'></a>    printf("\tBottom up construction took %lu msec\n",
-<a id='L139' name='L139'></a>           finish - start);
-<a id='L140' name='L140'></a>  <em class='brace'>}</em>
-<a id='L141' name='L141'></a>  
-<a id='L142' name='L142'></a>  <strong class='reserved'>if</strong> (long_lived == 0 || <a href='../S/30.html#L269' title='Defined at 269 in core/potion.h.'>PN_TUPLE_AT</a>(ary, 1000) != <a href='../S/30.html#L204' title='Defined at 204 in core/potion.h.'>PN_NUM</a>(1.0 / 1000))
-<a id='L143' name='L143'></a>    printf("Wait, problem.\n");
-<a id='L144' name='L144'></a>
-<a id='L145' name='L145'></a>  printf ("Total %d minor and %d full garbage collections\n"
-<a id='L146' name='L146'></a>          "   (min.birth.size=%dK, max.size=%dK, gc.thresh=%dK)\n",
-<a id='L147' name='L147'></a>          P-&gt;mem-&gt;minors, P-&gt;mem-&gt;majors,
-<a id='L148' name='L148'></a>          <a href='../S/19.html#L9' title='Defined at 9 in core/gc.h.'>POTION_BIRTH_SIZE</a> &gt;&gt; 10, <a href='../S/19.html#L17' title='Defined at 17 in core/gc.h.'>POTION_MAX_BIRTH_SIZE</a> &gt;&gt; 10,
-<a id='L149' name='L149'></a>          <a href='../S/19.html#L24' title='Defined at 24 in core/gc.h.'>POTION_GC_THRESHOLD</a> &gt;&gt; 10);
-<a id='L150' name='L150'></a>
-<a id='L151' name='L151'></a>  <a href='../S/20.html#L133' title='Defined at 133 in core/internal.c.'>potion_destroy</a>(P);
-<a id='L152' name='L152'></a>  <strong class='reserved'>return</strong> 0;
-<a id='L153' name='L153'></a><em class='brace'>}</em>
+<a id='L65' name='L65'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L98' title='Referred from 98 in test/api/gc-test.c.'>gc_test_alloc4</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L66' name='L66'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L67' name='L67'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr2 = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L68' name='L68'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr3 = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L69' name='L69'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ptr4 = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>, 16);
+<a id='L70' name='L70'></a>  <a href='../S/26.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> count = <a href='../S/14.html#L98' title='Defined at 98 in core/gc.c.'>potion_mark_stack</a>(P, 0);
+<a id='L71' name='L71'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr));
+<a id='L72' name='L72'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr2));
+<a id='L73' name='L73'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr3));
+<a id='L74' name='L74'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "couldn't allocate 16 bytes from GC", <a href='../S/26.html#L159' title='Defined at 159 in core/potion.h.'>PN_IS_PTR</a>(ptr4));
+<a id='L75' name='L75'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "min. four allocations should be found", count &gt;= 4);
+<a id='L76' name='L76'></a><em class='brace'>}</em>
+<a id='L77' name='L77'></a>
+<a id='L78' name='L78'></a><strong class='reserved'>void</strong> <a href='../S/92.html#L100' title='Referred from 100 in test/api/gc-test.c.'>gc_test_forward</a>(<a href='../D/102.html' title='Multiple defined in 2 places.'>CuTest</a> *T) <em class='brace'>{</em>
+<a id='L79' name='L79'></a>  <strong class='reserved'>char</strong> *fj = "frances johnson.";
+<a id='L80' name='L80'></a>  <a href='../S/26.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Data) ptr = <a href='../S/26.html#L756' title='Defined at 756 in core/potion.h.'>potion_data_alloc</a>(P, 16);
+<a id='L81' name='L81'></a>  <strong class='reserved'>register</strong> <strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong> old = (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)ptr &amp; 0xFFFF;
+<a id='L82' name='L82'></a>  memcpy(ptr-&gt;data, fj, 16);
+<a id='L83' name='L83'></a>
+<a id='L84' name='L84'></a>  <em class='comment'>//DBG_Gv(P,"forward ptr-&gt;data: %p \"%s\"\n", &amp;ptr-&gt;data, ptr-&gt;data);</em>
+<a id='L85' name='L85'></a>  <a href='../S/14.html#L98' title='Defined at 98 in core/gc.c.'>potion_mark_stack</a>(P, 1);
+<a id='L86' name='L86'></a>  <em class='comment'>//DBG_Gv(P,"marked ptr-&gt;data: %p \"%s\"\n", &amp;ptr-&gt;data, ptr-&gt;data);</em>
+<a id='L87' name='L87'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "copied location identical to original", (old &amp; 0xFFFF) != (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)ptr);
+<a id='L88' name='L88'></a>  <a href='../S/89.html#L162' title='Defined at 162 in test/api/CuTest.c.'>CuAssertIntEquals</a>(T, "copied object not still PN_TUSER", ptr-&gt;vt, <a href='../S/26.html#L130' title='Defined at 130 in core/potion.h.'>PN_TUSER</a>);
+<a id='L89' name='L89'></a>  <a href='../S/89.html#L132' title='Defined at 132 in test/api/CuTest.c.'>CuAssert</a>(T, "copied data not identical to original",
+<a id='L90' name='L90'></a>    strncmp(ptr-&gt;data, fj, 16) == 0);
+<a id='L91' name='L91'></a><em class='brace'>}</em>
+<a id='L92' name='L92'></a>
+<a id='L93' name='L93'></a><a href='../S/90.html#L78' title='Defined at 78 in test/api/CuTest.h.'>CuSuite</a> *<a href='../S/92.html#L127' title='Referred from 127 in test/api/gc-test.c.'>gc_suite</a>() <em class='brace'>{</em>
+<a id='L94' name='L94'></a>  <a href='../S/90.html#L78' title='Defined at 78 in test/api/CuTest.h.'>CuSuite</a> *S = <a href='../S/89.html#L211' title='Defined at 211 in test/api/CuTest.c.'>CuSuiteNew</a>();
+<a id='L95' name='L95'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L33' title='Defined at 33 in test/api/gc-test.c.'>gc_test_start</a>);
+<a id='L96' name='L96'></a><em class='sharp'>#ifndef</em> __SANITIZE_ADDRESS__
+<a id='L97' name='L97'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L42' title='Defined at 42 in test/api/gc-test.c.'>gc_test_alloc1</a>);
+<a id='L98' name='L98'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L65' title='Defined at 65 in test/api/gc-test.c.'>gc_test_alloc4</a>);
+<a id='L99' name='L99'></a><em class='sharp'>#endif</em>
+<a id='L100' name='L100'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L78' title='Defined at 78 in test/api/gc-test.c.'>gc_test_forward</a>);
+<a id='L101' name='L101'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L49' title='Defined at 49 in test/api/gc-test.c.'>gc_test_gc_minor</a>);
+<a id='L102' name='L102'></a>  <a href='../S/90.html#L70' title='Defined at 70 in test/api/CuTest.h.'>SUITE_ADD_TEST</a>(S, <a href='../S/92.html#L57' title='Defined at 57 in test/api/gc-test.c.'>gc_test_gc_major</a>);
+<a id='L103' name='L103'></a>  <strong class='reserved'>return</strong> S;
+<a id='L104' name='L104'></a><em class='brace'>}</em>
+<a id='L105' name='L105'></a>
+<a id='L106' name='L106'></a><strong class='reserved'>int</strong> <a href='../S/197.html#L185' title='Referred from 185 in tools/greg.y.'>main</a>(<strong class='reserved'>int</strong> argc, <strong class='reserved'>char</strong> **argv) <em class='brace'>{</em>
+<a id='L107' name='L107'></a>  <a href='../S/26.html#L683' title='Defined at 683 in core/potion.h.'>POTION_INIT_STACK</a>(sp);
+<a id='L108' name='L108'></a>  <strong class='reserved'>int</strong> count;
+<a id='L109' name='L109'></a>
+<a id='L110' name='L110'></a>  <em class='comment'>// manually initialize the older generation</em>
+<a id='L111' name='L111'></a>  P = <a href='../S/14.html#L658' title='Defined at 658 in core/gc.c.'>potion_gc_boot</a>(sp);
+<a id='L112' name='L112'></a>  <strong class='reserved'>if</strong> (argc == 2) <em class='brace'>{</em>
+<a id='L113' name='L113'></a><em class='sharp'>#ifdef</em> DEBUG
+<a id='L114' name='L114'></a>    <strong class='reserved'>if</strong> (!strcmp(argv[1], "-DG"))  P-&gt;flags |= <a href='../S/26.html#L638' title='Defined at 638 in core/potion.h.'>DEBUG_GC</a>;
+<a id='L115' name='L115'></a>    <strong class='reserved'>if</strong> (!strcmp(argv[1], "-DGv")) P-&gt;flags |= (<a href='../S/26.html#L638' title='Defined at 638 in core/potion.h.'>DEBUG_GC</a>|<a href='../S/26.html#L631' title='Defined at 631 in core/potion.h.'>DEBUG_VERBOSE</a>);
+<a id='L116' name='L116'></a><em class='sharp'>#endif</em>
+<a id='L117' name='L117'></a>  <em class='brace'>}</em>
+<a id='L118' name='L118'></a>  <strong class='reserved'>if</strong> (P-&gt;mem-&gt;old_lo == NULL) <em class='brace'>{</em>
+<a id='L119' name='L119'></a>    <strong class='reserved'>struct</strong> <a href='../S/26.html#L667' title='Defined at 667 in core/potion.h.'>PNMemory</a> *<a href='../S/21.html#L53' title='Defined at 53 in core/mt19937ar.c.'>M</a> = P-&gt;mem;
+<a id='L120' name='L120'></a>    <strong class='reserved'>int</strong> gensz = <a href='../S/15.html#L9' title='Defined at 9 in core/gc.h.'>POTION_BIRTH_SIZE</a> * 2;
+<a id='L121' name='L121'></a>    <strong class='reserved'>void</strong> *page = <a href='../S/14.html#L114' title='Defined at 114 in core/gc.c.'>pngc_page_new</a>(&amp;gensz, 0);
+<a id='L122' name='L122'></a>    <strong class='reserved'>if</strong> (page == NULL)
+<a id='L123' name='L123'></a>      <a href='../S/16.html#L288' title='Defined at 288 in core/internal.c.'>potion_fatal</a>("Not enough memory");
+<a id='L124' name='L124'></a>    <a href='../S/15.html#L28' title='Defined at 28 in core/gc.h.'>SET_GEN</a>(old, page, gensz);
+<a id='L125' name='L125'></a>  <em class='brace'>}</em>
+<a id='L126' name='L126'></a>  <a href='../S/90.html#L25' title='Defined at 25 in test/api/CuTest.h.'>CuString</a> *out = <a href='../S/89.html#L40' title='Defined at 40 in test/api/CuTest.c.'>CuStringNew</a>();
+<a id='L127' name='L127'></a>  <a href='../S/90.html#L78' title='Defined at 78 in test/api/CuTest.h.'>CuSuite</a> *suite = <a href='../S/92.html#L93' title='Defined at 93 in test/api/gc-test.c.'>gc_suite</a>();
+<a id='L128' name='L128'></a>  <a href='../S/89.html#L243' title='Defined at 243 in test/api/CuTest.c.'>CuSuiteRun</a>(suite);
+<a id='L129' name='L129'></a>  <a href='../S/89.html#L253' title='Defined at 253 in test/api/CuTest.c.'>CuSuiteSummary</a>(suite, out);
+<a id='L130' name='L130'></a>  <a href='../S/89.html#L266' title='Defined at 266 in test/api/CuTest.c.'>CuSuiteDetails</a>(suite, out);
+<a id='L131' name='L131'></a>  printf("%s\n", out-&gt;buffer);
+<a id='L132' name='L132'></a>  count = suite-&gt;failCount;
+<a id='L133' name='L133'></a>  <a href='../S/89.html#L218' title='Defined at 218 in test/api/CuTest.c.'>CuSuiteFree</a>(suite);
+<a id='L134' name='L134'></a>  <a href='../S/89.html#L88' title='Defined at 88 in test/api/CuTest.c.'>CuStringFree</a>(out);
+<a id='L135' name='L135'></a>  <strong class='reserved'>return</strong> count;
+<a id='L136' name='L136'></a><em class='brace'>}</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L35'>[^]</a><a href='#L90'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L33'>[^]</a><a href='#L106'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

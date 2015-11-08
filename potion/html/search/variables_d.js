@@ -51,7 +51,7 @@ var searchData=
   ['potion_5fast_5fnames',['potion_ast_names',['../d8/d01/ast_8c.html#ab2a4f2f15a3df1f743dcb85406d23fd8',1,'ast.c']]],
   ['potion_5fast_5fsizes',['potion_ast_sizes',['../d8/d01/ast_8c.html#ae20f7ab154ecf0669b8b6731cff4be90',1,'ast.c']]],
   ['potion_5fbanner',['potion_banner',['../d5/d1a/potion_8c.html#ae9208e4bc0bc9f1682f752b4ea42c118',1,'potion.c']]],
-  ['potion_5fops',['potion_ops',['../d2/d47/compile_8c.html#a1a987da93279b71d0a36883524971be4',1,'compile.c']]],
+  ['potion_5fops',['potion_ops',['../d2/d47/compile_8c.html#a1a987da93279b71d0a36883524971be4',1,'potion_ops():&#160;compile.c'],['../de/de9/vm_8c.html#aa7d93de415b57ec1fe0749922d43cc50',1,'potion_ops():&#160;vm.c']]],
   ['potion_5ftarget_5fx86',['potion_target_x86',['../de/de9/vm_8c.html#ab751dce2161ff80fe673b22eb7ea2c2f',1,'vm.c']]],
   ['potion_5fversion',['potion_version',['../d5/d1a/potion_8c.html#a5b16faa2afb9a1c1344c0fc493b38dda',1,'potion.c']]],
   ['prec',['prec',['../d2/dcd/struct_potion___state.html#a6b514cf97be4e919e121de078cfb1531',1,'Potion_State']]],

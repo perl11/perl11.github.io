@@ -1,6 +1,7 @@
 var vm_8c =
 [
     [ "DEBUG_IN_C", "de/de9/vm_8c.html#a1190440d6cfda0c07c3aceed5c69cdfa", null ],
+    [ "STRINGIFY", "de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854", null ],
     [ "STACK_MAX", "de/de9/vm_8c.html#a27b296fccb4da1e9cfcf1f9c810e619e", null ],
     [ "JUMPS_MAX", "de/de9/vm_8c.html#ac0d60f35e73dff59f1522b9403410b41", null ],
     [ "CASE_OP", "de/de9/vm_8c.html#a65a37a7116a55e32f389eb26a744d647", null ],
@@ -8,7 +9,6 @@ var vm_8c =
     [ "PN_VM_MATH3", "de/de9/vm_8c.html#a23768bb10de9c4d20cb1b74b8a951a3e", null ],
     [ "PN_VM_NUMCMP", "de/de9/vm_8c.html#ab6272743ca8f74f9bf773bc00a29b6d6", null ],
     [ "PN_VM_CMP", "de/de9/vm_8c.html#a1475d3cd0164f9acb0f3755c4295befa", null ],
-    [ "L", "de/de9/vm_8c.html#a6343b48e6930795fb31fac1833c7749a", null ],
     [ "SWITCH_START", "de/de9/vm_8c.html#afcab46b56d9082d983c0b03989e590ee", null ],
     [ "CASE", "de/de9/vm_8c.html#a153f27ef7492a37273c263427099ceb6", null ],
     [ "SWITCH_END", "de/de9/vm_8c.html#a886e28203c262455d99122704a9f0be9", null ],
@@ -20,12 +20,14 @@ var vm_8c =
     [ "potion_vm_init", "de/de9/vm_8c.html#a43f53d1bb0ff2cba095a076fcb9c1ef2", null ],
     [ "potion_vm_proto", "de/de9/vm_8c.html#a2b801f0b4a822dce0c08d9b3515f2d3c", null ],
     [ "potion_vm_class", "de/de9/vm_8c.html#ab63c36540b79de6bd0edad736f30604c", null ],
-    [ "potion_jit_proto", "de/de9/vm_8c.html#af96fe06b2417036ef7db5eb6e6280da7", null ],
     [ "potion_vm_eq", "de/de9/vm_8c.html#a239bc735b262ef2b9ebf6628a94dd64e", null ],
     [ "potion_vm_neq", "de/de9/vm_8c.html#a8daa94cc6406d5e11a1eab745a5639b4", null ],
     [ "potion_sig_check", "de/de9/vm_8c.html#afb327124a1a180567093be856495b6a9", null ],
     [ "potion_debug", "de/de9/vm_8c.html#aabf518e90a2085fb5cb0ab6d9aa4da61", null ],
     [ "potion_vm", "de/de9/vm_8c.html#af23b54160a0fc75ea32fe1a9b479bbea", null ],
     [ "pn_readline", "de/de9/vm_8c.html#a3d66fb6b42284c8f482021a42fb53cb3", null ],
+    [ "name", "de/de9/vm_8c.html#a8f8f80d37794cde9472343e4487ba3eb", null ],
+    [ "args", "de/de9/vm_8c.html#a696b922b70259bfcac0d3acf49cdf178", null ],
+    [ "potion_ops", "de/de9/vm_8c.html#aa7d93de415b57ec1fe0749922d43cc50", null ],
     [ "potion_target_x86", "de/de9/vm_8c.html#ab751dce2161ff80fe673b22eb7ea2c2f", null ]
 ];

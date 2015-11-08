@@ -5,6 +5,8 @@ var struct_p_n_tuple =
     [ "potion_tuple_clone", "df/d30/struct_p_n_tuple.html#ac5fd524e6d4e91c7fe4f0053c8a248d4", null ],
     [ "potion_tuple_slice", "df/d30/struct_p_n_tuple.html#aac7d9e8adaced0f38b45226b3664a506", null ],
     [ "potion_tuple_each", "df/d30/struct_p_n_tuple.html#a1f2d6fb00b8eefac967c720e2d9ebcb4", null ],
+    [ "potion_tuple_map", "df/d30/struct_p_n_tuple.html#aceb195200eaf2147ab78f27f47ba2bc5", null ],
+    [ "potion_tuple_filter", "df/d30/struct_p_n_tuple.html#a3386a498791a3a5757bc486d44acbfc4", null ],
     [ "potion_tuple_first", "df/d30/struct_p_n_tuple.html#a4d031ba68453bc1e8b5489cdaf708bed", null ],
     [ "potion_tuple_join", "df/d30/struct_p_n_tuple.html#ad221024778aa2b74b923484cc596925a", null ],
     [ "potion_tuple_last", "df/d30/struct_p_n_tuple.html#acfe1922dc4bd2334729fae347a440857", null ],
