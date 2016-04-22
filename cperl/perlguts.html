@@ -4,10 +4,10 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@tenten-slave.macports.org" />
+<link rev="made" href="mailto:rurban@localhost.nonet" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -98,6 +98,7 @@
       <li><a href="#How-does-Perl-store-UTF-8-strings">How does Perl store UTF-8 strings?</a></li>
       <li><a href="#How-do-I-convert-a-string-to-UTF-8">How do I convert a string to UTF-8?</a></li>
       <li><a href="#How-do-I-compare-strings">How do I compare strings?</a></li>
+      <li><a href="#Various-lengths-and-index-types">Various lengths and index types</a></li>
       <li><a href="#Is-there-anything-else-I-need-to-know">Is there anything else I need to know?</a></li>
     </ul>
   </li>
@@ -1543,7 +1544,7 @@
 
 <pre><code>    if ($x) { ... }</code></pre>
 
-<p>creates two scopes: the first starts at the <code>(</code> and has <code>full == 1</code>, the second starts at the <code>{</code> and has <code>full == 0</code>. Both end at the <code>}</code>, so calls to <code>start</code> and <code>pre/post_end</code> will match. Anything pushed onto the save stack by this hook will be popped just before the scope ends (between the <code>pre_</code> and <code>post_end</code> hooks, in fact).</p>
+<p>creates two scopes: the first starts at the <code>(</code> and has <code>full == 1</code>, the second starts at the <code>{</code> and has <code>full == 0</code>. Both end at the <code>}</code>, so calls to <code>start</code> and <code>pre</code>/<code>post_end</code> will match. Anything pushed onto the save stack by this hook will be popped just before the scope ends (between the <code>pre_</code> and <code>post_end</code> hooks, in fact).</p>
 
 </dd>
 <dt id="void-bhk_pre_end-pTHX_-OP-o"><code>void bhk_pre_end(pTHX_ OP **o)</code></dt>
@@ -1568,7 +1569,7 @@
 
 <p>Once you have your hook functions, you need a <code>BHK</code> structure to put them in. It&#39;s best to allocate it statically, since there is no way to free it once it&#39;s registered. The function pointers should be inserted into this structure using the <code>BhkENTRY_set</code> macro, which will also set flags indicating which entries are valid. If you do need to allocate your <code>BHK</code> dynamically for some reason, be sure to zero it before you start.</p>
 
-<p>Once registered, there is no mechanism to switch these hooks off, so if that is necessary you will need to do this yourself. An entry in <code>%^H</code> is probably the best way, so the effect is lexically scoped; however it is also possible to use the <code>BhkDISABLE</code> and <code>BhkENABLE</code> macros to temporarily switch entries on and off. You should also be aware that generally speaking at least one scope will have opened before your extension is loaded, so you will see some <code>pre/post_end</code> pairs that didn&#39;t have a matching <code>start</code>.</p>
+<p>Once registered, there is no mechanism to switch these hooks off, so if that is necessary you will need to do this yourself. An entry in <code>%^H</code> is probably the best way, so the effect is lexically scoped; however it is also possible to use the <code>BhkDISABLE</code> and <code>BhkENABLE</code> macros to temporarily switch entries on and off. You should also be aware that generally speaking at least one scope will have opened before your extension is loaded, so you will see some <code>pre</code>/<code>post_end</code> pairs that didn&#39;t have a matching <code>start</code>.</p>
 
 <h1 id="Examining-internal-data-structures-with-the-dump-functions">Examining internal data structures with the <code>dump</code> functions</h1>
 
@@ -2072,7 +2073,7 @@
 
 <p>Since just passing an SV to an XS function and copying the data of the SV is not enough to copy the UTF8 flags, even less right is just passing a <span style="white-space: nowrap;"><code>char *</code></span> to an XS function.</p>
 
-<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8">&quot;DO_UTF8&quot; in perlapi</a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
+<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8"><code>DO_UTF8</code></a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
 
 <p>And this isn&#39;t the whole story. Starting in Perl v5.12, strings that aren&#39;t encoded in UTF-8 may also be treated as Unicode under various conditions (see <a href="/cperl/perlunicode.html#ASCII-Rules-versus-Unicode-Rules">&quot;ASCII Rules versus Unicode Rules&quot; in perlunicode</a>). This is only really a problem for characters whose ordinals are between 128 and 255, and their behavior varies under ASCII versus Unicode rules in ways that your code cares about (see <a href="/pod/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>). There is no published API for dealing with this, as it is subject to change, but you can look at the code for <code>pp_lc</code> in <i>pp.c</i> for an example as to how it&#39;s currently done.</p>
 
@@ -2098,6 +2099,14 @@
 <p>To just compare two strings for equality/non-equality, you can just use <a href="/cperl/perlapi.html#memEQ"><code>memEQ()</code></a> and <a href="/pod/perlapi.html#memEQ"><code>memNE()</code></a> as usual, except the strings must be both UTF-8 or not UTF-8 encoded.</p>
 
 <p>To compare two strings case-insensitively, use <a href="/cperl/perlapi.html#foldEQ_utf8"><code>foldEQ_utf8()</code></a> (the strings don&#39;t have to have the same UTF-8ness).</p>
+
+<h2 id="Various-lengths-and-index-types">Various lengths and index types</h2>
+
+<p>Internally perl uses various different lengths for different data types, which will vary for 32bit and 64bit systems, but are only dependent on the architecture, not customziable by changing the <code>IV</code> and <code>UV</code> types.</p>
+
+<p>A PV string has <code>STRLEN</code> (i.e. max 32/64bit), a hash key only <code>I32</code>. Names are usually stored as hash key, hence max <code>I32_MAX</code> (31bit). Arrays and hashes allow <code>SSize_t</code> indices, which is 31/63bit.</p>
+
+<p>A refcounted_he (used to store hints for lexical pragmas) has the length <code>U32</code> with threads and <code>STRLEN</code> without.</p>
 
 <h2 id="Is-there-anything-else-I-need-to-know">Is there anything else I need to know?</h2>
 
@@ -2227,7 +2236,7 @@
 
 <p>Until May 1997, this document was maintained by Jeff Okamoto &lt;okamoto@corp.hp.com&gt;. It is now maintained as part of Perl itself by the Perl 5 Porters &lt;perl5-porters@perl.org&gt;.</p>
 
-<p>With lots of help and suggestions from Dean Roehrich, Malcolm Beattie, Andreas Koenig, Paul Hudson, Ilya Zakharevich, Paul Marquess, Neil Bowers, Matthew Green, Tim Bunce, Spider Boardman, Ulrich Pfeifer, Stephen McCamant, and Gurusamy Sarathy.</p>
+<p>With lots of help and suggestions from Dean Roehrich, Malcolm Beattie, Andreas Koenig, Paul Hudson, Ilya Zakharevich, Paul Marquess, Neil Bowers, Matthew Green, Tim Bunce, Spider Boardman, Ulrich Pfeifer, Stephen McCamant, Reini Urban and Gurusamy Sarathy.</p>
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 

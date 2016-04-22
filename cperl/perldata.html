@@ -4,10 +4,10 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@tenten-slave.macports.org" />
+<link rev="made" href="mailto:rurban@localhost.nonet" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -56,7 +56,7 @@
 
 <p>Values are usually referred to by name, or through a named reference. The first character of the name tells you to what sort of data structure it refers. The rest of the name tells you the particular value to which it refers. Usually this name is a single <i>identifier</i>, that is, a string beginning with a letter or underscore, and containing letters, underscores, and digits. In some cases, it may be a chain of identifiers, separated by <code>::</code> (or by the slightly archaic <code>&#39;</code>); all but the last are interpreted as names of packages, to locate the namespace in which to look up the final identifier (see <a href="/cperl/perlmod.html#Packages">&quot;Packages&quot; in perlmod</a> for details). For a more in-depth discussion on identifiers, see <a href="#Identifier-parsing">&quot;Identifier parsing&quot;</a>. It&#39;s possible to substitute for a simple identifier, an expression that produces a reference to the value at runtime. This is described in more detail below and in <a href="/pod/perlref.html">perlref</a>. </p>
 
-<p>Perl also has its own built-in variables whose names don&#39;t follow these rules. They have strange names so they don&#39;t accidentally collide with one of your normal variables. Strings that match parenthesized parts of a regular expression are saved under names containing only digits after the <code>$</code> (see <a href="/cperl/perlop.html">perlop</a> and <a href="/pod/perlre.html">perlre</a>). In addition, several special variables that provide windows into the inner working of Perl have names containing punctuation characters and control characters. These are documented in <a href="/pod/perlvar.html">perlvar</a>. </p>
+<p>Perl also has its own built-in variables whose names don&#39;t follow these rules. They have strange names so they don&#39;t accidentally collide with one of your normal variables. Strings that match parenthesized parts of a regular expression are saved under names containing only digits after the <code>$</code> (see <a href="/cperl/perlop.html">perlop</a> and <a href="/pod/perlre.html">perlre</a>). In addition, several special variables that provide windows into the inner working of Perl have names containing punctuation characters. These are documented in <a href="/pod/perlvar.html">perlvar</a>. </p>
 
 <p>Scalar values are always named with &#39;$&#39;, even when referring to a scalar that is part of an array or a hash. The &#39;$&#39; symbol works semantically like the English word &quot;the&quot; in that it indicates a single value is expected. </p>
 
@@ -83,7 +83,7 @@
 
 <p>It is possible to replace such an alphanumeric name with an expression that returns a reference to the appropriate type. For a description of this, see <a href="/cperl/perlref.html">perlref</a>.</p>
 
-<p>Names that start with a digit may contain only more digits. Names that do not start with a letter, underscore, digit or a caret (i.e. a control character) are limited to one character, e.g., <code>$%</code> or <code>$$</code>. (Most of these one character names have a predefined significance to Perl. For instance, <code>$$</code> is the current process id.)</p>
+<p>Names that start with a digit may contain only more digits. Names that do not start with a letter, underscore, digit or a caret are limited to one character, e.g., <code>$%</code> or <code>$$</code>. (Most of these one character names have a predefined significance to Perl. For instance, <code>$$</code> is the current process id. And all such names are reserved for Perl&#39;s possible use.)</p>
 
 <h2 id="Identifier-parsing">Identifier parsing </h2>
 
@@ -94,7 +94,7 @@
 
 <p>That is, a &quot;start&quot; character followed by any number of &quot;continue&quot; characters. Perl requires every character in an identifier to also match <code>\w</code> (this prevents some problematic cases); and Perl additionally accepts identfier names beginning with an underscore.</p>
 
-<p>If not under <code>use utf8</code>, the source is treated as ASCII + 128 extra controls, and identifiers should match</p>
+<p>If not under <code>use utf8</code>, the source is treated as ASCII + 128 extra generic characters, and identifiers should match</p>
 
 <pre><code>    / (?aa) (?!\d) \w+ /x</code></pre>
 
@@ -136,25 +136,35 @@
   )
  /x</code></pre>
 
-<p>Meanwhile, special identifiers don&#39;t follow the above rules; For the most part, all of the identifiers in this category have a special meaning given by Perl. Because they have special parsing rules, these generally can&#39;t be fully-qualified. They come in four forms:</p>
+<p>Meanwhile, special identifiers don&#39;t follow the above rules; For the most part, all of the identifiers in this category have a special meaning given by Perl. Because they have special parsing rules, these generally can&#39;t be fully-qualified. They come in six forms (but don&#39;t use forms 5 and 6):</p>
 
-<ul>
+<ol>
 
 <li><p>A sigil, followed solely by digits matching <code>\p{POSIX_Digit}</code>, like <code>$0</code>, <code>$1</code>, or <code>$10000</code>.</p>
-
-</li>
-<li><p>A sigil, followed by either a caret and a single POSIX uppercase letter, like <code>$^V</code> or <code>$^W</code>, or a sigil followed by a literal non-space, non-<code>NUL</code> control character matching the <code>\p{POSIX_Cntrl}</code> property. Due to a historical oddity, if not running under <code>use utf8</code>, the 128 characters in the <code>[0x80-0xff]</code> range are considered to be controls, and may also be used in length-one variables. However, the use of non-graphical characters is deprecated as of v5.22, and support for them will be removed in a future version of perl. ASCII space characters and <code>NUL</code> already aren&#39;t allowed, so this means that a single-character variable name with that name being any other C0 control <code>[0x01-0x1F]</code>, or <code>DEL</code> will generate a deprecated warning. Already, under <code>&quot;use utf8&quot;</code>, non-ASCII characters must match <code>Perl_XIDS</code>. As of v5.22, when not under <code>&quot;use utf8&quot;</code> C1 controls <code>[0x80-0x9F]</code>, NO BREAK SPACE, and SOFT HYPHEN (<code>SHY</code>)) generate a deprecated warning.</p>
-
-</li>
-<li><p>Similar to the above, a sigil, followed by bareword text in brackets, where the first character is either a caret followed by an uppercase letter, like <code>${^GLOBAL_PHASE}</code> or a non-<code>NUL</code>, non-space literal control like <code>${\7LOBAL_PHASE}</code>. Like the above, when not under <code>&quot;use utf8&quot;</code>, the characters in <code>[0x80-0xFF]</code> are considered controls, but as of v5.22, the use of any that are non-graphical are deprecated, and as of v5.20 the use of any ASCII-range literal control is deprecated. Support for these will be removed in a future version of perl.</p>
 
 </li>
 <li><p>A sigil followed by a single character matching the <code>\p{POSIX_Punct}</code> property, like <code>$!</code> or <code>%+</code>, except the character <code>&quot;{&quot;</code> doesn&#39;t work.</p>
 
 </li>
-</ul>
+<li><p>A sigil, followed by a caret and any one of the characters <code>[][A-Z^_?\]</code>, like <code>$^V</code> or <code>$^]</code>.</p>
 
-<p>Note that as of Perl 5.20, literal control characters in variable names are deprecated; and as of Perl 5.22, any other non-graphic characters are also deprecated.</p>
+</li>
+<li><p>Similar to the above, a sigil, followed by bareword text in braces, where the first character is a caret. The next character is any one of the characters <code>[][A-Z^_?\]</code>, followed by ASCII word characters. An example is <code>${^GLOBAL_PHASE}</code>.</p>
+
+</li>
+<li><p>A sigil, followed by any single character in the range <code>[\x80-\xFF]</code> when not under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>. (Under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, the normal identifier rules given earlier in this section apply.) Use of non-graphic characters (the C1 controls, the NO-BREAK SPACE, and the SOFT HYPHEN) is deprecated and will be forbidden in a future Perl version. The use of the other characters is unwise, as these are all reserved to have special meaning to Perl, and none of them currently do have special meaning, though this could change without notice.</p>
+
+<p>Note that an implication of this form is that there are identifiers only legal under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, and vice-versa, for example the identifier <code>$&eacute;tat</code> is legal under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, but is otherwise considered to be the single character variable <code>$&eacute;</code> followed by the bareword <code>&quot;tat&quot;</code>, the combination of which is a syntax error.</p>
+
+</li>
+<li><p>This is a combination of the previous two forms. It is valid only when not under <span style="white-space: nowrap;"><code>&quot;use utf8&quot;</code></span> (normal identifier rules apply when under <span style="white-space: nowrap;"><code>&quot;use utf8&quot;</code></span>). The form is a sigil, followed by text in braces, where the first character is any one of the characters in the range <code>[\x80-\xFF]</code> followed by ASCII word characters up to the trailing brace.</p>
+
+<p>The same caveats as the previous form apply: The non-graphic characters are deprecated, it is unwise to use this form at all, and utf8ness makes a big difference.</p>
+
+</li>
+</ol>
+
+<p>Prior to Perl v5.24, non-graphical ASCII control characters were also allowed in some situations; this had been deprecated since v5.20.</p>
 
 <h2 id="Context">Context   </h2>
 
