@@ -23,11 +23,11 @@
       <li><a href="#Undo-B-bootstrap-breakage">Undo B bootstrap breakage</a></li>
       <li><a href="#Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</a></li>
       <li><a href="#Undo-support-for-binary-names-NY-maybe">Undo support for binary names (NY, maybe)</a></li>
-      <li><a href="#Warn-on-0shellcode-attempts-for-names-NY">Warn on \0shellcode attempts for names (NY)</a></li>
+      <li><a href="#Warn-on-0shellcode-attempts-for-names">Warn on \0shellcode attempts for names</a></li>
       <li><a href="#strict-names-NY">strict names (NY)</a></li>
       <li><a href="#TR39-confusable-names-NY">TR39 confusable names (NY)</a></li>
       <li><a href="#Undo-the-double-readonly-system">Undo the double readonly system</a></li>
-      <li><a href="#Fix-the-hashes-NY">Fix the hashes (NY)</a></li>
+      <li><a href="#Fix-the-hashes">Fix the hashes</a></li>
       <li><a href="#Compile-time-attribute-hooks">Compile-time attribute hooks</a></li>
       <li><a href="#coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</a></li>
       <li><a href="#native-unboxed-types:-int-uint-num-str-NY">native unboxed types: int, uint, num, str (NY)</a></li>
@@ -46,10 +46,12 @@
           <li><a href="#strict-1.10c-as-builtin">strict 1.10c as builtin</a></li>
           <li><a href="#attributes-0.26_01c-as-builtin">attributes 0.26_01c as builtin</a></li>
           <li><a href="#DynaLoader-2.00c-and-XSLoader-as-builtins">DynaLoader 2.00c and XSLoader as builtins</a></li>
-          <li><a href="#warnings-as-XS-extension-NY">warnings as XS extension (NY)</a></li>
           <li><a href="#Config-as-XS-extension">Config as XS extension</a></li>
+          <li><a href="#warnings-as-XS-extension-NY">warnings as XS extension (NY)</a></li>
         </ul>
       </li>
+      <li><a href="#Added-the-compiler-back-to-core">Added the compiler back to core</a></li>
+      <li><a href="#Backport-core-testsuite-fixes-for-the-compiler">Backport core testsuite fixes for the compiler</a></li>
     </ul>
   </li>
   <li><a href="#Plans-for-further-core-features">Plans for further core features</a>
@@ -61,8 +63,6 @@
         </ul>
       </li>
       <li><a href="#Remove-Attribute::Handler-from-core">Remove Attribute::Handler from core</a></li>
-      <li><a href="#Add-the-compiler-back-to-core">Add the compiler back to core</a></li>
-      <li><a href="#Backport-core-testsuite-fixes-for-the-compiler">Backport core testsuite fixes for the compiler</a></li>
     </ul>
   </li>
   <li><a href="#Longer-term-goals">Longer term goals</a>
@@ -172,7 +172,7 @@
 
 <p>We only copy or reference arguments to signature variables, but not to <code>@_</code> also. <code>@_</code> is empty when signatures are declared.</p>
 
-<p><b>Rationale:</b> With signatures copying all values to <code>@_</code> also leads to double copying which is 2x slower. <code>@_</code> is not needed anymore. Either use no signatures to use <code>@_</code> variables or use sigantures.</p>
+<p><b>Rationale:</b> With signatures copying all values to <code>@_</code> also leads to double copying which is 2x slower. <code>@_</code> is not needed anymore. Either use no signatures to use <code>@_</code> variables or use signatures.</p>
 
 <p>Technically this is not a incompatible change, as signatures are marked as experimental.</p>
 
@@ -223,9 +223,10 @@
 <p>Perl does not obey this, only with use integer.</p>
 
 <pre><code>    use integer; my ($a,$b)=(13,-4); print int(($a/$b)*$b) + $a % $b =&gt; 13
+
     my ($a,$b)=(13,-4); print int(($a/$b)*$b) + $a % $b =&gt; 10</code></pre>
 
-<p>We found only once place in a module using constant negative integers with %. It is a core module, and is therefore fixed. Testing many other CPAN modules found no further problems, but watch out our distroprefs repo for future patches.</p>
+<p>We found only once place in a module using constant negative integers with <code>%</code>. It is a core module, and is therefore fixed. Testing many other CPAN modules found no further problems, but watch out our distroprefs repo for future patches.</p>
 
 <p><b>Rationale:</b> This is a bad perl5 design change and a side-effect from using type-promotion before constant folding. cperl uses proper type dispatch and with both integer arguments it promotes the <code>modulo</code> op to <code>i_modulo</code>, which behaves differently (or &quot;normally&quot;). The perl5 constant folder should do the same, but does not currently. Using extra logic to prevent from using the libc implementation also makes perl5 <code>&quot;%&quot;</code> operator slower.</p>
 
@@ -233,7 +234,9 @@
 <dt id="compile-time-constant-folding-overflows-with-integer-literals"><b>compile-time constant folding overflows with integer literals</b></dt>
 <dd>
 
-<p>Operations with only literal integers will not overflow to numbers, similar to perl5 with use integer. Only <code>&quot;+&quot;</code> and <code>&quot;*&quot;</code> will try to use UV (an unsigned value) as result, but not NV (an inexact number). All other ops besides divide and shift return IV (signed integers). Note that even comparison operators are integerized.</p>
+<p>Operations with only literal integers will not overflow to numbers, similar to perl5 with use integer.</p>
+
+<p>Only <code>&quot;+&quot;</code> and <code>&quot;*&quot;</code> will try to use UV (an unsigned value) as result, but not NV (an inexact number). All other ops besides divide and shift return IV (signed integers). Note that even comparison operators are integerized.</p>
 
 <pre><code>    my $iv_min = -(~0 &gt;&gt; 1) - 1;   # ok
     my $iv_min_1 = -(~0 &gt;&gt; 1) - 2; # BUT this overflows
@@ -279,7 +282,7 @@
 
     $ cperl -e&#39;sub x(str $s){}&#39;          # coretypes implicitly loaded
 
-    $ cperl -e&#39;%Str::; sub x(Str $s){}&#39;  # user-defined type Str</code></pre>
+    $ cperl -e&#39;%MyStr::; sub x(MyStr $s){}&#39;  # user-defined type MyStr</code></pre>
 
 </dd>
 <dt id="Add-subroutine-return-types"><b>Add subroutine return types</b></dt>
@@ -301,7 +304,12 @@
 
 <p>With perl5 upstream all arguments are copied only, as with <code>my $arg1 = shift;</code> but alternate syntax for fast <code>$_[0]</code> access is not provided. So they have to keep the otherwise unneeded <code>@_</code> array around.</p>
 
-<p>cperl uses <code>\$name</code> to denote references to scalar lvalues, which change the calling variable. e.g. <code>sub myfunc(int \$i) : int { $i++; }</code></p>
+<p>cperl uses <code>\$name</code> to denote references to scalar lvalues, which change the calling variable.</p>
+
+<pre><code>    sub myfunc(int \$i) : int { $i++; }
+    my $i;
+    print myfunc($i); =&gt; 1
+    print $i;         =&gt; 1</code></pre>
 
 <p>For now scalar lvalue references only, <code>\@a</code> or <code>\%h</code> would be nice with type checks for arrayref or hashref. maybe <code>\[$]</code> also.</p>
 
@@ -382,12 +390,14 @@
 
 <p><code>=&gt;</code></p>
 
-<p><code>Type of arg 1 \@b to main::x must be arrayref (not a scalar ref) at -e line 1, near &quot;\$a)&quot;</code></p>
+<p><code>Type of arg 1 \@b to x must be arrayref (not a scalar ref) at -e line 1, near &quot;\$a)&quot;</code></p>
 
 <p>Proper signature types are not only a great help for catching errors early or improve documentation. They are performance critical, see coffescript, dart, microsoft typescript, google soundscript, facebook hack, mypy, ruby 3.0 and partially even perl6. The type inferencer will not be able to infer many types without explicit types. But with typed signatures, besides the obvious solution of private methods or closed classes we can inline most small methods, ignore run-time magic and improve most loops and array accesses. It is also critical to implement multi methods (compile-time optimized generics) and implement an advanced object system.</p>
 
+<p>Note that the reported main subroutines are listed without the <code>main::</code> prefix.</p>
+
 </dd>
-<dt id="Support-...-for-efficient-varargs-passing"><b>Support <code>...</code> for efficient varargs passing</b></dt>
+<dt id="Support-...-for-efficient-varargs-passing-NY"><b>Support <code>...</code> for efficient varargs passing (NY)</b></dt>
 <dd>
 
 <p><code>...</code> as empty function body already has a special meaning as <b>yadayada</b> operator, just croaking, but interestingly not the usual meaning of varargs.</p>
@@ -410,10 +420,12 @@
 <p><code>no warnings &quot;illegalproto&quot;;</code> is a noop.</p>
 
 </dd>
-<dt id="no-signatures-or-lexsubs-pragmas-required"><b>no signatures or lexsubs pragmas required</b></dt>
+<dt id="no-feature-signatures-or-lexsubs-or-lexical_topical-pragmas-required"><b>no feature signatures or lexsubs or lexical_topical pragmas required</b></dt>
 <dd>
 
 <p><code>use feature &quot;signatures&quot;</code> or <code>use feature &quot;lexsubs&quot;</code> is not required and is ignored. All prototypes and signatures are parsed either as prototypes or signature, regardless of the scope of a <code>use feature &quot;signatures&quot;</code> pragma. <code>my sub</code> is parsed without previous activation.</p>
+
+<p><code>my $_</code> does not require <code>use experimental::lexical_topic</code>. <code>use cperl</code> can be used, if incompatible features are used, but it is optional.</p>
 
 </dd>
 </dl>
@@ -422,11 +434,11 @@
 
 <p>Perl5 had long-standing problems with lexical <code>$_</code> since the introduction of the SASSIGN optimization via OA_TARGLEX and OPpTARGET_MY in 2002.</p>
 
-<p>cperl fixed this (it was using a wrong bit-testing, using AND as OR) and work is ongoing to harmonize further internal code exceptions and code-smell, e.g. SASSIGN and the match functions.</p>
+<p>cperl fixed this (it was using a wrong bit-testing, using AND as OR) and work is ongoing to harmonize further internal code exceptions and code-smell, e.g. SASSIGN, given/when and the match functions.</p>
 
 <h2 id="Undo-B-bootstrap-breakage">Undo B bootstrap breakage</h2>
 
-<p><a>B</a> was changed to support <code>use strict</code> from the very beginning, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again.</p>
+<p><a>B</a> was changed to support <code>use strict</code> from the very beginning, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again.</p>
 
 <h2 id="Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</h2>
 
@@ -444,13 +456,13 @@
 
 <h2 id="Undo-support-for-binary-names-NY-maybe">Undo support for binary names (NY, maybe)</h2>
 
-<p>By announcing unicode support for names p5p silently allowed <code>\0</code> inside names, which they called an advantage by supporting now binary safe names. In reality unicode names were already supported since 5.8.4 and the whole 5.16 unicode name theatre was only about binary names. They didn&#39;t support binary names in all other code parts which had to deal with names, and thus enabled a huge attack vector to hide arbitrary user strings behind <code>\0</code> names, which was silently stripped before and when used in syscalls. They moved resonsibility to the user, as previously for input strings only, now also for input names, e.g. for package names which search the filesystem directly without sanitation or proper checks.</p>
+<p>By announcing unicode support for names p5p silently allowed <code>\0</code> inside names, which they called an advantage by supporting now binary safe names and &quot;harmonization&quot;. In reality unicode names were already supported since 5.8.4 and the whole 5.16 unicode name theatre was only about binary names. They didn&#39;t support binary names in all other code parts which had to deal with names, and thus enabled a huge attack vector to hide arbitrary user strings behind <code>\0</code> names, which was silently stripped before and when used in syscalls. They moved resonsibility to the user, as previously for input strings only, now also for input names, e.g. for package names which search the filesystem directly without sanitation or proper checks. Support for those binary names is still not complete with 5.24 in core, even if p5p pushed so strong for it against my protest.</p>
 
 <p>We have to keep the new GV API - accepting the string length - but even without <code>strict names</code> we strip everything behind the <code>\0</code> as before 5.16.</p>
 
-<p>For a more efficient dynamic namespace implementation we might be switching from chained hash tables to a single ternary trie, radix tree or DAFSA, without support for <code>\0</code> and maybe even without support for unicode names.</p>
+<p>For a more efficient dynamic namespace implementation we might be switching from chained hash tables to a single ternary trie, radix tree or DAFSA, without support for <code>\0</code> and maybe even without optional support for unicode names. Only with <code>use utf8</code> we might need to fallback to the old slow method then.</p>
 
-<h2 id="Warn-on-0shellcode-attempts-for-names-NY">Warn on \0shellcode attempts for names (NY)</h2>
+<h2 id="Warn-on-0shellcode-attempts-for-names">Warn on \0shellcode attempts for names</h2>
 
 <p>Make our <code>use warnings &quot;syscalls&quot;</code> the default.</p>
 
@@ -478,19 +490,19 @@
 
 <p><code>SVf_PROTECT</code> is now the same as <code>SVf_READONLY</code>, and special checks were added for the two usecases when the readonly bit is unset. We need the <code>SVf_PROTECT</code> bit to mark native SV&#39;s in pad&#39;s, and even reserved it in 2012.</p>
 
-<h2 id="Fix-the-hashes-NY">Fix the hashes (NY)</h2>
+<h2 id="Fix-the-hashes">Fix the hashes</h2>
 
 <p>Provide proper hash table abstractions. We don&#39;t need 5 times the same bad code copied along for all different kind of HEK (hash key) types.</p>
 
 <p>Do not check the hash key for collisions with 4 different comparisons in the hot hash loop, use one instead.</p>
 
-<p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain.</p>
+<p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain. This is how you usually implement a hash table with linked lists.</p>
 
 <p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem, not by obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
 
 <p>Provide a Configure argument to define the hash function: -Dhash_func=FNV1A</p>
 
-<p>Make the load factor definable, and change the default from 100% to 90%, which was tested as superior.</p>
+<p>Make the load factor definable, and change the default from 100% to 90%, which was tested as superior. Use <code>-Accflags=&#39;-DHV_FILL_RATE=100&#39;</code> for the old behavior.</p>
 
 <p><b>Further plans:</b></p>
 
@@ -508,7 +520,7 @@
 
 <h2 id="coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</h2>
 
-<p>coretypes can only be built-in. Provide the 4 basic ones, and the combinations with <code>Undef</code>. Type combination are done via <code>@ISA</code>, i.e.</p>
+<p>coretypes can only be built-in. Provide the 4 basic ones, and the combinations with <code>Undef</code>, and the lowercase native types. Type combination are done via <code>@ISA</code>, i.e.</p>
 
 <pre><code>    class ?Int :const { our @ISA :const = qw(Int Undef); }</code></pre>
 
@@ -536,7 +548,7 @@
 
 <p>Provide a compile-time type inferencer, type checker and type optimizer. The inferencer runs automatically and can currently only infer <code>int</code> on array indices, ranges and <code>str</code> on hash keys, but has to give up on magic, dualvars, and <code>no strict &#39;refs&#39;</code>. With the help of declarations and type checks, as e.g. in <code>smartmatch</code> or <code>given</code>/<code>when</code> with type support it can infer much more.</p>
 
-<pre><code>    if (type $a == &quot;int&quot;) {  =&gt; $a is an int in this scope }
+<pre><code>    if (type $a eq &quot;int&quot;) {  =&gt; $a is an int in this scope }
     $str =~ /(\d+)/; =&gt; $1 is a typed Int</code></pre>
 
 <p>Compile-time type checks need to be enabled with <code>use types;</code> though.</p>
@@ -623,19 +635,23 @@
                          # perfect hash (keys may not change, values do).
      = (...);</code></pre>
 
-<p>No sparse arrays (i.e. hash with int keys) yet. but this would need a different declaration syntax if to be supported natively. e.g. <code>my int %a{int};</code> - sparse array with int keys and int values. or <code>my %a : hash(int);</code> variant 2: <code>my IntSparseHash %a</code>, which can go with a user class and methods, but this will be slow, without native ops.</p>
+<p>No sparse arrays (i.e. hash with int keys) yet. but this would need a different declaration syntax if to be supported natively.</p>
+
+<p>e.g. <code>my int %a{int};</code> - sparse array with int keys and int values. or <code>my %a : hash(int);</code></p>
+
+<p>variant 2: <code>my IntSparseHash %a</code>, which can go with a user class and methods, but this will be slow, without native ops.</p>
 
 <h2 id="Inlined-functions-NY">Inlined functions (NY)</h2>
 
-<p>If a function body is inlinable, i.e. simple, with no control ops like return, goto caller, warn, die, reset, runcv, padrange, adds no seperate lexicals and has less than 10 ops, they are inlined. Static methods are converted to functions before and then possibly inlined.</p>
+<p>If a function body is inlinable, i.e. simple, with no control ops like return, goto caller, warn, die, reset, runcv, padrange, adds no seperate lexicals and has less than 10 ops, they are inlined. Static methods are converted to functions before and then possibly inlined. This is the most important optimization, even more important then a jit.</p>
 
 <h2 id="Rewrite-critical-core-modules-in-C-as-builtins">Rewrite critical core modules in C as builtins</h2>
 
-<p>Builtins: <code>strict</code>, <code>Carp</code>, <code>attributes</code>, <code>DynaLoader</code>, <code>XSLoader</code>, <code>Exporter</code>.</p>
+<p>Builtins: <code>strict</code>, <code>attributes</code>, <code>DynaLoader</code>, <code>XSLoader</code>. NY: <code>Carp</code>, <code>Exporter</code>.</p>
 
-<p>As shared lib: <code>warnings</code>, <code>Config</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
+<p>As shared lib: <code>Config</code>, <code>warnings</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
 
-<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a>Encode</a> tables, which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
+<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a>Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
 
 <p>We need to reduce memory, and want to reduce the size of compiled code by 30%, but in some cases it will be 200%. As builtin or shared library we go to zero startup-time overhead for those modules. With compiled Config alone the memory savings are down to 5.6 levels.</p>
 
@@ -689,15 +705,27 @@
 
 <p>The <code>XSLoader::load_file($module, $modlibname, ...)</code> function is new, <a>XSLoader</a> is a builtin also. <code>...</code> is passed to the loaded XS function as with <code>XSLoader::load($module, ...)</code>.</p>
 
+<h3 id="Config-as-XS-extension">Config as XS extension</h3>
+
+<p>It is compiled as shared library, with all keys as readonly perfect hash. Some internal variables are not accessible anymore, the API is via the documented functions. See our <a>Mock::Config</a> module if you need to change a Config value for tests.</p>
+
 <h3 id="warnings-as-XS-extension-NY">warnings as XS extension (NY)</h3>
 
 <p>It is compiled as shared library, the builtin categories are implemented as perfect hash, and extended with a normal perl hash. Some internal variables are not accessible anymore, the API is via the documented functions.</p>
 
 <p><b>Status:</b> 1 scope bug with Carp. Not yet enabled.</p>
 
-<h3 id="Config-as-XS-extension">Config as XS extension</h3>
+<h2 id="Added-the-compiler-back-to-core">Added the compiler back to core</h2>
 
-<p>It is compiled as shared library, with all keys as readonly perfect hash. Some internal variables are not accessible anymore, the API is via the documented functions.</p>
+<p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
+
+<p>Maybe include a <code>Data::Compile</code> module to dump only data without all the code to a shared library, and possibly <a href="https://github.com/rurban/Perfect-Hash">Perfect::Hash</a> and a new <i>ph.c</i> to create and optimize readonly hashes, which is needed for the shared XS hashes of Config, warnings and unicode tables.</p>
+
+<h2 id="Backport-core-testsuite-fixes-for-the-compiler">Backport core testsuite fixes for the compiler</h2>
+
+<p>Honor differences between compile-time und run-time, when run compiled. Other than a few wrong testcases, the compilers does pass the core testsuite.</p>
+
+<p>See <a href="https://github.com/perl11/p5-coretests">https://github.com/perl11/p5-coretests</a> for a generally improved testsuite for perl5, cperl and B::C.</p>
 
 <h1 id="Plans-for-further-core-features">Plans for further core features</h1>
 
@@ -729,16 +757,6 @@
 
 <p>This evals all attributes at compile-time. Discourage its usage.</p>
 
-<h2 id="Add-the-compiler-back-to-core">Add the compiler back to core</h2>
-
-<p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
-
-<p>Maybe include a <code>Data::Compile</code> module to dump only data without all the code to a shared library, and possibly <a href="https://github.com/rurban/Perfect-Hash">Perfect::Hash</a> and a new <i>ph.c</i> to create and optimize readonly hashes, which is needed for the shared XS hashes of Config, warnings and unicode tables.</p>
-
-<h2 id="Backport-core-testsuite-fixes-for-the-compiler">Backport core testsuite fixes for the compiler</h2>
-
-<p>Honor differences between compile-time und run-time, when run compiled. Other than a few wrong testcases, the compilers does pass the core testsuite.</p>
-
 <h1 id="Longer-term-goals">Longer term goals</h1>
 
 <h2 id="Faster-functions-calls">Faster functions calls</h2>
@@ -747,13 +765,13 @@
 
 <h2 id="tailcall-optimization">tailcall optimization</h2>
 
-<p>Detect tail positions and replace the call with a fast goto. This needs to be in core, not as external module.</p>
+<p>Detect tail positions and replace the call with a fast goto. This needs to be in core, not as external module. Without tailcall elimination handling longer lists leads to stack exhaustion. python did the same mistake as p5p by enforcing a new context for every goto. goto to signatures are now real fast tailcalls.</p>
 
 <h2 id="Proper-object-system">Proper object system</h2>
 
 <p>No, not Moose, but close. Rather an optimizable perl6-like object system in core. Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
 
-<p>Eventually prepare multi-dispatch and optimize for early-bound method calls with typed arguments and closed classes.</p>
+<p>Support multi-dispatch in perl6 syntax and optimize for early-bound method calls with typed arguments and closed classes.</p>
 
 <p>Dispatch is via C3, not the old depth-first left-to-right mro implementation.</p>
 
@@ -767,6 +785,8 @@
    extern sub itoa(int $s):str;
    extern sub printf(str $s, ...):void;</code></pre>
 
+<p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not.</p>
+
 <h2 id="Editor-integration">Editor integration</h2>
 
 <p>With type inference we can provide a much nicer development environment, which also supports the debugger. <b>plsense</b> should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
@@ -775,15 +795,19 @@
 
 <p>Add a jit for the easiest platforms, and provide dynamic javascript-based optimizations when stacks need to be replaced. Eventually even promote to bignum not double automatically, as in perl6. But this is optional, the next points are more important. Jit&#39;s are a bit overrated. a fast bytecode loop can easily beat a jit and optimizing compiler, see luajit2, <a href="http://www.emulators.com/docs/nx25_nostradamus.htm">http://www.emulators.com/docs/nx25_nostradamus.htm</a> or <a href="http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html">http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html</a></p>
 
+<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations.</p>
+
 <h2 id="Optimize-the-vm-the-runloop">Optimize the vm, the runloop</h2>
 
 <p>We carry around way too much bloat in the ops and the data, which is not needed at run-time. e.g. the compiler throws away the nested symbol table stashes if not needed, which frees 20% memory. But think of a lua/p2-like redesign of tagged values and slimmer ops, and eventually put the stack onto the CPU stack.</p>
+
+<p>Note that p5p argues the opposite way. They want to add even more run-time branches to the ops, without any justification.</p>
 
 <p>Optimize special arithmetic op sequences to use unboxed integers and strings on the stack. We experiment in allowing unboxed values on the stack, because the stack is not garbage collected and not refcounted. We just need to be sure to box them before entering a non-collaborating sub, leaving a block with possible exceptions and stack cleanup. Those unboxed values are internally typed as <code>:int</code> and <code>:str</code>. Note that the coretypes <code>:int</code> and <code>:str</code> are not guaranteed to be unboxed, only if the compiler sees fit. In most cases those values are boxed but without a class pointer and magic attached. (Done in the native branch)</p>
 
 <p>Maybe rewrite to a better register-based compiler with fixed-length 2 operands as in p2, but this might be too tricky for XS, mapping the global stack to the local stack. Probably no SSA (three arguments), just a cpu friendly two argument form as in p2/lua 5.1.</p>
 
-<p>Allow faster XS calls, user-provided function calls and method calls. provide support for named arguments in the vm, fast not via hashes. Many of the current io+sys ops are better implemented as library methods. With ~50ops instead of &gt;300 the runloop might fit into the L1 cache again. Seperate calling of fixed arity methods from varargs. detect and use tailcalls automatically. Do not step into a seperate runloop for every single function call, only for coros, which do need to record the the stack information.</p>
+<p>Allow faster XS calls, user-provided function calls and method calls. Provide support for named arguments in the vm, fast not via hashes. Many of the current io+sys ops are better implemented as library methods. With ~50ops instead of &gt;300 the runloop might fit into the L1 cache again. Seperate calling of fixed arity methods from varargs. detect and use tailcalls automatically. Do not step into a seperate runloop for every single function call, only for coros, which do need to record the the stack information.</p>
 
 <p>Run-time optimize the data, no 2x indirection to access hash and array structs. Provide forwarding pointers to single tuples to hold all. This could provide also the possibility for a GC if a second sweep for timely destruction is doable.</p>
 
@@ -816,6 +840,8 @@
     say fact(7);     # =&gt; 5040
     fact($_) = 5040; # solve it!
     say $_;          # =&gt; 7</code></pre>
+
+<p>The type optimizer with advanced types might eventually benefit from its native performance.</p>
 
 <h1 id="Development-policies">Development policies</h1>
 
@@ -852,7 +878,7 @@
 
 <p>perl5 proper started being compiler unfriendly with 5.16, with changed security and string handling. It can be compiled but it is not recommended, as it features only about 5% memory savings. B::C can still strip the nested stashes (namespaces), but needs to keep all COW strings dynamic.</p>
 
-<p>With cperl we can again compile to more efficient code, with &gt;35% memory savings.</p>
+<p>With cperl we can again compile to more efficient code, with &gt; 35% memory savings.</p>
 
 <p>See <a href="http://search.cpan.org/dist/B-C/">B::C</a></p>
 
