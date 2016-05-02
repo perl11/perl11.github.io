@@ -1,3 +1,6 @@
-darwin >10.6 binary
+# darwin >10.6 binaries
 
-[cperl-5.22.2-1.pkg](cperl-5.22.2-1.pkg)
+`/usr/local` prefix
+
+* [cperl-5.22.2-1.pkg](cperl-5.22.2-1.pkg) (19M)
+

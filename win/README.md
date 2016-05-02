@@ -1,4 +1,7 @@
-win32 selfinstaller into c:\cperl
+# win32 selfinstaller
 
-[cperl-5.22.2-RC1-win32.exe](cperl-5.22.2-RC1-win32.exe)
+`c:\cperl` prefix
+
+* [cperl-5.22.2-RC1-win32.exe](cperl-5.22.2-RC1-win32.exe) (10M)
+
 
