@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:rurban@localhost.nonet" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
 </head>
 
 <body>
@@ -103,6 +103,14 @@
     </ul>
   </li>
   <li><a href="#Custom-Operators">Custom Operators</a></li>
+  <li><a href="#Dynamic-Scope-and-the-Context-Stack">Dynamic Scope and the Context Stack</a>
+    <ul>
+      <li><a href="#Introduction-to-the-context-stack">Introduction to the context stack</a></li>
+      <li><a href="#Pushing-contexts">Pushing contexts</a></li>
+      <li><a href="#Popping-contexts">Popping contexts</a></li>
+      <li><a href="#Redoing-contexts">Redoing contexts</a></li>
+    </ul>
+  </li>
   <li><a href="#AUTHORS">AUTHORS</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
 </ul>
@@ -333,14 +341,15 @@
 
 <p>Notice here the LEN is 10. (It may differ on your platform.) Extend the length of the string to one less than 10, and do a substitution:</p>
 
-<pre><code>  % ./perl -Ilib -MDevel::Peek -le &#39;$a=&quot;&quot;; $a.=&quot;123456789&quot;; $a=~s/.//; Dump($a)&#39;
-  SV = PV(0x7ffa04008a70) at 0x7ffa04030390
-    REFCNT = 1
-    FLAGS = (POK,OOK,pPOK)
-    OFFSET = 1
-    PV = 0x7ffa03c05b61 ( &quot;\1&quot; . ) &quot;23456789&quot;\0
-    CUR = 8
-    LEN = 9</code></pre>
+<pre><code> % ./perl -Ilib -MDevel::Peek -le &#39;$a=&quot;&quot;; $a.=&quot;123456789&quot;; $a=~s/.//; \
+                                                            Dump($a)&#39;
+ SV = PV(0x7ffa04008a70) at 0x7ffa04030390
+   REFCNT = 1
+   FLAGS = (POK,OOK,pPOK)
+   OFFSET = 1
+   PV = 0x7ffa03c05b61 ( &quot;\1&quot; . ) &quot;23456789&quot;\0
+   CUR = 8
+   LEN = 9</code></pre>
 
 <p>Here the number of bytes chopped off (1) is shown next as the OFFSET. The portion of the string between the &quot;real&quot; and the &quot;fake&quot; beginnings is shown in parentheses, and the values of <code>SvCUR</code> and <code>SvLEN</code> reflect the fake beginning, not the real one. (The first character of the string buffer happens to have changed to &quot;\1&quot; here, not &quot;1&quot;, because the current implementation stores the offset count in the string buffer. This is subject to change.)</p>
 
@@ -1104,7 +1113,7 @@
 <dt id="SAVEFREESV-SV-sv"><code>SAVEFREESV(SV *sv)</code></dt>
 <dd>
 
-<p>The refcount of <code>sv</code> would be decremented at the end of <i>pseudo-block</i>. This is similar to <code>sv_2mortal</code> in that it is also a mechanism for doing a delayed <code>SvREFCNT_dec</code>. However, while <code>sv_2mortal</code> extends the lifetime of <code>sv</code> until the beginning of the next statement, <code>SAVEFREESV</code> extends it until the end of the enclosing scope. These lifetimes can be wildly different.</p>
+<p>The refcount of <code>sv</code> will be decremented at the end of <i>pseudo-block</i>. This is similar to <code>sv_2mortal</code> in that it is also a mechanism for doing a delayed <code>SvREFCNT_dec</code>. However, while <code>sv_2mortal</code> extends the lifetime of <code>sv</code> until the beginning of the next statement, <code>SAVEFREESV</code> extends it until the end of the enclosing scope. These lifetimes can be wildly different.</p>
 
 <p>Also compare <code>SAVEMORTALIZESV</code>.</p>
 
@@ -1544,7 +1553,7 @@
 
 <pre><code>    if ($x) { ... }</code></pre>
 
-<p>creates two scopes: the first starts at the <code>(</code> and has <code>full == 1</code>, the second starts at the <code>{</code> and has <code>full == 0</code>. Both end at the <code>}</code>, so calls to <code>start</code> and <code>pre/post_end</code> will match. Anything pushed onto the save stack by this hook will be popped just before the scope ends (between the <code>pre_</code> and <code>post_end</code> hooks, in fact).</p>
+<p>creates two scopes: the first starts at the <code>(</code> and has <code>full == 1</code>, the second starts at the <code>{</code> and has <code>full == 0</code>. Both end at the <code>}</code>, so calls to <code>start</code> and <code>pre</code>/<code>post_end</code> will match. Anything pushed onto the save stack by this hook will be popped just before the scope ends (between the <code>pre_</code> and <code>post_end</code> hooks, in fact).</p>
 
 </dd>
 <dt id="void-bhk_pre_end-pTHX_-OP-o"><code>void bhk_pre_end(pTHX_ OP **o)</code></dt>
@@ -1569,7 +1578,7 @@
 
 <p>Once you have your hook functions, you need a <code>BHK</code> structure to put them in. It&#39;s best to allocate it statically, since there is no way to free it once it&#39;s registered. The function pointers should be inserted into this structure using the <code>BhkENTRY_set</code> macro, which will also set flags indicating which entries are valid. If you do need to allocate your <code>BHK</code> dynamically for some reason, be sure to zero it before you start.</p>
 
-<p>Once registered, there is no mechanism to switch these hooks off, so if that is necessary you will need to do this yourself. An entry in <code>%^H</code> is probably the best way, so the effect is lexically scoped; however it is also possible to use the <code>BhkDISABLE</code> and <code>BhkENABLE</code> macros to temporarily switch entries on and off. You should also be aware that generally speaking at least one scope will have opened before your extension is loaded, so you will see some <code>pre/post_end</code> pairs that didn&#39;t have a matching <code>start</code>.</p>
+<p>Once registered, there is no mechanism to switch these hooks off, so if that is necessary you will need to do this yourself. An entry in <code>%^H</code> is probably the best way, so the effect is lexically scoped; however it is also possible to use the <code>BhkDISABLE</code> and <code>BhkENABLE</code> macros to temporarily switch entries on and off. You should also be aware that generally speaking at least one scope will have opened before your extension is loaded, so you will see some <code>pre</code>/<code>post_end</code> pairs that didn&#39;t have a matching <code>start</code>.</p>
 
 <h1 id="Examining-internal-data-structures-with-the-dump-functions">Examining internal data structures with the <code>dump</code> functions</h1>
 
@@ -2073,7 +2082,7 @@
 
 <p>Since just passing an SV to an XS function and copying the data of the SV is not enough to copy the UTF8 flags, even less right is just passing a <span style="white-space: nowrap;"><code>char *</code></span> to an XS function.</p>
 
-<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8">&quot;DO_UTF8&quot; in perlapi</a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
+<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8"><code>DO_UTF8</code></a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
 
 <p>And this isn&#39;t the whole story. Starting in Perl v5.12, strings that aren&#39;t encoded in UTF-8 may also be treated as Unicode under various conditions (see <a href="/cperl/perlunicode.html#ASCII-Rules-versus-Unicode-Rules">&quot;ASCII Rules versus Unicode Rules&quot; in perlunicode</a>). This is only really a problem for characters whose ordinals are between 128 and 255, and their behavior varies under ASCII versus Unicode rules in ways that your code cares about (see <a href="/pod/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>). There is no published API for dealing with this, as it is subject to change, but you can look at the code for <code>pp_lc</code> in <i>pp.c</i> for an example as to how it&#39;s currently done.</p>
 
@@ -2231,6 +2240,166 @@
 </dl>
 
 <p><code>B::Generate</code> directly supports the creation of custom ops by name.</p>
+
+<h1 id="Dynamic-Scope-and-the-Context-Stack">Dynamic Scope and the Context Stack</h1>
+
+<p><b>Note:</b> this section describes a non-public internal API that is subject to change without notice.</p>
+
+<h2 id="Introduction-to-the-context-stack">Introduction to the context stack</h2>
+
+<p>In Perl, dynamic scoping refers to the runtime nesting of things like subroutine calls, evals etc, as well as the entering and exiting of block scopes. For example, the restoring of a <code>local</code>ised variable is determined by the dynamic scope.</p>
+
+<p>Perl tracks the dynamic scope by a data structure called the context stack, which is an array of <code>PERL_CONTEXT</code> structures, and which is itself a big union for all the types of context. Whenever a new scope is entered (such as a block, a <code>for</code> loop, or a subroutine call), a new context entry is pushed onto the stack. Similarly when leaving a block or returning from a subroutine call etc. a context is popped. Since the context stack represents the current dynamic scope, it can be searched. For example, <code>next LABEL</code> searches back through the stack looking for a loop context that matches the label; <code>return</code> pops contexts until it finds a sub or eval context or similar; <code>caller</code> examines sub contexts on the stack.</p>
+
+<p>Each context entry is labelled with a context type, <code>cx_type</code>. Typical context types are <code>CXt_SUB</code>, <code>CXt_EVAL</code> etc., as well as <code>CXt_BLOCK</code> and <code>CXt_NULL</code> which represent a basic scope (as pushed by <code>pp_enter</code>) and a sort block. The type determines which part of the context union are valid.</p>
+
+<p>The main division in the context struct is between a substitution scope (<code>CXt_SUBST</code>) and block scopes, which are everything else. The former is just used while executing <code>s///e</code>, and won&#39;t be discussed further here.</p>
+
+<p>All the block scope types share a common base, which corresponds to <code>CXt_BLOCK</code>. This stores the old values of various scope-related variables like <code>PL_curpm</code>, as well as information about the current scope, such as <code>gimme</code>. On scope exit, the old variables are restored.</p>
+
+<p>Particular block scope types store extra per-type information. For example, <code>CXt_SUB</code> stores the currently executing CV, while the various for loop types might hold the original loop variable SV. On scope exit, the per-type data is processed; for example the CV has its reference count decremented, and the original loop variable is restored.</p>
+
+<p>The macro <code>cxstack</code> returns the base of the current context stack, while <code>cxstack_ix</code> is the index of the current frame within that stack.</p>
+
+<p>In fact, the context stack is actually part of a stack-of-stacks system; whenever something unusual is done such as calling a <code>DESTROY</code> or tie handler, a new stack is pushed, then popped at the end.</p>
+
+<p>Note that the API described here changed considerably in perl 5.24; prior to that, big macros like <code>PUSHBLOCK</code> and <code>POPSUB</code> were used; in 5.24 they were replaced by the inline static functions described below. In addition, the ordering and detail of how these macros/function work changed in many ways, often subtly. In particular they didn&#39;t handle saving the savestack and temps stack positions, and required additional <code>ENTER</code>, <code>SAVETMPS</code> and <code>LEAVE</code> compared to the new functions. The old-style macros will not be described further.</p>
+
+<h2 id="Pushing-contexts">Pushing contexts</h2>
+
+<p>For pushing a new context, the two basic functions are <code>cx = cx_pushblock()</code>, which pushes a new basic context block and returns its address, and a family of similar functions with names like <code>cx_pushsub(cx)</code> which populate the additional type-dependent fields in the <code>cx</code> struct. Note that <code>CXt_NULL</code> and <code>CXt_BLOCK</code> don&#39;t have their own push functions, as they don&#39;t store any data beyond that pushed by <code>cx_pushblock</code>.</p>
+
+<p>The fields of the context struct and the arguments to the <code>cx_*</code> functions are subject to change between perl releases, representing whatever is convenient or efficient for that release.</p>
+
+<p>A typical context stack pushing can be found in <code>pp_entersub</code>; the following shows a simplified and stripped-down example of a non-XS call, along with comments showing roughly what each function does.</p>
+
+<pre><code> dMARK;
+ U8 gimme      = GIMME_V;
+ bool hasargs  = cBOOL(PL_op-&gt;op_flags &amp; OPf_STACKED);
+ OP *retop     = PL_op-&gt;op_next;
+ I32 old_ss_ix = PL_savestack_ix;
+ CV *cv        = ....;
+
+ /* ... make mortal copies of stack args which are PADTMPs here ... */
+
+ /* ... do any additional savestack pushes here ... */
+
+ /* Now push a new context entry of type &#39;CXt_SUB&#39;; initially just
+  * doing the actions common to all block types: */
+
+ cx = cx_pushblock(CXt_SUB, gimme, MARK, old_ss_ix);
+
+     /* this does (approximately):
+         CXINC;              /* cxstack_ix++ (grow if necessary) */
+         cx = CX_CUR();      /* and get the address of new frame */
+         cx-&gt;cx_type        = CXt_SUB;
+         cx-&gt;blk_gimme      = gimme;
+         cx-&gt;blk_oldsp      = MARK - PL_stack_base;
+         cx-&gt;blk_oldsaveix  = old_ss_ix;
+         cx-&gt;blk_oldcop     = PL_curcop;
+         cx-&gt;blk_oldmarksp  = PL_markstack_ptr - PL_markstack;
+         cx-&gt;blk_oldscopesp = PL_scopestack_ix;
+         cx-&gt;blk_oldpm      = PL_curpm;
+         cx-&gt;blk_old_tmpsfloor = PL_tmps_floor;
+
+         PL_tmps_floor        = PL_tmps_ix;
+     */
+
+
+ /* then update the new context frame with subroutine-specific info,
+  * such as the CV about to be executed: */
+
+ cx_pushsub(cx, cv, retop, hasargs);
+
+     /* this does (approximately):
+         cx-&gt;blk_sub.cv          = cv;
+         cx-&gt;blk_sub.olddepth    = CvDEPTH(cv);
+         cx-&gt;blk_sub.prevcomppad = PL_comppad;
+         cx-&gt;cx_type            |= (hasargs) ? CXp_HASARGS : 0;
+         cx-&gt;blk_sub.retop       = retop;
+         SvREFCNT_inc_simple_void_NN(cv);
+     */</code></pre>
+
+<p>Note that <code>cx_pushblock()</code> sets two new floors: for the args stack (to <code>MARK</code>) and the temps stack (to <code>PL_tmps_ix</code>). While executing at this scope level, every <code>nextstate</code> (amongst others) will reset the args and tmps stack levels to these floors. Note that since <code>cx_pushblock</code> uses the current value of <code>PL_tmps_ix</code> rather than it being passed as an arg, this dictates at what point <code>cx_pushblock</code> should be called. In particular, any new mortals which should be freed only on scope exit (rather than at the next <code>nextstate</code>) should be created first.</p>
+
+<p>Most callers of <code>cx_pushblock</code> simply set the new args stack floor to the top of the previous stack frame, but for <code>CXt_LOOP_LIST</code> it stores the items being iterated over on the stack, and so sets <code>blk_oldsp</code> to the top of these items instead. Note that, contrary to its name, <code>blk_oldsp</code> doesn&#39;t always represent the value to restore <code>PL_stack_sp</code> to on scope exit.</p>
+
+<p>Note the early capture of <code>PL_savestack_ix</code> to <code>old_ss_ix</code>, which is later passed as an arg to <code>cx_pushblock</code>. In the case of <code>pp_entersub</code>, this is because, although most values needing saving are stored in fields of the context struct, an extra value needs saving only when the debugger is running, and it doesn&#39;t make sense to bloat the struct for this rare case. So instead it is saved on the savestack. Since this value gets calculated and saved before the context is pushed, it is necessary to pass the old value of <code>PL_savestack_ix</code> to <code>cx_pushblock</code>, to ensure that the saved value gets freed during scope exit. For most users of <code>cx_pushblock</code>, where nothing needs pushing on the save stack, <code>PL_savestack_ix</code> is just passed directly as an arg to <code>cx_pushblock</code>.</p>
+
+<p>Note that where possible, values should be saved in the context struct rather than on the save stack; it&#39;s much faster that way.</p>
+
+<p>Normally <code>cx_pushblock</code> should be immediately followed by the appropriate <code>cx_pushfoo</code>, with nothing between them; this is because if code in-between could die (e.g. a warning upgraded to fatal), then the context stack unwinding code in <code>dounwind</code> would see (in the example above) a <code>CXt_SUB</code> context frame, but without all the subroutine-specific fields set, and crashes would soon ensue.</p>
+
+<p>Where the two must be separate, initially set the type to <code>CXt_NULL</code> or <code>CXt_BLOCK</code>, and later change it to <code>CXt_foo</code> when doing the <code>cx_pushfoo</code>. This is exactly what <code>pp_enteriter</code> does, once it&#39;s determined which type of loop it&#39;s pushing.</p>
+
+<h2 id="Popping-contexts">Popping contexts</h2>
+
+<p>Contexts are popped using <code>cx_popsub()</code> etc. and <code>cx_popblock()</code>. Note however, that unlike <code>cx_pushblock</code>, neither of these functions actually decrement the current context stack index; this is done separately using <code>CX_POP()</code>.</p>
+
+<p>There are two main ways that contexts are popped. During normal execution as scopes are exited, functions like <code>pp_leave</code>, <code>pp_leaveloop</code> and <code>pp_leavesub</code> process and pop just one context using <code>cx_popfoo</code> and <code>cx_popblock</code>. On the other hand, things like <code>pp_return</code> and <code>next</code> may have to pop back several scopes until a sub or loop context is found, and exceptions (such as <code>die</code>) need to pop back contexts until an eval context is found. Both of these are accomplished by <code>dounwind()</code>, which is capable of processing and popping all contexts above the target one.</p>
+
+<p>Here is a typical example of context popping, as found in <code>pp_leavesub</code> (simplified slightly):</p>
+
+<pre><code> U8 gimme;
+ PERL_CONTEXT *cx;
+ SV **oldsp;
+ OP *retop;
+
+ cx = CX_CUR();
+
+ gimme = cx-&gt;blk_gimme;
+ oldsp = PL_stack_base + cx-&gt;blk_oldsp; /* last arg of previous frame */
+
+ if (gimme == G_VOID)
+     PL_stack_sp = oldsp;
+ else
+     leave_adjust_stacks(oldsp, oldsp, gimme, 0);
+
+ CX_LEAVE_SCOPE(cx);
+ cx_popsub(cx);
+ cx_popblock(cx);
+ retop = cx-&gt;blk_sub.retop;
+ CX_POP(cx);
+
+ return retop;</code></pre>
+
+<p>The steps above are in a very specific order, designed to be the reverse order of when the context was pushed. The first thing to do is to copy and/or protect any any return arguments and free any temps in the current scope. Scope exits like an rvalue sub normally return a mortal copy of their return args (as opposed to lvalue subs). It is important to make this copy before the save stack is popped or variables are restored, or bad things like the following can happen:</p>
+
+<pre><code>    sub f { my $x =...; $x }  # $x freed before we get to copy it
+    sub f { /(...)/;    $1 }  # PL_curpm restored before $1 copied</code></pre>
+
+<p>Although we wish to free any temps at the same time, we have to be careful not to free any temps which are keeping return args alive; nor to free the temps we have just created while mortal copying return args. Fortunately, <code>leave_adjust_stacks()</code> is capable of making mortal copies of return args, shifting args down the stack, and only processing those entries on the temps stack that are safe to do so.</p>
+
+<p>In void context no args are returned, so it&#39;s more efficient to skip calling <code>leave_adjust_stacks()</code>. Also in void context, a <code>nextstate</code> op is likely to be imminently called which will do a <code>FREETMPS</code>, so there&#39;s no need to do that either.</p>
+
+<p>The next step is to pop savestack entries: <code>CX_LEAVE_SCOPE(cx)</code> is just defined as <code>&lt;LEAVE_SCOPE(cx-</code>blk_oldsaveix)&gt;&gt;. Note that during the popping, it&#39;s possible for perl to call destructors, call <code>STORE</code> to undo localisations of tied vars, and so on. Any of these can die or call <code>exit()</code>. In this case, <code>dounwind()</code> will be called, and the current context stack frame will be re-processed. Thus it is vital that all steps in popping a context are done in such a way to support reentrancy. The other alternative, of decrementing <code>cxstack_ix</code> <i>before</i> processing the frame, would lead to leaks and the like if something died halfway through, or overwriting of the current frame.</p>
+
+<p><code>CX_LEAVE_SCOPE</code> itself is safely re-entrant: if only half the savestack items have been popped before dying and getting trapped by eval, then the <code>CX_LEAVE_SCOPE</code>s in <code>dounwind</code> or <code>pp_leaveeval</code> will continue where the first one left off.</p>
+
+<p>The next step is the type-specific context processing; in this case <code>cx_popsub</code>. In part, this looks like:</p>
+
+<pre><code>    cv = cx-&gt;blk_sub.cv;
+    CvDEPTH(cv) = cx-&gt;blk_sub.olddepth;
+    cx-&gt;blk_sub.cv = NULL;
+    SvREFCNT_dec(cv);</code></pre>
+
+<p>where its processing the just-executed CV. Note that before it decrements the CV&#39;s reference count, it nulls the <code>blk_sub.cv</code>. This means that if it re-enters, the CV won&#39;t be freed twice. It also means that you can&#39;t rely on such type-specific fields having useful values after the return from <code>cx_popfoo</code>.</p>
+
+<p>Next, <code>cx_popblock</code> restores all the various interpreter vars to their previous values or previous high water marks; it expands to:</p>
+
+<pre><code>    PL_markstack_ptr = PL_markstack + cx-&gt;blk_oldmarksp;
+    PL_scopestack_ix = cx-&gt;blk_oldscopesp;
+    PL_curpm         = cx-&gt;blk_oldpm;
+    PL_curcop        = cx-&gt;blk_oldcop;
+    PL_tmps_floor    = cx-&gt;blk_old_tmpsfloor;</code></pre>
+
+<p>Note that it <i>doesn&#39;t</i> restore <code>PL_stack_sp</code>; as mentioned earlier, which value to restore it to depends on the context type (specifically <code>for (list) {}</code>), and what args (if any) it returns; and that will already have been sorted out earlier by <code>leave_adjust_stacks()</code>.</p>
+
+<p>Finally, the context stack pointer is actually decremented by <code>CX_POP(cx)</code>. After this point, it&#39;s possible that that the current context frame could be overwritten by other contexts being pushed. Although things like ties and <code>DESTROY</code> are supposed to work within a new context stack, it&#39;s best not to assume this. Indeed on debugging builds, <code>CX_POP(cx)</code> deliberately sets <code>cx</code> to null to detect code that is still relying on the field values in that context frame. Note in the <code>pp_leavesub()</code> example above, we grab <code>blk_sub.retop</code> <i>before</i> calling <code>CX_POP</code>.</p>
+
+<h2 id="Redoing-contexts">Redoing contexts</h2>
+
+<p>Finally, there is <code>cx_topblock(cx)</code>, which acts like a super-<code>nextstate</code> as regards to resetting various vars to their base values. It is used in places like <code>pp_next</code>, <code>pp_redo</code> and <code>pp_goto</code> where rather than exiting a scope, we want to re-initialise the scope. As well as resetting <code>PL_stack_sp</code> like <code>nextstate</code>, it also resets <code>PL_markstack_ptr</code>, <code>PL_scopestack_ix</code> and <code>PL_curpm</code>. Note that it doesn&#39;t do a <code>FREETMPS</code>.</p>
 
 <h1 id="AUTHORS">AUTHORS</h1>
 
