@@ -33,6 +33,7 @@
   <li><a href="#More-type-terminology">More type terminology</a>
     <ul>
       <li><a href="#nominal-type-system">nominal type system</a></li>
+      <li><a href="#subtyping-vs-subclassing">subtyping vs subclassing</a></li>
       <li><a href="#Compile-time-type-optimizations">Compile-time type optimizations</a>
         <ul>
           <li><a href="#Constant-folding">Constant folding</a></li>
@@ -62,17 +63,17 @@
 
 <p>Perl always allowed optional declaration of static types, i.e. an existing package name, for lexical variables and with cperl also for function signatures. Lexicals are stored in pads, the package name, i.e. the <code>type</code>, is stored in the stash part of the <code>comppad_name</code> slot for each pad. Perl itself does not use these types for checks and optimizations, only external modules or cperl do.</p>
 
-<p>Remember: A type is implemented as package. A valid type must be an existing and loaded package. Type expressions, like parametric types or unions cannot be stored in pad stashes yet.</p>
+<p>Remember: A type is implemented as package, later also as class. A valid type must be an existing and loaded package. Type expressions, like parametric types or unions cannot be stored in pad stashes yet.</p>
 
-<p>Global variables can not store types, ony lexicals. Constants are implicitly typed.</p>
+<p>Global variables can not declare types, only lexicals and signatures. Constants are implicitly typed.</p>
 
 <p><b>cperl</b> adds support for builtin coretypes, has type declarations for most internal ops, and can optimize based in type inference or declared types.</p>
 
 <h2 id="Why-types-Types-are-unperlish">Why types? Types are unperlish</h2>
 
-<p>No, they are not. Types for lexical variables are permitted since 2001 and used in a few CPAN modules, i.e. Net::DNS. Perl6 uses types all over. Every perl5 value is typed. Just all the normal ops are generic and are allowed to change the type of its arguments and its result at will.</p>
+<p>No, they are not. Types for lexical variables are permitted since 2001 and used in a few CPAN modules, i.e. Net::DNS. Perl6 uses types all over. Every perl5 value is typed at run-time. Just all the normal ops are generic and are allowed to change the type of its arguments and its result at will.</p>
 
-<p>Types allow dramatic performance and size optimizations, lead to better documented code and lead to earlier compile-time errors, which less need to test all possible run-time types with extensive test suites, which rarely cover all type cases.</p>
+<p>Checking types already at compile-time allows dramatic performance and size optimizations, lead to better documented code and lead to earlier compile-time errors, which less need to test all possible run-time types with extensive test suites, which rarely cover all type cases.</p>
 
 <p>Natively types arrays are 4x smaller and faster, typed loops can lead to static loop optimizations, array elements do not need to be checked for out-of-bounds at run-time. There&#39;s no need to check for tied methods or other magic for typed variables. Most of the run-time <i>magic</i>, i.e. checking for extraordinary conditions can be bypassed with typed variants. And with unboxed native types all the arithmetic ops are at least 2-4x faster.</p>
 
@@ -122,7 +123,7 @@
 
 <h2 id="type-checker">type checker</h2>
 
-<p>Compile-time type checks need to be enabled with <code>use types</code>.</p>
+<p>Compile-time type checks for user-defined types need to be enabled with <code>use types</code>. Type warnings are enabled with <code>use warnings &#39;types&#39;</code>.</p>
 
 <h2 id="type-inference">type inference</h2>
 
@@ -162,7 +163,91 @@
 
 <p>cperl implements a simple nominal type as in perl6 and most dynamic languages, in contrast to a structural type system such as in static languages as C or C++. The name of the class or type and its subtypes specify correctness, not the list of object fields and methods.</p>
 
-<p>TODO: <b>co-variant</b> vs <b>contra-variant</b></p>
+<p>The author has to check proper subtyping rules manually, which are not enforced by type syntax.</p>
+
+<h2 id="subtyping-vs-subclassing">subtyping vs subclassing</h2>
+
+<p>Linear inheritance and even more multiple inheritance as implemented with perl5 does not necessarily guarantee proper subtyping. But cperl assumes proper subtyping of all subclasses in the type checker.</p>
+
+<p>This is done with the following restrictions to satisfy the &quot;Liskov substitution principle&quot; (<i>LSP</i>):</p>
+
+<p>Any subclass, a class which is derived from one or more parent classes and is used as type parameter, must guarantee the following restrictions, a cperl design by contract.</p>
+
+<p>For <b>method signatures</b>:</p>
+
+<dl>
+
+<dt id="Contravariance-of-method-arguments-in-the-subtype">Contravariance of method arguments in the subtype</dt>
+<dd>
+
+<p>Typed arguments accept the same type or more generic arguments. Int as accepted as Numeric, but Numeric is not accepted as Int.</p>
+
+</dd>
+<dt id="Covariance-of-return-types-in-the-subtype">Covariance of return types in the subtype.</dt>
+<dd>
+
+<p>Typed return values accept the same type or more specific types. Numeric is accepted as Int, but Int is not accepted as Numeric.</p>
+
+</dd>
+<dt id="No-new-exceptions-should-be-thrown-by-methods-of-the-subtype">No new exceptions should be thrown by methods of the subtype</dt>
+<dd>
+
+<p>Except where those exceptions are themselves subtypes of exceptions thrown by the methods of the supertype. E.g. it is required to throw a read-only exception of the subtype restricted an attribute to be readonly.</p>
+
+</dd>
+</dl>
+
+<p>For the <b>subclass/subtype definition</b>:</p>
+
+<dl>
+
+<dt id="Preconditions-cannot-be-strengthened-in-a-subtype">Preconditions cannot be strengthened in a subtype.</dt>
+<dd>
+
+</dd>
+<dt id="Postconditions-cannot-be-weakened-in-a-subtype">Postconditions cannot be weakened in a subtype.</dt>
+<dd>
+
+</dd>
+<dt id="Invariants-of-the-supertype-must-be-preserved-in-a-subtype">Invariants of the supertype must be preserved in a subtype.</dt>
+<dd>
+
+</dd>
+<dt id="History-constraint-the-history-rule">History constraint (the &quot;history rule&quot;).</dt>
+<dd>
+
+<p>Objects are regarded as being modifiable only through their methods (encapsulation). Since subtypes may introduce methods that are not present in the supertype, the introduction of these methods may allow state changes in the subtype that are not permissible in the supertype. The history constraint prohibits this.</p>
+
+<p>A violation of this constraint can be exemplified by defining a mutable point as a subtype of an immutable point. This is a violation of the history constraint, because in the history of the immutable point, the state is always the same after creation, so it cannot include the history of a mutable point in general. Fields added to the subtype may however be safely modified because they are not observable through the supertype methods. Thus, one can derive a circle with fixed center but mutable radius from immutable point without violating LSP.</p>
+
+<p>For example when you change the type of an attribute in the subclass from writable to read-only you need to change the setter method in the subclass to throw an error, and you are disallowed to use the supertype as valid type in an argument declaration.</p>
+
+</dd>
+</dl>
+
+<p><b>Avoiding the diamond problem</b>:</p>
+
+<p>subtypes need proper linearization of the inheritance tree.</p>
+
+<p>Therefore subtypes are required to use the <b>c3</b> inheritance, with <code>use mro &quot;c3&quot;</code>. subclasses defined with the new <code>class</code> keyword use the c3 inheritance already.</p>
+
+<p><b>A typical violation</b>:</p>
+
+<p>A typical example that violates the Liskov substitution principle is a Square class that derives from a Rectangle class, assuming getter and setter methods exist for both width and height. The Square class always assumes that the width is equal with the height. If a Square object is used in a context where a Rectangle is expected, unexpected behavior may occur because the dimensions of a Square cannot (or rather should not) be modified independently. This problem cannot be easily fixed: if we can modify the setter methods in the Square class so that they preserve the Square invariant (i.e., keep the dimensions equal), then these methods will weaken (violate) the postconditions for the Rectangle setters, which state that dimensions can be modified independently. Violations of LSP, like this one, may or may not be a problem in practice, depending on the postconditions or invariants that are actually expected by the code that uses classes violating LSP. Mutability is a key issue here. If Square and Rectangle had only getter methods (i.e., they were immutable objects), then no violation of LSP could occur.</p>
+
+<p>For more see <a href="https://en.wikipedia.org/wiki/Liskov_substitution_principle">https://en.wikipedia.org/wiki/Liskov_substitution_principle</a> and <a href="https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)">https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)</a>.</p>
+
+<p><b>Perl6 subset</b>:</p>
+
+<p>In Perl6 you don&#39;t have these type checking guarantees, and therefore no proper type optimizations and no type checking soundness. Using subtypes only makes run-time slower, while only in very few cases helps improving the compilation.</p>
+
+<p>In Perl6 a subtype is not a subclass. Subclasses add capabilities, whereas a subtype adds constraints (takes away capabilities). A perl6 subtype is primarily a handy way of sneaking smartmatching into multiple dispatch. Just as a role allows you to specify something more general than a class, a subtype allows you to specify something more specific than a class. A perl6 subtype specifies a subset of the values that the original type specified, which is why perl6 uses the <code>subset</code> keyword for it.</p>
+
+<p>While subsets are primarily intended for restricting parameter types for multiple dispatch, they also let you impose preconditions on assignment. If you declare any container with a subset, Perl will check the constraint against any value you might try to bind or assign to the container.</p>
+
+<p>Perl6-like subsets require type-objects instead of type-classes. Perl6 subclasses don&#39;t guarantee subtyping.</p>
+
+<p>See <a href="https://design.perl6.org/S12.html#Types_and_Subtypes">https://design.perl6.org/S12.html#Types_and_Subtypes</a></p>
 
 <h2 id="Compile-time-type-optimizations">Compile-time type optimizations</h2>
 
@@ -174,7 +259,7 @@
 
 <p>cperl is able the change of compile-time static method calls, determined either by name or by type and const-ness of all searched packages to static function calls. Thus the dynamic method search, in which object this method is implemented is avoided. This is about ~10% faster.</p>
 
-<p> </p>
+<p>Read also <a href="http://www.perl.com/pub/2000/06/p5pdigest/THISWEEK-20000625.html#Method_Lookup_Speedup_">http://www.perl.com/pub/2000/06/p5pdigest/THISWEEK-20000625.html#Method_Lookup_Speedup_</a> or <a href="http://blogs.perl.org/users/rurban/2011/06/how-perl-calls-subs-and-methods.html">http://blogs.perl.org/users/rurban/2011/06/how-perl-calls-subs-and-methods.html</a></p>
 
 <h3 id="Constant-folding">Constant folding</h3>
 

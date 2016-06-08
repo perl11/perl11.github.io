@@ -321,7 +321,9 @@
 
 <p>With cperl <code>@_</code> will only hold the <code>&amp;rest</code> args, the undeclared rest if no other slurpy args are declared. i.e. <code>@_</code> will be empty when signatures are declared with a slurpy ending <code>@</code> or <code>%</code> arg, and <code>@_</code> is not referenced in the immediate function body, visible to the compiler, i.e. not hidden by a string eval.</p>
 
-<p>We want to use the mark stack for signature calls, same as with OPS, we don&#39;t need to copy to @_.</p>
+<p>We want to use the mark stack for signature calls, same as with OPs and XS calls. We don&#39;t need to copy to <code>@_</code>.</p>
+
+<p>Notes on improving the current old zefram purple signatures:</p>
 
 <p>Internally the elements of <code>@_</code> are currently accessed via aelem, not aelemfast. But this is moot with the introduction of the new OP_SIGNATURE op, which is even faster.</p>
 
@@ -338,23 +340,7 @@
         $a++;
     }</code></pre>
 
-<p>cperl changes all arity errors to &quot;Wrong number arguments&quot;.</p>
-
-<pre><code>    cperl -MO=Deparse -e&#39;sub x($a){$a++}&#39;
-    sub x {
-        die sprintf(&quot;Wrong number arguments for subroutine %s at %s line %d.\n&quot;,
-          (caller(0))[3, 1, 2]) if @_ != 1;
-        my $a = $_[0];
-        ();
-        $a++;
-    }
-
-    cperl -MO=Deparse -e&#39;sub x(\$a){$a++}&#39;
-    sub x {
-        die sprintf(&quot;Wrong number arguments for subroutine %s at %s line %d.\n&quot;,
-          (caller(0))[3, 1, 2]) if @_ != 1;
-        $_[0]++;
-    }</code></pre>
+<p>which violated the existing error message: &quot;Not enough arguments for &quot;</p>
 
 </dd>
 <dt id="Support-default-self-invocant-with-methods-NY"><b>Support default $self invocant with methods (NY)</b></dt>

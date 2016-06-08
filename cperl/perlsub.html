@@ -271,9 +271,9 @@
 
 <h2 id="Signatures">Signatures</h2>
 
-<p><b>WARNING</b>: Subroutine signatures are experimental. The feature may be modified or removed in future versions of Perl.</p>
+<p><b>WARNING</b>: Subroutine signatures are experimental in Perl5, not in cperl. The feature may be modified or removed in future versions of Perl.</p>
 
-<p>Perl has an experimental facility to allow a subroutine&#39;s formal parameters to be introduced by special syntax, separate from the procedural code of the subroutine body. The formal parameter list is known as a <i>signature</i>. The facility must be enabled first by a pragmatic declaration, <code>use feature &#39;signatures&#39;</code>, and might produce a warning unless the &quot;experimental::signatures&quot; warnings category is disabled.</p>
+<p>Perl has an experimental facility to allow a subroutine&#39;s formal parameters to be introduced by special syntax, separate from the procedural code of the subroutine body. The formal parameter list is known as a <i>signature</i>. In cperl signatures are enabled by default, in Perl 5 the feature must be enabled first by <code>use feature &#39;signatures&#39;</code>, and might produce a warning unless the &quot;experimental::signatures&quot; warnings category is disabled.</p>
 
 <p>The signature is part of a subroutine&#39;s body. Normally the body of a subroutine is simply a braced block of code. When using a signature, the signature is a parenthesised list that goes immediately after the subroutine name (or, for anonymous subroutines, immediately after the <code>sub</code> keyword). The signature declares lexical variables that are in scope for the block. When the subroutine is called, the signature takes control first. It populates the signature variables from the list of arguments that were passed. If the argument list doesn&#39;t meet the requirements of the signature, then it will throw an exception. When the signature processing is complete, control passes to the block.</p>
 
@@ -286,8 +286,7 @@
 <p>takes two positional parameters, which must be filled at runtime by two arguments. By default the parameters are mandatory, and it is not permitted to pass more arguments than expected. So the above is equivalent to</p>
 
 <pre><code>    sub foo {
-        die &quot;Too many arguments for subroutine&quot; unless @_ &lt;= 2;
-        die &quot;Too few arguments for subroutine&quot; unless @_ &gt;= 2;
+        die &quot;Wrong number of arguments for subroutine&quot; unless @_ != 2;
         my $left = $_[0];
         my $right = $_[1];
         return $left + $right;
@@ -307,6 +306,12 @@
         return $left + $right;
     }</code></pre>
 
+<p>In cperl optional paramaters can also be declared as in Perl 6 with a <code>&#39;?&#39;</code> suffix, which will default to undef.</p>
+
+<pre><code>    sub foo ($left, $right?) {
+        return $left + $right;
+    }</code></pre>
+
 <p>The above subroutine may be called with either one or two arguments. The default value expression is evaluated when the subroutine is called, so it may provide different default values for different calls. It is only evaluated if the argument was actually omitted from the call. For example,</p>
 
 <pre><code>    my $auto_id = 0;
@@ -320,7 +325,7 @@
         print &quot;$first_name $surname is known as \&quot;$nickname\&quot;&quot;;
     }</code></pre>
 
-<p>An optional parameter can be nameless just like a mandatory parameter. For example,</p>
+<p>In Perl5 only an optional parameter can be nameless just like a mandatory parameter. For example,</p>
 
 <pre><code>    sub foo ($thing, $ = 1) {
         print $thing;
@@ -340,7 +345,9 @@
         print $filter-&gt;($_) foreach @inputs;
     }</code></pre>
 
-<p>With a slurpy parameter in the signature, there is no upper limit on how many arguments may be passed. A slurpy array parameter may be nameless just like a positional parameter, in which case its only effect is to turn off the argument limit that would otherwise apply:</p>
+<p>With a slurpy parameter in the signature, there is no upper limit on how many arguments may be passed.</p>
+
+<p>In Perl5 a slurpy array parameter may be nameless just like a positional parameter, in which case its only effect is to turn off the argument limit that would otherwise apply:</p>
 
 <pre><code>    sub foo ($thing, @) {
         print $thing;
@@ -352,7 +359,7 @@
         print $filter-&gt;($_, $inputs{$_}) foreach sort keys %inputs;
     }</code></pre>
 
-<p>A slurpy hash parameter may be nameless just like other kinds of parameter. It still insists that the number of arguments available to it be even, even though they&#39;re not being put into a variable.</p>
+<p>In Perl5 a slurpy hash parameter may be nameless just like other kinds of parameter. It still insists that the number of arguments available to it be even, even though they&#39;re not being put into a variable.</p>
 
 <pre><code>    sub foo ($thing, %) {
         print $thing;
@@ -363,8 +370,10 @@
 <p>A signature may be entirely empty, in which case all it does is check that the caller passed no arguments:</p>
 
 <pre><code>    sub foo () {
-        return 123;
+        123;
     }</code></pre>
+
+<p>In Perl5 the empty <code>()</code> prototype is used to denote constant foldable functions, and signatures can only be declared in the <code>use feature &#39;signatures&#39;</code> scope. In cperl the empty <code>()</code> list denotes always an empty signature, and all functions which can be constant-folded are constant folded. No <code>()</code> is needed.</p>
 
 <p>A parameter by reference does not copy the variable into the body, it allows destructive modification of the variable. This is the same as using the old <code>$_[0]</code> syntax:</p>
 
@@ -378,9 +387,11 @@
 
 <p>There is a potential syntactic ambiguity between signatures and prototypes (see <a href="#Prototypes">&quot;Prototypes&quot;</a>), because both start with an opening parenthesis and both can appear in some of the same places, such as just after the name in a subroutine declaration. For historical reasons, when signatures are not enabled, any opening parenthesis in such a context will trigger very forgiving prototype parsing. Most signatures will be interpreted as prototypes in those circumstances, but won&#39;t be valid prototypes. (A valid prototype cannot contain any alphabetic character.) This will lead to somewhat confusing error messages.</p>
 
-<p>To avoid ambiguity, when signatures are enabled the special syntax for prototypes is disabled. There is no attempt to guess whether a parenthesised group was intended to be a prototype or a signature. To give a subroutine a prototype under these circumstances, use a <a>prototype attribute</a>. For example,</p>
+<p>In Perl5 to avoid ambiguity, when signatures are enabled the special syntax for prototypes is disabled. There is no attempt to guess whether a parenthesised group was intended to be a prototype or a signature. To give a subroutine a prototype under these circumstances, use a <a>prototype attribute</a>. For example,</p>
 
 <pre><code>    sub foo :prototype($) { $_[0] }</code></pre>
+
+<p>In cperl you can declare deviating <code>:prototype($)</code> strings, but the default is the prototype which matches the signature types. Prototypes were initially designed in 2001 to allow future signatures, but the problem is that p5p forgot about that, and forces users to write a lot more useless boilerplate declarations.</p>
 
 <p>It is entirely possible for a subroutine to have both a prototype and a signature. They do different jobs: the prototype affects compilation of calls to the subroutine, and the signature puts argument values into lexical variables at runtime. You can therefore write</p>
 
@@ -388,7 +399,7 @@
         return $left + $right;
     }</code></pre>
 
-<p>The prototype attribute, and any other attributes, come after the signature.</p>
+<p>The prototype attribute, and any other attributes, come after the signature. With cperl this is optional.</p>
 
 <p>As with lexical variable declarations you may declare the types of parameters, and you may declare the return type of the subroutine with a final type attribute:</p>
 
@@ -1023,7 +1034,7 @@ or
 
 <p>then <code>mypush()</code> takes arguments exactly like <code>push()</code> does.</p>
 
-<p>If subroutine signatures are enabled (see <a href="#Signatures">&quot;Signatures&quot;</a>), then the shorter PROTO syntax is unavailable, because it would clash with signatures. In that case, a prototype can only be declared in the form of an attribute.</p>
+<p>With subroutine signatures prototypes are automatically extracted from the signature declaration.</p>
 
 <p>The function declaration must be visible at compile time. The prototype affects only interpretation of new-style calls to the function, where new-style is defined as not using the <code>&amp;</code> character. In other words, if you call it like a built-in function, then it behaves like a built-in function. If you call it like an old-fashioned subroutine, then it behaves like an old-fashioned subroutine. It naturally falls out from this rule that prototypes have no influence on subroutine references like <code>\&amp;foo</code> or on indirect subroutine calls like <code>&amp;{$subref}</code> or <code>$subref-&gt;()</code>.</p>
 
