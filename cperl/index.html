@@ -19,6 +19,7 @@
   <li><a href="#Fix-breakage-and-bad-design">Fix breakage and bad design</a>
     <ul>
       <li><a href="#signatures">signatures</a></li>
+      <li><a href="#Changed-calls-to-signatures">Changed calls to signatures</a></li>
       <li><a href="#Fix-my-_-handling">Fix my $_ handling</a></li>
       <li><a href="#Undo-B-bootstrap-breakage">Undo B bootstrap breakage</a></li>
       <li><a href="#Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</a></li>
@@ -67,8 +68,8 @@
   </li>
   <li><a href="#Longer-term-goals">Longer term goals</a>
     <ul>
-      <li><a href="#Faster-functions-calls">Faster functions calls</a></li>
-      <li><a href="#tailcall-optimization">tailcall optimization</a></li>
+      <li><a href="#Faster-functions-and-method-calls">Faster functions and method calls</a></li>
+      <li><a href="#tailcall-eliminiation">tailcall eliminiation</a></li>
       <li><a href="#Proper-object-system">Proper object system</a></li>
       <li><a href="#libffi-in-core">libffi in core</a></li>
       <li><a href="#Editor-integration">Editor integration</a></li>
@@ -109,7 +110,7 @@
 
 <p>All branches are frequently rebased. Use the provided helpers <i>cp-rb</i>, <i>cp-rbi</i>, <i>cp-lb</i> and <i>cp-rh</i>.</p>
 
-<p>The tip of the best performance branch is currently <code>feature/CM-712-cperl-types-proto</code>, and the memory saving branch is <code>feature/CM-370-cperl-warnings-xs</code>.</p>
+<p>The fastest performance unstable branches are currently <code>feature/gh87-types-proto</code>, <code>feature/gh23-inline-subs</code> and <code>feature/gh14-native-types</code>. The branch with the biggest memory savings is <code>feature/gh9-warnings-xs</code>.</p>
 
 <p><b>INSTALL:</b></p>
 
@@ -151,7 +152,7 @@
 
 <p>cperl can parse and run 99.9% all of perl5 code. But there are a few incompatibilities, which arise from late perl5 signatures design changes and 2002 constant folding changes which we do not follow. perl5 signatures are marked as experimental after all.</p>
 
-<p>CPAN works. 2 modules currently need patches in our distroprefs repo.</p>
+<p>CPAN works. Some modules currently need patches in our distroprefs repo, see <a href="https://github.com/rurban/distroprefs">https://github.com/rurban/distroprefs</a>.</p>
 
 <dl>
 
@@ -416,6 +417,29 @@
 </dd>
 </dl>
 
+<h2 id="Changed-calls-to-signatures">Changed calls to signatures</h2>
+
+<p><code>goto</code> to a signature is now a true tail-call. The stack and pad frames (lexical variables) are not duplicated as in a recursive call, they are re-used. The call-stack behaves as before and in python, so a tail-call (i.e. a goto to a signature) is visible in the call-stack.</p>
+
+<p>But since the args are passed directly on the stack, any old <code>&amp;$sub;</code> call without <code>()</code> to a signature will not work, you need to use <code>goto \&amp;$sub;</code> instead. Only tailcalls via goto can translate from the old pure-perl stack to the new re-used stack via signatures.</p>
+
+<p>The error message is <code>&quot;Not enough arguments for subroutine \w+. Want: \d, but got: 0.&quot;</code>.</p>
+
+<p><b>How to detect if a subroutine has a signature?</b></p>
+
+<p>prototypes with a signature are always embedded into parentheses, <code>&quot;()&quot;</code>.</p>
+
+<pre><code>    sub _hassig {
+        my $sub = shift;
+        substr(prototype $sub,0,1) eq &#39;(&#39;;
+    }
+
+    return _hassig($sub) ? goto \&amp;$sub : &amp;$sub;</code></pre>
+
+<p>See e.g. <i>perl5db.pl/_hassig()</i>.</p>
+
+<p>But you can also change all calls via <code>&amp;$sub;</code> to <code>goto \&amp;$sub;</code> to avoid the <code>_hassig</code> check.</p>
+
 <h2 id="Fix-my-_-handling">Fix my $_ handling</h2>
 
 <p>Perl5 had long-standing problems with lexical <code>$_</code> since the introduction of the SASSIGN optimization via OA_TARGLEX and OPpTARGET_MY in 2002.</p>
@@ -502,7 +526,7 @@
 
 <h2 id="Compile-time-attribute-hooks">Compile-time attribute hooks</h2>
 
-<p><code>CHECK_SCALAR_ATTRIBUTES</code> (for <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>) This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrite-critical-core-modules-in-C-as-builtins">&quot;Rewrite critical core modules in C as builtins&quot;</a> below.</p>
+<p>Added a <code>CHECK_SCALAR_ATTRIBUTES</code> callback. Add native <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>, ... attributes for all new core types. This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrite-critical-core-modules-in-C-as-builtins">&quot;Rewrite critical core modules in C as builtins&quot;</a> below.</p>
 
 <h2 id="coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</h2>
 
@@ -537,7 +561,7 @@
 <pre><code>    if (type $a eq &quot;int&quot;) {  =&gt; $a is an int in this scope }
     $str =~ /(\d+)/; =&gt; $1 is a typed Int</code></pre>
 
-<p>Compile-time type checks need to be enabled with <code>use types;</code> though.</p>
+<p><i>Compile-time type checks need to be enabled with <code>use types;</code> though.</i></p>
 
 <p>Typed signatures are backwards incompatible to perl5, as the trivial 4 line changes are still not yet supported upstream. The performance win is ~2-10x faster, you get compile-time type warnings, a business friendly coding environment and the possibility to display and put infered types automatically in your code, with a cooperating editor. e.g.</p>
 
@@ -549,9 +573,9 @@
 
 <p><b>Note</b>: When in doubt leave out types. If the inferer cannot find it, it might not be worth the trouble. But for hot code and to be precise always use types, as compile-time types prevent from costly run-time checks for types and magic hooks.</p>
 
-<p><b>Builtin types</b> are the coretypes Int, Num, Str, UInt, ?Int, ?Num, ?Str and for builtin op-dispatch: Void int uint num str Int UInt Num Str Bool Numeric Scalar Ref Sub Array Hash List Any, with a <code>?</code> prefix denoting <code>| Undef</code> <i>&quot;or undef&quot;</i>, a <code>?</code> suffix optional, and for aggregate types using <code>()</code> brackets, like <code>:Array(:Int)</code>.</p>
+<p><b>Builtin types</b> are the coretypes <code>Int, Num, Str, UInt, ?Int, ?Num, ?Str</code> and for builtin op-dispatch: <code>Void int uint num str Int UInt Num Str Bool Numeric Scalar Ref Sub Array Hash List Any</code>, with a <code>?</code> prefix denoting <code>| Undef</code> <i>&quot;or undef&quot;</i>, a <code>?</code> suffix optional, and for aggregate types using <code>()</code> brackets, like <code>:Array(:Int)</code>.</p>
 
-<p><b>Status</b>: User code in pure perl or XS is currently not typed-checked nor inferred, only internal ops. Wrong type declarations still lead to type violation errors.</p>
+<p><b>Status</b>: User code in pure perl or XS is currently not typed-checked nor inferred, only internal ops. But wrong type declarations do lead to compile-time type violation errors.</p>
 
 <h2 id="const-for-all">:const for all</h2>
 
@@ -629,7 +653,9 @@
 
 <h2 id="Inlined-functions-NY">Inlined functions (NY)</h2>
 
-<p>If a function body is inlinable, i.e. simple, with no control ops like return, goto caller, warn, die, reset, runcv, padrange, adds no seperate lexicals and has less than 10 ops, they are inlined. Static methods are converted to functions before and then possibly inlined. This is the most important optimization, even more important then a jit.</p>
+<p>If a function body is inlinable, i.e. simple, with no control ops like return, goto caller, warn, die, reset, runcv, padrange, adds no seperate lexicals and has less than 10 ops, they are inlined. Static methods are converted to functions before and then possibly inlined.</p>
+
+<p>This is the most important optimization, even more important then a jit.</p>
 
 <h2 id="Rewrite-critical-core-modules-in-C-as-builtins">Rewrite critical core modules in C as builtins</h2>
 
@@ -695,6 +721,8 @@
 
 <p>It is compiled as shared library, with all keys as readonly perfect hash. Some internal variables are not accessible anymore, the API is via the documented functions. See our <a>Mock::Config</a> module if you need to change a Config value for tests.</p>
 
+<p>Also usable for perl5, via <code>cpan XSConfig</code>.</p>
+
 <h3 id="warnings-as-XS-extension-NY">warnings as XS extension (NY)</h3>
 
 <p>It is compiled as shared library, the builtin categories are implemented as perfect hash, and extended with a normal perl hash. Some internal variables are not accessible anymore, the API is via the documented functions.</p>
@@ -703,7 +731,9 @@
 
 <h2 id="Added-the-compiler-back-to-core">Added the compiler back to core</h2>
 
-<p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
+<p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. The compiler is smoked on all smoker platforms (linux 64bit, linux -m32, darwin, windows 32+64bit).</p>
+
+<p>Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
 
 <p>Maybe include a <code>Data::Compile</code> module to dump only data without all the code to a shared library, and possibly <a href="https://github.com/rurban/Perfect-Hash">Perfect::Hash</a> and a new <i>ph.c</i> to create and optimize readonly hashes, which is needed for the shared XS hashes of Config, warnings and unicode tables.</p>
 
@@ -745,11 +775,11 @@
 
 <h1 id="Longer-term-goals">Longer term goals</h1>
 
-<h2 id="Faster-functions-calls">Faster functions calls</h2>
+<h2 id="Faster-functions-and-method-calls">Faster functions and method calls</h2>
 
 <p>Optionally omit caller, @_, freetmps, exception handler when possible, i.e. no string eval&#39;s are present in the body, the compiler can detect it or the right compiler hint is given.</p>
 
-<h2 id="tailcall-optimization">tailcall optimization</h2>
+<h2 id="tailcall-eliminiation">tailcall eliminiation</h2>
 
 <p>Detect tail positions and replace the call with a fast goto. This needs to be in core, not as external module. Without tailcall elimination handling longer lists leads to stack exhaustion. python did the same mistake as p5p by enforcing a new context for every goto. goto to signatures are now real fast tailcalls.</p>
 
@@ -772,6 +802,8 @@
    extern sub printf(str $s, ...):void;</code></pre>
 
 <p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not.</p>
+
+<p>The alternative syntax would be via a <code>:native</code> attribute, which would allow options, as in <code>sub atoi(str $s):int :native($libc);</code>.</p>
 
 <h2 id="Editor-integration">Editor integration</h2>
 

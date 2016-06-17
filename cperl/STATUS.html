@@ -4,8 +4,8 @@
 
 <p>The name <strong>cperl</strong> stands for <strong>a perl with classes, types, compiler
 support, continuation of perl5 development or just a company-friendly
-perl</strong>, but currently it's only a better 5.22 based variant without
-classes.</p>
+perl</strong>, but currently it's only a better variant with types and signatures,
+and without classes.</p>
 
 <p>cperl started Feb. 2015 when <code>:const</code> was added, parrot was killed and
 it became clear that optimizing for fun is better than waiting for
@@ -43,7 +43,8 @@ Patches are needed for <code>Module::Build</code>, <code>IO::Socket::SSL</code> 
 sloppy types there neither.</p>
 
 <p>This is still much less than with a typical major perl5 release, and
-the patches are all provided in my distroprefs, so the upgrade is seemless.</p>
+the patches are all provided in my distroprefs, so the upgrade is seemless.
+E.g. Test2 (the new Test::Simple) broke >15 modules without any patches.</p>
 
 <p><img src="cperl-m0.png" alt="Memory usage: perl -e0" /></p>
 
@@ -153,27 +154,55 @@ and install it into drive and directory <code>C:\cperl</code>.</p>
 
 <h2>Test::More::skip errors</h2>
 
-<p><strong>skip</strong> has the historical problem of mixed up arguments of <code>$why</code> and
-<code>$count</code>, so those arguments are now strictly typed.</p>
+<p><strong>skip</strong> has the historical problem of mixed up arguments of <code>$why</code>
+and <code>$count</code>, so those arguments are now stricter typed to catch all
+wrong arguments.</p>
 
-<p>When you use one or two args for <code>Test::More::skip()</code>, they need to properly typed.</p>
+<p>When you use one or two args for <code>Test::More::skip()</code>, they need to
+properly typed.</p>
 
 <p>I.e.</p>
 
+<p><strong>Mandatory:</strong></p>
+
 <pre><code>skip $why, 1               =&gt; skip "$why", 1
 
-skip "why", scalar(@skips) =&gt; skip "why", int(@skips)
+plan tests =&gt; 1;
+SKIP: { skip }             =&gt; SKIP: { skip "", 1; }
+</code></pre>
+
+<p><strong>Recommended:</strong></p>
+
+<pre><code>skip "why", scalar(@skips) =&gt; skip "why", int(@skips)
 
 skip "why", 2*$skips       =&gt; skip "why", int(2*$skips)
 </code></pre>
 
 <p><strong>Rationale</strong>:</p>
 
-<p><code>skip()</code> is a special case that the two args are very often mixed up. This error had previously to be detected at run-time with a fragile \d regex check. And in most cases this problem was never fixed, e.g. in <code>Module::Build</code>.
-Only with checking for strict types I could detect and fix all of the wrong usages, get rid of the unneeded run-time check, the code is better, all errors are detected at compile time, and not covered at run-time and with the new strict types the code is much more readable, what is the <code>Str $why</code> and what the <code>UInt $count</code> argument.</p>
+<p><code>skip()</code> is a special case that the two args are very often mixed
+up. This error had previously to be detected at run-time with a
+fragile \d regex check. And in most cases this problem was never
+fixed, e.g. in <code>Module::Build</code>.</p>
+
+<p>Only with checking for strict types I could detect and fix all of the
+wrong usages, get rid of the unneeded run-time check, the code is
+better, all errors are detected at compile time, and not covered at
+run-time and with the new strict types the code is much more readable,
+what is the <code>str $why</code> and what the <code>UInt $count</code> argument.</p>
+
+<p><strong>When the <code>$count</code> can be optional</strong></p>
+
+<p>The Test::More docs state the following:
+<em>It's important that $how_many accurately reflects the number of tests
+in the SKIP block so the # of tests run will match up with your plan.
+If your plan is no_plan $how_many is optional and will default to 1.</em></p>
+
+<p>I.e. Only with plan tests => 'no_plan' a bare skip is allowed.</p>
 
 <p><code>$count</code> can never be a NV, thus <code>:Numeric</code> (which would allow <code>2*$skip</code>) is wrong. It needs to be <code>:UInt</code>. The used range op (<code>pp_flip</code>) would die at run-time with a overflowed number. <code>die "Range iterator outside integer range"</code>. <code>$count := -1</code> will lead to test timeouts.
-Note that cperl doesn't yet check <code>UInt</code> types at run-time for negative values. This might change in later versions with the <code>use types</code> pragma.</p>
+Note that cperl doesn't yet check <code>UInt</code> types at run-time for negative values. This might change in later versions with the <code>use types</code> pragma.
+For now the <code>$count</code> type is relaxed to <code>:Numeric</code> to permit simple arithmetic.</p>
 
 <p><code>scalar(@array)</code> for array or hash length is also bad code, it needs to be replaced with <code>int(@array)</code>.
 Such a length can never be a NV or PV, it is always a UInt. Using <code>int()</code> is clearer, better and faster.</p>
