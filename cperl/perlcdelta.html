@@ -19,6 +19,7 @@
   <li><a href="#Security">Security</a>
     <ul>
       <li><a href="#DynaLoader-format-string-hardening">DynaLoader format string hardening</a></li>
+      <li><a href="#No-Unicode-confusables-UFFA0-U3164">No Unicode confusables +UFFA0, +U3164</a></li>
     </ul>
   </li>
   <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
@@ -28,11 +29,22 @@
       <li><a href="#Not-Updated-Modules-and-Pragmata">Not Updated Modules and Pragmata</a></li>
     </ul>
   </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#New-Diagnostics">New Diagnostics</a>
+        <ul>
+          <li><a href="#New-Errors">New Errors</a></li>
+          <li><a href="#New-Warnings">New Warnings</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
   <li><a href="#Platform-Support">Platform Support</a>
     <ul>
       <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
     </ul>
   </li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
   <li><a href="#Acknowledgements">Acknowledgements</a></li>
   <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
@@ -127,6 +139,22 @@
 <p>Replace all <code>%</code> characters in user-controlled library filenames, passed via the system dl_error call verbatim to <code>printf</code>, without any arguments on the stack, which could lead to execution of arbitrary stack code. No CVE. This affects all systems with dynamic loading where the attacker can cause a dynamic loading error.</p>
 
 <p>CVSSv2 Severity: 7.2 (AV:L/AC:L/Au:N/C:C/I:C/A:C/E:U/RL:OF/RC:C/CDP:MH/TD:H/CR:H/IR:H/AR:ND)</p>
+
+<h2 id="No-Unicode-confusables-UFFA0-U3164">No Unicode confusables +UFFA0, +U3164</h2>
+
+<p>In deviation from Unicode 1.1 we treat the two HANGUL FILLER characters +UFFA0 and +U3164 not as valid ID_Start and ID_Continue characters for perl identifiers. Variable and package names may not begin with them and may not contain them.</p>
+
+<p>They are usually rendered as whitespace, and would lead to classic TR39 confusables. See <a href="https://github.com/jagracey/Awesome-Unicode#user-content-variable-identifiers-can-effectively-include-whitespace">https://github.com/jagracey/Awesome-Unicode#user-content-variable-identifiers-can-effectively-include-whitespace</a> and <a href="http://www.unicode.org/reports/tr39/">http://www.unicode.org/reports/tr39/</a>.</p>
+
+<p>In a more Korean friendly environment, we could check for a ID_Start Hangul filler if the next character is a valid Hangul ID_Continue character, and allow it then. Ditto for a ID_Continue Hangul filler if the previous and next character is a valid Hangul ID_Start or ID_Continue character, and allow it then. But those fillers should be treated as whitespace, and should be ignored.</p>
+
+<p><a href="http://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf">http://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf</a> explains:</p>
+
+<p><i>The two other hangul fillers HANGUL CHOSEONG FILLER (Lf), i.e. lead filler, and HANGUL JUNGSEONG FILLER (Vf) are used as placeholders for missing letters, where there should be at least one letter.</i></p>
+
+<p><i>... that leaves the (HALFWIDTH) HANGUL FILLERs useless. Indeed, they should not be rendered at all, despite that they have been given the property Lo. Note that these FILLERs are also given the property of Default_Ignorable_Codepoint.</i></p>
+
+<p><i>Note that the standard normal forms NFKD and NFKC ... return (in all views) incorrect results for strings containing these characters.</i></p>
 
 <h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
 
@@ -366,8 +394,10 @@
 <p>cperl patches. Add tests for 5.22 and 5.24. Support some multi-line keys: ccflags ldflags lddlflags Changed tests to use done_testing().</p>
 
 </dd>
-<dt id="Cpanel::JSON::XS-3.0216">Cpanel::JSON::XS 3.0216</dt>
+<dt id="Cpanel::JSON::XS-3.0217">Cpanel::JSON::XS 3.0217</dt>
 <dd>
+
+<p>- Improve test 20_unknown for older JSON::PP (madsen)</p>
 
 <p>- Fix wrong test 117 (pghmcfc)</p>
 
@@ -532,6 +562,70 @@
 </dd>
 </dl>
 
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="New-Diagnostics">New Diagnostics</h2>
+
+<h3 id="New-Errors">New Errors</h3>
+
+<dl>
+
+<dt id="Not-enough-arguments-for-s">Not enough arguments for %s</dt>
+<dd>
+
+<p>(F) The function requires more arguments than you specified.</p>
+
+<p>This error might be detected at compile-time or run-time.</p>
+
+<p>If the called function is declared with a signature, and the error message includes &quot;Want: \d, but got: 0&quot;, it might be that the call <code>&amp;$sub</code> without <code>()</code> needs to be replaced with a <code>goto \&amp;sub;</code>. See <a href="/cperl/perlcperl.html#Changed-calls-to-signatures">&quot;Changed calls to signatures&quot; in perlcperl</a>.</p>
+
+</dd>
+<dt id="Invalid-type-s-for-s-s">Invalid type %s for %s %s</dt>
+<dd>
+
+<p>(F) The function cannot handle the declared type of the argument. E.g. tie or bless cannot use a typed arg with a coretype, as a coretype declaration guarantees no magic.</p>
+
+</dd>
+<dt id="Reference-parameter-cannot-take-default-value">Reference parameter cannot take default value</dt>
+<dd>
+
+<p>(F) In a subroutine signature, you put a <code>=</code> after a reference <code>\</code> parameter. A reference parameter cannot be assigned default values on subroutine entries.</p>
+
+</dd>
+<dt id="Subroutine-signature-has-more-than-d-parameters">Subroutine signature has more than %d parameters</dt>
+<dd>
+
+<p>(F) A subroutine signature had more than 32767 individual parameter entries.. In the unlikely event that you need so many parameters, use a slurpy array instead.</p>
+
+</dd>
+</dl>
+
+<h3 id="New-Warnings">New Warnings</h3>
+
+<dl>
+
+<dt id="Wrong-type-s-expected-s">Wrong type %s, expected %s</dt>
+<dd>
+
+<p>(W types) The type of the argument does not match the user-defined type of the function declaration.</p>
+
+</dd>
+<dt id="Inserting-type-cast-s-to-s">Inserting type cast %s to %s</dt>
+<dd>
+
+<p>(W types) The compiler found an argument with a declared type, which the needs to be converted at run-time. This warning usually points to a wrong type usage.</p>
+
+</dd>
+<dt id="Useless-use-of-:caller-did-you-mean-:-caller-instead">Useless use of :caller, did you mean :-caller instead?</dt>
+<dd>
+
+<p>(W misc) The &quot;:caller&quot; attribute has no effect in pure perl subroutine declarations. You applied it to a subroutine via <a>attributes.pm</a>. This is only valid as negated variant <code>:-caller</code> on subroutines.</p>
+
+</dd>
+</dl>
+
 <h1 id="Platform-Support">Platform Support</h1>
 
 <h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
@@ -548,6 +642,46 @@
 <dd>
 
 <p>With <code>-DDEBUGGING</code> <i>dsymutil</i> is called automatically on all created binaries for easier debugging.</p>
+
+</dd>
+<dt id="Cygwin">Cygwin</dt>
+<dd>
+
+<p>Several fixes were added: silence time64.h compilation warnings, fixup archname for 64bit, set d_eofnblk correctly for non-win95, define _GNU_SOURCE to declare memmem.</p>
+
+<p>See <a href="https://rt.perl.org/Public/Bug/Display.html?id=128358">RT #128358</a>, <a href="https://rt.perl.org/Public/Bug/Display.html?id=128359">RT #128359</a> and <a href="https://rt.perl.org/Public/Bug/Display.html?id=127708">RT #127708</a>.</p>
+
+</dd>
+</dl>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<dl>
+
+<dt id="Issues-with-0-being-wrong-in-5.24.0-reginsert-recursion">Issues with (?0) being wrong in 5.24.0, reginsert recursion</dt>
+<dd>
+
+<p>The pattern <code>/\X*(?0)/</code> and various flavours thereof did not work correctly due to <code>RExC_open_paren[0]</code> being inappropriately adjusted. Broken in cperl-5.24.0-RC1-2 and <b>perl-5.24.0</b> upstream.</p>
+
+<p>See <a href="https://rt.perl.org/Public/Bug/Display.html?id=128109">RT #128109</a> and <a href="https://rt.perl.org/Public/Bug/Display.html?id=128085">RT #128085</a>.</p>
+
+</dd>
+<dt id="locale-race-condition-when-switching-to-C-for-error-messages">locale race condition when switching to C for error messages</dt>
+<dd>
+
+<p>A race condition which occurred when computing <code>&quot;$!&quot;</code> with threads activated has been fixed. This showed up only on Darwin platforms. A related problem on Cygwin platforms involving UTF-8 strings has also been fixed. See <a href="https://rt.perl.org/Public/Bug/Display.html?id=127708">RT #127708</a></p>
+
+</dd>
+<dt id="Fix-crash-with-a-.-etc">Fix crash with @a &amp;.= etc.</dt>
+<dd>
+
+<p>See <a href="https://rt.perl.org/Public/Bug/Display.html?id=128204">RT #128204</a></p>
+
+</dd>
+<dt id="Fix-leak-in-c-perl-5.24.0-with-strict-and-regex-posix-char-classes">Fix leak in c?perl 5.24.0 with strict and regex posix char classes</dt>
+<dd>
+
+<p>See <a href="https://rt.perl.org/Public/Bug/Display.html?id=128313">RT #128313</a></p>
 
 </dd>
 </dl>

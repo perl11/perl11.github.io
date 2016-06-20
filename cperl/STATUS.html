@@ -43,8 +43,10 @@ Patches are needed for <code>Module::Build</code>, <code>IO::Socket::SSL</code> 
 sloppy types there neither.</p>
 
 <p>This is still much less than with a typical major perl5 release, and
-the patches are all provided in my distroprefs, so the upgrade is seemless.
-E.g. Test2 (the new Test::Simple) broke >15 modules without any patches.</p>
+the patches are all provided in my
+<a href="https://github.com/rurban/distroprefs/">rurban/distroprefs</a>, so the
+upgrade is seemless.  E.g. Test2 (the new Test::Simple) broke >15
+modules without any patches.</p>
 
 <p><img src="cperl-m0.png" alt="Memory usage: perl -e0" /></p>
 
@@ -64,7 +66,8 @@ E.g. Test2 (the new Test::Simple) broke >15 modules without any patches.</p>
 <li>fast arithmetic overflow</li>
 <li>convert static method to subs</li>
 <li>Config as XS</li>
-<li>strict, attributes, DynaLoader, XSLoader as builtin packages, rewritten in C</li>
+<li>strict, attributes, DynaLoader, XSLoader as builtin packages, rewritten in C.
+Security fixes for DynaLoader</li>
 <li>changed default hash function to the fastest FNV1A <em>(as in the stableperl fork)</em></li>
 <li>changed the hash collision strategy from randomize to the usual move-to-front</li>
 <li>changed the default hash fill rate from 100% to 90%</li>
@@ -81,15 +84,17 @@ E.g. Test2 (the new Test::Simple) broke >15 modules without any patches.</p>
 <li>cperl specific toolchain modules, with support for cperl-only module
 versions with a 'c' suffix, and 10x faster JSON and YAML usage. (esp. with cpan).</li>
 <li>many typed and modernized core modules, where signatures and types make
-sense, and cause not much trouble.</li>
+sense and cause not much trouble.</li>
+<li>some security fixes for Unicode confusables, but more are needed (use strict 'names').</li>
 </ul>
 
-<p>Most of them only would have a chance to be merged upstream if a
-p5p committer would have written it.</p>
+<p>Most of them only would have a chance to be merged upstream if a p5p
+committer would have written it.</p>
 
-<p>But some features revert decisions p5p already made. See <a href="perlcperl.html">README.cperl</a>.
-When in doubt I went with the decisions and policies perl5 made
-before 2001. It is very unlikely that p5p will revert their own design
+<p>But some features revert decisions p5p already made. See
+<a href="perlcperl.html">README.cperl</a>.  When in doubt I went with the
+decisions and policies perl5 made before 2001, before p5p went
+downwards. It is very unlikely that p5p will revert their own design
 mistakes. It never happened so far.</p>
 
 <h1>Installation</h1>
@@ -148,7 +153,9 @@ and install it into drive and directory <code>C:\cperl</code>.</p>
 
 <p>See the github issues: <a href="https://github.com/perl11/cperl/issues">github.com/perl11/cperl/issues</a></p>
 
-<p>The perlcc compiler cannot yet link on windows with MSVC.</p>
+<p>The perl debugger is unstable with signatures, and tailcalls (AUTOLOAD).</p>
+
+<p>The CPAN modules Scope::Upper and autovivification have no patches yet.</p>
 
 <h1>FAQ</h1>
 
@@ -200,14 +207,24 @@ If your plan is no_plan $how_many is optional and will default to 1.</em></p>
 
 <p>I.e. Only with plan tests => 'no_plan' a bare skip is allowed.</p>
 
-<p><code>$count</code> can never be a NV, thus <code>:Numeric</code> (which would allow <code>2*$skip</code>) is wrong. It needs to be <code>:UInt</code>. The used range op (<code>pp_flip</code>) would die at run-time with a overflowed number. <code>die "Range iterator outside integer range"</code>. <code>$count := -1</code> will lead to test timeouts.
-Note that cperl doesn't yet check <code>UInt</code> types at run-time for negative values. This might change in later versions with the <code>use types</code> pragma.
-For now the <code>$count</code> type is relaxed to <code>:Numeric</code> to permit simple arithmetic.</p>
+<p><code>$count</code> can never be a NV, thus <code>:Numeric</code> (which would allow
+<code>2*$skip</code>) is wrong. It needs to be <code>:UInt</code>. The used range op
+(<code>pp_flip</code>) would die at run-time with a overflowed number. <code>die
+"Range iterator outside integer range"</code>. <code>$count := -1</code> will lead to
+test timeouts.</p>
 
-<p><code>scalar(@array)</code> for array or hash length is also bad code, it needs to be replaced with <code>int(@array)</code>.
-Such a length can never be a NV or PV, it is always a UInt. Using <code>int()</code> is clearer, better and faster.</p>
+<p>Note that cperl doesn't yet check <code>UInt</code> types at run-time for
+negative values. This might change in later versions with the <code>use
+types</code> pragma.  For now the <code>$count</code> type is relaxed to <code>:Numeric</code> to
+permit simple arithmetic.</p>
 
-<p>This is also the answer to the question why <code>scalar(@array)</code> is considered bad, and why counts and lengths cannot overflow.</p>
+<p><code>scalar(@array)</code> for array or hash length is also bad code, it needs
+to be replaced with <code>int(@array)</code>.  Such a length can never be a NV or
+PV, it is always a UInt. Using <code>int()</code> is clearer and better, at least
+for cperl.</p>
+
+<p>This is also the answer to the question why <code>scalar(@array)</code> is
+considered bad, and why counts and lengths cannot overflow.</p>
 
 <h1>Branch overview</h1>
 
@@ -241,11 +258,6 @@ uncompiled perls, faster for compiled.</p></li>
 <p><a href="http://github.com/perl11/cperl/commits/feature/gh9-warnings-xs">code</a></p>
 
 <p>much faster and much less memory, but 3 minor scope test fails.</p></li>
-<li><p><a href="https://github.com/perl11/cperl/issues/7">feature/gh7-signatures</a></p>
-
-<p><a href="http://github.com/perl11/cperl/commits/feature/gh7-signatures">code</a></p>
-
-<p>proper sigs on top of davem's OP_SIGNATURE, 2x faster. Merged into 5.24.0</p></li>
 <li><p><a href="https://github.com/perl11/cperl/issues/6">feature/gh6-no-miniperl</a></p>
 
 <p><a href="http://github.com/perl11/cperl/commits/feature/gh6-no-miniperl">code</a></p>
@@ -301,4 +313,4 @@ the question.</p></li>
 <li><p>builtin ffi</p></li>
 </ul>
 
-<p>2016-06-17 rurban</p>
+<p>2016-06-20 rurban</p>
