@@ -20,6 +20,7 @@
     <ul>
       <li><a href="#DynaLoader-format-string-hardening">DynaLoader format string hardening</a></li>
       <li><a href="#No-Unicode-confusables-UFFA0-U3164">No Unicode confusables +UFFA0, +U3164</a></li>
+      <li><a href="#XSLoader-relative-paths-with-eval-or-line">XSLoader relative paths with eval or #line</a></li>
     </ul>
   </li>
   <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
@@ -118,12 +119,21 @@
 </li>
 <li><p>better -Dt tracing</p>
 
-<p>Many ops print now their arguments: signature, padrange, entersub, enterxssub, method_named</p>
+<p>Many ops print now their arguments: signature, padrange, entersub, enterxssub, method_named, goto.</p>
 
 </li>
 <li><p>auto-created coretypes on demand</p>
 
 <p>The parser now knows about our coretypes, and auto-creates them on demand. This saves initialization time and memory a bit, and avoids regression errors when walking our protected readonly packages, even in code which does not use coretypes. <a href="https://github.com/perl11/cperl/issues/133">[cperl #133]</a></p>
+
+</li>
+<li><p>-flto support with ~10-20% performance win</p>
+
+<p>i.e. <code>-Dcc=&#39;gcc-6 -O2 -flto&#39;</code> or even <code>clang-3.9 -O2 -flto=thin</code> is 38% faster than normal perl5, compared to only 27% without <code>-flto</code>.</p>
+
+<p>Added the <code>d_attribute_used</code> probe from <a href="https://rt.perl.org/Public/Bug/Display.html?id=125096">[perl #125096]</a>.</p>
+
+<p>However <code>clang-mp-3.9 -fsanitize=cfi -flto=thin -fvisibility=hidden</code> fails in <code>setenv()</code> when linking <i>miniperl</i> still. <code>gcc-6 -flto=thin -fvisibility=hidden</code> fails with many hidden symbols. And on darwin wrong compiler warnings are thrown, like ld: warning: object file (<i>/var/.../cc-502b6c.o</i>) was built for newer OSX version (10.11) than being linked (0.5.180).</p>
 
 </li>
 </ul>
@@ -168,6 +178,12 @@
 
 <p><i>Note that the standard normal forms NFKD and NFKC ... return (in all views) incorrect results for strings containing these characters.</i></p>
 
+<h2 id="XSLoader-relative-paths-with-eval-or-line">XSLoader relative paths with eval or #line</h2>
+
+<p>Upstream XSLoader 0.22 (perl 5.26) fixed a minor security problem with XSLoader within eval or with a #line directive, which can load a local relative shared library, which is not in <code>@INC</code>. See <a href="https://rt.cpan.org/Ticket/Display.html?id=115808">[cpan #115808]</a>.</p>
+
+<p>cperl XSLoader was already protected against the eval case since 5.22, when being rewritten in C. cperl-5.24.0 fixed now also ignoring a relative filename in a <code>#line</code> directive, when the relative path is not in <code>@INC</code>.</p>
+
 <h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
 
 <h2 id="New-Modules-and-Pragmata">New Modules and Pragmata</h2>
@@ -190,7 +206,15 @@
 
 <dl>
 
-<dt id="Net-Cmd">Net-Cmd</dt>
+<dt id="XSLoader-1.02c">XSLoader 1.02c</dt>
+<dd>
+
+<p>Fixed the <code>#line relativefilename</code> part of the <a href="https://rt.cpan.org/Ticket/Display.html?id=115808">[cpan #115808]</a> security problem, the <code>(eval 1)</code> part was already fixed in the cperl rewrite as XS.</p>
+
+<p>Ensure that the local stash filename part is absolute and ends with <code>/</code>, the part before &quot;auto/&quot; and before the fallback to the DynaLoader search.</p>
+
+</dd>
+<dt id="Net::Cmd">Net::Cmd</dt>
 <dd>
 
 <p>Fixed utf8 handling, suse <a href="https://bugzilla.opensuse.org/show_bug.cgi?id=493978">[bnc#493978]</a></p>
@@ -198,7 +222,7 @@
 <p>Note that libnet has hundreds of more <a href="https://rt.cpan.org/Dist/Display.html?Name=libnet">open tickets</a></p>
 
 </dd>
-<dt id="Pod-Perldoc">Pod-Perldoc</dt>
+<dt id="Pod::Perldoc">Pod::Perldoc</dt>
 <dd>
 
 <p>Favor nroff over groff, suse perl-nroff.diff [bnc#463444]</p>
@@ -211,7 +235,7 @@
 
 <p>Fix my to our $XS_VERSION</p>
 
-<p>Check for max length before derefing by length (jhi) RT #111707</p>
+<p>Check for max length before derefing by length (jhi) <a href="https://rt.cpan.org/Ticket/Display.html?id=111707">[cpan #111707]</a></p>
 
 </dd>
 <dt id="DynaLoader-2.04c">DynaLoader 2.04c</dt>
@@ -229,7 +253,7 @@
 
 <p>Handle cperl OP_SIGNATURE.</p>
 
-<p>Fix refcount of cop hints hashes with 5.22-nt (#220)</p>
+<p>Fix refcount of cop hints hashes with 5.22-nt <a href="https://github.com/perl11/cperl/issues/220">[cperl #220]</a></p>
 
 <p>Better UVX L and U suffices.</p>
 
@@ -241,7 +265,7 @@
 <dt id="B::Deparse-1.37_02c">B::Deparse 1.37_02c</dt>
 <dd>
 
-<p>Add more cperl-specific ops: aelem*_u, u_{add,subtract,multiply}, {i,n,s}_aelem{,_u}</p>
+<p>Add more cperl-specific ops: <code>aelem*_u</code>, <code>u_{add,subtract,multiply}</code>, <code>{i,n,s}_aelem{,_u}</code></p>
 
 </dd>
 <dt id="Test::Simple-1.401014c">Test::Simple 1.401014c</dt>
@@ -251,7 +275,7 @@
 
 <p>Modernized and stricter type checks. <b>skip</b> does the switched argument check at compile-time. See the FAQ at <a href="http://perl11.org/cperl/STATUS.html">http://perl11.org/cperl/STATUS.html</a> why we enforce stricter types there.</p>
 
-<p>Enable t/is_deeply_with_threads.t</p>
+<p>Enable <i>t/is_deeply_with_threads.t</i></p>
 
 </dd>
 <dt id="File-Path-3.12_01c">File-Path 3.12_01c</dt>
@@ -265,7 +289,7 @@
 
 <p>Modernized. Enforce many str types.</p>
 
-<p>Enable XS prototypes and suppress warnings. #152</p>
+<p>Enable XS prototypes and suppress warnings. <a href="https://github.com/perl11/cperl/issues/152">[cperl #152]</a></p>
 
 <p>Disallow the optional getcwd argument (5.8.5 problem). Cannot be called as method.</p>
 
@@ -431,11 +455,11 @@
 
 <p>- TODO the fragile mojo boolean interop test.</p>
 
-<p>- Improve error message with class based method calls, when forgetting -&gt;new. #66</p>
+<p>- Improve error message with class based method calls, when forgetting -&gt;new. <a href="https://github.com/rurban/Cpanel-JSON-XS/issues/66">[cperl #66]</a></p>
 
-<p>- Fix a off-by-one IV_MIN -&gt; NV overflow in decode_json. #67 (xdg)</p>
+<p>- Fix a off-by-one IV_MIN -&gt; NV overflow in decode_json. <a href="https://github.com/rurban/Cpanel-JSON-XS/issues/67">[cperl #67]</a> (xdg)</p>
 
-<p>- Avoid encode_sv SEGV with -Dusequadmath #62 Fix quadmath NV stringification.</p>
+<p>- Avoid encode_sv SEGV with -Dusequadmath <a href="https://github.com/rurban/Cpanel-JSON-XS/issues/62">[cperl #62]</a> Fix quadmath NV stringification.</p>
 
 </dd>
 <dt id="DB_File-1.838">DB_File 1.838</dt>
@@ -461,7 +485,7 @@
 <dt id="IPC::SysV-2.07">IPC::SysV 2.07</dt>
 <dd>
 
-<p>Sync with upstream, they fixed https://rt.cpan.org/Public/Bug/Display.html?id=112827</p>
+<p>Sync with upstream, they fixed <a href="https://rt.cpan.org/Public/Bug/Display.html?id=112827">[RT #112827]</a></p>
 
 </dd>
 <dt id="JSON::PP-2.27400">JSON::PP 2.27400</dt>
