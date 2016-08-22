@@ -1,0 +1,199 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Notice">Notice</a></li>
+  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#New-Diagnostics">New Diagnostics</a>
+        <ul>
+          <li><a href="#New-Errors">New Errors</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5250cdelta - what is new for cperl v5.25.0</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes perl-only differences between the cperl 5.24.0 release and the cperl 5.25.0 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.22.3, first read <a href="/cperl/perl5240cdelta.html">perl5240cdelta</a>, which describes differences between 5.22.3 and 5.24.0.</p>
+
+<h1 id="Notice">Notice</h1>
+
+<p>perl5.24.1 was security update to a non-existing problem. cperl added PERLIO_DEBUG as optional handle to redirect DEBUGGING outout via -Dx switches to. This is only usable with DEBUGGING perls, which are not used in production, only during development. perl5.24.1 changed PERLIO_DEBUG to only be active for PerlIO debugging together with -Di.</p>
+
+<h1 id="Performance-Enhancements">Performance Enhancements</h1>
+
+<ul>
+
+<li><p>for loops got several enhancements:</p>
+
+<p>new special <b>iter_ary</b> <code>for (@ary)</code> and <b>iter_lazyiv</b> <code>for (0..9)</code> ops to avoid a run-time switch in the generic iter op.</p>
+
+<p>more aelem_u optimizations, less run-time out of bounds checks for shaped arrays in loops. E.g. in <code>my @a[5]; $a[$_] for (0..4);</code> the compilers knows that the max index for <code>@a</code> will be <code>4</code>, which is within the allowed shape of <code>@a</code>.</p>
+
+</li>
+<li><p>The <code>multideref</code> OP has a new <code>MDEREF_INDEX_uoob</code> flag. This is used for unchecked out-of-bounds checks for arrays, to use the previous AvSHAPED array optimizations (aelem_u, aelemfast_lex_u) or loop out-of-bounds elimination with multideref OPs also. Such multideref ops appear pretty often even with single indices. E.g. in <code>my @b=(0..4); for (0..$#b) { $b[$_] = 0; }</code> <code>$b[$_]</code> is converted to a multideref, which previously was not optimized.</p>
+
+<p>Those optimized indices are marked with a new &quot; _u&quot; suffix in the dumped multideref stringification.</p>
+
+<p><code>MDEREF_MASK</code> changed to 0x10F, the <code>MDEREF_SHIFT</code> size from 7 to 8. The shift can also use faster intrinsics now.</p>
+
+<p>The loop out-of-bounds elimination was fixed for simple lexical indices (e.g. <code>for my $i (0..$#a){ $a[$i] }</code>, which leads now to more aelem_u ops and subsequent mderef_u optimizations also.</p>
+
+</li>
+<li><p>The new <code>strQEc</code>/<code>strNEc</code> macros are used instead of <code>strEQ(s,&quot;constant&quot;)</code>. This enables word-wise comparison via memcpy, in opposite of byte-wise comparisons via strcmp with already known sizes. This is a 10% performance improvement under most optimization levels.</p>
+
+</li>
+</ul>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a>Opcode</a> has been upgraded from version 1.34c to 1.35c, with the new iter_ary and iter_lazyiv ops.</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="New-Diagnostics">New Diagnostics</h2>
+
+<h3 id="New-Errors">New Errors</h3>
+
+<dl>
+
+<dt id="Invalid-for-range-iterator-d-..-d">Invalid for range iterator (%d .. %d)</dt>
+<dd>
+
+<p>(F) A range with constant integers as a for loop cannot be reversed.</p>
+
+<p>We check now at compile-time that a range with <code>for</code> loops with constant integers is incremental, the 2nd number must be higher. We don&#39;t support reverse loops with ranges, i.e. <code>for (9..0)</code> is invalid, but <code>for (0..$#ary)</code> with <code>$#ary</code> being <code>-1</code> is valid.</p>
+
+<p>Reverse constant strings ranges are still valid and lead to an empty loop. i.e. <code>for (&#39;z&#39;..&#39;a&#39;)</code> is currently valid.</p>
+
+</dd>
+</dl>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="mingw">mingw</dt>
+<dd>
+
+<p>Compilation under mingw (32 and/or 64bit) was fixed by removing a duplicate <i>pp_sys.c</i> entry in <i>win32/GNUMakefile</i>.</p>
+
+</dd>
+<dt id="linux">linux</dt>
+<dd>
+
+<p>Check for null in pp_ghostent et al.</p>
+
+<p>On some platforms (such as Gentoo Linux with torsocks), hent-&gt;h_aliases (where hent is a struct hostent *) may be null after a gethostent call.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128740">RT#128740</a></p>
+
+</dd>
+</dl>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>The <b>negate</b> op has now it&#39;s own <b>ck_negate</b> callback.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<dl>
+
+<dt id="SvREADONLY_off:-allow-calls-as-argument">SvREADONLY_off: allow calls as argument</dt>
+<dd>
+
+<p>No multiple evaluation of its argument anymore.</p>
+
+</dd>
+</dl>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.25.0 represents approximately 2 weeks of development since Perl 5.24.0c and contains approximately 6,300 lines of changes across 120 files from 4 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 3,900 lines of changes to 53 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.25.0:</p>
+
+<p>Reini Urban, Father Chrysostomos, Daniel Dragan, Tony Cook.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at https://rt.perl.org/ . There may also be information at http://www.perl.org/ , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>cperlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> for details of how to report the issue.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+
