@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+<link rev="made" href="mailto:root@elcapitan.internal.macports.net" />
 </head>
 
 <body>
@@ -15,7 +15,16 @@
   <li><a href="#NAME">NAME</a></li>
   <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
   <li><a href="#Notice">Notice</a></li>
-  <li><a href="#Security">Security</a></li>
+  <li><a href="#Security">Security</a>
+    <ul>
+      <li><a href="#n-buffer-overflows">@{ \327 \n } buffer overflows</a></li>
+      <li><a href="#eval-q-.-chr-overlarge-stack-overflow">eval &quot;q&quot; . chr(overlarge) stack overflow</a></li>
+      <li><a href="#Protect-and-warn-on-hash-flood-DoS">Protect and warn on hash flood DoS</a></li>
+      <li><a href="#Warn-on-metasploit-CVE-2015-1592">Warn on metasploit CVE-2015-1592</a></li>
+      <li><a href="#Warn-on-metasploit-reverse-shells">Warn on metasploit reverse shells</a></li>
+      <li><a href="#syscalls-warnings-also-security">syscalls warnings also security</a></li>
+    </ul>
+  </li>
   <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
   <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
     <ul>
@@ -27,6 +36,16 @@
       <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a>
         <ul>
           <li><a href="#XXX">XXX</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#New-Diagnostics">New Diagnostics</a>
+        <ul>
+          <li><a href="#New-Errors">New Errors</a></li>
+          <li><a href="#New-Warnings">New Warnings</a></li>
         </ul>
       </li>
     </ul>
@@ -48,7 +67,6 @@
   <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
   <li><a href="#Known-Problems">Known Problems</a></li>
   <li><a href="#Errata-From-Previous-Releases">Errata From Previous Releases</a></li>
-  <li><a href="#Obituary">Obituary</a></li>
   <li><a href="#Acknowledgements">Acknowledgements</a></li>
   <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
@@ -68,19 +86,73 @@
 
 <h1 id="Security">Security</h1>
 
-<p>XXX Any security-related notices go here. In particular, any security vulnerabilities closed should be noted here rather than in the <a href="#Selected-Bug-Fixes">&quot;Selected Bug Fixes&quot;</a> section.</p>
+<h2 id="n-buffer-overflows"><code>@{ \327 \n }</code> buffer overflows</h2>
 
-<p>[ List each security issue as a =head2 entry ]</p>
+<p>Fixed <code>@{ \327 \n }</code> tokenizer failures and heap buffer overflows in <code>sv_vcatpvfn_flags()</code> with wrong tracking of <code>PL_linestr</code>, the currently parsed line buffer. This can easily lead to security relevant exploits.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128951">[perl #128951]</a></p>
+
+<h2 id="eval-q-.-chr-overlarge-stack-overflow"><code>eval &quot;q&quot; . chr(overlarge)</code> stack overflow</h2>
+
+<p>In <code>eval &quot;q&quot; . chr(100000000064)</code> generating the error message <code>Can&#39;t find string terminator &quot;XXX&quot;&#39;</code> was overrunning a local buffer designed to hold a single utf8 char, since it wasn&#39;t allowing for the <code>\0</code> at the end.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128952">[perl #128952]</a></p>
+
+<h2 id="Protect-and-warn-on-hash-flood-DoS">Protect and warn on hash flood DoS</h2>
+
+<p>If the collisions for a hash key lookup exceeds 128 tries (i.e. a linear search in a linked list), this qualifies as a malicious hash DoS (<i>Denial of Service</i>) attack. Generally maximal 8-10 collisions appear in normal hash table usage. Every 8th such hash flood attack performs a <code>sleep(2)</code> to limit the impact.</p>
+
+<p>Detect and protect against it, also call the new <code>warn_security(&quot;Hash flood&quot;)</code>.</p>
+
+<p>This security scheme is much easier and faster than trying to hide the random hash seed with randomized iterators and collisions lists, which cperl doesn&#39;t use.</p>
+
+<p>See <a href="#New-Diagnostics">&quot;New Diagnostics&quot;</a>.</p>
+
+<h2 id="Warn-on-metasploit-CVE-2015-1592">Warn on metasploit CVE-2015-1592</h2>
+
+<p>Detection of the destructive attack against Movable-Type, the third vector only, which tries to delete <i>mt-config.cgi</i> was added to was added to <a>Storable</a> 3.01c.</p>
+
+<p>Calls <code>warn_security(&quot;Movable-Type CVE-2015-1592 Storable metasploit attack&quot;)</code>, but does not protect against it.</p>
+
+<h2 id="Warn-on-metasploit-reverse-shells">Warn on metasploit reverse shells</h2>
+
+<p>Detect the metasploit payload unix/reverse_perl and some existing variants. This is just a dumb match at startup against existing exploits in the wild, but not future variants. Calls <code>warn_security(&quot;metasploit reverse/bind shell payload&quot;)</code>, but do not protect against it. This warning is thrown even without <code>-w</code>.</p>
+
+<p>Also detects the CVE-2012-1823 reverse/bind shell payload, which is widely exploited too. The security warning is called &quot;CVE-2012-1823 reverse/bind shell payload&quot;.</p>
+
+<h2 id="syscalls-warnings-also-security">syscalls warnings also security</h2>
+
+<p>With a warnings &#39;syscalls&#39; violation, i.e. detecting <code>\0</code> in arguments to C API syscalls, the new &#39;security&#39; warnings category overrides the &#39;syscalls&#39; category. I.e. the warning is produced by the <a href="/cperl/perlapi.html#warn_security">&quot;warn_security&quot; in perlapi</a> API, and to turn it off, you have to turn off both categories.</p>
 
 <h1 id="Performance-Enhancements">Performance Enhancements</h1>
 
-<p>XXX Changes which enhance performance without changing behaviour go here. There may well be none in a stable release.</p>
-
-<p>[ List each enhancement as a =item entry ]</p>
-
 <ul>
 
-<li><p>XXX</p>
+<li><p>Make all padnames not UTF8 per default, only the ones which are really UTF8. See <a href="#Internal-Changes">&quot;Internal Changes&quot;</a> and <a href="https://github.com/perl11/cperl/issues/208">[cperl #208]</a></p>
+
+</li>
+<li><p>Improvements when reading from arrays have been imported from perl5. <code>av_fetch()</code> uses less branches reading from the end (negative indices), and a branch checking for freed <code>@_</code> elements has been removed,</p>
+
+</li>
+<li><p>Extract <code>hv_common_magical()</code> to a seperate function. Extracts uncommon magical code in hot code to an extra static function to help keep the icache smaller. Only in rare cases this branch is taken. I.e filling ENV at startup, or using tied hashes.</p>
+
+<p>Measured 2-15% faster with normal scripts, not using tied hashes.</p>
+
+</li>
+<li><p>Use more <code>strEQc</code>, <code>strNEc</code> macros, when safe to use, i.e. the left buffer is big enough, now with Address Sanitizer fallbacks.</p>
+
+<p>The new fast buffer comparison macros <code>strEQc</code> and <code>strNEc</code> compare a full string including the final <code>\0</code>, <code>memEQc</code> and <code>memNEc</code> just the start of a buffer, with constants strings. Note that valgrind and Address Sanitizer will complain about out of range access of the left side of the buffer. To access these buffers however is safe and will not lead to SIGBUS on stricter platforms. To prevent valgrind from warning on this, you may want to define <code>-DVALGRIND</code>, which uses a safe and slower fallback macro.</p>
+
+</li>
+<li><p>aassign: pre-allocate needed hash size with aassign, similar to arrays, avoiding run-time hash splits. e.g. <code>my %h = (.. =</code> .., .. =&gt; ..)&gt;</p>
+
+<p>This version is 30% faster overall in the <a>Mail::SpamAssassin</a> testsuite than cperl-5.25.0.</p>
+
+</li>
+<li><p>Pre-extend internal hashes and stashes to avoid unnecessary boot-time hash splits. <code>%warnings::</code>, <code>%Config::</code>, <code>%utf8::</code>, <code>%version::</code>.</p>
+
+</li>
+<li><p>Added new <code>get_svs</code>, <code>get_avs</code>, <code>get_hvs</code> macros, and accompanied <code>get_[ash]vn_flags</code> API functions, to omit the run-time <code>strlen(name)</code> for constant names. (#191)</p>
 
 </li>
 </ul>
@@ -95,10 +167,148 @@
 
 <dl>
 
-<dt id="B-C-1.54_11">B-C 1.54_11</dt>
+<dt id="Cpanel::JSON::XS-3.027_03">Cpanel::JSON::XS 3.027_03</dt>
 <dd>
 
-<p>Better CopFILE_set, Fixup arenasize refcnt. Delay cvref to init2, properly set a SvRV to a XS sub. Optimize constpv for CvFILE (less constants to merge for gcc). Improve NV precision by one digit. Fix to compile in utf8_heavy.pl, abstract and set %INC.</p>
+<p>New stringify_infnan(3) infnan_mode. Fix inf/nan detection on HP-UX and others. Use faster strEQc macros. Prefer memEQ for systems without memcmp, to use bcmp there. Add more expect_false() to inf/nan branches. Fix av and hv length types: protect from security sensitive overflows, add HVMAX_T and RITER_T Add new &quot;Hash key too large&quot; error. perl5 silently truncates it, but we prefer errors.</p>
+
+</dd>
+<dt id="Term::ReadKey-2.35">Term::ReadKey 2.35</dt>
+<dd>
+
+<p>ReadKey.pm renamed to ReadKey_pm.PL, expand blockoptions specific variants already at installation, no load-time eval, demand-load Carp, remove unneeded AutoLoader, harmonize formatting</p>
+
+</dd>
+<dt id="B-1.62_05">B 1.62_05</dt>
+<dd>
+
+<p>Allow a 2nd optional CV argument for B::OP::aux_list, fixing B::Deparse and thereby Data::Dumper and Test2 is_deeply.</p>
+
+</dd>
+<dt id="Storable-3.01c">Storable 3.01c</dt>
+<dd>
+
+<p><a href="#Warn-on-metasploit-CVE-2015-1592">&quot;Warn on metasploit CVE-2015-1592&quot;</a></p>
+
+</dd>
+<dt id="Config-6.22">Config 6.22</dt>
+<dd>
+
+<p>protect sv in END during global destruction, esp. with B::C. fixes for missing . in @INC (cperl or -Dfortify_inc).</p>
+
+</dd>
+<dt id="YAML::XS-0.73">YAML::XS 0.73</dt>
+<dd>
+
+<p>merged with upstream libyaml 0.1.7 avoid duplicate checks against NULL fix libyaml clang -Wlogical-op warnings fix libyaml clang -Wlogical-not-parentheses warnings</p>
+
+</dd>
+<dt id="List::Util-1.45_06">List::Util 1.45_06</dt>
+<dd>
+
+<p>sum/min/max need to call SvGETMAGIC</p>
+
+</dd>
+<dt id="Sub::Util-1.45_05">Sub::Util 1.45_05</dt>
+<dd>
+
+<p>set_subname memory fix by @bluhm from Sub::Name 0.20 [cpan #117072]</p>
+
+<p>Fixes for older perls, esp. lexical $_ support.</p>
+
+<p>Reinstate the &amp;DB::sub setter, but no UTF8 support yet.</p>
+
+</dd>
+<dt id="ExtUtils::Liblist::Kid-8.04_06">ExtUtils::Liblist::Kid 8.04_06</dt>
+<dd>
+
+<p>one more darwin fix for the wrong no library found warning for symlinked darwin libSystem.dylib libraries.</p>
+
+</dd>
+<dt id="IO::Socket::IP-0.38">IO::Socket::IP 0.38</dt>
+<dd>
+
+<p>From https://github.com/atoomic/IO-Socket-IP/</p>
+
+<p>- Support setting custom socket options with new Sockopts constructor parameter</p>
+
+<p>- Restore blocking mode after -&gt;connect errors [cpan #112334]</p>
+
+</dd>
+<dt id="Time::HiRes-1.9739">Time::HiRes 1.9739</dt>
+<dd>
+
+<p>More Darwin thread fixes for clock_gettime, Sierra support, test improvements.</p>
+
+</dd>
+<dt id="Socket-2.024_04">Socket 2.024_04</dt>
+<dd>
+
+<p>Merge cpan 2.024 with our 2.021_02, plus fix some problems in their new code.</p>
+
+<p>Fixes for OpenBSD: Probe for <i>netinet/in_systm.h</i> Removed <code>i_netinet6_in6</code> probe. This was never used due to a typo. It cannot be used due to RFC 2553.</p>
+
+</dd>
+<dt id="B-1.62_04">B 1.62_04</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="Devel::Peek-1.23_02">Devel::Peek 1.23_02</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros. The flags where harmonized, missing names were added, most fields are now print in natural order as in the struct.</p>
+
+</dd>
+<dt id="File::Glob-1.26_01">File::Glob 1.26_01</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="File::DosGlob-1.12_01">File::DosGlob 1.12_01</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="POSIX-1.65_01">POSIX 1.65_01</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="PerlIO::encoding-0.24_01">PerlIO::encoding 0.24_01</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="XS::APItest-0.80_02">XS::APItest 0.80_02</dt>
+<dd>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="DynaLoader-2.05c">DynaLoader 2.05c</dt>
+<dd>
+
+<p>no mathoms: call_sv instead of call_pv, get_cvs where available.</p>
+
+<p>use the new get_svs, get_avs, get_hvs macros.</p>
+
+</dd>
+<dt id="B-C-1.54_13">B-C 1.54_13</dt>
+<dd>
+
+<p>Better CopFILE_set, Fixup arenasize refcnt. Delay cvref to init2, properly set a SvRV to a XS sub. Optimize constpv for CvFILE (less constants to merge for gcc). Improve NV precision by one digit. Fix to compile in utf8_heavy.pl, abstract and set %INC. Fix generation of @B::C::Config::deps on Windows. Fix !C99 precedence bug (e.g. MSVC). Minor refactor to simplify save_hek. Use the new get_svs, get_avs, get_hvs macros. perlcc add --debug|-D Improve endav XSUB bump Abstract RITER_T and HVMAX_T for the various sizes, compat HEK_STATIC defer REGCOMP for \P{} properties change $sv-&gt;EXTFLAGS to compflags since 5.22 for CALLREGCOMP(). turn off MGf_REFCOUNTED. global-buffer-overflow with dynamic COW strings, wrong savepvn args.</p>
+
+</dd>
+<dt id="Exporter">Exporter</dt>
+<dd>
+
+<p>Exporter remained unchanged. But CORE support for the &quot;used only once&quot; warnings has been to restricted to the four magic names &quot;EXPORT&quot;, &quot;EXPORT_OK&quot;, &quot;EXPORT_FAIL&quot; and &quot;EXPORT_TAGS&quot;. Other names starting with &quot;EXPORT&quot; will now throw the &quot;used only once&quot; warning as all other symbols.</p>
 
 </dd>
 </dl>
@@ -116,6 +326,46 @@
 <ul>
 
 <li><p>XXX Description of the change here</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="New-Diagnostics">New Diagnostics</h2>
+
+<p>Added a new warnings category <b>security</b> which is default ON, using a special message.</p>
+
+<p>A &quot;SECURITY: &quot; prefix, and as suffix the username, REMOTE_ADDR, full pathname to implement a service similar to fail2ban. Bypass <code>$SIG{__WARN__}</code> handlers. Prints to STDERR and if available to syslog.</p>
+
+<h3 id="New-Errors">New Errors</h3>
+
+<ul>
+
+<li><p>The <a href="/cperl/perldiag.html#Too-many-elements">Too many elements</a> error is now triggered when accessing or extending an out of bounds array index or trying to insert too many hash keys. This is to prevent from silent hash or array overflows. Previously extending a hash beyond it&#39;s capable size was silently ignored, leading to performance degradation with overly high fill factors and extending an array failed only on memory exhaustion, but the signed index led to an index overflow between I32 and U32, resp. I64 and U64.</p>
+
+<p>Even worse, accessing overflown unsigned array indices would silently access the signed counterpart, indices at the end.</p>
+
+<p>Note that the out of bound error message with shaped arrays is different.</p>
+
+</li>
+<li><p>The <a href="/cperl/perldiag.html#panic:-hash-key-too-long-u">Panic: hash key too long</a> error is now thrown with overlarge hash keys in every <code>hv_common</code> access and in <a>Cpanel::JSON::XS</a>. perl5 still silently ignores those failures, and truncates the keys.</p>
+
+<p>Many more similar <code>panic: (file|keyword|mro|stash)? name too long</code> errors were added to the parser, compiler and runtime to protect from overlong names (&gt; I32_MAX, 2147483647, 2GB), or counts.</p>
+
+</li>
+</ul>
+
+<h3 id="New-Warnings">New Warnings</h3>
+
+<ul>
+
+<li><p>The new <code>S security</code> warning &quot;Hash flood&quot; was added. See <a href="#Protect-and-warn-on-hash-flood-DoS">&quot;Protect and warn on hash flood DoS&quot;</a>.</p>
+
+</li>
+<li><p>The new <code>S security</code> warnings &quot;metasploit reverse/bind shell payload&quot; and &quot;CVE-2012-1823 reverse/bind shell payload&quot; were added, detecting the existing metasploit/libxploit and phpcgi CVE-2012-1823 reverse and bind shells. See <a href="#Warn-on-metasploit-reverse-shells">&quot;Warn on metasploit reverse shells&quot;</a></p>
 
 </li>
 </ul>
@@ -143,20 +393,29 @@
 
 <ul>
 
-<li><p>XXX</p>
+<li><p>added <code>sanitize_address</code> config entry and probe, and matching <code>USE_SANITIZE_ADDRESS</code> <i>config.h</i> define.</p>
+
+</li>
+<li><p>removed <code>i_netinet6_in6</code> Config entry and probe, and matching <code>I_NETINET6_I6</code> <i>config.h</i> define, which was a typo. This was added with cperl-5.22.2 and was never used due to the typo. It cannot be used due to RFC 2553.</p>
+
+</li>
+<li><p>fix <code>__builtin_prefetch</code> probe, not yet used.</p>
+
+</li>
+<li><p>new <code>__builtin_ctz</code> probe, <code>$Config{d_builtin_ctz} key</code>, used for faster DO_HSPLIT() calculations. About 30% faster for hash intensive tests.</p>
 
 </li>
 </ul>
 
 <h1 id="Testing">Testing</h1>
 
-<p>XXX Any significant changes to the testing of a freshly built perl should be listed here. Changes which create <b>new</b> files in <i>t/</i> go here as do any large changes to the testing harness (e.g. when parallel testing was added). Changes to existing files in <i>t/</i> aren&#39;t worth summarizing, although the bugs that they represent may be covered elsewhere.</p>
-
-<p>[ List each test improvement as a =item entry ]</p>
-
 <ul>
 
-<li><p>XXX</p>
+<li><p>Relax some timing sensitive smoker failures on overly slow systems, such as darwin on Travis with DEBUGGING:</p>
+
+<p>Time-HiRes: skip nanosleep test,</p>
+
+<p>Sys-Syslog with not responding syslogd.</p>
 
 </li>
 </ul>
@@ -183,14 +442,35 @@
 
 <h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
 
-<p>XXX List any changes for specific platforms. This could include configuration and compilation changes or changes in portability/compatibility. However, changes within modules for platforms should generally be listed in the <a href="#Modules-and-Pragmata">&quot;Modules and Pragmata&quot;</a> section.</p>
-
 <dl>
 
-<dt id="XXX-some-platform1">XXX-some-platform</dt>
+<dt id="Win32">Win32</dt>
 <dd>
 
-<p>XXX</p>
+<ul>
+
+<li><p>Preserve the <code>Systemroot</code> env var during env wipe for Win32 in <i>t/op/magic.t</i></p>
+
+<p>This fixes a test fail with VC 2005 and VC 2008 on WinXP. The <code>Systemroot</code> env var is required on WinXP to load SXS tracked DLLs, VC 2005 and 2008&#39;s MS libc&#39;s are SXS tracked (before and after are not), so once %ENV is wiped and systemroot is deleted the <code>require Win32</code> cant load the XS DLL because the XS DLL is linked against the SXS tracked libc specific to 2005/2008.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=126041">[perl #126041]</a></p>
+
+</li>
+<li><p>Added strupr() and more ENV_IS_CASELESS helper functions for non-Win32/Netware builds with ENV_IS_CASELESS being defined to easier test caseless windows ENV handling on non-windows platforms.</p>
+
+</li>
+</ul>
+
+</dd>
+<dt id="Hurd">Hurd</dt>
+<dd>
+
+<ul>
+
+<li><p>Small improvements for Hurd hints: Enable usemallocwrap as on Linux. Populate the $Config{libc} for version reporting. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128954">[perl #128954]</a></p>
+
+</li>
+</ul>
 
 </dd>
 </dl>
@@ -199,37 +479,155 @@
 
 <p>XXX Changes which affect the interface available to <code>XS</code> code go here. Other significant internal changes for future core maintainers should be noted as well.</p>
 
-<p>[ List each change as a =item entry ]</p>
-
 <ul>
 
-<li><p>XXX</p>
+<li><p><a href="/cperl/perlapi.html#repeatcpy">&quot;repeatcpy&quot; in perlapi</a> changed the type of the 4th count argument from IV to UV.</p>
+
+</li>
+<li><p>Added a new <a href="/cperl/perlapi.html#newPADNAMEpvn_flags">&quot;newPADNAMEpvn_flags&quot; in perlapi</a> function which disables UTF8 via <code>flags</code> of <code>0</code>, a new <a href="/pod/perlapi.html#PadnameUTF8">&quot;PadnameUTF8&quot; in perlapi</a> macro, and new <code>PADNAMEt_UTF8</code> and <code>padadd_UTF8</code> bits.</p>
+
+</li>
+<li><p>The maximal size of hashes has been reduced from 63 bit back to 32 bit on 64-bit systems, as with perl5 upstream and as with cperl-5.22. The only problem with 63 bit was the performance overhead of having to calculate 64-bit hashes for each string, which was not worth it. For overlarge hashes use tie to an external library which handle bigger sizes and external maps.</p>
+
+<p>This affects <code>xhv_keys</code>, <code>xhv_max</code>, <code>xhv_riter</code>, <code>xhv_fill_lazy</code>, placeholders and the return values and arguments of most <code>hv_</code> functions and macros. <code>xhv_riter</code> is now a full <code>U32</code>, thus the previous tombstone value <code>-1</code> is now <code>U32_MAX</code>, so contrary to perl5 you can still iterate over the full keys range, and not just the half of it.</p>
+
+</li>
+<li><p><code>PL_maxo</code> is now tracked/incremented in <code>custom_op_register()</code>.</p>
+
+<p>The static number of OPs is determined by the static <code>MAXO</code> definition, but users can add custom ops.</p>
+
+<p>Note that perl5.25.4 removes the dynamic part <code>maxo</code>. We find it useful, as only <code>maxo</code> returns the number of current ops.</p>
+
+</li>
+<li><p><code>HVhek_MASK</code> is now only 0x03, sames as <code>HVhek_ENABLEHVKFLAGS</code>, which is not needed anymore.</p>
+
+<p><code>HVhek_MASK</code> is only needed during hash collision comparisons. There we only need the 2 HEK UTF8 bits: <code>HVhek_UTF8</code> and <code>HVhek_WASUTF8</code>, but not the 3 others: UNSHARED, TAINTED, STATIC. (the 2 last being cperl-only)</p>
 
 </li>
 </ul>
 
 <h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
 
-<p>XXX Important bug fixes in the core language are summarized here. Bug fixes in files in <i>ext/</i> and <i>lib/</i> are best summarized in <a href="#Modules-and-Pragmata">&quot;Modules and Pragmata&quot;</a>.</p>
-
-<p>[ List each fix as a =item entry ]</p>
-
 <ul>
 
-<li><p>XXX</p>
+<li><p>More <b>I32/IV/SSize_t fixes</b>, against huge data (2GB) overflows on 64bit.</p>
+
+<p>We are now in a 64bit world and need to get rid of all the wrong 32bit (2GB) size limits. Some of these fixes seem to be even security relevant, as in the last 2GB series from <a href="https://github.com/perl11/cperl/issues/123">[cperl #123]</a>.</p>
+
+<p>chop/chomp of only half of overlarge arrays.</p>
+
+<p>Or ~&quot;a&quot;x2G complement of overlarge strings, silently processing only the half - as with overlong hash keys.</p>
+
+<p>There was also a smartmatch Array - CodeRef rule, which passed only over half the array elements. The Hash part was also wrong, but the wrong number was not used.</p>
+
+<p>regex match group of &gt;2GB string len.</p>
+
+<p>Allow repeat count &gt;2GB and don&#39;t silently cap it at IV_MAX. Which was at least better then silent wrap around.</p>
+
+<p>Missing optimization of inplace substitution via clen overflow.</p>
+
+</li>
+<li><p>Fixed several <b>heap-buffer-overflows</b> detected by asan: use-after-free in Dynaloader (ReadKey probe with -DDEBUG_LEAKING_SCALAR), heap-overflow in gv_fetchfile (t/comp/parser.t), heap-overflow with signatures, heap-overflow in XSLoader, invalid memEQc in toke.c missing out on parsing #!perl -opts, B-C global-buffer-overflow with dynamic COW strings, wrong savepvn args.</p>
+
+<p>There are still heap-use-after-free problems with perlcc and PERL_DESTRUCT_LEVEL=2.</p>
+
+<p>See <a href="https://github.com/perl11/cperl/issues/207">[cperl #207]</a></p>
+
+</li>
+<li><p>Fixed overwriting the <code>HVhek_UNSHARED</code> bit in the hash loop broken with v5.9.</p>
+
+<p>This fixed <code>-DNODEFAULT_SHAREKEYS</code>. In the default configuration without NODEFAULT_SHAREKEYS since 5.003_001 all hash keys are stored twice, once in the hash and once again in <code>PL_strtab</code>, the global string table, with the benefit of faster hash loops and copies. Almost all hashtables get the SHAREKEYS bit. With <code>-Accflags=-DNODEFAULT_SHAREKEYS</code> simple scripts are 20-30% faster. <a href="https://github.com/perl11/cperl/issues/201">[cperl #201]</a></p>
+
+</li>
+<li><p>Fix HEK_TAINTED check for HEf_SVKEY values. A HEf_SVKEY hek has no tainted flag, the pointed to SV has. This is a cperl-only security feature.</p>
+
+</li>
+<li><p>Only clear LS_COLORS for glob</p>
+
+<p>When miniperl calls csh to implement glob(), we cleared %ENV temporarily to avoid csh dying on invalid values for things like LS_COLORS. That has proven to have far too many problems, since many system-dependent env vars are necessary for calling an external process. See the <a href="https://rt.perl.org/Public/Bug/Display.html?id=126041">[perl #126041]</a> ticket for details.</p>
+
+<p>A better solution is temporarily to clear only those vars that are known to be problematic and make csh possibly fail. There only hap- pens to be one of those at present, namely LS_COLORS.</p>
+
+</li>
+<li><p>A SEGV in mess_sv during global destruction with a DEBUGGING perl and -DS been fixed, occuring when we wanted to report the location of an error when curcop has already been freed.</p>
+
+<p>Testcase: <code>./miniperl -DS -e &#39;$_=&quot;f&quot;; s/./&quot;&amp;&quot;.$&amp;/ee&#39;</code></p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=129027">[perl #129027]</a></p>
+
+</li>
+<li><p>A SEGV in ck_chift with an empty/wrong current function, caused by a syntax error has been fixed. The syntax error is now reported lateron. Testcase: <code>&#39;qq{@{sub{q}}]]}}; s0{shift&#39;</code></p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=125351">[perl #125351]</a></p>
+
+</li>
+<li><p>Since Perl 5.20, line numbers have been off by one when perl is invoked with the <b>-x</b> switch. This has been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128508">[perl #128508]</a></p>
+
+</li>
+<li><p>Handle missing Unicode heredoc terminators correctly. E.g. <code>perl -CS -e &#39;use utf8; q&laquo;&#39;</code> prints now <code>Can&#39;t find string terminator &quot;&laquo;&quot; anywhere before EOF at -e line 1.</code></p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128701">[perl #128701]</a></p>
+
+</li>
+<li><p>Mentioning a constant twice in a row does not lead to assertions errors with DEBUGGING builds, such as e.g. <code>sub ub(){0} ub ub</code>.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128701">[perl #126482]</a></p>
+
+</li>
+<li><p><code> until ($x = 1) { ... } </code> and <code> ... until $x = 1 </code> now properly warn when syntax warnings are enabled. <a href="https://rt.perl.org/Public/Bug/Display.html?id=127333">[perl #127333]</a></p>
+
+</li>
+<li><p><code>require</code> followed by a single colon (as in <code>foo() ? require : ...</code> is now parsed correctly as <code>require</code> with implicit $_, rather than <code>require &quot;&quot;</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128307">[perl #128307]</a></p>
+
+</li>
+<li><p>Code that looks for a variable name associated with an uninitialized value could cause an assertion in cases where magic is involved, such as <code>$ISA[0][0]</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128253">[perl #128253]</a></p>
+
+</li>
+<li><p>In Perl 5.18, the parsing of <code>&quot;$foo::$bar&quot;</code> was accidentally changed, such that it would be treated as <code>$foo.&quot;::&quot;.$bar</code>. The previous behavior, which was to parse it as <code>$foo:: . $bar</code>, needs to be restored. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128478">[perl #128478]</a></p>
+
+</li>
+<li><p>A crash caused by code generating the warning &quot;Subroutine STASH::NAME redefined&quot; in cases such as <code>sub P::f{} undef *P::; *P::f =sub{};</code> needs to be fixed. In these cases, where the STASH is missing, the warning should appear as &quot;Subroutine NAME redefined&quot;. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128257">[perl #128257]</a></p>
+
+</li>
+<li><p>An assertion triggered by some code that handles deprecated behavior in formats needs to be fixed, e.g. in cases like this:</p>
+
+<pre><code>    format STDOUT =
+    @
+    0&quot;$x&quot;</code></pre>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128255">[perl #128255]</a></p>
+
+</li>
+<li><p>Some regular expression parsing glitches could lead to assertion failures with regular expressions such as <code>/(?&lt;=/</code> and <code>/(?&lt;!/</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128170">[perl #128170]</a></p>
+
+</li>
+<li><p>Fixed a SEGV with <code>cperl -Dsv -e&#39;$_=&quot;q0&quot; and s///ge&#39;</code> in Perl_deb_stack_all() <a href="https://rt.perl.org/Public/Bug/Display.html?id=129029">[perl #129029]</a></p>
+
+</li>
+<li><p>Array and hash index overflow are now properly detected and throw an &quot;Too many elements&quot; error.</p>
+
+<p>E.g. on 32bit <code>$ary[2147483648]</code> will lead to a compile-time error, <code>$i=2147483648; $ary[$i]</code> to a run-time error. Before 5.24c or with perl5 those two would silently overflow to <code>-1</code>, i.e. accessing the last element.</p>
+
+<p>When inserting more than U32, i.e. 4294967295 hash elements, the same error is now thrown. Before 5.24c or with perl5 the element would have been inserted, with 32bit the hash table would not have been extended and the load factor would increase, the collisions and performance would decrease. On 64bit the hash table would have beed increased, but the elements would collide on the last element, leading to the same problems, just more dramatic.</p>
 
 </li>
 </ul>
 
 <h1 id="Known-Problems">Known Problems</h1>
 
-<p>XXX Descriptions of platform agnostic bugs we know we can&#39;t fix go here. Any tests that had to be <code>TODO</code>ed for the release would be noted here. Unfixed platform specific bugs also go here.</p>
-
-<p>[ List each fix as a =item entry ]</p>
+<p>Most of these fixes still need to be backported from perl5.25.x upstream:</p>
 
 <ul>
 
-<li><p>XXX</p>
+<li><p><i>t/op/taint.t</i> contained a test with signatures and 6 default arguments, which on some 32 bit systems led to random &quot;Reference parameter cannot take default value at op/taint.t line 2461&quot; compile-time failures. This test has been rewritten to ony use 4 arguments.</p>
+
+<p>See <a href="https://github.com/perl11/cperl/issues/164">[cperl #164]</a></p>
+
+</li>
+<li><p><code>clang -flto=thin</code> and on some systems even <code>gcc -flto</code> with <code>-O3</code> or <code>-finline</code> leads to invisible symbols which were inlined and not exported, even if they should be declared as public API. Work is ongoing in the <i>feature/gh186-lto-thin</i> branch, but there the inlining is disabled by the <code>used</code> attribute, leading to a 10% performance regression. On the other hand a working <code>clang-3.9 -flto</code> leads to 20% performance improvements.</p>
+
+</li>
+<li><p>List assignment to <code>vec</code> or <code>substr</code> with an array or hash for its first argument used to result in crashes or &quot;Can&#39;t coerce&quot; error messages at run time, unlike scalar assignment, which would give an error at compile time. List assignment now gives a compile-time error, too. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128260">[perl #128260]</a></p>
 
 </li>
 </ul>
@@ -243,15 +641,25 @@
 </li>
 </ul>
 
-<h1 id="Obituary">Obituary</h1>
-
-<p>XXX If any significant core contributor has died, we&#39;ve added a short obituary here.</p>
-
 <h1 id="Acknowledgements">Acknowledgements</h1>
 
-<p>XXX Generate this with:</p>
+<p>cperl 5.25.1 represents approximately 4 months of development since cperl 5.25.0 and contains approximately 220,000 lines of changes across 1,400 files from 65 authors.</p>
 
-<pre><code>  cperl Porting/acknowledgements.pl v5.25.0..HEAD</code></pre>
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 140,000 lines of changes to 880 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became cperl 5.25.1:</p>
+
+<p>Reini Urban, Karl Williamson, David Mitchell, Jarkko Hietaniemi, Daniel Dragan, Tony Cook, Andy Broad, Steve Hay, Craig A. Berry, Lukas Mai, Yves Orton, Aaron Crane, Ricardo Signes, Father Chrysostomos, Matthew Horsfall, Dagfinn Ilmari Manns&aring;ker, James E Keenan, H.Merijn Brand, Aristotle Pagaltzis, Abigail, Karen Etheridge, Todd Rinaldo, Dan Collins, Shlomi Fish, Stevan Little, Chris &#39;BinGOs&#39; Williams, Doug Bell, Jan Dubois, David Golden, Nicholas Clark, Niko Tyni, Nicolas Rochelemagne, Tom Hukins, Leon Timmermans, Victor Adam, Andy Dougherty, Peter Martini, Rafael Garcia-Suarez, Sisyphus, Vladimir Timofeev, Thomas Sibley, Ed J, Hugo van der Sanden, Ivan Pozdeev, Vincent Pit, Herbert Breunung, Sawyer X, John SJ Anderson, Alex Vandiver, Ludovic E. R. Tolhurst-Cleaver, Stanislaw Pusep, Max Maischein, John Peacock, Zachary Storer, Aaron Priven, Pip Cet, Andreas K&ouml;nig, Dr.Ruud, Mattia Barbon, Ed Avis, Chas. Owens, Mohammed El-Afifi, Helmut Wollmersdorfer, Achim Gratz, Alexander D&#39;Archangel.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<p>Generated with:</p>
+
+<pre><code>    cperl Porting/acknowledgements.pl v5.25.0..HEAD</code></pre>
 
 <h1 id="Reporting-Bugs">Reporting Bugs</h1>
 
