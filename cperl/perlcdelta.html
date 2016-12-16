@@ -16,57 +16,22 @@
   <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
   <li><a href="#Security">Security</a>
     <ul>
-      <li><a href="#use-utf8-Script">use utf8 &#39;Script&#39;</a></li>
-      <li><a href="#Unicode-normalization-of-identifiers-names">Unicode normalization of identifiers/names</a></li>
-      <li><a href="#No-binary-symbols">No binary symbols</a></li>
-      <li><a href="#hash-seed-exposure">hash seed exposure</a></li>
       <li><a href="#chdir-heap-buffer-overflow">chdir heap-buffer-overflow</a></li>
+      <li><a href="#Parse-CPAN-Meta-security">Parse-CPAN-Meta security</a></li>
     </ul>
   </li>
   <li><a href="#Deprecations">Deprecations</a>
     <ul>
       <li><a href="#do_open-do_close-macros">do_open, do_close macros</a></li>
-      <li><a href="#Removed-as-package-seperator">Removed &#39; as package seperator</a></li>
     </ul>
   </li>
-  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
   <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
     <ul>
       <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
     </ul>
   </li>
-  <li><a href="#Documentation">Documentation</a>
-    <ul>
-      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a>
-        <ul>
-          <li><a href="#perldata">perldata</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li><a href="#Diagnostics">Diagnostics</a>
-    <ul>
-      <li><a href="#New-Diagnostics">New Diagnostics</a>
-        <ul>
-          <li><a href="#New-Errors">New Errors</a></li>
-          <li><a href="#New-Warnings">New Warnings</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li><a href="#Utility-Changes">Utility Changes</a>
-    <ul>
-      <li><a href="#c2ph">c2ph</a></li>
-    </ul>
-  </li>
-  <li><a href="#Platform-Support">Platform Support</a>
-    <ul>
-      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
-    </ul>
-  </li>
   <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
   <li><a href="#Testing">Testing</a></li>
-  <li><a href="#Internal-Changes">Internal Changes</a></li>
   <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
   <li><a href="#Known-Problems">Known Problems</a></li>
   <li><a href="#Acknowledgements">Acknowledgements</a></li>
@@ -76,109 +41,29 @@
 
 <h1 id="NAME">NAME</h1>
 
-<p>perlcdelta - what is new for cperl v5.25.2</p>
+<p>perlcdelta - what is new for cperl v5.24.2</p>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
-<p>This document describes the differences between the cperl 5.25.1 and the cperl 5.25.2 development releases.</p>
+<p>This document describes the differences between the cperl 5.24.1 and the cperl 5.24.2 releases.</p>
 
 <h1 id="Security">Security</h1>
-
-<h2 id="use-utf8-Script">use utf8 &#39;Script&#39;</h2>
-
-<p>In order to avoid TR39 confusable security hacks, we add the following unicode rules for identifiers and literals with <b>mixed script</b> properties:</p>
-
-<ul>
-
-<li><p>The &#39;Common&#39;, &#39;Latin&#39; and &#39;Inherited&#39; scripts are always allowed and don&#39;t need to be declared.</p>
-
-</li>
-<li><p>The first non-default unicode script for an identifier is the only allowed one. This qualifies as single-script. More scripts lead to parsers errors.</p>
-
-</li>
-<li><p>Additional unicode scripts can and should be declared via <b>use utf8 &#39;Greek&#39;, &#39;script-name2&#39;...</b>. This allows mixed scripts in identifiers. This can be scoped in blocks.</p>
-
-</li>
-</ul>
-
-<p>See <a href="http://www.unicode.org/reports/tr39/#Mixed_Script_Detection">http://www.unicode.org/reports/tr39/#Mixed_Script_Detection</a> and <a href="https://github.com/perl11/cperl/issues/229">[cperl #229]</a></p>
-
-<p>This holds for all identifiers (i.e. all names: package, gv, sub, variables) and literal numbers.</p>
-
-<p>Currently there exist 131 scripts, see <a>&quot;Valid scripts&quot; in utf8</a>.</p>
-
-<h2 id="Unicode-normalization-of-identifiers-names">Unicode normalization of identifiers/names</h2>
-
-<p>All stored utf8 names, identifiers and literals are parsed and stored as normalized NFC unicode, which prevents from various TR39 and TR36 unicode confusable and spoofing security problems.</p>
-
-<p>However, dynamically created symbols via string refs are not normalized. <code>${&quot;$decomposed&quot;}</code> stays decomposed.</p>
-
-<p>Note that even perl6 stores different names for confusables, which match each other due to their NFG rules on their string matchers. perl5 matches strictly binary, which leads to confusable and spoofing security problems.</p>
-
-<p>See <a href="https://github.com/perl11/cperl/issues/228">[cperl #228]</a>, <a href="http://www.unicode.org/reports/tr36/">http://www.unicode.org/reports/tr36/</a>, <a href="http://www.unicode.org/reports/tr39">http://www.unicode.org/reports/tr39</a>, <a href="http://www.unicode.org/reports/tr31/">http://www.unicode.org/reports/tr31/</a> and the Python 3 discussion 2007 on PEP 3131 <a href="https://docs.python.org/3/reference/lexical_analysis.html#identifiers">https://docs.python.org/3/reference/lexical_analysis.html#identifiers</a>.</p>
-
-<p>Python 3 normalizes to NFKC (Compatibility Decomposition, followed by Canonical Composition), cperl uses both canonical transformations. See <a href="http://unicode.org/reports/tr15/#Norm_Forms">http://unicode.org/reports/tr15/#Norm_Forms</a> for the difference. Basically NFKC transforms to shorter ligatures. NFC is recommended by TR15.</p>
-
-<h2 id="No-binary-symbols">No binary symbols</h2>
-
-<p>Fallback to the secure behvaiour as before v5.16 and strip symbol names of everything after the first \0 character. This protects from creating binary symbols as with <code>no strict &#39;refs&#39;; ${&quot;a\0\hidden&quot;}</code>, which were especially problematic for package names, which were mapped 1:1 to filenames. With the default warning &#39;security&#39; in effect, a warning is produced by the <a href="/cperl/perlapi.html#warn_security">&quot;warn_security&quot; in perlapi</a> API, same as for unsafe syscalls since 5.20.</p>
-
-<p>See <a href="/cperl/perldiag.html#Invalid-0-character-in-string-for-SYMBOL:-s">&quot;Invalid \0 character in string for SYMBOL: %s&quot; in perldiag</a> and <a href="https://github.com/perl11/cperl/issues/233">[cperl #233]</a>.</p>
-
-<h2 id="hash-seed-exposure">hash seed exposure</h2>
-
-<p>cperl5.22.2 added a restraint to expose the internal hash secret seed via the environment variable PERL_HASH_SEED_DEBUG=1 to be hidden in taint mode. See <a href="https://github.com/perl11/cperl/issues/114">[cperl #114]</a> and <a href="/cperl/perl5222cdelta.html#Core-Enhancements">&quot;Core Enhancements&quot; in perl5222cdelta</a>.</p>
-
-<pre><code>    PERL_HASH_SEED_DEBUG=1 cperl5.22.2 -e1 =&gt;
-    HASH_FUNCTION = FNV1A HASH_SEED = 0xecfb00eb PERTURB_KEYS = 0 (TOP)
-
-    PERL_HASH_SEED_DEBUG=1 cperl5.22.2 -t -e1 =&gt; empty</code></pre>
-
-<p>But unfortunately not many perl services are actually protected with <code>-t</code>, even if cperl fixed taint mode to be actually secure. The seed exposure is only needed for a debugging perl, and actually is security relevant.</p>
-
-<p>So <code>PERL_HASH_SEED_DEBUG=1</code> will now hide the seed value in non-DEBUGGING builds.</p>
-
-<pre><code>    PERL_HASH_SEED_DEBUG=1 cperl5.25.2 -e1 =&gt;
-    HASH_FUNCTION = FNV1A HASH_SEED = &lt;hidden&gt; PERTURB_KEYS = 0 (TOP)</code></pre>
-
-<p>Note that the seed is still trivially exposable via other means if a local script can be executed, as the seed value is readable from a fixed memory offset via unpack &quot;P&quot;. That&#39;s why cperl fixed hash table security via proper means in the collision resolution, not via a slow hash function, and not via order hiding as perl5 believes in.</p>
-
-<p>More discussion at <a href="https://github.com/google/highwayhash/issues/28">https://github.com/google/highwayhash/issues/28</a> and <a href="https://github.com/google/highwayhash/issues/29">https://github.com/google/highwayhash/issues/29</a>.</p>
 
 <h2 id="chdir-heap-buffer-overflow">chdir heap-buffer-overflow</h2>
 
 <p>Fixed heap-buffer-overflow in chdir without argument. make chdir allocate the stack it needs for the result, overwriting one stack entry. Note that the perl stack is on the heap, so it&#39;s not that dramatic. <a href="https://rt.perl.org/Public/Bug/Display.html?id=129130">[perl #129130]</a></p>
 
+<h2 id="Parse-CPAN-Meta-security">Parse-CPAN-Meta security</h2>
+
+<p>Sets <code>$YAML::XS::DisableCode</code>, <code>$YAML::XS::DisableBlessed</code> while parsing <i>META.yml</i> files. See <a>&quot;$YAML::XS::DisableBlessed&quot; in YAML::XS</a>.</p>
+
 <h1 id="Deprecations">Deprecations</h1>
 
 <h2 id="do_open-do_close-macros">do_open, do_close macros</h2>
 
-<p>Those macros clash on darwin XTools with the system iostream <code>_OutputIterator</code> methods. We need to use the fullname <b>Perl_do_open</b> and <b>Perl_do_close</b> functions whenever perl needs to be embedded into C++ projects.</p>
+<p>Those macros clash on darwin XTools with the system iostream <code>_OutputIterator</code> methods. We need to use the fullname <b>Perl_do_open</b> and <b>Perl_do_close</b> functions whenever perl needs to be embedded into C++ projects. Or the better <code>do_openn</code> macro.</p>
 
 <p>With the system C++ compiler on darwin <code>do_open</code>, <code>do_close</code> are now undefined. See <a href="https://github.com/perl11/cperl/issues/227">[cperl #227]</a></p>
-
-<h2 id="Removed-as-package-seperator">Removed &#39; as package seperator</h2>
-
-<p>Made something like <code>sub foo&#39;bar;</code> a syntax error. <code>&#39;</code> is not replaced by <code>::</code> anymore when used as package seperator. This was deprecated 10 years ago.</p>
-
-<p>cperl fixed the <a href="#c2ph">&quot;c2ph&quot;</a> core utility using this last remaining perl4&#39;ism, and removed the <code>isn&#39;t</code> method from <a>Test::More</a>. In a later versions <code>&#39;</code> can be reenabled as proper IDContinue character for identifiers, e.g. for Test::More <code>isn&#39;t</code>.</p>
-
-<p>See <a href="https://github.com/perl11/cperl/issues/217">[cperl #217]</a>.</p>
-
-<h1 id="Performance-Enhancements">Performance Enhancements</h1>
-
-<ul>
-
-<li><p>Most NULL ops are now removed in the peephole optimizer. Check for <code>#if defined(PERL_REMOVE_OP_NULL)</code> in your XS module if you hardcoded any NULL-sensitive op-tree structure. See how many with <code>-Dk</code>.</p>
-
-</li>
-<li><p><code>-DPERL_FAKE_SIGNATURE</code> is now default, making most function calls 2x faster. See <a href="#fake_signatures">&quot;fake_signatures&quot;</a></p>
-
-</li>
-<li><p>The new compiler option support allows generation of much faster code. I.e. clang-4.0 with -flto or zapcc produce ~20% faster code.</p>
-
-</li>
-</ul>
 
 <h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
 
@@ -186,24 +71,10 @@
 
 <dl>
 
-<dt id="Term-ANSIColor-4.06">Term-ANSIColor 4.06</dt>
+<dt id="App::Cpan-1.64_01">App::Cpan 1.64_01</dt>
 <dd>
 
-<p>Add aliases ansi16 through ansi255 and on_ansi16 through on_ansi255 (plus the corresponding constants) for the grey and rgb colors so that one can refer to all of the 256 ANSI colors with consistent names. These are aliases; the colors returned by uncolor will still use the grey and rgb names. (#118267)</p>
-
-</dd>
-<dt id="podlators-4.09">podlators 4.09</dt>
-<dd>
-
-<p>Add the t/data/snippets tests.</p>
-
-<p>Use Pod::Simple&#39;s logic to determine the native code points for NO BREAK SPACE and SOFT HYPHEN instead of hard-coding the ASCII values. Hopefully fixes the case of mysterious disappearing open brackets on EBCDIC systems. (#118240)</p>
-
-</dd>
-<dt id="Locale-Codes-3.42">Locale-Codes 3.42</dt>
-<dd>
-
-<p>Added Czech republic aliases back in</p>
+<p>Fixed <code>CPAN::Shell-</code>expand(&quot;Module&quot;, &quot;Bundle::...&quot;)&gt; error with Bundles, a regression from 1.63 and prev. cperl releases up to 5.25.0c. cperl only.</p>
 
 </dd>
 <dt id="Archive-Tar-2.18">Archive-Tar 2.18</dt>
@@ -212,118 +83,70 @@
 <p>Better 09_roundtrip.t tests.</p>
 
 </dd>
-<dt id="B-Debug-1.24">B-Debug 1.24</dt>
+<dt id="base-1.23_01">base 1.23_01</dt>
 <dd>
 
-<p>Support 5.25.6 split optimization</p>
+<p>revert base.pm incdot test change and fix properly</p>
 
 </dd>
-<dt id="Devel-NYTProf-6.04">Devel-NYTProf 6.04</dt>
+<dt id="B-1.62_06">B 1.62_06</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings, and various minor issues.</p>
+<p>fix -Wc++11-compat</p>
 
 </dd>
-<dt id="Devel-PPPort-3.35_02">Devel-PPPort 3.35_02</dt>
+<dt id="B-C-1.54_15">B-C 1.54_15</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
+<p>Fixed IsCOW savepvn, store the last cowrefcnt.</p>
+
+<p>Fixed wrong savepvn length, failing with asan.</p>
+
+<p>Optimized mro_isa_changed_in initialization. Added B::HV::Gv_AMG method.</p>
+
+<p>Fixes heap-buffer overflow at t/c.t 11 with asan.</p>
+
+<p>Fixed -lcperl for shared libcperl.</p>
 
 </dd>
-<dt id="Internals-DumpArenas-0.12_05">Internals-DumpArenas 0.12_05</dt>
+<dt id="Compress::Raw::Bzip2-2.069">Compress::Raw::Bzip2 2.069</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
+<p>Fixed APPEND_OUTPUT logic [RT #119005]</p>
 
 </dd>
-<dt id="Socket-2.024_05">Socket 2.024_05</dt>
+<dt id="Compress::Raw::Zlib-2.069">Compress::Raw::Zlib 2.069</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
+<p>Fixed APPEND_OUTPUT logic [RT #119007]</p>
 
 </dd>
-<dt id="POSIX-1.65_02">POSIX 1.65_02</dt>
+<dt id="Config-6.22_01">Config 6.22_01</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
+<p>add fake_signatures, --regen support, support for dev versions.</p>
 
 </dd>
-<dt id="Scalar-List-Utils-1.46_08">Scalar-List-Utils 1.46_08</dt>
+<dt id="Config::Perl::V-0.27_01">Config::Perl::V 0.27_01</dt>
 <dd>
-
-<p>Fix -Wc++11-compat warnings.</p>
-
-<p>Warn and strip \0 in names. [cperl #233]</p>
 
 </dd>
-<dt id="Cwd-4.65c">Cwd 4.65c</dt>
+<dt id="CPAN::Meta-2.150010c">CPAN::Meta 2.150010c</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
+<p>And merge <i>cpan/Parse-CPAN-Meta</i> into it. <i>cpan/Parse-CPAN-Meta</i> is gone.</p>
+
+<p>Parse-CPAN-Meta security: set $YAML::XS::DisableCode, $YAML::XS::DisableBlessed.</p>
+
+<p>Add support for all known YAML and JSON modules: *::Syck, JSON::MaybeXS, Mojo::JSON. But JSON::Any is broken.</p>
+
+<p>fixed UTF-8 issues, passes now all Test-CPAN-Meta tests.</p>
 
 </dd>
-<dt id="Data-Dumper-2.163">Data-Dumper 2.163</dt>
+<dt id="CPAN-2.14c">CPAN 2.14c</dt>
 <dd>
 
-<p>Fix -Wc++11-compat warnings</p>
-
-</dd>
-<dt id="Time-Local-1.25">Time-Local 1.25</dt>
-<dd>
-
-<p>Less runtime memory: demand-load Carp, Config.</p>
-
-</dd>
-<dt id="Time-HiRes-1.9741_01">Time-HiRes 1.9741_01</dt>
-<dd>
-
-<p>Fix -Wc++11-compat warnings Keep our better C++ fixes Keep our t/usleep.t, t/alarm.t, t/utime.t fixes. Keep our do_openn improvements in typemap.</p>
-
-<p>from upstream:</p>
-
-<p>- El Capitan compatibility - use CLOCK_REALTIME for clock_nanosleep scan - include file consistency in scans - use clockid_t consistently - use hv_fetchs() - scan for clockid_t (needed for macos Sierra) - darwin lacks clockid_t [rt.cpan.org #129789]</p>
-
-</dd>
-<dt id="Storable-3.02c">Storable 3.02c</dt>
-<dd>
-
-<p>Fix -Wc++11-compat warnings</p>
-
-</dd>
-<dt id="Encode-2.88">Encode 2.88</dt>
-<dd>
-
-<p>various upstream fixes. plus g++-6 -fpermissive and -Wc++11-compat fixes. our local make -s silent patches and various others are now all upstream.</p>
-
-</dd>
-<dt id="ExtUtils-Constant-0.23_04">ExtUtils-Constant 0.23_04</dt>
-<dd>
-
-<p>Fix -Wc++11-compat warnings in generated const-xs.inc code.</p>
-
-</dd>
-<dt id="ExtUtils-ParseXS-3.32_01">ExtUtils-ParseXS 3.32_01</dt>
-<dd>
-
-<p>Fix visibility declaration of XS_EXTERNAL for <code>-flto</code> and <code>-fvisibility=hidden</code>.</p>
-
-</dd>
-<dt id="Test::More-1.401015c">Test::More 1.401015c</dt>
-<dd>
-
-<p>Removed the deprecated <code>isn&#39;t</code> method, using the <code>&#39;</code> package seperator.</p>
-
-</dd>
-<dt id="App::Cpan-1.64_01">App::Cpan 1.64_01</dt>
-<dd>
-
-<p>Fixed <code>CPAN::Shell-</code>expand(&quot;Module&quot;, &quot;Bundle::...&quot;)&gt; error with Bundles, a regression from 1.63 and prev. cperl releases up to 5.25.0c. cperl only. <code>cpan .</code> in local directory still broken (upstream).</p>
-
-</dd>
-<dt id="DynaLoader-2.06c">DynaLoader 2.06c</dt>
-<dd>
-
-<p>Fixed build dependency for <i>dlboot.c</i>. No excessive rebuilds anymore.</p>
+<p>reapply most of our patches. skip cperl builtin prereqs.</p>
 
 </dd>
 <dt id="Cpanel-JSON-XS-3.0225">Cpanel-JSON-XS 3.0225</dt>
@@ -345,15 +168,137 @@
 
 <p>- fail decode of non-unicode raw characters above U+10FFFF when not in relaxed mode.</p>
 
+<p>- added <i>t/gh70-asan.t</i></p>
+
 </dd>
-<dt id="B-C-1.54_15">B-C 1.54_15</dt>
+<dt id="Data::Dumper-1.162">Data::Dumper 1.162</dt>
 <dd>
 
-<p>Fixed IsCOW savepvn, store the last cowrefcnt.</p>
+<p>strEQc improvements</p>
 
-<p>Fixed wrong savepvn length, failing with asan.</p>
+<p>fix correct indentation for utf-8 key hash elements, [perl #128524].</p>
 
-<p>Optimized mro_isa_changed_in initialization.</p>
+</dd>
+<dt id="Devel-NYTProf-6.04">Devel-NYTProf 6.04</dt>
+<dd>
+
+<p>Fix -Wc++11-compat warnings, and various minor issues.</p>
+
+</dd>
+<dt id="Devel::PPPort-3.35_02">Devel::PPPort 3.35_02</dt>
+<dd>
+
+<p>Fix -Wc++11-compat warnings.</p>
+
+</dd>
+<dt id="Digest::SHA-5.96">Digest::SHA 5.96</dt>
+<dd>
+
+<p>prevented shasum from possibly running malicious code, remove &#39;.&#39; from @INC before module loading RT #116513, namespace cleanup (RT #105371 and #105372), minor code and documentation tweaks</p>
+
+</dd>
+<dt id="DynaLoader-2.06c">DynaLoader 2.06c</dt>
+<dd>
+
+<p>Fixed build dependency for <i>dlboot.c</i>. No excessive rebuilds anymore.</p>
+
+</dd>
+<dt id="Encode-2.88">Encode 2.88</dt>
+<dd>
+
+<p>various upstream fixes. plus g++-6 -fpermissive and -Wc++11-compat fixes. our local make -s silent patches and various others are now all upstream.</p>
+
+</dd>
+<dt id="File::Fetch-2.52">File::Fetch 2.52</dt>
+<dd>
+
+<p>* Set a cleaned env when running git clone * Changed git repository link in tests * Removed consistently failing httpbin.org tests * Require Module::Load::Conditional 0.66 * Fix FTP tests for ipv6</p>
+
+</dd>
+<dt id="Getopt::Long-2.49.1">Getopt::Long 2.49.1</dt>
+<dd>
+
+<p>* RT #114999 fix :number * RT #113748 fix VersionMessage ignores -output argument * RT #39052 sanify gnu_getopt</p>
+
+</dd>
+<dt id="HTTP::Tiny-0.070">HTTP::Tiny 0.070</dt>
+<dd>
+
+<p>Many fixes und improvements</p>
+
+</dd>
+<dt id="Internals-DumpArenas-0.12_05">Internals-DumpArenas 0.12_05</dt>
+<dd>
+
+<p>Fix -Wc++11-compat warnings. Print empty arrays and hashes as such.</p>
+
+</dd>
+<dt id="IO-Socket-IP-0.38">IO-Socket-IP 0.38</dt>
+<dd>
+
+<p>- Support setting custom socket options with new Sockopts constructor parameter</p>
+
+<p>- Restore blocking mode after -&gt;connect errors [cpan #112334]</p>
+
+</dd>
+<dt id="IPC::Cmd-0.96">IPC::Cmd 0.96</dt>
+<dd>
+
+<p>set $Module::Load::Conditional::FORCE_SAFE_INC = 1</p>
+
+</dd>
+<dt id="JSON::PP-2.27400_02">JSON::PP 2.27400_02</dt>
+<dd>
+
+<p>Fixed true/false redefinition warnings.</p>
+
+</dd>
+<dt id="libnet-3.10">libnet 3.10</dt>
+<dd>
+
+<p>- Remove . from @INC when loading optional modules. [Tony Cook, Perl RT#127834, CVE-2016-1238]</p>
+
+<p>- Increased minimum required version of IO::Socket::IP to 0.25 to hopefully stop t/pop3_ipv6.t hanging. [CPAN RT#104545]</p>
+
+<p>- Debug output now includes decoded (from base64) negotiation for SASL. [Philip Prindeville, PR#27]</p>
+
+<p>- plus the suse utf8 fixes for Net::Cmd, see 5bd7010cb and our darwin performance fix for hostname.</p>
+
+</dd>
+<dt id="Locale-Codes-3.42">Locale-Codes 3.42</dt>
+<dd>
+
+<p>Added Czech republic aliases back in Lot of new codes.</p>
+
+</dd>
+<dt id="Locale::Maketext-1.28">Locale::Maketext 1.28</dt>
+<dd>
+
+<p>Fix optional runtime load for CVE-2016-1238</p>
+
+<p>Add blacklist and whitelist support, with perl #127923 priority. See <a>&quot;BRACKET NOTATION SECURITY&quot; in Locale::Maketext</a></p>
+
+</dd>
+<dt id="Math-BigInt-1.999726">Math-BigInt 1.999726</dt>
+<dd>
+
+<p>with our t/ skip count fixes.</p>
+
+</dd>
+<dt id="Module-Load-Conditional-0.68">Module-Load-Conditional 0.68</dt>
+<dd>
+
+<p>Fix unconditional @INC localisation, Add FORCE_SAFE_INC option to fix CVE-2016-1238.</p>
+
+</dd>
+<dt id="Module-Metadata-1.000033">Module-Metadata 1.000033</dt>
+<dd>
+
+<p>- Fix file operation in tests for VMS</p>
+
+<p>- use a more strict matching heuristic when attempting to infer the &quot;primary&quot; module name in a parsed .pm file</p>
+
+<p>- only report &quot;main&quot; as the module name if code was seen outside another namespace, fixing bad results for pod files (RT#107525)</p>
 
 </dd>
 <dt id="Net-Ping-2.55">Net-Ping 2.55</dt>
@@ -363,17 +308,109 @@
 
 <p>Fixed <code>_pack_sockaddr_in</code> for a proper 2nd argument type, hash or packed address.</p>
 
-<p>Improved <i>500_ping_icmp.t</i> to try <code>sudo -n</code> for tests requiring root, plus adding -n fir fixing [RT #118451]. Relaxed more tests failing with firewalled icmp on localhost. [RT #118441]</p>
+<p>Improved <i>500_ping_icmp.t</i> to try <code>sudo -n</code> (no prompt). [RT #118451]</p>
 
-<p>Fixed <code>ping_external</code> argument type, either packed ip or hostname. [RT #113825]</p>
+<p>Relaxed more tests failing with firewalled icmp on localhost. [RT #118441]</p>
+
+<p>Fixed ping_external argument type, either packed ip or hostname. [RT #113825]</p>
 
 <p>Fixed wrong skip message in <i>t/020_external.t</i></p>
+
+</dd>
+<dt id="NEXT-0.67">NEXT 0.67</dt>
+<dd>
+
+<p>Doc and meta changes only.</p>
+
+</dd>
+<dt id="parent-0.236">parent 0.236</dt>
+<dd>
+
+<p>improved t/parent-pmc.t, excluded new xt tests</p>
+
+</dd>
+<dt id="Perl-OSType-1.010">Perl-OSType 1.010</dt>
+<dd>
+
+<p>Added msys</p>
+
+</dd>
+<dt id="podlators-4.09">podlators 4.09</dt>
+<dd>
+
+<p>Many <a>Pod::Man</a> bugfixes and new tests. See <a href="https://metacpan.org/changes/distribution/podlators">https://metacpan.org/changes/distribution/podlators</a></p>
+
+</dd>
+<dt id="Pod-Perldoc-3.27">Pod-Perldoc 3.27</dt>
+<dd>
+
+<p>Fix broken test on Windows and FreeBSD (RT#116551) Fix CVE-2016-1238 by temporarily removing &#39;.&#39; from @INC in world writable directories. Fix =head3 appearing in some perlfunc lookups AmigaOS patches (RT#106798) (RT#110368) Fall back to an English perlfunc if translation doesn&#39;t exist (RT#104695) FreeBSD has mandoc too, with UTF-8 support. -U now documented and implied with -F (RT#87837)</p>
 
 </dd>
 <dt id="Pod-HTML-2.22c">Pod-HTML 2.22c</dt>
 <dd>
 
 <p>Improved parallel testing, relative <i>testdir/test$$.lib</i>. See <a href="https://rt.cpan.org/Ticket/Display.html?id=118416">[RT #118416]</a>.</p>
+
+</dd>
+<dt id="Scalar-List-Utils-1.46_08">Scalar-List-Utils 1.46_08</dt>
+<dd>
+
+<p>Fix -Wc++11-compat warnings. Prepare for handling NUL in names for cperl-5.25.2</p>
+
+</dd>
+<dt id="Socket-2.024_05">Socket 2.024_05</dt>
+<dd>
+
+<p>Fix -Wc++11-compat warnings.</p>
+
+</dd>
+<dt id="Sys-Syslog-0.35">Sys-Syslog 0.35</dt>
+<dd>
+
+<p>CVE-2016-1238: avoid loading optional modules from default . (Tony Cook). Patch rewrote to no longer depend upon @INC. See <a href="https://metacpan.org/changes/distribution/Sys-Syslog">https://metacpan.org/changes/distribution/Sys-Syslog</a></p>
+
+<p>Kept our smoker logic in <i>t/syslog.t</i>, for slow darwin systems, the suse patch and disabled the lexical filehandle patch.</p>
+
+</dd>
+<dt id="Term-ANSIColor-4.06">Term-ANSIColor 4.06</dt>
+<dd>
+
+<p>Add aliases ansi16 through ansi255 and on_ansi16 through on_ansi255 (plus the corresponding constants) for the grey and rgb colors so that one can refer to all of the 256 ANSI colors with consistent names. These are aliases; the colors returned by uncolor will still use the grey and rgb names. (#118267)</p>
+
+</dd>
+<dt id="Term::ReadKey-2.37_01">Term::ReadKey 2.37_01</dt>
+<dd>
+
+<p>ReadKey.pm renamed to ReadKey_pm.PL, expand blockoptions specific variants already at installation, no load-time eval, demand-load Carp, remove unneeded AutoLoader, harmonize formatting.</p>
+
+<p>patch: use faster StructCopy and fixup the XS.</p>
+
+<p>improved blockoptions probe when dynaloading fails.</p>
+
+</dd>
+<dt id="Thread-Semaphore-2.13">Thread-Semaphore 2.13</dt>
+<dd>
+
+<p>Added <code>down_timed</code> method.</p>
+
+</dd>
+<dt id="Time-HiRes-1.9741_01">Time-HiRes 1.9741_01</dt>
+<dd>
+
+<p>merge with cpan 1.9741</p>
+
+<p>Fix -Wc++11-compat warnings Keep our better C++ fixes Keep our t/usleep.t, t/alarm.t, t/utime.t fixes. Keep our do_openn improvements in typemap. Skip t/utime.t on ext2/ext3</p>
+
+<p>from upstream:</p>
+
+<p>- El Capitan compatibility - use CLOCK_REALTIME for clock_nanosleep scan - include file consistency in scans - use clockid_t consistently - use hv_fetchs() - scan for clockid_t (needed for macos Sierra) - darwin lacks clockid_t [rt.cpan.org #129789]</p>
+
+</dd>
+<dt id="Time-Local-1.25">Time-Local 1.25</dt>
+<dd>
+
+<p>Less runtime memory: demand-load Carp, Config. reformatted</p>
 
 </dd>
 <dt id="Unicode-Collate-1.19">Unicode-Collate 1.19</dt>
@@ -388,79 +425,14 @@
 <p>Merge latest version with the &#39;_&#39; lyon concensus with the cperl extension of the optional final &#39;c&#39; suffix. Extend version::regex for cperl. Now also parse the &#39;c&#39; natively.</p>
 
 </dd>
-</dl>
-
-<h1 id="Documentation">Documentation</h1>
-
-<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
-
-<h3 id="perldata"><a href="/cperl/perldata.html">perldata</a></h3>
-
-<ul>
-
-<li><p>Added new cperl v5.25.2c restrictions for <a href="/cperl/perldata.html#Identifier-parsing">&quot;Identifier parsing&quot; in perldata</a>: No undeclared mixed scripts, normalization to NFC and no binary symbols.</p>
-
-</li>
-</ul>
-
-<h1 id="Diagnostics">Diagnostics</h1>
-
-<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
-
-<h2 id="New-Diagnostics">New Diagnostics</h2>
-
-<p>A new <code>-Dmv</code> debugging mode for verbose arena memory debugging was added, similar to <code>-Dm</code> and <code>env PERL_MEM_LOG=s</code>.</p>
-
-<h3 id="New-Errors">New Errors</h3>
-
-<ul>
-
-<li><p><a href="/cperl/perldiag.html#Malformed-UTF-8-character-in-compose-empty-string">Malformed UTF-8 character in compose (empty string)</a></p>
-
-<p><a href="/cperl/perldiag.html#Malformed-UTF-8-character-in-compose-empty-string">Malformed UTF-8 character in decompose (empty string)</a></p>
-
-<p><a href="/cperl/perldiag.html#Malformed-UTF-8-character-in-compose-empty-string">Malformed UTF-8 character in reorder (empty string)</a></p>
-
-<p>New unicode identifier normalization errors.</p>
-
-</li>
-</ul>
-
-<h3 id="New-Warnings">New Warnings</h3>
-
-<ul>
-
-<li><p><a href="/cperl/perldiag.html#Invalid-script-s-in-identifier-for-U-04">Invalid script %s in identifier for U+%04</a></p>
-
-</li>
-<li><p><a href="/cperl/perldiag.html#Invalid-0-character-in-string-for-SYMBOL:-s">Invalid \0 character in string for SYMBOL: %s</a></p>
-
-</li>
-</ul>
-
-<h1 id="Utility-Changes">Utility Changes</h1>
-
-<h2 id="c2ph"><a>c2ph</a></h2>
-
-<ul>
-
-<li><p>Removed all the old <code>&#39;</code> package seperators, and lexicalized most internal variables from <b>c2ph</b>. But it is not yet completely strict safe. See <a href="#Removed-as-package-seperator">&quot;Removed &#39; as package seperator&quot;</a> and <a href="https://github.com/perl11/cperl/issues/217">[cperl #217]</a>.</p>
-
-</li>
-</ul>
-
-<h1 id="Platform-Support">Platform Support</h1>
-
-<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
-
-<dl>
-
-<dt id="Solaris">Solaris</dt>
+<dt id="YAML::XS-0.75">YAML::XS 0.75</dt>
 <dd>
 
-<p>With the SunPro cc compiler we use now the <code>__global</code> declaration for exported functions, similar to Windows <code>__declspec(dllexport)</code>.</p>
+<p>fixed encoding issues: fixed wrong $YAML::XS::Encoding and $YAML::XS::LineBreak comparison logic. fixed utf8 input as handled as UTF8, non-utf8 honors $YAML::XS::Encoding.</p>
 
-<p>This is hidden under the new <code>GLOBAL</code> macro.</p>
+<p>fixed -Wunused value warnings</p>
+
+<p>merged with upstream YAML-LibYAML, implemented $DisableBlessed (security).</p>
 
 </dd>
 </dl>
@@ -469,72 +441,10 @@
 
 <dl>
 
-<dt id="arflags">arflags</dt>
-<dd>
-
-<p>Probe for arflags, which do support <code>D</code> for deterministic static archives without member timestamps. On darwin we currently only have <i>llvm-ar-mp-3.9</i> (since 3.7) which does support this.</p>
-
-<p>ranlib is probed for the <code>-D</code> flag for reproducible build determinism.</p>
-
-</dd>
-<dt id="fixed-longdblinfbytes-probe">fixed longdblinfbytes probe</dt>
-<dd>
-
-<p>With Intel long double it didn&#39;t clean random excess garbage bytes after the 10th byte.</p>
-
-</dd>
-<dt id="cperl-build-helper-scripts">cperl build helper scripts</dt>
-<dd>
-
-<p>Added the following release scripts to <i>Porting:</i> <i>do-conf-clean</i> <i>do-conf-cperl-release</i> <i>do-make-cperl-release</i> <i>do-make-srctarball</i> <i>perl_version</i> for Linux (debian and rpm) and Darwin.</p>
-
-<p>Those builds are now reproducible, see below.</p>
-
-</dd>
-<dt id="reproducible-builds">reproducible builds</dt>
-<dd>
-
-<p>cperl has now support for automatic reproducible builds on most platforms. A new <b>cf_epoch</b> config key was added.</p>
-
-<p>The config key <b>cf_time</b> is now based on: 1. SOURCE_DATE_EPOCH, 2. with .git the newest file in the repository, or 3. the newest file in the MANIFEST.</p>
-
-<p>Builds are done with <code>LC_ALL=C</code> and <code>PERL_HASH_SEED=0</code>, but builds are still LANGUAGE or compiler specific.</p>
-
-<p>Those builds are reproducible when done on the same machine and user. Otherwise set the keys: cf_by, cf_email, mydomain, myhostname, myuname also.</p>
-
-<p>See <a href="https://github.com/perl11/cperl/issues/169">[cperl #169]</a>.</p>
-
-</dd>
-<dt id="passcat">passcat</dt>
-<dd>
-
-<p>This suspicious Config key was removed from cperl. If you have a NIS database use <code>ypcat passwd</code>. passcat is not used in any public CPAN module.</p>
-
-</dd>
-<dt id="fake_signatures">fake_signatures</dt>
-<dd>
-
-<p>Ask for <a>fake_signatures</a> being compiled in as default or not. Defaults to yes with cperl, no without. Sets <code>$Config{fake_signatures}</code> and defines <code>PERL_FAKE_SIGNATURE</code>.</p>
-
-</dd>
 <dt id="d_llabs">d_llabs</dt>
 <dd>
 
 <p>Probe for <code>llabs()</code> needed for PERL_IABS on 32bit with -Duse64bitint, the default on mingw/cygwin. Defines <code>HAS_LLABS</code>.</p>
-
-</dd>
-<dt id="d_setenv">d_setenv</dt>
-<dd>
-
-<p>Probe for <code>setenv()</code> needed on some platforms with strict linkage or <code>-fvisibility=hidden</code>.</p>
-
-</dd>
-<dt id="d_attribute_always_inline">d_attribute_always_inline</dt>
-<dd>
-
-<p>Probe for <code>__attribute__((always_inline))</code>, which is helpful with <code>clang -flto=thin</code> for exported mathoms (b) and inlined functions.</p>
-
-<p>The problem is that <code>__attribute__((used))</code> functions are not inlined. With always_inline + global visibility, but not <code>__attribute__((used))</code> we get inlined variants plus exported copies for the API. Add <code>PERL_MATHOM_CALLCONV</code> to use it.</p>
 
 </dd>
 </dl>
@@ -543,34 +453,11 @@
 
 <ul>
 
-<li><p>Added <i>t/porting/embedcpp.t</i> to check for perl.h C++ compatibility with a modern C++ compiler. There must be no fatal compilation errors in the <code>-c</code> step from C++ incompatibilities in any perl header file.</p>
-
-<p>Note that Microsoft Visual C++ still throws errors. You cannot use that yet. See <a href="https://github.com/perl11/cperl/issues/227">[cperl #227]</a>.</p>
+<li><p>Added <i>t/porting/embedcpp.t</i> to check for perl.h C++ compatibility with a modern C++ compiler. There must be no fatal compilation errors in the <code>-c</code> step from C++ incompatibilities in any header file.</p>
 
 <p>This is related to the new <code>-Wc++11-compat</code> and <code>-fpermissive</code> fixes.</p>
 
-</li>
-</ul>
-
-<h1 id="Internal-Changes">Internal Changes</h1>
-
-<ul>
-
-<li><p>Support for clang <code>-flto</code> and the new <code>-flto=thin</code> optimization was added, via <code>GLOBAL</code> declaration and <code>__attribute__global__</code> for global visibility for all exported API functions, even if not used, and <code>-DLTO</code>. Note that is not needed for <code>gcc -flto</code>, and the clang variant produces slower code.</p>
-
-<p>Rudimentary support for <code>-fsanitize=cfi</code> was also added, which is safer than the old <code>-fstack-protector-strong</code>, but this is not yet finished.</p>
-
-<p><a>ExtUtils::ParseXS</a> adds now a correct visibility declaration of <code>XS_EXTERNAL</code> for <code>-flto</code> and <code>-fvisibility=hidden</code>, which is needed for <code>-fsanitize=cfi</code> support.</p>
-
-<p><code>Perl_xs_handshake</code> is now properly exported, which is needed for <code>clang -flto=thin</code>.</p>
-
-</li>
-<li><p><code>XS_EXTERNAL</code> and <code>XSPROTO</code> were simplified to use the new <code>GLOBAL</code> declaration and <code>__attribute__global__</code> attribute, for easier platform abstractions.</p>
-
-</li>
-<li><p>Added many OP read-write field accessor macros, like <code>OpFIRST</code>, <code>OpLAST</code>, <code>OpOTHER</code>, <code>OpKIDS</code>, <code>OpSPECIAL</code>, <code>OpSTACKED</code>, <code>OpDEREF</code>, <code>OpWANT_VOID</code>, <code>OpWANT_SCALAR</code>, <code>OpWANT_LIST</code>. And shorter type checks: <code>IS_TYPE</code>, <code>ISNT_TYPE</code>, <code>NO_OP_TYPE_OR_WASNT</code>.</p>
-
-<p>rpeep uses now consistently the local <code>o</code>, and not the global <code>PL_op</code> variable. See <a href="https://github.com/perl11/cperl/issues/219">[cperl #219]</a>.</p>
+<p>Note that Microsoft Visual C++ still throws errors. You cannot use that yet. See <a href="https://github.com/perl11/cperl/issues/227">[cperl #227]</a>.</p>
 
 </li>
 </ul>
@@ -589,10 +476,7 @@
 </li>
 <li><p>Fixed several issues with <code>-Duseshrplib</code>, a shared <i>libcperl.$so</i>:</p>
 
-<p>install it (!!), fix ExtUtils::Embed and B-C compilation and testing, fix tests on darwin, fix configuration probe of Term::ReadKey.</p>
-
-</li>
-<li><p>Fixed <code>sv_dump</code> of fbm-magic strings which did previously contain the wrong &quot;VALID,EVALED&quot; string for a flag which is either VALID or EVALED. cperl only.</p>
+<p>install it (!!) (cperl only), fix ExtUtils::Embed and B-C compilation and testing, fix tests on darwin, fix configuration probe of Term::ReadKey.</p>
 
 </li>
 <li><p>Fixed a cperl-only failure in signatures with default blocks introducing a new lexical variable. As in <code>sub t151($a,$b=do{my $f},$c=1){} t151($x,$x,$x)</code>. This failure was only fatal on 32bit + -Duse64bitint systems.</p>
@@ -613,34 +497,29 @@
 
 <ul>
 
-<li><p>The perl debugger doesn&#39;t yet work with signatures. It doesn&#39;t step into such functions and it may fail. See e.g. <a href="https://github.com/perl11/cperl/issues/167">[cperl #167]</a></p>
-
-</li>
-<li><p><i>t/op/taint.t</i> contained a test with signatures and 6 default arguments, which on some 32 bit systems led to random &quot;Reference parameter cannot take default value at op/taint.t line 2461&quot; compile-time failures. This test has been rewritten to ony use 4 arguments.</p>
-
-<p>See <a href="https://github.com/perl11/cperl/issues/164">[cperl #164]</a></p>
-
-</li>
-<li><p><code>clang -flto=thin</code> and on some systems even <code>gcc -flto</code> with <code>-O3</code> or <code>-finline</code> leads to invisible symbols which were inlined and not exported, even if they should be declared as public API. Work is ongoing in the <i>feature/gh186-lto-thin</i> branch, but there the inlining is disabled by the <code>used</code> attribute, leading to a 10% performance regression. On the other hand a working <code>clang-3.9 -flto</code> leads to 20% performance improvements.</p>
-
-</li>
 <li><p><code> until ($x = 1) { ... } </code> and <code> ... until $x = 1 </code> should warn when syntax warnings are enabled. <a href="https://rt.perl.org/Public/Bug/Display.html?id=127333">[perl #127333]</a></p>
 
 </li>
 <li><p><code> ${\vec %h, 0, 1} </code> and <code> ${\substr %h, 0} </code> should not segfault, rather the lvalue context should be propagated, and list context properly handled. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128260">[perl #128260]</a></p>
 
 </li>
+<li><p>The perl debugger doesn&#39;t yet work with signatures. It doesn&#39;t step into such functions and it may fail. See e.g. <a href="https://github.com/perl11/cperl/issues/167">[cperl #167]</a></p>
+
+</li>
+<li><p><code>clang -flto=thin</code> and on some systems even <code>gcc -flto</code> with <code>-O3</code> or <code>-finline</code> leads to invisible symbols which were inlined and not exported, even if they should be declared as public API. This is fixed in v5.25.2c.</p>
+
+</li>
 </ul>
 
 <h1 id="Acknowledgements">Acknowledgements</h1>
 
-<p>cperl 5.25.2 represents approximately 2 months of development since cperl 5.25.1c and contains approximately 44,000 lines of changes across 400 files from 5 authors.</p>
+<p>Perl 5.24.2 represents approximately 2 months of development since Perl 5.24.1c and contains approximately 170,000 lines of changes across 720 files from 4 authors.</p>
 
-<p>Excluding auto-generated files, documentation and release tools, there were approximately 31,000 lines of changes to 260 .pm, .t, .c and .h files.</p>
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 93,000 lines of changes to 420 .pm, .t, .c and .h files.</p>
 
-<p>The following people are known to have contributed the improvements that became Perl 5.25.2:</p>
+<p>The following people are known to have contributed the improvements that became Perl 5.24.2:</p>
 
-<p>Reini Urban, Tony Cook, Yves Orton, Hugo van der Sanden, Karl Williamson.</p>
+<p>Reini Urban, Tony Cook, Yves Orton, Hugo van der Sanden.</p>
 
 <p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
 
@@ -650,15 +529,15 @@
 
 <p>Generated with:</p>
 
-<pre><code>    cperl Porting/acknowledgements.pl cperl-5.25.1..HEAD</code></pre>
+<pre><code>    cperl Porting/acknowledgements.pl cperl-5.24.1..HEAD</code></pre>
 
 <h1 id="Reporting-Bugs">Reporting Bugs</h1>
 
 <p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
 
-<p>If you believe you have an unreported bug, please run the <a>cperlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
 
-<p>If you think it&#39;s a cperl specific bug or trust the cperl developers more please file an issue at <a href="https://github.com/perl11/cperl/issues">https://github.com/perl11/cperl/issues</a>.</p>
+<p>If you think it&#39;s a cperl specific bug or trust the cperl developers more please file an issue at <a href="https://github.com/perl11/cperl/issues">https://github.com/perl11/cperl/issues</a>. The p5p bug tracker is explicitly blocked for cperl developers, so we cannot see it there until it is fixed, which might need several years. p5p ignores any cperl bugfixes, so you might want to report it twice.</p>
 
 <p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> For details of how to report the issue.</p>
 
