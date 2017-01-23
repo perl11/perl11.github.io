@@ -1,0 +1,682 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Core-Enhancements">Core Enhancements</a>
+    <ul>
+      <li><a href="#Indented-Here-documents">Indented Here-documents</a></li>
+      <li><a href="#and-INC">&#39;.&#39; and @INC</a></li>
+      <li><a href="#create-a-safer-utf8_hop-called-utf8_hop_safe">create a safer utf8_hop() called utf8_hop_safe()</a></li>
+      <li><a href="#Fix-taint-handling-in-list-assignment">Fix taint handling in list assignment</a></li>
+      <li><a href="#CAPTURE-CAPTURE-and-CAPTURE_ALL">@{^CAPTURE}, %{^CAPTURE}, and %{^CAPTURE_ALL}</a></li>
+      <li><a href="#op.c:-silence-compiler-warning-in-fold_constants">op.c: silence compiler warning in fold_constants()</a></li>
+    </ul>
+  </li>
+  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Documentation">Documentation</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a>
+        <ul>
+          <li><a href="#perlfunc">perlfunc</a></li>
+          <li><a href="#perldata">perldata</a></li>
+          <li><a href="#perlobj">perlobj</a></li>
+          <li><a href="#perlop">perlop</a></li>
+          <li><a href="#perllocale">perllocale</a></li>
+          <li><a href="#perldiag">perldiag</a></li>
+          <li><a href="#perlguts">perlguts</a></li>
+          <li><a href="#perlvar">perlvar</a></li>
+          <li><a href="#perlootut">perlootut</a></li>
+          <li><a href="#perlhack">perlhack</a></li>
+          <li><a href="#perlre">perlre</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</a></li>
+    </ul>
+  </li>
+  <li><a href="#Utility-Changes">Utility Changes</a></li>
+  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
+  <li><a href="#Testing">Testing</a></li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5257delta - what is new for perl v5.25.7</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.25.6 release and the 5.25.7 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.25.5, first read <a href="/cperl/perl5256delta.html">perl5256delta</a>, which describes differences between 5.25.5 and 5.25.6.</p>
+
+<h1 id="Core-Enhancements">Core Enhancements</h1>
+
+<h2 id="Indented-Here-documents">Indented Here-documents</h2>
+
+<p>This adds a new modifier &#39;~&#39; to here-docs that tells the parser that it should look for /^\s*$DELIM\n/ as the closing delimiter.</p>
+
+<p>These syntaxes are all supported:</p>
+
+<pre><code>    &lt;&lt;~EOF;
+    &lt;&lt;~\EOF;
+    &lt;&lt;~&#39;EOF&#39;;
+    &lt;&lt;~&quot;EOF&quot;;
+    &lt;&lt;~`EOF`;
+    &lt;&lt;~ &#39;EOF&#39;;
+    &lt;&lt;~ &quot;EOF&quot;;
+    &lt;&lt;~ `EOF`;</code></pre>
+
+<p>The &#39;~&#39; modifier will strip, from each line in the here-doc, the same whitespace that appears before the delimiter.</p>
+
+<p>Newlines will be copied as is, and lines that don&#39;t include the proper beginning whitespace will cause perl to croak.</p>
+
+<p>For example:</p>
+
+<pre><code>    if (1) {
+      print &lt;&lt;~EOF;
+        Hello there
+        EOF
+    }</code></pre>
+
+<p>prints &quot;Hello there\n&quot; with no leading whitespace.</p>
+
+<h2 id="and-INC">&#39;.&#39; and @INC</h2>
+
+<p>Perl now provides a way to build perl without <code>.</code> in @INC by default. If you want this feature, you can build with -Ddefault_inc_excludes_dot</p>
+
+<p>Because the testing / make process for perl modules do not function well with <code>.</code> missing from @INC, Perl now supports the environment variable PERL_USE_UNSAFE_INC=1 which makes Perl behave as it previously did, returning <code>.</code> to @INC in all child processes.</p>
+
+<p>WARNING: PERL_USE_UNSAFE_INC has been provided during the perl 5.25 development cycle and is not guaranteed to function in perl 5.26.</p>
+
+<h2 id="create-a-safer-utf8_hop-called-utf8_hop_safe">create a safer utf8_hop() called utf8_hop_safe()</h2>
+
+<p>Unlike utf8_hop(), utf8_hop_safe() won&#39;t navigate before the beginning or after the end of the supplied buffer.</p>
+
+<h2 id="Fix-taint-handling-in-list-assignment">Fix taint handling in list assignment</h2>
+
+<p>commit v5.25.6-79-gb09ed99 reworked list assignment, and accidentally broke taint handling at the same time.</p>
+
+<h2 id="CAPTURE-CAPTURE-and-CAPTURE_ALL">@{^CAPTURE}, %{^CAPTURE}, and %{^CAPTURE_ALL}</h2>
+
+<p>@{^CAPTURE} exposes the capture buffers of the last match as an array. So $1 is ${^CAPTURE}[0].</p>
+
+<p>%{^CAPTURE} is the equivalent to %+ (ie named captures)</p>
+
+<p>%{^CAPTURE_ALL} is the equivalent to %- (ie all named captures).</p>
+
+<h2 id="op.c:-silence-compiler-warning-in-fold_constants">op.c: silence compiler warning in fold_constants()</h2>
+
+<pre><code>    op.c: In function &lsquo;S_fold_constants&rsquo;:
+    op.c:4374:28: warning: argument &lsquo;o&rsquo; might be clobbered by &lsquo;longjmp&rsquo; or &lsquo;vfork&rsquo; [-Wclobbered]
+     S_fold_constants(pTHX_ OP *o)
+                                ^</code></pre>
+
+<p>This warning has been silenced.</p>
+
+<h1 id="Performance-Enhancements">Performance Enhancements</h1>
+
+<ul>
+
+<li><p>Reduce cost of SvVALID().</p>
+
+</li>
+<li><p><code>$ref1 = $ref2</code> has been optimized.</p>
+
+</li>
+<li><p>Array and hash assignment are now faster, e.g.</p>
+
+<pre><code>    (..., @a) = (...);
+    (..., %h) = (...);</code></pre>
+
+<p>especially when the RHS is empty.</p>
+
+</li>
+<li><p>Reduce the number of odd special cases for the SvSCREAM flag.</p>
+
+</li>
+<li><p>Avoid sv_catpvn() in do_vop() when unneeded.</p>
+
+</li>
+<li><p>Enhancements in Regex concat COW implementation.</p>
+
+</li>
+<li><p>Speed up AV and HV clearing/undeffing.</p>
+
+</li>
+<li><p>Better optimise array and hash assignment</p>
+
+</li>
+</ul>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a>podlators</a> has been upgraded from version 4.08 to 4.09.</p>
+
+</li>
+<li><p><a>Archive::Tar</a> has been upgraded from version 2.14 to 2.18.</p>
+
+</li>
+<li><p><a>B</a> has been upgraded from version 1.64 to 1.65.</p>
+
+</li>
+<li><p><a>Data::Dumper</a> has been upgraded from version 2.162 to 2.165.</p>
+
+<p>The XS implementation now supports Deparse.</p>
+
+</li>
+<li><p><a>Devel::Peek</a> has been upgraded from version 1.25 to 1.26.</p>
+
+</li>
+<li><p><a>DynaLoader</a> has been upgraded from version 1.39 to 1.40.</p>
+
+</li>
+<li><p><a>Errno</a> has been upgraded from version 1.26 to 1.27.</p>
+
+<p>Document that using <code>%!</code> loads Errno for you.</p>
+
+</li>
+<li><p><a>File::Spec</a> has been upgraded from version 3.65 to 3.66.</p>
+
+</li>
+<li><p><a>Hash::Util</a> has been upgraded from version 0.21 to 0.22.</p>
+
+</li>
+<li><p><a>JSON::PP</a> has been upgraded from version 2.27400_01 to 2.27400_02.</p>
+
+</li>
+<li><p><a>List::Util</a> has been upgraded from version 1.46 to 1.46_02.</p>
+
+</li>
+<li><p><a>Math::BigInt</a> has been upgraded from version 1.999726(_01) to 1.999727.</p>
+
+<p>There have also been some core customizations.</p>
+
+</li>
+<li><p><a>Math::Complex</a> has been upgraded from version 1.59 to 1.5901.</p>
+
+</li>
+<li><p><a>Module::CoreList</a> has been upgraded from version 5.20161020 to 5.20161120.</p>
+
+</li>
+<li><p><a>mro</a> has been upgraded from version 1.19 to 1.20.</p>
+
+</li>
+<li><p><a>Net::Ping</a> has been upgraded from version 2.51 to 2.55.</p>
+
+<p>Remove sudo from 500_ping_icmp.t.</p>
+
+<p>Avoid stderr noise in tests</p>
+
+<p>Check for echo in new Net::Ping tests.</p>
+
+</li>
+<li><p><a>Opcode</a> has been upgraded from version 1.38 to 1.39.</p>
+
+</li>
+<li><p><a>POSIX</a> has been upgraded from version 1.73 to 1.75.</p>
+
+</li>
+<li><p><a>Scalar::Util</a> has been upgraded from version 1.46 to 1.46_02.</p>
+
+</li>
+<li><p><a>Storable</a> has been upgraded from version 2.58 to 2.59.</p>
+
+</li>
+<li><p><a>Term::ANSIColor</a> has been upgraded from version 4.05 to 4.06.</p>
+
+</li>
+<li><p><a>Test::Simple</a> has been upgraded from version 1.302059 to 1.302062.</p>
+
+</li>
+<li><p><a>threads</a> has been upgraded from version 2.09 to 2.10.</p>
+
+</li>
+<li><p><a>Time::HiRes</a> has been upgraded from version 1.9740_01 to 1.9740_03.</p>
+
+<p>Now uses clockid_t.</p>
+
+</li>
+<li><p><a>Unicode::Collate</a> has been upgraded from version 1.14 to 1.18.</p>
+
+</li>
+<li><p><a>Unicode::Normalize</a> is now maintained by p5p and has been moved to dist/</p>
+
+</li>
+<li><p><a>Unicode::UCD</a> has been upgraded from version 0.66 to 0.67.</p>
+
+</li>
+<li><p><a>XS::Typemap</a> has been upgraded from version 0.14 to 0.15.</p>
+
+</li>
+</ul>
+
+<h1 id="Documentation">Documentation</h1>
+
+<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
+
+<h3 id="perlfunc"><a href="/cperl/perlfunc.html">perlfunc</a></h3>
+
+<ul>
+
+<li><p>Defined on aggregates is no longer allowed. Perlfunc was still reporting it as deprecated, and that it will be deleted in the future.</p>
+
+</li>
+</ul>
+
+<h3 id="perldata"><a href="/cperl/perldata.html">perldata</a></h3>
+
+<ul>
+
+<li><p>Use of single character variables, with the variable name a non printable character in the range \x80-\xFF is no longer allowed. Update the docs to reflect this.</p>
+
+</li>
+</ul>
+
+<h3 id="perlobj"><a href="/cperl/perlobj.html">perlobj</a></h3>
+
+<ul>
+
+<li><p>Added a section on calling methods using their fully qualified names.</p>
+
+</li>
+<li><p>Do not discourage manual @ISA.</p>
+
+</li>
+</ul>
+
+<h3 id="perlop"><a href="/cperl/perlop.html">perlop</a></h3>
+
+<ul>
+
+<li><p>Clarify behavior single quote regexps.</p>
+
+</li>
+</ul>
+
+<h3 id="perllocale"><a href="/cperl/perllocale.html">perllocale</a></h3>
+
+<ul>
+
+<li><p>Some locales aren&#39;t compatible with Perl. Note the potential bad consequences of using them.</p>
+
+</li>
+</ul>
+
+<h3 id="perldiag"><a href="/cperl/perldiag.html">perldiag</a></h3>
+
+<ul>
+
+<li><p>Deprecations are to be marked with a D. <code>&quot;%s() is deprecated on :utf8 handles&quot;</code> use a deprecation message, and as such, such be marked <code>&quot;(D deprecated)&quot;</code> and not <code>&quot;(W deprecated)&quot;</code>.</p>
+
+</li>
+</ul>
+
+<h3 id="perlguts"><a href="/cperl/perlguts.html">perlguts</a></h3>
+
+<ul>
+
+<li><p>add pTHX_ to magic method examples.</p>
+
+</li>
+</ul>
+
+<h3 id="perlvar"><a href="/cperl/perlvar.html">perlvar</a></h3>
+
+<ul>
+
+<li><p>Document @ISA. Was documented other places, not not in perlvar.</p>
+
+</li>
+</ul>
+
+<h3 id="perlootut"><a href="/cperl/perlootut.html">perlootut</a></h3>
+
+<ul>
+
+<li><p>Tidy the document.</p>
+
+</li>
+<li><p>Mention Moo more.</p>
+
+</li>
+</ul>
+
+<h3 id="perlhack"><a href="/cperl/perlhack.html">perlhack</a></h3>
+
+<ul>
+
+<li><p>Document Tab VS Space.</p>
+
+</li>
+</ul>
+
+<h3 id="perlre"><a href="/cperl/perlre.html">perlre</a></h3>
+
+<ul>
+
+<li><p>Several minor enhancements to the documentation.</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</h2>
+
+<ul>
+
+<li><p>Improve error for missing tie() package/method. This brings the error messages in line with the ones used for normal method calls, despite not using call_method().</p>
+
+</li>
+<li><p>Make the sysread()/syswrite/() etc :utf8 handle warnings default. These warnings were under &#39;deprecated&#39; previously.</p>
+
+</li>
+<li><p>&#39;do&#39; errors now refer to &#39;do&#39; (not &#39;require&#39;).</p>
+
+</li>
+</ul>
+
+<h1 id="Utility-Changes">Utility Changes</h1>
+
+<ul>
+
+<li><p>Porting/pod_lib.pl</p>
+
+<p>Removed spurious executable bit.</p>
+
+<p>Account for possibility of DOS file endings.</p>
+
+</li>
+<li><p>perf/benchmarks</p>
+
+<p>Tidy file, rename some symbols.</p>
+
+</li>
+<li><p>Porting/checkAUTHORS.pl</p>
+
+<p>Replace obscure character range with \w.</p>
+
+</li>
+<li><p>t/porting/regen.t</p>
+
+<p>try to be more helpful when tests fail.</p>
+
+</li>
+<li><p>utils/h2xs.PL</p>
+
+<p>Avoid infinite loop for enums.</p>
+
+</li>
+</ul>
+
+<h1 id="Configuration-and-Compilation">Configuration and Compilation</h1>
+
+<ul>
+
+<li><p>Remove &quot;Warning: perl appears in your path&quot;</p>
+
+<p>This install warning is more or less obsolete, since most platforms already *will* have a /usr/bin/perl or similar provided by the OS.</p>
+
+</li>
+<li><p>Reduce verbosity of &quot;make install.man&quot;</p>
+
+<p>Previously, two progress messages were emitted for each manpage: one by installman itself, and one by the function in install_lib.pl that it calls to actually install the file. Disabling the second of those in each case saves over 750 lines of unhelpful output.</p>
+
+</li>
+<li><p>Cleanup for clang -Weverything support. [perl 129961]</p>
+
+</li>
+<li><p>Configure: signbit scan was assuming too much, stop assuming negative 0.</p>
+
+</li>
+<li><p>Various compiler warnings have been silenced.</p>
+
+</li>
+<li><p>Several smaller changes have been made to remove impediments to compiling under C++11.</p>
+
+</li>
+</ul>
+
+<h1 id="Testing">Testing</h1>
+
+<ul>
+
+<li><p>XS-APItest/t/utf8.t: Several small fixes and enhancements.</p>
+
+</li>
+<li><p>Tests for locales were erroneously using locales incompatible with Perl.</p>
+
+</li>
+</ul>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="Darwin">Darwin</dt>
+<dd>
+
+<p>don&#39;t treat -Dprefix=/usr as special, instead require an extra option -Ddarwin_distribution to produce the same results.</p>
+
+</dd>
+<dt id="POSIX">POSIX</dt>
+<dd>
+
+<p>Finish removing POSIX deprecated functions.</p>
+
+</dd>
+<dt id="OS-X">OS X</dt>
+<dd>
+
+<p>OS X El Capitan doesn&#39;t implement the clock_gettime() or clock_getres() APIs, emulate them as necessary.</p>
+
+</dd>
+<dt id="macOS">macOS</dt>
+<dd>
+
+<p>Deprecated syscall(2) on macOS 10.12.</p>
+
+</dd>
+<dt id="EBCDIC">EBCDIC</dt>
+<dd>
+
+<p>Several tests have been updated to work (or be skipped) on EBCDIC platforms.</p>
+
+</dd>
+<dt id="HP-UX">HP-UX</dt>
+<dd>
+
+<p><a>Net::Ping</a> UDP test is skipped on HP-UX.</p>
+
+</dd>
+<dt id="VMS">VMS</dt>
+<dd>
+
+<p>Move _pDEPTH and _aDEPTH after config.h otherwise DEBUGGING may not be defined yet.</p>
+
+<p>VAXC has not been a possibility for a good long while, and the versions of the DEC/Compaq/HP/VSI C compiler that report themselves as &quot;DEC&quot; in a listing file are 15 years or more out-of-date and can be safely desupported.</p>
+
+</dd>
+<dt id="VMS-And-Win32">VMS And Win32</dt>
+<dd>
+
+<p>Fix some breakage, add &#39;undef&#39; value for default_inc_excludes_dot in build scripts.</p>
+
+</dd>
+<dt id="Linux">Linux</dt>
+<dd>
+
+<p>Drop support for Linux a.out Linux has used ELF for over twenty years.</p>
+
+</dd>
+<dt id="NetBSD-VAX">NetBSD-VAX</dt>
+<dd>
+
+<p>Test fixes and minor updates.</p>
+
+<p>Account for lack of <code>inf</code>, <code>nan</code>, and <code>-0.0</code> support.</p>
+
+</dd>
+<dt id="Win32">Win32</dt>
+<dd>
+
+<p>fp definitions have been updated.</p>
+
+</dd>
+<dt id="OpenBSD-6">OpenBSD 6</dt>
+<dd>
+
+<p>OpenBSD 6 still does not support returning pid, gid or uid with SA_SIGINFO. Make sure this is accounted for.</p>
+
+</dd>
+<dt id="FreeBSD">FreeBSD</dt>
+<dd>
+
+<p>t/uni/overload.t: Skip hanging test on FreeBSD.</p>
+
+</dd>
+</dl>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>The meanings of some internal SV flags have been changed</p>
+
+<p>OPpRUNTIME, SVpbm_VALID, SVpbm_TAIL, SvTAIL_on, SvTAIL_off, SVrepl_EVAL, SvEVALED</p>
+
+</li>
+<li><p>Change <code>hv_fetch(&hellip;, &quot;&hellip;&quot;, &hellip;, &hellip;)</code> to <code>hv_fetchs(&hellip;, &quot;&hellip;&quot;, &hellip;)</code></p>
+
+<p>The dual-life dists all use Devel::PPPort, so they can use this function even though it was only added in 5.10.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>Handle SvIMMORTALs in LHS of list assign. [perl #129991]</p>
+
+</li>
+<li><p>[perl #130010] a5540cf breaks texinfo</p>
+
+<p>This involved user-defined Unicode properties.</p>
+
+</li>
+<li><p>Fix error message for unclosed <code>\N{</code> in regcomp.</p>
+
+<p>An unclosed <code>\N{</code> could give the wrong error message <code>&quot;\N{NAME} must be resolved by the lexer&quot;</code>.</p>
+
+</li>
+<li><p>List assignment in list context where the LHS contained aggregates and where there were not enough RHS elements, used to skip scalar lvalues. Previously, <code>(($a,$b,@c,$d) = (1))</code> in list context returned <code>($a)</code>; now it returns <code>($a,$b,$d)</code>. <code>(($a,$b,$c) = (1))</code> is unchanged: it still returns <code>($a,$b,$c)</code>. This can be seen in the following:</p>
+
+<pre><code>    sub inc { $_++ for @_ }
+    inc(($a,$b,@c,$d) = (10))</code></pre>
+
+<p>Formerly, the values of <code>($a,$b,$d)</code> would be left as <code>(11,undef,undef)</code>; now they are <code>(11,1,1)</code>.</p>
+
+</li>
+<li><p>[perl 129903]</p>
+
+<p>The basic problem is that code like this: /(?{ s!!! })/ can trigger infinite recursion on the C stack (not the normal perl stack) when the last successful pattern in scope is itself. Since the C stack overflows this manifests as an untrappable error/segfault, which then kills perl.</p>
+
+<p>We avoid the segfault by simply forbidding the use of the empty pattern when it would resolve to the currently executing pattern.</p>
+
+</li>
+<li><p>[perl 128997] Avoid reading beyond the end of the line buffer when there&#39;s a short UTF-8 character at the end.</p>
+
+</li>
+<li><p>[perl 129950] fix firstchar bitmap under utf8 with prefix optimisation.</p>
+
+</li>
+<li><p>[perl 129954] Carp/t/arg_string.t: be liberal in f/p formats.</p>
+
+</li>
+<li><p>[perl 129928] make do &quot;a\0b&quot; fail silently instead of throwing.</p>
+
+</li>
+<li><p>[perl 129130] make chdir allocate the stack it needs.</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.25.7 represents approximately 4 weeks of development since Perl 5.25.6 and contains approximately 83,000 lines of changes across 630 files from 26 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 13,000 lines of changes to 340 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.25.7:</p>
+
+<p>Aaron Crane, Abigail, Andrew Fresh, Andy Lester, Aristotle Pagaltzis, Chad Granum, Chris &#39;BinGOs&#39; Williams, Craig A. Berry, Dagfinn Ilmari Manns&aring;ker, Dan Collins, Dave Rolsky, David Mitchell, Hauke D, H.Merijn Brand, Hugo van der Sanden, James E Keenan, Jarkko Hietaniemi, Karl Williamson, Lukas Mai, Matthew Horsfall, Nicolas R., Stefan Seifert, Steve Hay, Todd Rinaldo, Tony Cook, Yves Orton.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> for details of how to report the issue.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

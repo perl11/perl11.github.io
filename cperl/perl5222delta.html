@@ -1,0 +1,312 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Security">Security</a>
+    <ul>
+      <li><a href="#Fix-out-of-boundary-access-in-Win32-path-handling">Fix out of boundary access in Win32 path handling</a></li>
+      <li><a href="#Fix-loss-of-taint-in-canonpath">Fix loss of taint in canonpath()</a></li>
+      <li><a href="#Set-proper-umask-before-calling-mkstemp-3">Set proper umask before calling mkstemp(3)</a></li>
+      <li><a href="#Avoid-accessing-uninitialized-memory-in-Win32-crypt">Avoid accessing uninitialized memory in Win32 crypt()</a></li>
+      <li><a href="#Remove-duplicate-environment-variables-from-environ">Remove duplicate environment variables from environ</a></li>
+    </ul>
+  </li>
+  <li><a href="#Incompatible-Changes">Incompatible Changes</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Documentation">Documentation</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a>
+        <ul>
+          <li><a href="#perldiag">perldiag</a></li>
+          <li><a href="#perlfunc">perlfunc</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5222delta - what is new for perl v5.22.2</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.22.1 release and the 5.22.2 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.22.0, first read <a href="/cperl/perl5221delta.html">perl5221delta</a>, which describes differences between 5.22.0 and 5.22.1.</p>
+
+<h1 id="Security">Security</h1>
+
+<h2 id="Fix-out-of-boundary-access-in-Win32-path-handling">Fix out of boundary access in Win32 path handling</h2>
+
+<p>This is CVE-2015-8608. For more information see <a href="https://rt.perl.org/Ticket/Display.html?id=126755">[perl #126755]</a>.</p>
+
+<h2 id="Fix-loss-of-taint-in-canonpath">Fix loss of taint in <code>canonpath()</code></h2>
+
+<p>This is CVE-2015-8607. For more information see <a href="https://rt.perl.org/Ticket/Display.html?id=126862">[perl #126862]</a>.</p>
+
+<h2 id="Set-proper-umask-before-calling-mkstemp-3">Set proper umask before calling <code>mkstemp(3)</code></h2>
+
+<p>In 5.22.0 perl started setting umask to <code>0600</code> before calling <code>mkstemp(3)</code> and restoring it afterwards. This wrongfully tells <code>open(2)</code> to strip the owner read and write bits from the given mode before applying it, rather than the intended negation of leaving only those bits in place.</p>
+
+<p>Systems that use mode <code>0666</code> in <code>mkstemp(3)</code> (like old versions of glibc) create a file with permissions <code>0066</code>, leaving world read and write permissions regardless of current umask.</p>
+
+<p>This has been fixed by using umask <code>0177</code> instead.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=127322">[perl #127322]</a></p>
+
+<h2 id="Avoid-accessing-uninitialized-memory-in-Win32-crypt">Avoid accessing uninitialized memory in Win32 <code>crypt()</code></h2>
+
+<p>Validation that will detect both a short salt and invalid characters in the salt has been added.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=126922">[perl #126922]</a></p>
+
+<h2 id="Remove-duplicate-environment-variables-from-environ">Remove duplicate environment variables from <code>environ</code></h2>
+
+<p>Previously, if an environment variable appeared more than once in <code>environ[]</code>, <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> would contain the last entry for that name, while a typical <code>getenv()</code> would return the first entry. We now make sure <code>%ENV</code> contains the same as what <code>getenv()</code> returns.</p>
+
+<p>Secondly, we now remove duplicates from <code>environ[]</code>, so if a setting with that name is set in <code>%ENV</code> we won&#39;t pass an unsafe value to a child process.</p>
+
+<p>This is CVE-2016-2381.</p>
+
+<h1 id="Incompatible-Changes">Incompatible Changes</h1>
+
+<p>There are no changes intentionally incompatible with Perl 5.22.1. If any exist, they are bugs, and we request that you submit a report. See <a href="#Reporting-Bugs">&quot;Reporting Bugs&quot;</a> below.</p>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a>File::Spec</a> has been upgraded from version 3.56 to 3.56_01.</p>
+
+<p><code>canonpath()</code> now preserves taint. See <a href="#Fix-loss-of-taint-in-canonpath">&quot;Fix loss of taint in <code>canonpath()</code>&quot;</a>.</p>
+
+</li>
+<li><p><a>Module::CoreList</a> has been upgraded from version 5.20151213 to 5.20160429.</p>
+
+<p>The version number of <a>Digest::SHA</a> listed for Perl 5.18.4 was wrong and has been corrected. Likewise for the version number of <a>Config</a> in 5.18.3 and 5.18.4. <a href="https://rt.perl.org/Ticket/Display.html?id=127624">[perl #127624]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Documentation">Documentation</h1>
+
+<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
+
+<h3 id="perldiag"><a href="/cperl/perldiag.html">perldiag</a></h3>
+
+<ul>
+
+<li><p>The explanation of the warning &quot;unable to close filehandle %s properly: %s&quot; which can occur when doing an implicit close of a filehandle has been expanded and improved.</p>
+
+</li>
+</ul>
+
+<h3 id="perlfunc"><a href="/cperl/perlfunc.html">perlfunc</a></h3>
+
+<ul>
+
+<li><p>The documentation of <a href="/cperl/perlfunc.html#hex"><code>hex()</code></a> has been revised to clarify valid inputs.</p>
+
+</li>
+</ul>
+
+<h1 id="Configuration-and-Compilation">Configuration and Compilation</h1>
+
+<ul>
+
+<li><p>Dtrace builds now build successfully on systems with a newer dtrace that require an input object file that uses the probes in the <i>.d</i> file.</p>
+
+<p>Previously the probe would fail and cause a build failure.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=122287">[perl #122287]</a></p>
+
+</li>
+<li><p><i>Configure</i> no longer probes for <i>libnm</i> by default. Originally this was the &quot;New Math&quot; library, but the name has been re-used by the GNOME NetworkManager.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=127131">[perl #127131]</a></p>
+
+</li>
+<li><p><i>Configure</i> now knows about gcc 5.</p>
+
+</li>
+<li><p>Compiling perl with <b>-DPERL_MEM_LOG</b> now works again.</p>
+
+</li>
+</ul>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="Darwin">Darwin</dt>
+<dd>
+
+<p>Compiling perl with <b>-Dusecbacktrace</b> on Darwin now works again.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=127764">[perl #127764]</a></p>
+
+</dd>
+<dt id="OS-X-Darwin">OS X/Darwin</dt>
+<dd>
+
+<p>Builds with both <b>-DDEBUGGING</b> and threading enabled would fail with a &quot;panic: free from wrong pool&quot; error when built or tested from Terminal on OS X. This was caused by perl&#39;s internal management of the environment conflicting with an atfork handler using the libc <code>setenv()</code> function to update the environment.</p>
+
+<p>Perl now uses <code>setenv()</code>/<code>unsetenv()</code> to update the environment on OS X.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=126240">[perl #126240]</a></p>
+
+</dd>
+<dt id="ppc64el">ppc64el</dt>
+<dd>
+
+<p>The floating point format of ppc64el (Debian naming for little-endian PowerPC) is now detected correctly.</p>
+
+</dd>
+<dt id="Tru64">Tru64</dt>
+<dd>
+
+<p>A test failure in <i>t/porting/extrefs.t</i> has been fixed.</p>
+
+</dd>
+</dl>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>An unwarranted assertion in <code>Perl_newATTRSUB_x()</code> has been removed. If a stub subroutine definition with a prototype has been seen, then any subsequent stub (or definition) of the same subroutine with an attribute was causing an assertion failure because of a null pointer.</p>
+
+<p><a href="https://rt.perl.org/Ticket/Display.html?id=126845">[perl #126845]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>Calls to the placeholder <code>&amp;PL_sv_yes</code> used internally when an <code>import()</code> or <code>unimport()</code> method isn&#39;t found now correctly handle scalar context. <a href="https://rt.perl.org/Ticket/Display.html?id=126042">[perl #126042]</a></p>
+
+</li>
+<li><p>The <a href="/cperl/perlfunc.html#pipe"><code>pipe()</code></a> operator would assert for <code>DEBUGGING</code> builds instead of producing the correct error message. The condition asserted on is detected and reported on correctly without the assertions, so the assertions were removed. <a href="https://rt.perl.org/Ticket/Display.html?id=126480">[perl #126480]</a></p>
+
+</li>
+<li><p>In some cases, failing to parse a here-doc would attempt to use freed memory. This was caused by a pointer not being restored correctly. <a href="https://rt.perl.org/Ticket/Display.html?id=126443">[perl #126443]</a></p>
+
+</li>
+<li><p>Perl now reports more context when it sees an array where it expects to see an operator, and avoids an assertion failure. <a href="https://rt.perl.org/Ticket/Display.html?id=123737">[perl #123737]</a></p>
+
+</li>
+<li><p>If a here-doc was found while parsing another operator, the parser had already read end of file, and the here-doc was not terminated, perl could produce an assertion or a segmentation fault. This now reliably complains about the unterminated here-doc. <a href="https://rt.perl.org/Ticket/Display.html?id=125540">[perl #125540]</a></p>
+
+</li>
+<li><p>Parsing beyond the end of the buffer when processing a <code>#line</code> directive with no filename is now avoided. <a href="https://rt.perl.org/Ticket/Display.html?id=127334">[perl #127334]</a></p>
+
+</li>
+<li><p>Perl 5.22.0 added support for the C99 hexadecimal floating point notation, but sometimes misparsed hex floats. This has been fixed. <a href="https://rt.perl.org/Ticket/Display.html?id=127183">[perl #127183]</a></p>
+
+</li>
+<li><p>Certain regex patterns involving a complemented posix class in an inverted bracketed character class, and matching something else optionally would improperly fail to match. An example of one that could fail is <code>qr/_?[^\Wbar]\x{100}/</code>. This has been fixed. <a href="https://rt.perl.org/Ticket/Display.html?id=127537">[perl #127537]</a></p>
+
+</li>
+<li><p>Fixed an issue with <a href="/cperl/perlfunc.html#pack"><code>pack()</code></a> where <code>pack &quot;H&quot;</code> (and <code>pack &quot;h&quot;</code>) could read past the source when given a non-utf8 source and a utf8 target. <a href="https://rt.perl.org/Ticket/Display.html?id=126325">[perl #126325]</a></p>
+
+</li>
+<li><p>Fixed some cases where perl would abort due to a segmentation fault, or a C-level assert. <a href="https://rt.perl.org/Ticket/Display.html?id=126193">[perl #126193]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=126257">[perl #126257]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=126258">[perl #126258]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=126405">[perl #126405]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=126602">[perl #126602]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=127773">[perl #127773]</a> <a href="https://rt.perl.org/Ticket/Display.html?id=127786">[perl #127786]</a></p>
+
+</li>
+<li><p>A memory leak when setting <code>$ENV{foo}</code> on Darwin has been fixed. <a href="https://rt.perl.org/Ticket/Display.html?id=126240">[perl #126240]</a></p>
+
+</li>
+<li><p>Perl now correctly raises an error when trying to compile patterns with unterminated character classes while there are trailing backslashes. <a href="https://rt.perl.org/Ticket/Display.html?id=126141">[perl #126141]</a></p>
+
+</li>
+<li><p><code>NOTHING</code> regops and <code>EXACTFU_SS</code> regops in <code>make_trie()</code> are now handled properly. <a href="https://rt.perl.org/Ticket/Display.html?id=126206">[perl #126206]</a></p>
+
+</li>
+<li><p>Perl now only tests <code>semctl()</code> if we have everything needed to use it. In FreeBSD the <code>semctl()</code> entry point may exist, but it can be disabled by policy. <a href="https://rt.perl.org/Ticket/Display.html?id=127533">[perl #127533]</a></p>
+
+</li>
+<li><p>A regression that allowed undeclared barewords as hash keys to work despite strictures has been fixed. <a href="https://rt.perl.org/Ticket/Display.html?id=126981">[perl #126981]</a></p>
+
+</li>
+<li><p>As an optimization (introduced in Perl 5.20.0), <a href="/cperl/perlfunc.html#uc"><code>uc()</code></a>, <a href="/pod/perlfunc.html#lc"><code>lc()</code></a>, <a href="/pod/perlfunc.html#ucfirst"><code>ucfirst()</code></a> and <a href="/pod/perlfunc.html#lcfirst"><code>lcfirst()</code></a> sometimes modify their argument in-place rather than returning a modified copy. The criteria for this optimization has been made stricter to avoid these functions accidentally modifying in-place when they should not, which has been happening in some cases, e.g. in <a>List::Util</a>.</p>
+
+</li>
+<li><p>Excessive memory usage in the compilation of some regular expressions involving non-ASCII characters has been reduced. A more complete fix is forthcoming in Perl 5.24.0.</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.22.2 represents approximately 5 months of development since Perl 5.22.1 and contains approximately 3,000 lines of changes across 110 files from 24 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 1,500 lines of changes to 52 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.22.2:</p>
+
+<p>Aaron Crane, Abigail, Andreas K&ouml;nig, Aristotle Pagaltzis, Chris &#39;BinGOs&#39; Williams, Craig A. Berry, Dagfinn Ilmari Manns&aring;ker, David Golden, David Mitchell, H.Merijn Brand, James E Keenan, Jarkko Hietaniemi, Karen Etheridge, Karl Williamson, Matthew Horsfall, Niko Tyni, Ricardo Signes, Sawyer X, Stevan Little, Steve Hay, Todd Rinaldo, Tony Cook, Vladimir Timofeev, Yves Orton.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at https://rt.perl.org/ . There may also be information at http://www.perl.org/ , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications, which make it inappropriate to send to a publicly archived mailing list, then please send it to perl5-security-report@perl.org. This points to a closed subscription unarchived mailing list, which includes all the core committers, who will be able to help assess the impact of issues, figure out a resolution, and help co-ordinate the release of patches to mitigate or fix the problem across all platforms on which Perl is supported. Please only use this address for security issues in the Perl core, not for modules independently distributed on CPAN.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,338 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Core-Enhancements">Core Enhancements</a>
+    <ul>
+      <li><a href="#POSIX::tmpnam-has-been-removed">POSIX::tmpnam() has been removed</a></li>
+      <li><a href="#require-::Foo::Bar-is-now-illegal">require ::Foo::Bar is now illegal.</a></li>
+      <li><a href="#Unescaped-literal-characters-in-regular-expression-patterns-are-no-longer-permissible">Unescaped literal &quot;{&quot; characters in regular expression patterns are no longer permissible</a></li>
+      <li><a href="#Literal-control-character-variable-names-are-no-longer-permissible">Literal control character variable names are no longer permissible</a></li>
+      <li><a href="#qr-xx-is-no-longer-permissible">qr//xx is no longer permissible</a></li>
+      <li><a href="#NBSP-is-no-longer-permissible-in-N">NBSP is no longer permissible in \N{...}</a></li>
+    </ul>
+  </li>
+  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Documentation">Documentation</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a></li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#New-Diagnostics">New Diagnostics</a>
+        <ul>
+          <li><a href="#New-Errors">New Errors</a></li>
+        </ul>
+      </li>
+      <li><a href="#Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</a></li>
+    </ul>
+  </li>
+  <li><a href="#Utility-Changes">Utility Changes</a>
+    <ul>
+      <li><a href="#perlbug">perlbug</a></li>
+    </ul>
+  </li>
+  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5251delta - what is new for perl v5.25.1</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.25.0 release and the 5.25.1 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.24.0, first read <a href="/cperl/perl5250delta.html">perl5250delta</a>, which describes differences between 5.24.0 and 5.25.0.</p>
+
+<h1 id="Core-Enhancements">Core Enhancements</h1>
+
+<h2 id="POSIX::tmpnam-has-been-removed">POSIX::tmpnam() has been removed</h2>
+
+<p>The fundamentally unsafe <code>tmpnam()</code> interface was deprecated in Perl 5.22.0 and has now been removed. In its place you can use for example the <a>File::Temp</a> interfaces.</p>
+
+<h2 id="require-::Foo::Bar-is-now-illegal">require ::Foo::Bar is now illegal.</h2>
+
+<p>Formerly, <code>require ::Foo::Bar</code> would try to read <i>/Foo/Bar.pm</i>. Now any bareword require which starts with a double colon dies instead.</p>
+
+<h2 id="Unescaped-literal-characters-in-regular-expression-patterns-are-no-longer-permissible">Unescaped literal <code>&quot;{&quot;</code> characters in regular expression patterns are no longer permissible</h2>
+
+<p>You have to now say something like <code>&quot;\{&quot;</code> or <code>&quot;[{]&quot;</code> to specify to match a LEFT CURLY BRACKET. This will allow future extensions to the language. This restriction is not enforced, nor are there current plans to enforce it, if the <code>&quot;{&quot;</code> is the first character in the pattern.</p>
+
+<p>These have been deprecated since v5.16, with a deprecation message displayed starting in v5.22.</p>
+
+<h2 id="Literal-control-character-variable-names-are-no-longer-permissible">Literal control character variable names are no longer permissible</h2>
+
+<p>A variable name may no longer contain a literal control character under any circumstances. These previously were allowed in single-character names on ASCII platforms, but have been deprecated there since Perl v5.20. This affects things like <code>$<i>\cT</i></code>, where <i>\cT</i> is a literal control (such as a <code>NAK</code> or <code>NEGATIVE ACKNOWLEDGE</code> character) in the source code.</p>
+
+<h2 id="qr-xx-is-no-longer-permissible"><code>qr//xx</code> is no longer permissible</h2>
+
+<p>Using more than one <code>/x</code> regular expression pattern modifier on a single pattern is now forbidden. This is to allow a future enhancement to the language. This usage has been deprecated since v5.22.</p>
+
+<h2 id="NBSP-is-no-longer-permissible-in-N"><code>NBSP</code> is no longer permissible in <code>\N{...}</code></h2>
+
+<p>The name of a character may no longer contain non-breaking spaces. It has been deprecated to do so since Perl v5.22.</p>
+
+<h1 id="Performance-Enhancements">Performance Enhancements</h1>
+
+<ul>
+
+<li><p>Bareword constant strings are now permitted to take part in constant folding. They were originally exempted from constant folding in August 1999, during the development of Perl 5.6, to ensure that <code>use strict &quot;subs&quot;</code> would still apply to bareword constants. That has now been accomplished a different way, so barewords, like other constants, now gain the performance benefits of constant folding.</p>
+
+<p>This also means that void-context warnings on constant expressions of barewords now report the folded constant operand, rather than the operation; this matches the behaviour for non-bareword constants.</p>
+
+</li>
+</ul>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a>Archive::Tar</a> has been upgraded from version 2.04 to 2.08.</p>
+
+</li>
+<li><p><a>Carp</a> has been upgraded from version 1.40 to 1.41.</p>
+
+</li>
+<li><p><a>charnames</a> has been upgraded from version 1.43 to 1.44.</p>
+
+</li>
+<li><p><a>Config::Perl::V</a> has been upgraded from version 0.25 to 0.26.</p>
+
+</li>
+<li><p><a>DB_File</a> has been upgraded from version 1.835 to 1.838.</p>
+
+</li>
+<li><p><a>Digest::MD5</a> has been upgraded from version 2.54 to 2.55.</p>
+
+</li>
+<li><p><a>IPC::Cmd</a> has been upgraded from version 0.92 to 0.94.</p>
+
+</li>
+<li><p><a>IPC::SysV</a> has been upgraded from version 2.06_01 to 2.07.</p>
+
+</li>
+<li><p><a>List::Util</a> has been upgraded from version 1.42_02 to 1.45_01.</p>
+
+</li>
+<li><p><a>Locale::Codes</a> has been upgraded from version 3.37 to 3.38.</p>
+
+</li>
+<li><p><a>Locale::Maketext</a> has been upgraded from version 1.26 to 1.27.</p>
+
+</li>
+<li><p><a>Module::CoreList</a> has been upgraded from version 5.20160507 to 5.20160520.</p>
+
+</li>
+<li><p><a>Module::Metadata</a> has been upgraded from version 1.000031 to 1.000032.</p>
+
+</li>
+<li><p><a>perlfaq</a> has been upgraded from version 5.021010 to 5.021011.</p>
+
+</li>
+<li><p><a>POSIX</a> has been upgraded from version 1.65 to 1.69. This remedies several defects in making its symbols exportable. [perl #127821] The <code>POSIX::tmpnam()</code> interface has been removed, see <a href="#POSIX::tmpnam-has-been-removed">&quot;POSIX::tmpnam() has been removed&quot;</a>. Trying to import POSIX subs that have no real implementations (like <code>POSIX::atend()</code>) now fails at import time, instead of waiting until runtime.</p>
+
+</li>
+<li><p><a>re</a> has been upgraded from version 0.32 to 0.33.</p>
+
+</li>
+<li><p><a>Scalar::Util</a> has been upgraded from version 1.42_02 to 1.45_01.</p>
+
+</li>
+<li><p><a>Sys::Syslog</a> has been upgraded from version 0.33 to 0.34.</p>
+
+</li>
+<li><p><a>Term::ANSIColor</a> has been upgraded from version 4.04 to 4.05.</p>
+
+</li>
+<li><p><a>Test::Simple</a> has been upgraded from version 1.001014 to 1.302015.</p>
+
+</li>
+<li><p><a>threads</a> has been upgraded from version 2.07 to 2.08. Compatibility with 5.8 has been restored.</p>
+
+</li>
+<li><p><a>threads::shared</a> has been upgraded from version 1.51 to 1.52. Compatibility with 5.8 has been restored.</p>
+
+</li>
+</ul>
+
+<h1 id="Documentation">Documentation</h1>
+
+<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
+
+<ul>
+
+<li><p>Fixed link to Crosby paper on hash complexity attack in <a href="/cperl/perlsec.html">perlsec</a>.</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<h2 id="New-Diagnostics">New Diagnostics</h2>
+
+<h3 id="New-Errors">New Errors</h3>
+
+<ul>
+
+<li><p><a href="/cperl/perldiag.html#Bareword-in-require-contains-s">Bareword in require contains &quot;%s&quot;</a></p>
+
+</li>
+<li><p><a href="/cperl/perldiag.html#Bareword-in-require-maps-to-empty-filename">Bareword in require maps to empty filename</a></p>
+
+</li>
+<li><p><a href="/cperl/perldiag.html#Bareword-in-require-maps-to-disallowed-filename-s">Bareword in require maps to disallowed filename &quot;%s&quot;</a></p>
+
+</li>
+<li><p><a href="/cperl/perldiag.html#Bareword-in-require-must-not-start-with-a-double-colon:-s">Bareword in require must not start with a double-colon: &quot;%s&quot;</a></p>
+
+</li>
+</ul>
+
+<h2 id="Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</h2>
+
+<ul>
+
+<li><p>Code like <code>$x = $x . &quot;a&quot;</code> was incorrectly failing to yield a <a href="/cperl/perldiag.html#Use-of-uninitialized-value-s">use of uninitialized value</a> warning when <code>$x</code> was a lexical variable with an undefined value. That has now been fixed. [perl #127877]</p>
+
+</li>
+<li><p>When the error &quot;Experimental push on scalar is now forbidden&quot; is raised for the hash functions <code>keys</code>, <code>each</code>, and <code>values</code>, it is now followed by the more helpful message, &quot;Type of arg 1 to whatever must be hash or array&quot;. [perl #127976]</p>
+
+</li>
+<li><p><code>undef *_; shift</code> or <code>undef *_; pop</code> inside a subroutine, with no argument to <code>shift</code> or <code>pop</code>, began crashing in Perl 5.14.0, but has now been fixed.</p>
+
+</li>
+<li><p><code>&quot;string$scalar-&gt;$*&quot;</code> now correctly prefers concat overloading to string overloading if <code>$scalar-&gt;$*</code> returns an overloaded object, bringing it into consistency with <code>$$scalar</code>.</p>
+
+</li>
+<li><p><code>/@0{0*-&gt;@*/*0</code> and similar contortions used to crash, but no longer do, but merely produce a syntax error. [perl #128171]</p>
+
+</li>
+<li><p><code>do</code> or <code>require</code> with a reference or typeglob which, when stringified, contains a null character started crashing in Perl 5.20.0, but has now been fixed. [perl #128182]</p>
+
+</li>
+</ul>
+
+<h1 id="Utility-Changes">Utility Changes</h1>
+
+<h2 id="perlbug"><a>perlbug</a></h2>
+
+<ul>
+
+<li><p>Long lines in the message body are now wrapped at 900 characters, to stay well within the 1000-character limit imposed by SMTP mail transfer agents. This is particularly likely to be important for the list of arguments to <code>Configure</code>, which can readily exceed the limit if, for example, it names several non-default installation paths. This change also adds the first unit tests for perlbug. [perl #128020]</p>
+
+</li>
+</ul>
+
+<h1 id="Configuration-and-Compilation">Configuration and Compilation</h1>
+
+<ul>
+
+<li><p><code>Configure</code> now builds <code>miniperl</code> and <code>generate_uudmap</code> if you invoke it with <code>-Dusecrosscompiler</code> but not <code>-Dtargethost=somehost</code>. This means you can supply your target platform <code>config.sh</code>, generate the headers and proceed to build your cross-target perl. [perl #127234]</p>
+
+</li>
+<li><p>Builds with <code>-Accflags=-DPERL_TRACE_OPS</code> now only dump the operator counts when the environment variable <code>PERL_TRACE_OPS</code> to be set to a non-zero integer. This allows <code>make test</code> to pass on such a build.</p>
+
+</li>
+<li><p>When building with GCC 6 and link-time optimization (the <code>-flto</code> option to <code>gcc</code>), <code>Configure</code> was treating all probed symbols as present on the system, regardless of whether they actually exist. This has been fixed. [perl #128131]</p>
+
+</li>
+<li><p>The <i>t/test.pl</i> library is used for internal testing of Perl itself, and also copied by several CPAN modules. Some of those modules must work on older versions of Perl, so <i>t/test.pl</i> must in turn avoid newer Perl features. Compatibility with Perl 5.8 was inadvertently removed some time ago; it has now been restored. [perl #128052]</p>
+
+</li>
+<li><p>The build process no longer emits an extra blank line before building each &quot;simple&quot; extension (those with only <i>*.pm</i> and <i>*.pod</i> files).</p>
+
+</li>
+</ul>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>Perl is now built with the <code>PERL_OP_PARENT</code> compiler define enabled by default. To disable it, use the <code>PERL_NO_OP_PARENT</code> compiler define. This flag alters how the <code>op_sibling</code> field is used in <code>OP</code> structures, and has been available optionally since perl 5.22.0.</p>
+
+<p>See <a href="/cperl/perl5220delta.html#Internal-Changes">&quot;Internal Changes&quot; in perl5220delta</a> for more details of what this build option does.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>Expressions containing an <code>&amp;&amp;</code> or <code>||</code> operator (or their synonyms <code>and</code> and <code>or</code>) were being compiled incorrectly in some cases. If the left-hand side consisted of either a negated bareword constant or a negated <code>do {}</code> block containing a constant expression, and the right-hand side consisted of a negated non-foldable expression, one of the negations was effectively ignored. The same was true of <code>if</code> and <code>unless</code> statement modifiers, though with the left-hand and right-hand sides swapped. This long-standing bug has now been fixed. [perl #127952]</p>
+
+</li>
+<li><p><code>reset</code> with an argument no longer crashes when encountering stash entries other than globs. [perl #128106]</p>
+
+</li>
+<li><p>Assignment of hashes to, and deletion of, typeglobs named <code>*::::::</code> no longer causes crashes. [perl #128086]</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.25.1 represents approximately 2 weeks of development since Perl 5.25.0 and contains approximately 46,000 lines of changes across 630 files from 24 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 40,000 lines of changes to 510 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.25.1:</p>
+
+<p>Aaron Crane, Andreas Voegele, Chad Granum, Chris &#39;BinGOs&#39; Williams, Craig A. Berry, David Mitchell, Doug Bell, Father Chrysostomos, H.Merijn Brand, Hugo van der Sanden, Jarkko Hietaniemi, Jerry D. Hedden, Jim Cromie, John Lightsey, Karen Etheridge, Karl Williamson, Lukas Mai, Maxwell Carey, Nicholas Clark, Niko Tyni, Ricardo Signes, Sawyer X, Tony Cook, Yves Orton.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> for details of how to report the issue.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

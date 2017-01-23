@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Callbacks">Callbacks</a></li>
+  <li><a href="#Caching">Caching</a></li>
+  <li><a href="#Examples">Examples</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perlmroapi - Perl method resolution plugin interface</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>As of Perl 5.10.1 there is a new interface for plugging and using method resolution orders other than the default (linear depth first search). The C3 method resolution order added in 5.10.0 has been re-implemented as a plugin, without changing its Perl-space interface.</p>
+
+<p>Each plugin should register itself by providing the following structure</p>
+
+<pre><code>    struct mro_alg {
+        AV *(*resolve)(pTHX_ HV *stash, U32 level);
+        const char *name;
+        U16 length;
+        U16 kflags;
+        U32 hash;
+    };</code></pre>
+
+<p>and calling <code>Perl_mro_register</code>:</p>
+
+<pre><code>    Perl_mro_register(aTHX_ &amp;my_mro_alg);</code></pre>
+
+<dl>
+
+<dt id="resolve">resolve</dt>
+<dd>
+
+<p>Pointer to the linearisation function, described below.</p>
+
+</dd>
+<dt id="name">name</dt>
+<dd>
+
+<p>Name of the MRO, either in ISO-8859-1 or UTF-8.</p>
+
+</dd>
+<dt id="length">length</dt>
+<dd>
+
+<p>Length of the name.</p>
+
+</dd>
+<dt id="kflags">kflags</dt>
+<dd>
+
+<p>If the name is given in UTF-8, set this to <code>HVhek_UTF8</code>. The value is passed direct as the parameter <i>kflags</i> to <code>hv_common()</code>.</p>
+
+</dd>
+<dt id="hash">hash</dt>
+<dd>
+
+<p>A precomputed hash value for the MRO&#39;s name, or 0.</p>
+
+</dd>
+</dl>
+
+<h1 id="Callbacks">Callbacks</h1>
+
+<p>The <code>resolve</code> function is called to generate a linearised ISA for the given stash, using this MRO. It is called with a pointer to the stash, and a <i>level</i> of 0. The core always sets <i>level</i> to 0 when it calls your function - the parameter is provided to allow your implementation to track depth if it needs to recurse.</p>
+
+<p>The function should return a reference to an array containing the parent classes in order. The names of the classes should be the result of calling <code>HvENAME()</code> on the stash. In those cases where <code>HvENAME()</code> returns null, <code>HvNAME()</code> should be used instead.</p>
+
+<p>The caller is responsible for incrementing the reference count of the array returned if it wants to keep the structure. Hence, if you have created a temporary value that you keep no pointer to, <code>sv_2mortal()</code> to ensure that it is disposed of correctly. If you have cached your return value, then return a pointer to it without changing the reference count.</p>
+
+<h1 id="Caching">Caching</h1>
+
+<p>Computing MROs can be expensive. The implementation provides a cache, in which you can store a single <code>SV *</code>, or anything that can be cast to <code>SV *</code>, such as <code>AV *</code>. To read your private value, use the macro <code>MRO_GET_PRIVATE_DATA()</code>, passing it the <code>mro_meta</code> structure from the stash, and a pointer to your <code>mro_alg</code> structure:</p>
+
+<pre><code>    meta = HvMROMETA(stash);
+    private_sv = MRO_GET_PRIVATE_DATA(meta, &amp;my_mro_alg);</code></pre>
+
+<p>To set your private value, call <code>Perl_mro_set_private_data()</code>:</p>
+
+<pre><code>    Perl_mro_set_private_data(aTHX_ meta, &amp;c3_alg, private_sv);</code></pre>
+
+<p>The private data cache will take ownership of a reference to private_sv, much the same way that <code>hv_store()</code> takes ownership of a reference to the value that you pass it.</p>
+
+<h1 id="Examples">Examples</h1>
+
+<p>For examples of MRO implementations, see <code>S_mro_get_linear_isa_c3()</code> and the <code>BOOT:</code> section of <i>ext/mro/mro.xs</i>, and <code>S_mro_get_linear_isa_dfs()</code> in <i>mro_core.c</i></p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>The implementation of the C3 MRO and switchable MROs within the perl core was written by Brandon L Black. Nicholas Clark created the pluggable interface, refactored Brandon&#39;s implementation to work with it, and wrote this document.</p>
+
+
+</body>
+
+</html>
+
+

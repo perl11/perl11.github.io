@@ -84,6 +84,7 @@
   <li><a href="#Internal-Functions">Internal Functions</a>
     <ul>
       <li><a href="#Formatted-Printing-of-IVs-UVs-and-NVs">Formatted Printing of IVs, UVs, and NVs</a></li>
+      <li><a href="#Formatted-Printing-of-Size_t-and-SSize_t">Formatted Printing of Size_t and SSize_t</a></li>
       <li><a href="#Pointer-To-Integer-and-Integer-To-Pointer">Pointer-To-Integer and Integer-To-Pointer</a></li>
       <li><a href="#Exception-Handling">Exception Handling</a></li>
       <li><a href="#Source-Documentation">Source Documentation</a></li>
@@ -233,7 +234,7 @@
 
 <p>If you don&#39;t need the existing content of the SV, you can avoid some copying with:</p>
 
-<pre><code>    sv_setpvn(sv, &quot;&quot;, 0);
+<pre><code>    SvPVCLEAR(sv);
     s = SvGROW(sv, needlen + 1);
     /* something that modifies up to needlen bytes at s, but modifies
        newlen bytes
@@ -838,7 +839,7 @@
 
 <p>The sv_magic function uses <code>how</code> to determine which, if any, predefined &quot;Magic Virtual Table&quot; should be assigned to the <code>mg_virtual</code> field. See the <a href="#Magic-Virtual-Tables">&quot;Magic Virtual Tables&quot;</a> section below. The <code>how</code> argument is also stored in the <code>mg_type</code> field. The value of <code>how</code> should be chosen from the set of macros <code>PERL_MAGIC_foo</code> found in <i>perl.h</i>. Note that before these macros were added, Perl internals used to directly use character literals, so you may occasionally come across old code or documentation referring to &#39;U&#39; magic rather than <code>PERL_MAGIC_uvar</code> for example.</p>
 
-<p>The <code>obj</code> argument is stored in the <code>mg_obj</code> field of the <code>MAGIC</code> structure. If it is not the same as the <code>sv</code> argument, the reference count of the <code>obj</code> object is incremented. If it is the same, or if the <code>how</code> argument is <code>PERL_MAGIC_arylen</code>, or if it is a NULL pointer, then <code>obj</code> is merely stored, without the reference count being incremented.</p>
+<p>The <code>obj</code> argument is stored in the <code>mg_obj</code> field of the <code>MAGIC</code> structure. If it is not the same as the <code>sv</code> argument, the reference count of the <code>obj</code> object is incremented. If it is the same, or if the <code>how</code> argument is <code>PERL_MAGIC_arylen</code>, <code>PERL_MAGIC_regdatum</code>, <code>PERL_MAGIC_regdata</code>, or if it is a NULL pointer, then <code>obj</code> is merely stored, without the reference count being incremented.</p>
 
 <p>See also <code>sv_magicext</code> in <a href="/cperl/perlapi.html">perlapi</a> for a more flexible way to add magic to an SV.</p>
 
@@ -864,16 +865,16 @@
 
 <p>The <code>MGVTBL</code> has five (or sometimes eight) pointers to the following routine types:</p>
 
-<pre><code>    int  (*svt_get)(SV* sv, MAGIC* mg);
-    int  (*svt_set)(SV* sv, MAGIC* mg);
-    U32  (*svt_len)(SV* sv, MAGIC* mg);
-    int  (*svt_clear)(SV* sv, MAGIC* mg);
-    int  (*svt_free)(SV* sv, MAGIC* mg);
+<pre><code>    int  (*svt_get)  (pTHX_ SV* sv, MAGIC* mg);
+    int  (*svt_set)  (pTHX_ SV* sv, MAGIC* mg);
+    U32  (*svt_len)  (pTHX_ SV* sv, MAGIC* mg);
+    int  (*svt_clear)(pTHX_ SV* sv, MAGIC* mg);
+    int  (*svt_free) (pTHX_ SV* sv, MAGIC* mg);
 
-    int  (*svt_copy)(SV *sv, MAGIC* mg, SV *nsv,
+    int  (*svt_copy) (pTHX_ SV *sv, MAGIC* mg, SV *nsv,
                                           const char *name, I32 namlen);
-    int  (*svt_dup)(MAGIC *mg, CLONE_PARAMS *param);
-    int  (*svt_local)(SV *nsv, MAGIC *mg);</code></pre>
+    int  (*svt_dup)  (pTHX_ MAGIC *mg, CLONE_PARAMS *param);
+    int  (*svt_local)(pTHX_ SV *nsv, MAGIC *mg);</code></pre>
 
 <p>This MGVTBL structure is set at compile-time in <i>perl.h</i> and there are currently 32 types. These different structures contain pointers to various routines that perform additional actions depending on which function is being called.</p>
 
@@ -1642,7 +1643,7 @@
 
 <p><code>pTHX_</code> is one of a number of macros (in <i>perl.h</i>) that hide the details of the interpreter&#39;s context. THX stands for &quot;thread&quot;, &quot;this&quot;, or &quot;thingy&quot;, as the case may be. (And no, George Lucas is not involved. :-) The first character could be &#39;p&#39; for a <b>p</b>rototype, &#39;a&#39; for <b>a</b>rgument, or &#39;d&#39; for <b>d</b>eclaration, so we have <code>pTHX</code>, <code>aTHX</code> and <code>dTHX</code>, and their variants.</p>
 
-<p>When Perl is built without options that set PERL_IMPLICIT_CONTEXT, there is no first argument containing the interpreter&#39;s context. The trailing underscore in the pTHX_ macro indicates that the macro expansion needs a comma after the context argument because other arguments follow it. If PERL_IMPLICIT_CONTEXT is not defined, pTHX_ will be ignored, and the subroutine is not prototyped to take the extra argument. The form of the macro without the trailing underscore is used when there are no additional explicit arguments.</p>
+<p>When Perl is built without options that set PERL_IMPLICIT_CONTEXT, there is no first argument containing the interpreter&#39;s context. The trailing underscore in the <code>pTHX_</code> macro indicates that the macro expansion needs a comma after the context argument because other arguments follow it. If PERL_IMPLICIT_CONTEXT is not defined, <code>pTHX_</code> will be ignored, and the subroutine is not prototyped to take the extra argument. The form of the macro without the trailing underscore is used when there are no additional explicit arguments.</p>
 
 <p>When a core function calls another, it must pass the context. This is normally hidden via macros. Consider <code>sv_setiv</code>. It expands into something like this:</p>
 
@@ -1659,9 +1660,9 @@
 
 <p>and still have it work under all the modes Perl could have been compiled with.</p>
 
-<p>This doesn&#39;t work so cleanly for varargs functions, though, as macros imply that the number of arguments is known in advance. Instead we either need to spell them out fully, passing <code>aTHX_</code> as the first argument (the Perl core tends to do this with functions like Perl_warner), or use a context-free version.</p>
+<p>This doesn&#39;t work so cleanly for varargs functions, though, as macros imply that the number of arguments is known in advance. Instead we either need to spell them out fully, passing <code>aTHX_</code> as the first argument (the Perl core tends to do this with functions like <code>Perl_warner</code>), or use a context-free version.</p>
 
-<p>The context-free version of Perl_warner is called Perl_warner_nocontext, and does not take the extra argument. Instead it does dTHX; to get the context from thread-local storage. We <code>#define warner Perl_warner_nocontext</code> so that extensions get source compatibility at the expense of performance. (Passing an arg is cheaper than grabbing it from thread-local storage.)</p>
+<p>The context-free version of Perl_warner is called <code>Perl_warner_nocontext</code>, and does not take the extra argument. Instead it does <code>dTHX</code>; to get the context from thread-local storage. We <code>#define warner Perl_warner_nocontext</code> so that extensions get source compatibility at the expense of performance. (Passing an arg is cheaper than grabbing it from thread-local storage.)</p>
 
 <p>You can ignore [pad]THXx when browsing the Perl headers/sources. Those are strictly for use within the core. Extensions and embedders need only be aware of [pad]THX.</p>
 
@@ -1908,6 +1909,16 @@
 <p>Note that there are different &quot;long doubles&quot;: Perl will use whatever the compiler has.</p>
 
 <p>If you are printing addresses of pointers, use UVxf combined with PTR2UV(), do not use %lx or %p.</p>
+
+<h2 id="Formatted-Printing-of-Size_t-and-SSize_t">Formatted Printing of Size_t and SSize_t</h2>
+
+<p>The most general way to do this is to cast them to a UV or IV, and print as in the <a href="#Formatted-Printing-of-IVs-UVs-and-NVs">previous section</a>.</p>
+
+<p>But if you&#39;re using <code>PerlIO_printf()</code>, it&#39;s less typing and visual clutter to use the <code>&quot;%z&quot;</code> length modifier (for <i>siZe</i>):</p>
+
+<pre><code>        PerlIO_printf(&quot;STRLEN is %zu\n&quot;, len);</code></pre>
+
+<p>This modifier is not portable, so its use should be restricted to <code>PerlIO_printf()</code>.</p>
 
 <h2 id="Pointer-To-Integer-and-Integer-To-Pointer">Pointer-To-Integer and Integer-To-Pointer</h2>
 

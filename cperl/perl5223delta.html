@@ -1,0 +1,276 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Security">Security</a>
+    <ul>
+      <li><a href="#Di-switch-is-now-required-for-PerlIO-debugging-output">-Di switch is now required for PerlIO debugging output</a></li>
+      <li><a href="#Core-modules-and-tools-no-longer-search-.-for-optional-modules">Core modules and tools no longer search &quot;.&quot; for optional modules</a></li>
+    </ul>
+  </li>
+  <li><a href="#Incompatible-Changes">Incompatible Changes</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Documentation">Documentation</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a>
+        <ul>
+          <li><a href="#perlapio">perlapio</a></li>
+          <li><a href="#perlrun">perlrun</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#Testing">Testing</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5223delta - what is new for perl v5.22.3</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.22.2 release and the 5.22.3 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.22.1, first read <a href="/cperl/perl5222delta.html">perl5222delta</a>, which describes differences between 5.22.1 and 5.22.2.</p>
+
+<h1 id="Security">Security</h1>
+
+<h2 id="Di-switch-is-now-required-for-PerlIO-debugging-output"><b>-Di</b> switch is now required for PerlIO debugging output</h2>
+
+<p>Previously PerlIO debugging output would be sent to the file specified by the <code>PERLIO_DEBUG</code> environment variable if perl wasn&#39;t running setuid and the <b>-T</b> or <b>-t</b> switches hadn&#39;t been parsed yet.</p>
+
+<p>If perl performed output at a point where it hadn&#39;t yet parsed its switches this could result in perl creating or overwriting the file named by <code>PERLIO_DEBUG</code> even when the <b>-T</b> switch had been supplied.</p>
+
+<p>Perl now requires the <b>-Di</b> switch to produce PerlIO debugging output. By default this is written to <code>stderr</code>, but can optionally be redirected to a file by setting the <code>PERLIO_DEBUG</code> environment variable.</p>
+
+<p>If perl is running setuid or the <b>-T</b> switch was supplied <code>PERLIO_DEBUG</code> is ignored and the debugging output is sent to <code>stderr</code> as for any other <b>-D</b> switch.</p>
+
+<h2 id="Core-modules-and-tools-no-longer-search-.-for-optional-modules">Core modules and tools no longer search <i>&quot;.&quot;</i> for optional modules</h2>
+
+<p>The tools and many modules supplied in core no longer search the default current directory entry in <a href="/cperl/perlvar.html#INC"><code>@INC</code></a> for optional modules. For example, <a>Storable</a> will remove the final <i>&quot;.&quot;</i> from <code>@INC</code> before trying to load <a>Log::Agent</a>.</p>
+
+<p>This prevents an attacker injecting an optional module into a process run by another user where the current directory is writable by the attacker, e.g. the <i>/tmp</i> directory.</p>
+
+<p>In most cases this removal should not cause problems, but difficulties were encountered with <a>base</a>, which treats every module name supplied as optional. These difficulties have not yet been resolved, so for this release there are no changes to <a>base</a>. We hope to have a fix for <a>base</a> in Perl 5.22.4.</p>
+
+<p>To protect your own code from this attack, either remove the default <i>&quot;.&quot;</i> entry from <code>@INC</code> at the start of your script, so:</p>
+
+<pre><code>  #!/usr/bin/perl
+  use strict;
+  ...</code></pre>
+
+<p>becomes:</p>
+
+<pre><code>  #!/usr/bin/perl
+  BEGIN { pop @INC if $INC[-1] eq &#39;.&#39; }
+  use strict;
+  ...</code></pre>
+
+<p>or for modules, remove <i>&quot;.&quot;</i> from a localized <code>@INC</code>, so:</p>
+
+<pre><code>  my $can_foo = eval { require Foo; }</code></pre>
+
+<p>becomes:</p>
+
+<pre><code>  my $can_foo = eval {
+      local @INC = @INC;
+      pop @INC if $INC[-1] eq &#39;.&#39;;
+      require Foo;
+  };</code></pre>
+
+<h1 id="Incompatible-Changes">Incompatible Changes</h1>
+
+<p>Other than the security changes above there are no changes intentionally incompatible with Perl 5.22.2. If any exist, they are bugs, and we request that you submit a report. See <a href="#Reporting-Bugs">&quot;Reporting Bugs&quot;</a> below.</p>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a>Archive::Tar</a> has been upgraded from version 2.04 to 2.04_01.</p>
+
+</li>
+<li><p><a>bignum</a> has been upgraded from version 0.39 to 0.39_01.</p>
+
+</li>
+<li><p><a>CPAN</a> has been upgraded from version 2.11 to 2.11_01.</p>
+
+</li>
+<li><p><a>Digest</a> has been upgraded from version 1.17 to 1.17_01.</p>
+
+</li>
+<li><p><a>Digest::SHA</a> has been upgraded from version 5.95 to 5.95_01.</p>
+
+</li>
+<li><p><a>Encode</a> has been upgraded from version 2.72 to 2.72_01.</p>
+
+</li>
+<li><p><a>ExtUtils::Command</a> has been upgraded from version 1.20 to 1.20_01.</p>
+
+</li>
+<li><p><a>ExtUtils::MakeMaker</a> has been upgraded from version 7.04_01 to 7.04_02.</p>
+
+</li>
+<li><p><a>File::Fetch</a> has been upgraded from version 0.48 to 0.48_01.</p>
+
+</li>
+<li><p><a>File::Spec</a> has been upgraded from version 3.56_01 to 3.56_02.</p>
+
+</li>
+<li><p><a>HTTP::Tiny</a> has been upgraded from version 0.054 to 0.054_01.</p>
+
+</li>
+<li><p><a>IO</a> has been upgraded from version 1.35 to 1.35_01.</p>
+
+</li>
+<li><p>The IO-Compress modules have been upgraded from version 2.068 to 2.068_001.</p>
+
+</li>
+<li><p><a>IPC::Cmd</a> has been upgraded from version 0.92 to 0.92_01.</p>
+
+</li>
+<li><p><a>JSON::PP</a> has been upgraded from version 2.27300 to 2.27300_01.</p>
+
+</li>
+<li><p><a>Locale::Maketext</a> has been upgraded from version 1.26 to 1.26_01.</p>
+
+</li>
+<li><p><a>Locale::Maketext::Simple</a> has been upgraded from version 0.21 to 0.21_01.</p>
+
+</li>
+<li><p><a>Memoize</a> has been upgraded from version 1.03 to 1.03_01.</p>
+
+</li>
+<li><p><a>Module::CoreList</a> has been upgraded from version 5.20160429 to 5.20170114_22.</p>
+
+</li>
+<li><p><a>Net::Ping</a> has been upgraded from version 2.43 to 2.43_01.</p>
+
+</li>
+<li><p><a>Parse::CPAN::Meta</a> has been upgraded from version 1.4414 to 1.4414_001.</p>
+
+</li>
+<li><p><a>Pod::Html</a> has been upgraded from version 1.22 to 1.2201.</p>
+
+</li>
+<li><p><a>Pod::Perldoc</a> has been upgraded from version 3.25 to 3.25_01.</p>
+
+</li>
+<li><p><a>Storable</a> has been upgraded from version 2.53_01 to 2.53_02.</p>
+
+</li>
+<li><p><a>Sys::Syslog</a> has been upgraded from version 0.33 to 0.33_01.</p>
+
+</li>
+<li><p><a>Test</a> has been upgraded from version 1.26 to 1.26_01.</p>
+
+</li>
+<li><p><a>Test::Harness</a> has been upgraded from version 3.35 to 3.35_01.</p>
+
+</li>
+<li><p><a>XSLoader</a> has been upgraded from version 0.20 to 0.20_01, fixing a security hole in which binary files could be loaded from a path outside of <code>@INC</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128528">[perl #128528]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Documentation">Documentation</h1>
+
+<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
+
+<h3 id="perlapio"><a href="/cperl/perlapio.html">perlapio</a></h3>
+
+<ul>
+
+<li><p>The documentation of <code>PERLIO_DEBUG</code> has been updated.</p>
+
+</li>
+</ul>
+
+<h3 id="perlrun"><a href="/cperl/perlrun.html">perlrun</a></h3>
+
+<ul>
+
+<li><p>The new <b>-Di</b> switch has been documented, and the documentation of <code>PERLIO_DEBUG</code> has been updated.</p>
+
+</li>
+</ul>
+
+<h1 id="Testing">Testing</h1>
+
+<ul>
+
+<li><p>A new test script, <i>t/run/switchDx.t</i>, has been added to test that the new <b>-Di</b> switch is working correctly.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>The <code>PadlistNAMES</code> macro is an lvalue again.</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.22.3 represents approximately 9 months of development since Perl 5.22.2 and contains approximately 4,400 lines of changes across 240 files from 20 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 2,200 lines of changes to 170 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.22.3:</p>
+
+<p>Aaron Crane, Abigail, Alex Vandiver, Aristotle Pagaltzis, Chad Granum, Chris &#39;BinGOs&#39; Williams, Craig A. Berry, David Mitchell, Father Chrysostomos, James E Keenan, Jarkko Hietaniemi, Karen Etheridge, Karl Williamson, Matthew Horsfall, Niko Tyni, Ricardo Signes, Sawyer X, Stevan Little, Steve Hay, Tony Cook.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the Perl bug database at https://rt.perl.org/ . There may also be information at http://www.perl.org/ , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications, which make it inappropriate to send to a publicly archived mailing list, then please send it to perl5-security-report@perl.org. This points to a closed subscription unarchived mailing list, which includes all the core committers, who will be able to help assess the impact of issues, figure out a resolution, and help co-ordinate the release of patches to mitigate or fix the problem across all platforms on which Perl is supported. Please only use this address for security issues in the Perl core, not for modules independently distributed on CPAN.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

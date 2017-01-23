@@ -94,13 +94,34 @@
 
 <p>That is, a &quot;start&quot; character followed by any number of &quot;continue&quot; characters. Perl requires every character in an identifier to also match <code>\w</code> (this prevents some problematic cases); and Perl additionally accepts identfier names beginning with an underscore.</p>
 
+<p>cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers.</p>
+
+<p>With cperl all utf8 identifiers and literals are parsed and stored as normalized NFC variants, which prevents from various TR39 and TR36 unicode confusable and spoofing security problems. However, dynamically created symbols via string refs are not normalized. <code>${&quot;$decomposed&quot;}</code> stays decomposed. This is similar to Python 3, but Python 3 normalizes to the non-canonical NFKC. See <a href="http://www.unicode.org/reports/tr36/">http://www.unicode.org/reports/tr36/</a> and <a href="http://www.unicode.org/reports/tr39">http://www.unicode.org/reports/tr39</a>.</p>
+
+<p>Also with cperl mixed scripts in unicode identifiers are forbidden, but they can be declared via <code>use utf8 (Scriptnames...);</code>. The &#39;Common&#39;, &#39;Latin&#39; and &#39;Inherited&#39; scripts are always allowed and don&#39;t need to be declared. Also the following combinations are allowed without any declaration: Latin + Hangul + Han (:Korean), Latin + Katakana + Hiregana (::Japanese) and Latin + Han + Bopomofo (:Hanb). And some more recommended and aspirational scripts, which are not excluded, except Cyrillic and Greek. See <a>&quot;Valid scripts&quot; in utf8</a>.</p>
+
+<p>The first allowed undeclared unicode script for an identifier is the only allowed one. This qualifies as single-script. More scripts lead to parsers errors. See <a>&quot;Valid scripts&quot; in utf8</a>, <a href="http://www.unicode.org/reports/tr36/#Mixed_Script_Spoofing">http://www.unicode.org/reports/tr36/#Mixed_Script_Spoofing</a> and <a href="http://www.unicode.org/reports/tr31/">http://www.unicode.org/reports/tr31/</a>.</p>
+
+<p>I.e. You may still declare those scripts as valid, but they are not automatically allowed, similar to the need to declare mixed scripts.</p>
+
+<pre><code>    use utf8;
+    my $&#x1B45; = 1; # \x{1b45} BALINESE LETTER KAF SASAK</code></pre>
+
+<p>=&gt; Error: Invalid script Balinese in identifier &#x1B45; for U+1B45</p>
+
+<pre><code>    use utf8 &#39;Balinese&#39;;
+    my $&#x1B45; = 1; # \x{1b45} BALINESE LETTER KAF SASAK
+    print &quot;ok&quot;;</code></pre>
+
+<p>Please avoid the declaration of Cyrillic and Greek scripts in one source file.</p>
+
 <p>If not under <code>use utf8</code>, the source is treated as ASCII + 128 extra generic characters, and identifiers should match</p>
 
 <pre><code>    / (?aa) (?!\d) \w+ /x</code></pre>
 
 <p>That is, any word character in the ASCII range, as long as the first character is not a digit.</p>
 
-<p>There are two package separators in Perl: A double colon (<code>::</code>) and a single quote (<code>&#39;</code>). Normal identifiers can start or end with a double colon, and can contain several parts delimited by double colons. Single quotes have similar rules, but with the exception that they are not legal at the end of an identifier: That is, <code>$&#39;foo</code> and <code>$foo&#39;bar</code> are legal, but <code>$foo&#39;bar&#39;</code> is not.</p>
+<p>There are two package separators in Perl, but only one in cperl: A double colon (<code>::</code>) and a single quote (<code>&#39;</code>). Normal identifiers can start or end with a double colon, and can contain several parts delimited by double colons. Single quotes have similar rules, but with the exception that they are not legal at the end of an identifier: That is, <code>$&#39;foo</code> and <code>$foo&#39;bar</code> are legal, but <code>$foo&#39;bar&#39;</code> is not. In cperl only the double colon (<code>::</code>) is legal, the perl4 package seperator <code>&#39;</code> is illegal.</p>
 
 <p>Additionally, if the identifier is preceded by a sigil -- that is, if the identifier is part of a variable name -- it may optionally be enclosed in braces.</p>
 
@@ -152,19 +173,23 @@
 <li><p>Similar to the above, a sigil, followed by bareword text in braces, where the first character is a caret. The next character is any one of the characters <code>[][A-Z^_?\]</code>, followed by ASCII word characters. An example is <code>${^GLOBAL_PHASE}</code>.</p>
 
 </li>
-<li><p>A sigil, followed by any single character in the range <code>[\x80-\xFF]</code> when not under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>. (Under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, the normal identifier rules given earlier in this section apply.) Use of non-graphic characters (the C1 controls, the NO-BREAK SPACE, and the SOFT HYPHEN) is deprecated and will be forbidden in a future Perl version. The use of the other characters is unwise, as these are all reserved to have special meaning to Perl, and none of them currently do have special meaning, though this could change without notice.</p>
+<li><p>A sigil, followed by any single character in the range <code>[\xA1-\xAC\xAE-\xFF]</code> when not under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>. (Under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, the normal identifier rules given earlier in this section apply.) Use of non-graphic characters (the C1 controls, the NO-BREAK SPACE, and the SOFT HYPHEN) has been disallowed since v5.26.0. The use of the other characters is unwise, as these are all reserved to have special meaning to Perl, and none of them currently do have special meaning, though this could change without notice.</p>
 
 <p>Note that an implication of this form is that there are identifiers only legal under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, and vice-versa, for example the identifier <code>$&eacute;tat</code> is legal under <code><span style="white-space: nowrap;">&quot;use utf8&quot;</span></code>, but is otherwise considered to be the single character variable <code>$&eacute;</code> followed by the bareword <code>&quot;tat&quot;</code>, the combination of which is a syntax error.</p>
 
 </li>
 <li><p>This is a combination of the previous two forms. It is valid only when not under <span style="white-space: nowrap;"><code>&quot;use utf8&quot;</code></span> (normal identifier rules apply when under <span style="white-space: nowrap;"><code>&quot;use utf8&quot;</code></span>). The form is a sigil, followed by text in braces, where the first character is any one of the characters in the range <code>[\x80-\xFF]</code> followed by ASCII word characters up to the trailing brace.</p>
 
-<p>The same caveats as the previous form apply: The non-graphic characters are deprecated, it is unwise to use this form at all, and utf8ness makes a big difference.</p>
+<p>The same caveats as the previous form apply: The non-graphic characters are no longer allowed with <span style="white-space: nowrap;">&quot;use utf8&quot;</span>, it is unwise to use this form at all, and utf8ness makes a big difference.</p>
 
 </li>
 </ol>
 
 <p>Prior to Perl v5.24, non-graphical ASCII control characters were also allowed in some situations; this had been deprecated since v5.20.</p>
+
+<p>Prior to cperl v5.25.2c mixed-script unicode identifiers were allowed, and identifiers were not normalized to NFC.</p>
+
+<p>Since 5.16 up and until cperl v5.25.2c, binary names were silently allowed in names, such symbols and packages. Before 5.16 names were silently stripped, since v5.25.2c names are stripped with a prominent security warning.</p>
 
 <h2 id="Context">Context   </h2>
 
@@ -228,7 +253,13 @@
 
 <pre><code>    $element_count = scalar(@whatever);</code></pre>
 
-<p>If you evaluate a hash in scalar context, it returns false if the hash is empty. If there are any key/value pairs, it returns true; more precisely, the value returned is a string consisting of the number of used buckets and the number of allocated buckets, separated by a slash. This is pretty much useful only to find out whether Perl&#39;s internal hashing algorithm is performing poorly on your data set. For example, you stick 10,000 things in a hash, but evaluating %HASH in scalar context reveals <code>&quot;1/16&quot;</code>, which means only one out of sixteen buckets has been touched, and presumably contains all 10,000 of your items. This isn&#39;t supposed to happen. If a tied hash is evaluated in scalar context, the <code>SCALAR</code> method is called (with a fallback to <code>FIRSTKEY</code>).   </p>
+<p>If you evaluate a hash in scalar context, it returns false if the hash is empty. If there are any key/value pairs, it returns true. A more precise definition is version dependent.</p>
+
+<p>Prior to Perl 5.25 the value returned was a string consisting of the number of used buckets and the number of allocated buckets, separated by a slash. This is pretty much useful only to find out whether Perl&#39;s internal hashing algorithm is performing poorly on your data set. For example, you stick 10,000 things in a hash, but evaluating %HASH in scalar context reveals <code>&quot;1/16&quot;</code>, which means only one out of sixteen buckets has been touched, and presumably contains all 10,000 of your items. This isn&#39;t supposed to happen.</p>
+
+<p>As of Perl 5.25 the return was changed to be the count of keys in the hash. If you need access to the old behavior you can use <code>Hash::Util::bucket_ratio()</code> instead.</p>
+
+<p>If a tied hash is evaluated in scalar context, the <code>SCALAR</code> method is called (with a fallback to <code>FIRSTKEY</code>).   </p>
 
 <p>You can preallocate space for a hash by assigning to the keys() function. This rounds up the allocated buckets to the next power of two:</p>
 
@@ -284,7 +315,7 @@
 
 <p>The infinity is the result of certain math operations that overflow the floating point range, like 9**9**9. The not-a-number is the result when the result is undefined or unrepresentable. Though note that you cannot get <code>NaN</code> from some common &quot;undefined&quot; or &quot;out-of-range&quot; operations like dividing by zero, or square root of a negative number, since Perl generates fatal errors for those.</p>
 
-<p>The infinity and not-a-number have their own special arithmetic rules. The general rule is that they are &quot;contagious&quot;: <code>Inf</code> plus one is <code>Inf</code>, and <code>NaN</code> plus one is <code>NaN</code>. Where things get interesting is when you combine infinities and not-a-numbers: <code>Inf</code> minus <code>Inf</code> and <code>Inf</code> divided by <code>INf</code> are <code>NaN</code> (while <code>Inf</code> plus <code>Inf</code> is <code>Inf</code> and <code>Inf</code> times <code>Inf</code> is <code>Inf</code>). <code>NaN</code> is also curious in that it does not equal any number, <i>including</i> itself: <code>NaN</code> != <code>NaN</code>.</p>
+<p>The infinity and not-a-number have their own special arithmetic rules. The general rule is that they are &quot;contagious&quot;: <code>Inf</code> plus one is <code>Inf</code>, and <code>NaN</code> plus one is <code>NaN</code>. Where things get interesting is when you combine infinities and not-a-numbers: <code>Inf</code> minus <code>Inf</code> and <code>Inf</code> divided by <code>Inf</code> are <code>NaN</code> (while <code>Inf</code> plus <code>Inf</code> is <code>Inf</code> and <code>Inf</code> times <code>Inf</code> is <code>Inf</code>). <code>NaN</code> is also curious in that it does not equal any number, <i>including</i> itself: <code>NaN</code> != <code>NaN</code>.</p>
 
 <p>Perl doesn&#39;t understand <code>Inf</code> and <code>NaN</code> as numeric literals, but you can have them as strings, and Perl will convert them as needed: &quot;Inf&quot; + 1. (You can, however, import them from the POSIX extension; <code>use POSIX qw(Inf NaN);</code> and then use them as literals.)</p>
 

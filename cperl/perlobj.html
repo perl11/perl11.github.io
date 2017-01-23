@@ -40,10 +40,11 @@
       <li><a href="#An-Aside-About-Smarter-and-Safer-Code">An Aside About Smarter and Safer Code</a></li>
       <li><a href="#Method-Call-Variations">Method Call Variations </a>
         <ul>
+          <li><a href="#Method-Names-with-a-Fully-Qualified-Name">Method Names with a Fully Qualified Name</a></li>
           <li><a href="#Method-Names-as-Strings">Method Names as Strings</a></li>
           <li><a href="#Class-Names-as-Strings">Class Names as Strings</a></li>
           <li><a href="#Subroutine-References-as-Methods">Subroutine References as Methods</a></li>
-          <li><a href="#Deferencing-Method-Call">Deferencing Method Call</a></li>
+          <li><a href="#Dereferencing-Method-Call">Dereferencing Method Call</a></li>
           <li><a href="#Method-Calls-on-Filehandles">Method Calls on Filehandles</a></li>
         </ul>
       </li>
@@ -182,7 +183,7 @@
 
 <p>Each package contains a special array called <code>@ISA</code>. The <code>@ISA</code> array contains a list of that class&#39;s parent classes, if any. This array is examined when Perl does method resolution, which we will cover later.</p>
 
-<p>It is possible to manually set <code>@ISA</code>, and you may see this in older Perl code. Much older code also uses the <a>base</a> pragma. For new code, we recommend that you use the <a>parent</a> pragma to declare your parents. This pragma will take care of setting <code>@ISA</code>. It will also load the parent classes and make sure that the package doesn&#39;t inherit from itself.</p>
+<p>Calling methods from a package means it must be loaded, of course, so you will often want to load a module and add it to <code>@ISA</code> at the same time. You can do so in a single step using the <a>parent</a> pragma. (In older code you may encounter the <a>base</a> pragma, which is nowadays discouraged except when you have to work with the equally discouraged <a>fields</a> pragma.)</p>
 
 <p>However the parent classes are set, the package&#39;s <code>@ISA</code> variable will contain a list of those parents. This is simply a list of scalars, each of which is a string that corresponds to a package name.</p>
 
@@ -390,7 +391,7 @@
 
 <p>As you can see, we&#39;ve stored the path and file data in the object itself. Remember, under the hood, this object is still just a hash. Later, we&#39;ll write accessors to manipulate this data.</p>
 
-<p>For our File::MP3 class, we can check to make sure that the path we&#39;re given ends with &quot;.mp3&quot;:</p>
+<p>For our <code>File::MP3</code> class, we can check to make sure that the path we&#39;re given ends with &quot;.mp3&quot;:</p>
 
 <pre><code>  package File::MP3;
 
@@ -454,6 +455,24 @@
 
 <p>Perl supports several other ways to call methods besides the <code>$object-&gt;method()</code> usage we&#39;ve seen so far.</p>
 
+<h3 id="Method-Names-with-a-Fully-Qualified-Name">Method Names with a Fully Qualified Name</h3>
+
+<p>Perl allows you to call methods using their fully qualified name (the package and method name):</p>
+
+<pre><code>  my $mp3 = File::MP3-&gt;new( &#39;Regin.mp3&#39;, $data );
+  $mp3-&gt;File::save();</code></pre>
+
+<p>When you a fully qualified method name like <code>File::save</code>, the method resolution search for the <code>save</code> method starts in the <code>File</code> class, skipping any <code>save</code> method the <code>File::MP3</code> class may have defined. It still searches the <code>File</code> class&#39;s parents if necessary.</p>
+
+<p>While this feature is most commonly used to explicitly call methods inherited from an ancestor class, there is no technical restriction that enforces this:</p>
+
+<pre><code>  my $obj = Tree-&gt;new();
+  $obj-&gt;Dog::bark();</code></pre>
+
+<p>This calls the <code>bark</code> method from class <code>Dog</code> on an object of class <code>Tree</code>, even if the two classes are completely unrelated. Use this with great care.</p>
+
+<p>The <code>SUPER</code> pseudo-class that was described earlier is <i>not</i> the same as calling a method with a fully-qualified name. See the earlier <a href="#Inheritance">&quot;Inheritance&quot;</a> section for details.</p>
+
 <h3 id="Method-Names-as-Strings">Method Names as Strings</h3>
 
 <p>Perl lets you use a scalar variable containing a string as a method name:</p>
@@ -493,7 +512,7 @@
       $object-&gt;$meth();
   }</code></pre>
 
-<h3 id="Deferencing-Method-Call">Deferencing Method Call</h3>
+<h3 id="Dereferencing-Method-Call">Dereferencing Method Call</h3>
 
 <p>Perl also lets you use a dereferenced scalar reference in a method call. That&#39;s a mouthful, so let&#39;s look at some code:</p>
 

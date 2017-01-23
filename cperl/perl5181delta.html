@@ -1,0 +1,179 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Incompatible-Changes">Incompatible Changes</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5181delta - what is new for perl v5.18.1</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.18.0 release and the 5.18.1 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.16.0, first read <a href="/cperl/perl5180delta.html">perl5180delta</a>, which describes differences between 5.16.0 and 5.18.0.</p>
+
+<h1 id="Incompatible-Changes">Incompatible Changes</h1>
+
+<p>There are no changes intentionally incompatible with 5.18.0 If any exist, they are bugs, and we request that you submit a report. See <a href="#Reporting-Bugs">&quot;Reporting Bugs&quot;</a> below.</p>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p>B has been upgraded from 1.42 to 1.42_01, fixing bugs related to lexical subroutines.</p>
+
+</li>
+<li><p>Digest::SHA has been upgraded from 5.84 to 5.84_01, fixing a crashing bug. [RT #118649]</p>
+
+</li>
+<li><p>Module::CoreList has been upgraded from 2.89 to 2.96.</p>
+
+</li>
+</ul>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="AIX">AIX</dt>
+<dd>
+
+<p>A rarely-encounted configuration bug in the AIX hints file has been corrected.</p>
+
+</dd>
+<dt id="MidnightBSD">MidnightBSD</dt>
+<dd>
+
+<p>After a patch to the relevant hints file, perl should now build correctly on MidnightBSD 0.4-RELEASE.</p>
+
+</dd>
+</dl>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>Starting in v5.18.0, a construct like <code>/[#](?{})/x</code> would have its <code>#</code> incorrectly interpreted as a comment. The code block would be skipped, unparsed. This has been corrected.</p>
+
+</li>
+<li><p>A number of memory leaks related to the new, experimental regexp bracketed character class feature have been plugged.</p>
+
+</li>
+<li><p>The OP allocation code now returns correctly aligned memory in all cases for <code>struct pmop</code>. Previously it could return memory only aligned to a 4-byte boundary, which is not correct for an ithreads build with 64 bit IVs on some 32 bit platforms. Notably, this caused the build to fail completely on sparc GNU/Linux. [RT #118055]</p>
+
+</li>
+<li><p>The debugger&#39;s <code>man</code> command been fixed. It was broken in the v5.18.0 release. The <code>man</code> command is aliased to the names <code>doc</code> and <code>perldoc</code> - all now work again.</p>
+
+</li>
+<li><p><code>@_</code> is now correctly visible in the debugger, fixing a regression introduced in v5.18.0&#39;s debugger. [RT #118169]</p>
+
+</li>
+<li><p>Fixed a small number of regexp constructions that could either fail to match or crash perl when the string being matched against was allocated above the 2GB line on 32-bit systems. [RT #118175]</p>
+
+</li>
+<li><p>Perl v5.16 inadvertently introduced a bug whereby calls to XSUBs that were not visible at compile time were treated as lvalues and could be assigned to, even when the subroutine was not an lvalue sub. This has been fixed. [perl #117947]</p>
+
+</li>
+<li><p>Perl v5.18 inadvertently introduced a bug whereby dual-vars (i.e. variables with both string and numeric values, such as <code>$!</code> ) where the truthness of the variable was determined by the numeric value rather than the string value. [RT #118159]</p>
+
+</li>
+<li><p>Perl v5.18 inadvertently introduced a bug whereby interpolating mixed up- and down-graded UTF-8 strings in a regex could result in malformed UTF-8 in the pattern: specifically if a downgraded character in the range <code>\x80..\xff</code> followed a UTF-8 string, e.g.</p>
+
+<pre><code>    utf8::upgrade(  my $u = &quot;\x{e5}&quot;);
+    utf8::downgrade(my $d = &quot;\x{e5}&quot;);
+    /$u$d/</code></pre>
+
+<p>[perl #118297].</p>
+
+</li>
+<li><p>Lexical constants (<code>my sub a() { 42 }</code>) no longer crash when inlined.</p>
+
+</li>
+<li><p>Parameter prototypes attached to lexical subroutines are now respected when compiling sub calls without parentheses. Previously, the prototypes were honoured only for calls <i>with</i> parentheses. [RT #116735]</p>
+
+</li>
+<li><p>Syntax errors in lexical subroutines in combination with calls to the same subroutines no longer cause crashes at compile time.</p>
+
+</li>
+<li><p>The dtrace sub-entry probe now works with lexical subs, instead of crashing [perl #118305].</p>
+
+</li>
+<li><p>Undefining an inlinable lexical subroutine (<code>my sub foo() { 42 } undef &amp;foo</code>) would result in a crash if warnings were turned on.</p>
+
+</li>
+<li><p>Deep recursion warnings no longer crash lexical subroutines. [RT #118521]</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.18.1 represents approximately 2 months of development since Perl 5.18.0 and contains approximately 8,400 lines of changes across 60 files from 12 authors.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.18.1:</p>
+
+<p>Chris &#39;BinGOs&#39; Williams, Craig A. Berry, Dagfinn Ilmari Manns&aring;ker, David Mitchell, Father Chrysostomos, Karl Williamson, Lukas Mai, Nicholas Clark, Peter Martini, Ricardo Signes, Shlomi Fish, Tony Cook.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at http://rt.perl.org/perlbug/ . There may also be information at http://www.perl.org/ , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications, which make it inappropriate to send to a publicly archived mailing list, then please send it to perl5-security-report@perl.org. This points to a closed subscription unarchived mailing list, which includes all the core committers, who will be able to help assess the impact of issues, figure out a resolution, and help co-ordinate the release of patches to mitigate or fix the problem across all platforms on which Perl is supported. Please only use this address for security issues in the Perl core, not for modules independently distributed on CPAN.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

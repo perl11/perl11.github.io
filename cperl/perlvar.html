@@ -436,6 +436,14 @@
 <p>Mnemonic: value of <b>-i</b> switch.</p>
 
 </dd>
+<dt id="ISA">@ISA </dt>
+<dd>
+
+<p>Each package contains a special array called <code>@ISA</code> which contains a list of that class&#39;s parent classes, if any. This array is simply a list of scalars, each of which is a string that corresponds to a package name. The array is examined when Perl does method resolution, which is covered in <a href="/cperl/perlobj.html">perlobj</a>.</p>
+
+<p>To load packages while adding them to <code>@ISA</code>, see the <a>parent</a> pragma. The discouraged <a>base</a> pragma does this as well, but should not be used except when compatibility with the discouraged <a>fields</a> pragma is required.</p>
+
+</dd>
 <dt id="M">$^M </dt>
 <dd>
 
@@ -559,9 +567,9 @@
 
 <p>See the documentation of <code>use VERSION</code> and <code>require VERSION</code> for a convenient way to fail if the running Perl interpreter is too old.</p>
 
-<p>See also <code>$]</code> for a decimal representation of the Perl version.</p>
+<p>See also <code><a href="#pod">&quot;$]&quot;</a></code> for a decimal representation of the Perl version.</p>
 
-<p>The main advantage of <code>$^V</code> over <code>$]</code> is that, for Perl v5.10.0 or later, it overloads operators, allowing easy comparison against other version representations (e.g. decimal, literal v-string, &quot;v1.2.3&quot;, or objects). The disadvantage is that prior to v5.10.0, it was only a literal v-string, which can&#39;t be easily printed or compared.</p>
+<p>The main advantage of <code>$^V</code> over <code>$]</code> is that, for Perl v5.10.0 or later, it overloads operators, allowing easy comparison against other version representations (e.g. decimal, literal v-string, &quot;v1.2.3&quot;, or objects). The disadvantage is that prior to v5.10.0, it was only a literal v-string, which can&#39;t be easily printed or compared, whereas the behavior of <code>$]</code> is unchanged on all versions of Perl.</p>
 
 <p>Mnemonic: use ^V for a version object.</p>
 
@@ -684,14 +692,34 @@
 
 <dl>
 
-<dt id="digits-1-2">$&lt;<i>digits</i>&gt; ($1, $2, ...)   </dt>
+<dt id="digits-1-2">$&lt;<i>digits</i>&gt; ($1, $2, ...)    </dt>
 <dd>
 
 <p>Contains the subpattern from the corresponding set of capturing parentheses from the last successful pattern match, not counting patterns matched in nested blocks that have been exited already.</p>
 
+<p>Note there is a distinction between a capture buffer which matches the empty string a capture buffer which is optional. Eg, <code>(x?)</code> and <code>(x)?</code> The latter may be undef, the former not.</p>
+
 <p>These variables are read-only and dynamically-scoped.</p>
 
 <p>Mnemonic: like \digits.</p>
+
+</dd>
+<dt id="CAPTURE">@{^CAPTURE}  </dt>
+<dd>
+
+<p>An array which contains the capture buffers, if any, of the last successful pattern match, not counting patterns matched in nested blocks that have been exited already.</p>
+
+<p>Note that the 0 index of @{^CAPTURE} is equivalent to $1, the 1 index is equivalent to $2, etc.</p>
+
+<pre><code>    if (&quot;foal&quot;=~/(.)(.)(.)(.)/) {
+        print join &quot;-&quot;, @{^CAPTURE};
+    }</code></pre>
+
+<p>should output &quot;f-o-a-l&quot;.</p>
+
+<p>See also <a href="#digits">&quot;$<i>digits</i>&quot;</a>, <a href="#CAPTURE">&quot;%{^CAPTURE}&quot;</a> and <a href="#CAPTURE_ALL">&quot;%{^CAPTURE_ALL}&quot;</a>.</p>
+
+<p>This variable was added in 5.25.7</p>
 
 </dd>
 <dt id="MATCH">$MATCH</dt>
@@ -836,11 +864,15 @@
 <p>This variable was added in Perl v5.6.0.</p>
 
 </dd>
+<dt id="CAPTURE1">%{^CAPTURE}</dt>
+<dd>
+
+</dd>
 <dt id="LAST_PAREN_MATCH1">%LAST_PAREN_MATCH</dt>
 <dd>
 
 </dd>
-<dt id="pod13">%+  </dt>
+<dt id="pod13">%+   </dt>
 <dd>
 
 <p>Similar to <code>@+</code>, the <code>%+</code> hash allows access to the named capture buffers, should they exist, in the last successful match in the currently active dynamic scope.</p>
@@ -855,7 +887,7 @@
 
 <p><b>Note:</b> <code>%-</code> and <code>%+</code> are tied views into a common internal hash associated with the last successful regular expression. Therefore mixing iterative access to them via <code>each</code> may have unpredictable results. Likewise, if the last successful match changes, then the results may be surprising.</p>
 
-<p>This variable was added in Perl v5.10.0.</p>
+<p>This variable was added in Perl v5.10.0. The <code>%{^CAPTURE}</code> alias was added in 5.25.7.</p>
 
 <p>This variable is read-only and dynamically-scoped.</p>
 
@@ -906,6 +938,10 @@
 <p>This variable was added in Perl v5.6.0.</p>
 
 </dd>
+<dt id="CAPTURE_ALL">%{^CAPTURE_ALL} </dt>
+<dd>
+
+</dd>
 <dt id="pod15">%- </dt>
 <dd>
 
@@ -939,7 +975,7 @@
 
 <p><b>Note:</b> <code>%-</code> and <code>%+</code> are tied views into a common internal hash associated with the last successful regular expression. Therefore mixing iterative access to them via <code>each</code> may have unpredictable results. Likewise, if the last successful match changes, then the results may be surprising.</p>
 
-<p>This variable was added in Perl v5.10.0.</p>
+<p>This variable was added in Perl v5.10.0. The <code>%{^CAPTURE_ALL}</code> alias was added in 5.25.7.</p>
 
 <p>This variable is read-only and dynamically-scoped.</p>
 
@@ -1568,13 +1604,9 @@
 <dt id="ENCODING">${^ENCODING} </dt>
 <dd>
 
-<p>DEPRECATED!!!</p>
-
 <p>The <i>object reference</i> to the <code>Encode</code> object that is used to convert the source code to Unicode. Thanks to this variable your Perl script does not have to be written in UTF-8. Default is <code>undef</code>.</p>
 
-<p>Setting this variable to any other value than <code>undef</code> is deprecated due to fundamental defects in its design and implementation. It is planned to remove it from a future Perl version. Its purpose was to allow your non-ASCII Perl scripts to not have to be written in UTF-8; this was useful before editors that worked on UTF-8 encoded text were common, but that was long ago. It causes problems, such as affecting the operation of other modules that aren&#39;t expecting it, causing general mayhem. Its use can lead to segfaults.</p>
-
-<p>If you need something like this functionality, you should use the <a>encoding</a> pragma, which is also deprecated, but has fewer nasty side effects.</p>
+<p>Its purpose is to allow your non-ASCII Perl scripts to not have to be written in UTF-8. But if you need something like this functionality, you should use the <a>encoding</a> pragma, which has fewer nasty side effects and allows lexically scoped source encodings.</p>
 
 <p>If you are coming here because code of yours is being adversely affected by someone&#39;s use of this variable, you can usually work around it by doing this:</p>
 
@@ -1582,7 +1614,7 @@
 
 <p>near the beginning of the functions that are getting broken. This undefines the variable during the scope of execution of the including function.</p>
 
-<p>This variable was added in Perl 5.8.2.</p>
+<p>This variable was added in Perl 5.8.2. perl 5.26.0 removed it, but cperl kept it.</p>
 
 </dd>
 <dt id="GLOBAL_PHASE">${^GLOBAL_PHASE} </dt>

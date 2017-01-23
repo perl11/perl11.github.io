@@ -23,10 +23,10 @@
       <li><a href="#Fix-my-_-handling">Fix my $_ handling</a></li>
       <li><a href="#Undo-B-bootstrap-breakage">Undo B bootstrap breakage</a></li>
       <li><a href="#Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</a></li>
-      <li><a href="#Undo-support-for-binary-names-NY-maybe">Undo support for binary names (NY, maybe)</a></li>
+      <li><a href="#Undo-support-for-binary-names">Undo support for binary names</a></li>
       <li><a href="#Warn-on-0shellcode-attempts-for-names">Warn on \0shellcode attempts for names</a></li>
       <li><a href="#strict-names-NY">strict names (NY)</a></li>
-      <li><a href="#TR39-confusable-names-NY">TR39 confusable names (NY)</a></li>
+      <li><a href="#TR39-confusable-names">TR39 confusable names</a></li>
       <li><a href="#Undo-the-double-readonly-system">Undo the double readonly system</a></li>
       <li><a href="#Fix-the-hashes">Fix the hashes</a></li>
       <li><a href="#Compile-time-attribute-hooks">Compile-time attribute hooks</a></li>
@@ -455,7 +455,7 @@
 
 <h2 id="Undo-B-bootstrap-breakage">Undo B bootstrap breakage</h2>
 
-<p><a>B</a> was changed to support <code>use strict</code> from the very beginning, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again.</p>
+<p><a>B</a> was changed to <code>use strict</code>, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again.</p>
 
 <h2 id="Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</h2>
 
@@ -471,9 +471,9 @@
 
 <p>We are also now able to do constant-folding on subroutine bodies, to either inline the body into the caller or replace the body with a constant in the general case. (i.e. without the <code>()</code> prototype)</p>
 
-<h2 id="Undo-support-for-binary-names-NY-maybe">Undo support for binary names (NY, maybe)</h2>
+<h2 id="Undo-support-for-binary-names">Undo support for binary names</h2>
 
-<p>By announcing unicode support for names p5p silently allowed <code>\0</code> inside names, which they called an advantage by supporting now binary safe names and &quot;harmonization&quot;. In reality unicode names were already supported since 5.8.4 and the whole 5.16 unicode name theatre was only about binary names. They didn&#39;t support binary names in all other code parts which had to deal with names, and thus enabled a huge attack vector to hide arbitrary user strings behind <code>\0</code> names, which was silently stripped before and when used in syscalls. They moved resonsibility to the user, as previously for input strings only, now also for input names, e.g. for package names which search the filesystem directly without sanitation or proper checks. Support for those binary names is still not complete with 5.24 in core, even if p5p pushed so strong for it against my protest.</p>
+<p>By announcing unicode support for names with 5.16 p5p silently allowed <code>\0</code> inside names, which they called an advantage by supporting now binary safe names and &quot;harmonization&quot;. In reality unicode names were already supported since 5.8.4 (with negative HEK key lengths) and the whole 5.16 unicode name theatre was only about binary names. They didn&#39;t support binary names in all other code parts which had to deal with names, and thus enabled a huge attack vector to hide arbitrary user strings behind <code>\0</code> names, which was silently stripped before and when used in syscalls. They moved resonsibility to the user, as previously for input strings only, now also for input names, e.g. for package names which search the filesystem directly without sanitation or proper checks. Support for those binary names is still not complete with 5.24 in core, even if p5p pushed so strong for it against my protest.</p>
 
 <p>We have to keep the new GV API - accepting the string length - but even without <code>strict names</code> we strip everything behind the <code>\0</code> as before 5.16.</p>
 
@@ -485,17 +485,19 @@
 
 <p>Any attempt to attack package names with shellcode behing <code>\0</code> is being warned per default, and not only optionally with <code>use warnings &quot;syscalls&quot;</code>. There is no uninnocent or wrong usage of such names, only malicious intent, and this must appear in logfiles. This is worse than syntax errors and syntax errors are warned by default. p5p was vehemently against this change.</p>
 
+<p>cperl has a new &#39;security&#39; warnings category, which bypasses STDERR capture and also tries to log the remote user IP.</p>
+
 <h2 id="strict-names-NY">strict names (NY)</h2>
 
 <p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use strict.</p>
 
 <p>There&#39;s currently no room for an explicit <code>use strict &#39;names&#39;</code> hint due to a bad strict implementation. But later when we freed some <code>PL_hint</code> bits to hold strict defaults we can add support for that.</p>
 
-<h2 id="TR39-confusable-names-NY">TR39 confusable names (NY)</h2>
+<h2 id="TR39-confusable-names">TR39 confusable names</h2>
 
-<p>Reject confusables as described in TR39. Theoretically this can be added with <a href="#strict-names-NY">&quot;strict names (NY)&quot;</a> only, but since this is only dangerous since v5.16 we can just throw a syntax error by default as in other languages with proper unicode support, e.g. <i>Java</i>.</p>
+<p>cperl rejects since 5.26 confusables as described in TR39, rejects most mixed scripts and normalizes unicode identifiers, similar to python 3. cperl is actually one of the very rare dynamic languages with full unicode identifer support which actually does follow the unicode consortium security recommendations and profile. cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers. See <a href="/cperl/perldata.html#Identifier-parsing">&quot;Identifier parsing&quot; in perldata</a></p>
 
-<p>The compiler had to add this warning since 5.16:</p>
+<p>The compiler had to add this warning since 5.16 until 5.26:</p>
 
 <p><i>Perl handling of new unicode identifiers - package and symbol names -</i> <i>without proper TR39 handling is considered a security risc and is not fully supported.</i> <i>See</i> <a href="http://websec.github.io/unicode-security-guide/">http://websec.github.io/unicode-security-guide/</a>.</p>
 
@@ -772,7 +774,7 @@
 
 <h3 id="unicode-folding-tables-as-XS-extension">unicode folding tables as XS extension</h3>
 
-<p>They are compiled as shared library, with all keys as readonly perfect hash. Some internal variables are not accessible anymore, the API is via the documented functions.</p>
+<p>They should be compiled as shared library, with all keys as readonly perfect hash or is trie. Some internal variables are not accessible anymore, the API is via the documented functions. The trie lookup should not be implemented vi pure-perl (100x slower) and use esp. the memory in a readonly shared library for huge space savings.</p>
 
 <p>Maybe seperate them into a light folding table and heavy names and properties.</p>
 
@@ -792,7 +794,7 @@
 
 <h2 id="Proper-object-system">Proper object system</h2>
 
-<p>No, not Moose, but close. Rather an optimizable perl6-like object system in core. Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
+<p>No, not Moose, but close. Closer to Mouse though, which is currently the recommended OO. Rather an optimizable perl6-like object system in core. Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
 
 <p>Support multi-dispatch in perl6 syntax and optimize for early-bound method calls with typed arguments and closed classes.</p>
 
@@ -820,7 +822,7 @@
 
 <p>Add a jit for the easiest platforms, and provide dynamic javascript-based optimizations when stacks need to be replaced. Eventually even promote to bignum not double automatically, as in perl6. But this is optional, the next points are more important. Jit&#39;s are a bit overrated. a fast bytecode loop can easily beat a jit and optimizing compiler, see luajit2, <a href="http://www.emulators.com/docs/nx25_nostradamus.htm">http://www.emulators.com/docs/nx25_nostradamus.htm</a> or <a href="http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html">http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html</a></p>
 
-<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations.</p>
+<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations. Currently we are trying a simple llvm based method jit, which kicks in after counting methods and loops (similar to unladen-swallow and pyston), and inlines some <code>pp</code> runtime functions and herbey eliminations to function head, parameter and return overhead.</p>
 
 <h2 id="Optimize-the-vm-the-runloop">Optimize the vm, the runloop</h2>
 
@@ -832,6 +834,8 @@
 
 <p>Maybe rewrite to a better register-based compiler with fixed-length 2 operands as in p2, but this might be too tricky for XS, mapping the global stack to the local stack. Probably no SSA (three arguments), just a cpu friendly two argument form as in p2/lua 5.1.</p>
 
+<p>Cuurently there&#39;s a branch with linearized ops, called OPL without any op pointers, just indices into a oparray per sub. Similar to python, just with common-sized ops, not 1-3 word ops as in python. op_next is always the next op in the array, so cached. op_other are skips.</p>
+
 <p>Allow faster XS calls, user-provided function calls and method calls. Provide support for named arguments in the vm, fast not via hashes. Many of the current io+sys ops are better implemented as library methods. With ~50ops instead of &gt;300 the runloop might fit into the L1 cache again. Seperate calling of fixed arity methods from varargs. detect and use tailcalls automatically. Do not step into a seperate runloop for every single function call, only for coros, which do need to record the the stack information.</p>
 
 <p>Run-time optimize the data, no 2x indirection to access hash and array structs. Provide forwarding pointers to single tuples to hold all. This could provide also the possibility for a GC if a second sweep for timely destruction is doable.</p>
@@ -842,7 +846,7 @@
 
 <h2 id="Better-symbol-table">Better symbol table</h2>
 
-<p>Check converting the GV stash tree of hashes into a single global data structure, not a nested hash of hashes: Hash, AVL tree, Trie (TST or R&sup2; TST), Patricia trie or DAFSA (Deterministic acyclic finite state automaton) for faster dynamic variable and function name lookup. No binary names, all as UTF8. Maybe restrict to ASCII or valid identifiers to limit the trie memory (array of 26 vs 256). Stashes point then to trie nodes and need a HV check. Optionally provide partial read-only support for the compiler, as for <code>PL_strtab</code>.</p>
+<p>Check converting the GV stash tree of hashes into a single global data structure, not a nested hash of hashes: Hash, AVL tree, Trie (TST or R&sup2; TST), Patricia trie or DAFSA (Deterministic acyclic finite state automaton) for faster dynamic variable and function name lookup. No binary names, all as UTF8. Maybe restrict to ASCII or valid identifiers to limit the trie memory (array of 26 vs 256). Stashes point then to trie nodes and need a HV check. Optionally provide partial read-only support for the compiler, as for <code>PL_strtab</code>. See the branch <i>feature/gh127-gvflat</i></p>
 
 <h2 id="Coro-support">Coro support</h2>
 

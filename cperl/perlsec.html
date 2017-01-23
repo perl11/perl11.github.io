@@ -253,11 +253,19 @@
 
 <p>However, if the kernel set-id script feature isn&#39;t disabled, Perl will complain loudly that your set-id script is insecure. You&#39;ll need to either disable the kernel set-id script feature, or put a C wrapper around the script. A C wrapper is just a compiled program that does nothing except call your Perl program. Compiled programs are not subject to the kernel bug that plagues set-id scripts. Here&#39;s a simple wrapper, written in C:</p>
 
-<pre><code>    #define REAL_PATH &quot;/path/to/script&quot;
-    main(ac, av)
-        char **av;
+<pre><code>    #include &lt;unistd.h&gt;
+    #include &lt;stdio.h&gt;
+    #include &lt;string.h&gt;
+    #include &lt;errno.h&gt;
+
+    #define REAL_PATH &quot;/path/to/script&quot;
+
+    int main(int argc, char **argv)
     {
-        execv(REAL_PATH, av);
+        execv(REAL_PATH, argv);
+        fprintf(stderr, &quot;%s: %s: %s\n&quot;,
+                        argv[0], REAL_PATH, strerror(errno));
+        return 127;
     }</code></pre>
 
 <p>Compile this wrapper into a binary executable and then make <i>it</i> rather than your script setuid or setgid.</p>
@@ -284,7 +292,7 @@
 
 <h2 id="Unicode">Unicode</h2>
 
-<p>Unicode is a new and complex technology and one may easily overlook certain security pitfalls. See <a href="/cperl/perluniintro.html">perluniintro</a> for an overview and <a href="/pod/perlunicode.html">perlunicode</a> for details, and <a href="/pod/perlunicode.html#Security-Implications-of-Unicode">&quot;Security Implications of Unicode&quot; in perlunicode</a> for security implications in particular.</p>
+<p>Unicode is a new and complex technology and one may easily overlook certain security pitfalls. See <a href="/cperl/perluniintro.html">perluniintro</a> for an overview and <a href="/pod/perlunicode.html">perlunicode</a> for details, and in particular <a>&quot;Valid scripts&quot; in utf8</a>, <a href="/pod/perldata.html#Identifier-parsing">&quot;Identifier parsing&quot; in perldata</a> and <a href="/pod/perlunicode.html#Security-Implications-of-Unicode">&quot;Security Implications of Unicode&quot; in perlunicode</a> for security implications.</p>
 
 <h2 id="Algorithmic-Complexity-Attacks">Algorithmic Complexity Attacks</h2>
 
@@ -365,7 +373,7 @@
 </li>
 </ul>
 
-<p>See <a href="http://www.cs.rice.edu/~scrosby/hash/">http://www.cs.rice.edu/~scrosby/hash/</a> and <a href="https://www.eng.tau.ac.il/~yash/C2_039_Wool.pdf">https://www.eng.tau.ac.il/~yash/C2_039_Wool.pdf</a> for more information, and any computer science textbook on algorithmic complexity.</p>
+<p>See <a href="https://www.usenix.org/legacy/events/sec03/tech/full_papers/crosby/crosby.pdf">https://www.usenix.org/legacy/events/sec03/tech/full_papers/crosby/crosby.pdf</a> and <a href="https://www.eng.tau.ac.il/~yash/C2_039_Wool.pdf">https://www.eng.tau.ac.il/~yash/C2_039_Wool.pdf</a> for more information, and any computer science textbook on algorithmic complexity.</p>
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
