@@ -58,26 +58,47 @@ hash table specific or global, i.e. process or thread specific.</p>
 is vulnerable to much simplier DoS attacks, which is e.g. used on the
 redhat openshift public cloud.</p>
 
-<p>For a running perl process the seed is at a fixed offset from my_perl,
-the first argument to any VM op. Which is easily readable via some
-kind of poke function via the unpack "P" builtin op. See
+<p>For a running perl process the seed is at a fixed offset from
+my_perl, the first argument to any VM op. Which is easily readable via
+some kind of poke function via the unpack "P" builtin op. See
 Devel::PeekPoke.  Similar for all other dynamic languages exposing the
 value of any pointer. Which is esp. problematic for languages who
 trusted the false claims of the SipHash authors, that using this
 secure hash function it makes it safe against such DoS attacks. Which
 are most prominently ruby, python, rust, haskell and others.  Perl5 at
 least changed the order of the iterator, cperl counts the collisions
-and adds a sleep on attacks, PHP limits the size of external keys to
-be passed to the hash table so only JSON or other formats are easily
-DoS-able. But more serious applications such as the linux kernel,
-glibc, cache or DNS servers use better hash table collisions schemes
-than unsafe chaining or linear probing.</p>
+and adds a sleep on single attacks and hard exits on distributed attacks
+to avoid a "slowdos".
+PHP limits the size of external keys to be passed to the hash table so
+only JSON or other formats are easily DoS-able.
+
+More serious applications such as the linux kernel, glibc, cache or
+DNS servers use better hash table collisions schemes than unsafe
+chaining or linear probing.  java does it also right by trivially
+detecting such attacks and switching to a tree. This doesn't hurt
+performance such as SipHash does, and adds real protection.</p>
+
+<i>(Addendum: New linux net-next maintainers drank the SipHash coolaid
+also, and are proposing to switch from a fast hash function and also
+from SHA1 to SipHash to "protect" networking.  How about actually
+reading the SipHash paper, and implement proper hash table DoS
+protection instead, which would lead to proper DoS security and faster
+hash tables? SipHash is a secure but slow pseudo-random function, it
+is not a secure hash function and only improves security marginally by
+better hiding of the seed. Again, proper DoS resistance is done by
+protecting the O(1) to O(n) behavior in the collision resolution, and
+only marginally by improving the seed hiding to the colliding
+bucket. These things can be timed and calculated from 2 different
+externally observable variables. There's not much difference between
+FNV1, Jenkins or SipHash, other than SipHash is 3-10x slower and uses
+better seeding. - <a href="https://git.kernel.org/cgit/linux/kernel/git/davem/net-next.git/plain/Documentation/siphash.txt">kernel doc</a>).</i>
 
 <p>Vulnerable are all implementors of hash tables who believed the false
 claims of the SipHash authors: ruby, python, rust, haskell, OpenBSD
 and some more.  But also others who don't use a proper hash table
 collision resolution scheme or don't protect their seed or easily
-expose the seed, such as perl5 and many more.
+expose the seed, such as perl5 and many more.<br>
+
 rust currently e.g. believes that SipHash makes it secure even if a
 trivial attack was just found against it, and changing the seed at
 table resize will help. It does not.  The seed is still exposable. And
