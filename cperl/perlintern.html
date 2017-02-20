@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+<link rev="made" href="mailto:root@elcapitan.internal.macports.net" />
 </head>
 
 <body>
@@ -95,7 +95,7 @@
 
 <p>helper function for S_aassign_scan().</p>
 
-<p>check a PAD-related op for commonality and/or set its generation number. Returns a boolean indicating whether its shared bool aassign_padcheck(OP* o, bool rhs)</p>
+<p>Check a PAD-related op for commonality and/or set its generation number. Returns a boolean indicating whether its shared. bool aassign_padcheck(OP* o, bool rhs)</p>
 
 </dd>
 <dt id="aassign_scan">aassign_scan </dt>
@@ -109,15 +109,37 @@
 <dt id="arg_check_type">arg_check_type </dt>
 <dd>
 
-<p>Check if the declared static type of the argument from pn can be fullfilled by the dynamic type of the arg in OP* o (padsv, const, any return type). If possible add a typecast to o to fullfill it.</p>
+<p>Check if the declared static type of the argument from pn can be fullfilled by the dynamic type of the arg in OP* o (padsv, const, any return type). If possible add a typecast to <code>o</code> to fullfill it. contravariant.</p>
 
-<pre><code>                arg_check_type;</code></pre>
+<p>Signatures are new, hence much stricter, than return-types and assignments. arg_check_type;</p>
+
+</dd>
+<dt id="can_class_typecheck">can_class_typecheck </dt>
+<dd>
+
+<p>Returns 1 if this class has a compile-time @ISA or we are already at the run-time phase. This is not called for coretypes, coretypes would always return 1.</p>
+
+<p>Check for class or package types. Does the class has an compile-time ISA to allow compile-time checks? #249 HvCLASS: Is it a cperl class? Does it use base or fields? If not cannot do this check before run-time.</p>
+
+<p>(Essentially cperl classes are just syntactic and performance optimized sugar over base/fields with roles and multi-dispatch support. We don&#39;t invent anything new, we just fix what p5p broke.)</p>
+
+<pre><code>                can_class_typecheck;</code></pre>
 
 </dd>
 <dt id="check_for_bool_cxt">check_for_bool_cxt </dt>
 <dd>
 
 <p>See if the ops following o are such that o will always be executed in boolean context: that is, the SV which o pushes onto the stack will only ever be used by later ops with SvTRUE(sv) or similar. If so, set a suitable private flag on o. Normally this will be bool_flag; but if it&#39;s only possible to determine booleaness at run time (e.g. sub f { ....; (%h || $y) }), then set maybe_flag instead. void check_for_bool_cxt(OP* o, U8 bool_flag, U8 maybe_flag)</p>
+
+</dd>
+<dt id="ck_aassign">ck_aassign </dt>
+<dd>
+
+<p>CHECK callback for aassign (t2 L L &quot;(:List,:List):List&quot;)</p>
+
+<p>Only checks types.</p>
+
+<pre><code>        OP *    ck_aassign(OP *o)</code></pre>
 
 </dd>
 <dt id="ck_aelem">ck_aelem </dt>
@@ -343,9 +365,18 @@
 <dt id="ck_nomg">ck_nomg </dt>
 <dd>
 
-<p>for tie and bless:</p>
+<p>For tie and bless</p>
 
-<p>check if the first argument is not a typed coretype. We guarantee coretyped variables to have no magic. TODO: For bless we also require a ref. OP * ck_nomg(OP *o)</p>
+<p>Check if the first argument is not a typed coretype. We guarantee coretyped variables to have no magic.</p>
+
+<p>For bless we also require a ref. Check for the most common mistakes as first argument, which cannot be a ref.</p>
+
+<p>For bless we can predict the result type if the 2nd arg is a constant. This allows to type the result of the new method.</p>
+
+<pre><code>    sub D3::new {bless[],&quot;D3&quot;};
+    my B2 $obj1 = D3-&gt;new;</code></pre>
+
+<p>And we disallow the blessing to coretypes. This needs to be done via normal compile-time declarations, not dynamic blessing. OP * ck_nomg(OP *o)</p>
 
 </dd>
 <dt id="ck_pad">ck_pad </dt>
@@ -388,6 +419,8 @@
 <p>CHECK callback for sassign (s2 S S &quot;(:Scalar,:Scalar):Scalar&quot;)</p>
 
 <p>Esp. handles state var initialization and tries to optimize away the assignment for a lexical <code>$_</code> via <a href="#maybe_targlex">&quot;maybe_targlex&quot;</a>.</p>
+
+<p>Checks types.</p>
 
 <pre><code>        OP *    ck_sassign(OP *o)</code></pre>
 
@@ -445,7 +478,7 @@
 <dt id="ck_type">ck_type </dt>
 <dd>
 
-<p>check unop and binops for typed args, find specialized match and promote. forget about native types (escape analysis) here, use the boxed variants. we can only unbox them later in rpeep sequences, by adding unbox...box ops. set the OpRETTYPE of unops and binops. OP * ck_type(OP *o)</p>
+<p>Check unop and binops for typed args, find specialized match and promote. Forget about native types (escape analysis) here, use the boxed variants. We can only unbox them later in rpeep sequences, by adding unbox...box ops. Set the OpRETTYPE of unops and binops. OP * ck_type(OP *o)</p>
 
 </dd>
 <dt id="inplace_aassign">inplace_aassign </dt>
@@ -462,6 +495,14 @@
 <p>Apply $^H{open_IN} or $^H{open_OUT} io hints, by setting op_private bits for raw or crlf.</p>
 
 <pre><code>        void    io_hints(OP* o)</code></pre>
+
+</dd>
+<dt id="is_types_strict">is_types_strict </dt>
+<dd>
+
+<p>Check if the current lexical block has <code>use types &#39;strict&#39;</code> enabled.</p>
+
+<pre><code>                is_types_strict;</code></pre>
 
 </dd>
 <dt id="match_type1">match_type1 </dt>
@@ -481,10 +522,22 @@
                             core_types_t arg2)</code></pre>
 
 </dd>
+<dt id="match_user_type">match_user_type </dt>
+<dd>
+
+<pre><code>                                        |NN const char* aname|bool au8</code></pre>
+
+<p>Match a usertype from argument (aname+au8) to the declared usertype name of a variable (dstash). Searches dstash in @aname::ISA (contravariant, for arguments).</p>
+
+<p>On return-type checks the arguments get in reversed (covariant).</p>
+
+<p>Note that old-style package ISA&#39;s are created dynamically. Only classes with compile-time known ISA&#39;s can be checked at compile-time. Which are currently: use base/fields using Internals::HvCLASS, and later the perl6 syntax class Name is Parent {} Todo: Moose syntax match_user_type;</p>
+
+</dd>
 <dt id="maybe_multideref">maybe_multideref </dt>
 <dd>
 
-<p>given an op_next chain of ops beginning at &#39;start&#39; that potentially represent a series of one or more aggregate derefs (such as $a-&gt;[1]{$key}), examine the chain, and if appropriate, convert the whole chain to a single OP_MULTIDEREF op (maybe with a few additional ops left in too).</p>
+<p>Given an op_next chain of ops beginning at &#39;start&#39; that potentially represent a series of one or more aggregate derefs (such as $a-&gt;[1]{$key}), examine the chain, and if appropriate, convert the whole chain to a single OP_MULTIDEREF op (maybe with a few additional ops left in too).</p>
 
 <p>The caller will have already verified that the first few ops in the chain following &#39;start&#39; indicate a multideref candidate, and will have set &#39;orig_o&#39; to the point further on in the chain where the first index expression (if any) begins. &#39;orig_action&#39; specifies what type of beginning has already been determined by the ops between start..orig_o (e.g. $lex_ary[], $pkg_ary-&gt;{}, expr-&gt;[], etc).</p>
 
@@ -511,6 +564,16 @@
 <p>check the targ of the first INDEX_padsv of a MDEREF_AV, compare it with the given targ, and set INDEX_uoob. bool mderef_uoob_targ(OP* o, PADOFFSET targ)</p>
 
 </dd>
+<dt id="op_check_type">_op_check_type </dt>
+<dd>
+
+<p>Check if the declared static type of the op (i.e. assignment) from the lhs pn can be fullfilled by the dynamic type of the rhs in OP* o (padsv, const, any return type). If possible add a typecast to o to fullfill it.</p>
+
+<p>Different to arg_check_type a type violation is not fatal, it only throws a compile-time warning when no applicable type-conversion can be applied. Return-types and assignments are passed through the type inferencer and applied to old constructs, not signatures, hence not so strict.</p>
+
+<p>Contravariant: Enables you to use a more generic (less derived) type than originally specified. _op_check_type;</p>
+
+</dd>
 <dt id="peep-void-peep-OP-o">peep  void peep(OP* o)</dt>
 <dd>
 
@@ -527,6 +590,16 @@
 <p>3) with static ranges and shaped arrays, can possibly optimize to aelem_u</p>
 
 <pre><code>        bool    peep_leaveloop(OP* leave, OP* from, OP* to)</code></pre>
+
+</dd>
+<dt id="ret_check_type">ret_check_type </dt>
+<dd>
+
+<p>Check if the declared static type of the return type from the lhs pn can be fullfilled by the dynamic type of the rhs in OP* o (padsv, const, any return type). If possible add a typecast to o to fullfill it.</p>
+
+<p>Different to arg_check_type a type violation is not fatal, it only throws a compile-time warning when no applicable type-conversion can be applied. Return-types and assignments are passed through the type inferencer and applied to old constructs, not signatures, hence not so strict.</p>
+
+<p>Covariant: Enables you to use a more derived type than originally specified. ret_check_type;</p>
 
 </dd>
 <dt id="rpeep">rpeep </dt>
@@ -643,6 +716,30 @@
 
 <dl>
 
+<dt id="check_type_and_open">check_type_and_open </dt>
+<dd>
+
+<p>Returns a PerlIO* object when the perl script name could be opened for reading. If not NULL.</p>
+
+<pre><code>        PerlIO * check_type_and_open(SV *name)</code></pre>
+
+</dd>
+<dt id="create_eval_scope">create_eval_scope </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Common-ish code salvaged from Perl_call_sv and pp_entertry, because it was also needed by Perl_fold_constants. void create_eval_scope(OP *retop, U32 flags)</p>
+
+</dd>
+<dt id="delete_eval_scope">delete_eval_scope </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Common code for Perl_call_sv and Perl_fold_constants, put here to keep it close to the related Perl_create_eval_scope. void delete_eval_scope()</p>
+
+</dd>
 <dt id="docatch">docatch </dt>
 <dd>
 
@@ -655,6 +752,57 @@
 <p>See <i>cop.h</i>: je_mustcatch, when set at any runlevel to TRUE, means eval ops must establish a local jmpenv to handle exception traps.</p>
 
 <pre><code>        OP*     docatch(OP *o)</code></pre>
+
+</dd>
+<dt id="doeval_compile">doeval_compile </dt>
+<dd>
+
+<p>Compile a require/do or an eval &#39;&#39;.</p>
+
+<p>outside is the lexically enclosing CV (if any) that invoked us. seq is the current COP scope value. hh is the saved hints hash, if any.</p>
+
+<p>Returns a bool indicating whether the compile was successful; if so, PL_eval_start contains the first op of the compiled code; otherwise, pushes undef.</p>
+
+<p>This function is called from two places: pp_require and pp_entereval. These can be distinguished by whether PL_op is entereval.</p>
+
+<pre><code>        bool    doeval_compile(U8 gimme, CV* outside, U32 seq,
+                               HV* hh)</code></pre>
+
+</dd>
+<dt id="doopen_pm">doopen_pm </dt>
+<dd>
+
+<p>Returns a PerlIO* object when the perl module could be opened for reading. Includes optional compiled module .pmc handling.</p>
+
+<pre><code>        PerlIO * doopen_pm(SV *name, bool pmc)</code></pre>
+
+</dd>
+<dt id="path_is_searchable">path_is_searchable </dt>
+<dd>
+
+<p>require doesn&#39;t search for absolute names, or when the name is explicitly relative the current directory. bool path_is_searchable(const char *name)</p>
+
+</dd>
+<dt id="require_file">require_file </dt>
+<dd>
+
+<p>Handle <code>require Foo::Bar</code>, <code>require &quot;Foo/Bar.pm&quot;</code> and <code>do &quot;Foo.pm&quot;</code>.</p>
+
+<p>The first form will have already been converted at compile time to the second form. OP * require_file(SV *sv)</p>
+
+</dd>
+<dt id="require_version">require_version </dt>
+<dd>
+
+<p>Implements &#39;require 5.010001&#39;, the version check part of require. OP * require_version(SV *sv)</p>
+
+</dd>
+<dt id="try_yyparse">try_yyparse </dt>
+<dd>
+
+<p>Run yyparse() in a setjmp wrapper. Returns: 0: yyparse() successful 1: yyparse() failed 3: yyparse() died</p>
+
+<pre><code>        int     try_yyparse(int gramtype)</code></pre>
 
 </dd>
 </dl>
@@ -711,6 +859,16 @@
                               char force_sigil)</code></pre>
 
 </dd>
+<dt id="av_dump">av_dump </dt>
+<dd>
+
+<p>Dump all the av values. sv_dump dumps only a limited amount of keys.</p>
+
+<p>Only available with <code>-DDEBUGGING</code>.</p>
+
+<pre><code>        void    av_dump(SV* av)</code></pre>
+
+</dd>
 <dt id="deb_hechain">deb_hechain </dt>
 <dd>
 
@@ -746,11 +904,9 @@
 <dt id="hv_dump">hv_dump </dt>
 <dd>
 
-<p>NOTE: this function is experimental and may change or be removed without notice.</p>
-
 <p>Dump all the hv keys and optionally values. sv_dump dumps only a limited amount of keys.</p>
 
-<p>Only avalaible with <code>-DDEBUGGING</code>.</p>
+<p>Only available with <code>-DDEBUGGING</code>.</p>
 
 <pre><code>        void    hv_dump(SV* sv, bool with_values)</code></pre>
 
@@ -1180,7 +1336,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     for (i = 1; i &lt; SIG_SIZE; i++) {
                         SV * const * const init = hv_fetch(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
                         if (init)
-                            sv_setsv(*init, &amp;PL_sv_undef);
+                            sv_setsv(*init, UNDEF);
                     }
                 }
                 break;
@@ -1534,7 +1690,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
             else return NULL;
         }
     gvp = (GV**)hv_fetch(stash, name, is_utf8 ? -(I32)len : (I32)len,add);
-    if (!gvp || *gvp == (const GV *)&amp;PL_sv_undef) {
+    if (!gvp || *gvp == (const GV *)UNDEF) {
         if (addmg) gv = (GV *)newSV(0);
         else return NULL;
     }
@@ -1750,7 +1906,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="refcounted_he_fetch_pvn">refcounted_he_fetch_pvn </dt>
 <dd>
 
-<p>Search along a <code>refcounted_he</code> chain for an entry with the key specified by <code>keypv</code> and <code>keylen</code>. If <code>flags</code> has the <code>REFCOUNTED_HE_KEY_UTF8</code> bit set, the key octets are interpreted as UTF-8, otherwise they are interpreted as Latin-1. <code>hash</code> is a precomputed hash of the key string, or zero if it has not been precomputed. Returns a mortal scalar representing the value associated with the key, or <code>&amp;PL_sv_placeholder</code> if there is no value associated with the key.</p>
+<p>Search along a <code>refcounted_he</code> chain for an entry with the key specified by <code>keypv</code> and <code>keylen</code>. If <code>flags</code> has the <code>REFCOUNTED_HE_KEY_UTF8</code> bit set, the key octets are interpreted as UTF-8, otherwise they are interpreted as Latin-1. <code>hash</code> is a precomputed hash of the key string, or zero if it has not been precomputed. Returns a mortal scalar representing the value associated with the key, or <code>PLACEHOLDER</code> if there is no value associated with the key.</p>
 
 <pre><code>        SV *    refcounted_he_fetch_pvn(
                     const struct refcounted_he *chain,
@@ -1818,7 +1974,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>The new key is specified by <code>keypv</code> and <code>keylen</code>. If <code>flags</code> has the <code>REFCOUNTED_HE_KEY_UTF8</code> bit set, the key octets are interpreted as UTF-8, otherwise they are interpreted as Latin-1. <code>hash</code> is a precomputed hash of the key string, or zero if it has not been precomputed.</p>
 
-<p><code>value</code> is the scalar value to store for this key. <code>value</code> is copied by this function, which thus does not take ownership of any reference to it, and later changes to the scalar will not be reflected in the value visible in the <code>refcounted_he</code>. Complex types of scalar will not be stored with referential integrity, but will be coerced to strings. <code>value</code> may be either null or <code>&amp;PL_sv_placeholder</code> to indicate that no value is to be associated with the key; this, as with any non-null value, takes precedence over the existence of a value for the key further along the chain.</p>
+<p><code>value</code> is the scalar value to store for this key. <code>value</code> is copied by this function, which thus does not take ownership of any reference to it, and later changes to the scalar will not be reflected in the value visible in the <code>refcounted_he</code>. Complex types of scalar will not be stored with referential integrity, but will be coerced to strings. <code>value</code> may be either null or <code>PLACEHOLDER</code> to indicate that no value is to be associated with the key; this, as with any non-null value, takes precedence over the existence of a value for the key further along the chain.</p>
 
 <p><code>parent</code> points to the rest of the <code>refcounted_he</code> chain to be attached to the new <code>refcounted_he</code>. This function takes ownership of one reference to <code>parent</code>, and returns one reference to the new <code>refcounted_he</code>.</p>
 
@@ -1898,6 +2054,17 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
+<dt id="find_in_coretypes">find_in_coretypes </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Check for and autocreate coretypes. Some of them inherited, setting the ISA. Returns NULL if the name is not a coretype. NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        HV *    find_in_coretypes(const char *pkgname,
+                                  STRLEN len)</code></pre>
+
+</dd>
 <dt id="parse_subsignature">parse_subsignature </dt>
 <dd>
 
@@ -2338,10 +2505,20 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="scalarboolean">scalarboolean </dt>
+<dd>
+
+<p>Checks boolean context for the op, merely for syntax warnings.</p>
+
+<p>Note: We cannot <a href="#set_boolean">&quot;set_boolean&quot;</a> context here, as some ops still require the non-boolified stackvalue. See <a href="#check_for_bool_cxt">&quot;check_for_bool_cxt&quot;</a>.</p>
+
+<pre><code>                scalarboolean;</code></pre>
+
+</dd>
 <dt id="scalarkids">scalarkids </dt>
 <dd>
 
-<p>Sets scalar context for all kids</p>
+<p>Sets scalar context for all kids.</p>
 
 <pre><code>                scalarkids;</code></pre>
 
@@ -2360,6 +2537,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>Assigns scalar void context to the optree, i.e. it takes only a scalar argument, no list and returns nothing.</p>
 
 <pre><code>        OP*     scalarvoid(OP* o)</code></pre>
+
+</dd>
+<dt id="set_boolean">set_boolean </dt>
+<dd>
+
+<p>Force the op to be in boolean context, similar to <a href="#scalar">&quot;scalar&quot;</a> and <a href="#scalarboolean">&quot;scalarboolean&quot;</a> This just abstracts away the various private TRUEBOOL flag values.</p>
+
+<pre><code>        OP*     set_boolean(OP *o)</code></pre>
 
 </dd>
 </dl>
@@ -3204,10 +3389,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="create_eval_scope">create_eval_scope </dt>
-<dd>
-
-</dd>
 <dt id="croak_no_mem">croak_no_mem </dt>
 <dd>
 
@@ -3265,10 +3446,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="defelem_target">defelem_target </dt>
-<dd>
-
-</dd>
-<dt id="delete_eval_scope">delete_eval_scope </dt>
 <dd>
 
 </dd>
@@ -3996,10 +4173,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="path_is_searchable">path_is_searchable </dt>
-<dd>
-
-</dd>
 <dt id="pmruntime">pmruntime </dt>
 <dd>
 
@@ -4300,7 +4473,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-1888">Around line 1888:</dt>
+<dt id="Around-line-2134">Around line 2134:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>

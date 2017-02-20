@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+<link rev="made" href="mailto:root@elcapitan.internal.macports.net" />
 </head>
 
 <body>
@@ -42,9 +42,9 @@
       <li><a href="#Typed-and-shaped-arrays">Typed and shaped arrays</a></li>
       <li><a href="#Typed-and-shaped-hashes-NY">Typed and shaped hashes (NY)</a></li>
       <li><a href="#Inlined-functions-NY">Inlined functions (NY)</a></li>
-      <li><a href="#Rewrite-critical-core-modules-in-C-as-builtins">Rewrite critical core modules in C as builtins</a>
+      <li><a href="#Rewrote-critical-core-modules-in-C-as-builtins">Rewrote critical core modules in C as builtins</a>
         <ul>
-          <li><a href="#strict-1.10c-as-builtin">strict 1.10c as builtin</a></li>
+          <li><a href="#strict-1.11c-as-builtin">strict 1.11c as builtin</a></li>
           <li><a href="#attributes-0.26_01c-as-builtin">attributes 0.26_01c as builtin</a></li>
           <li><a href="#DynaLoader-2.00c-and-XSLoader-as-builtins">DynaLoader 2.00c and XSLoader as builtins</a></li>
           <li><a href="#Config-as-XS-extension">Config as XS extension</a></li>
@@ -117,7 +117,7 @@
 
 <p>All branches are frequently rebased. Use the provided helpers <i>cp-rb</i>, <i>cp-rbi</i>, <i>cp-lb</i> and <i>cp-rh</i>.</p>
 
-<p>The fastest performance unstable branches are currently <i>feature/gh87-types-proto</i>, <i>xfeature/gh23-inline-subs</i> and <i>feature/gh14-native-types</i>. The branch with the biggest memory savings is <i>feature/gh9-warnings-xs</i>.</p>
+<p>The fastest performance unstable branches are currently <i>feature/gh87-types-proto</i>, <i>feature/gh23-inline-subs</i> and <i>feature/gh14-native-types</i>. The branch with the biggest memory savings is <i>feature/gh9-warnings-xs</i>.</p>
 
 <p><b>INSTALL:</b></p>
 
@@ -161,7 +161,7 @@
 
 <p>CPAN works. Some modules currently need patches in our distroprefs repo, where the maintainers refuse to support it. See <a href="https://github.com/rurban/distroprefs">https://github.com/rurban/distroprefs</a>.</p>
 
-<p>Some internal modules are explicitly modernized, which is denoted by the <b>c</b> suffix in the version number. Those modules use proper signatures and hereby do safer type-checking at compile-time, and are also 2x faster because of using signatures. Some toolchain modules also switched over to support 10x faster and more secure XS variants of JSON and YAML, and support the cperl improvements (i.e. builtin strict, DynaLoader, XSLoader) and add more security (i.e. DynaLoader, YAML). These modules usually get a +1 major version bump, so you cannot easily override them accidently with worse cpan updates. Such as EUMM, bignum or Test2.</p>
+<p>Some internal modules are explicitly modernized, which is denoted by the <b>c</b> suffix in the version number. Those modules use proper signatures and hereby do safer type-checking at compile-time, and are also 2x faster because of using signatures. Some toolchain modules also switched over to support 10x faster and more secure XS variants of JSON and YAML, and support the cperl improvements (i.e. builtin strict, DynaLoader, XSLoader) and add more security (i.e. DynaLoader, Storable, YAML). These modules usually get a +1 major version bump, so you cannot easily override them accidently with worse cpan updates. Such as EUMM, bignum or Test2.</p>
 
 <dl>
 
@@ -497,7 +497,7 @@
 
 <h2 id="TR39-confusable-names">TR39 confusable names</h2>
 
-<p>cperl rejects since 5.26 confusables as described in TR39, rejects most mixed scripts and normalizes unicode identifiers, similar to python 3. cperl is actually one of the very rare dynamic languages with full unicode identifer support which actually does follow the unicode consortium security recommendations and profile. cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers. See <a href="/cperl/perldata.html#Identifier-parsing">&quot;Identifier parsing&quot; in perldata</a></p>
+<p>cperl rejects since 5.26 confusables as described in TR39, rejects most mixed scripts and normalizes unicode identifiers, similar to python 3. cperl is actually one of the very rare dynamic languages with full unicode identifer support which actually does follow the unicode consortium security recommendations and profile. cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level</a> for unicode identifiers. See <a href="/cperl/perldata.html#Identifier-parsing">&quot;Identifier parsing&quot; in perldata</a></p>
 
 <p>The compiler had to add this warning since 5.16 until 5.26:</p>
 
@@ -517,7 +517,7 @@
 
 <p>Do not check the hash key for collisions with 4 different comparisons in the hot hash loop, use one instead.</p>
 
-<p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain. This is how you usually implement a hash table with linked lists.</p>
+<p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain. This is how you usually implement a slow hash table with linked lists.</p>
 
 <p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem, not by obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
 
@@ -534,6 +534,8 @@
 <p>Seperate the keys from the values to fit the search into a cache line.</p>
 
 <p>Provide a special <code>:const</code> hash table type to enable optimizations to perfect hashes. With <code>study %hash</code> you can do the similar costly optimizations on non-const hashes at run-time to allow faster key access.</p>
+
+<p>Added support for restricted hashes, esp. stashes which we need for our class implementation, to detect wrong fields at compile-time already.</p>
 
 <h2 id="Compile-time-attribute-hooks">Compile-time attribute hooks</h2>
 
@@ -668,17 +670,17 @@
 
 <p>This is the most important optimization, even more important then a jit.</p>
 
-<h2 id="Rewrite-critical-core-modules-in-C-as-builtins">Rewrite critical core modules in C as builtins</h2>
+<h2 id="Rewrote-critical-core-modules-in-C-as-builtins">Rewrote critical core modules in C as builtins</h2>
 
 <p>Builtins: <code>strict</code>, <code>attributes</code>, <code>DynaLoader</code>, <code>XSLoader</code>. NY: <code>Carp</code>, <code>Exporter</code>.</p>
 
-<p>As shared lib: <code>Config</code>, <code>warnings</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
+<p>As shared lib: <code>Config</code> and later <code>warnings</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
 
 <p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a>Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
 
 <p>We need to reduce memory, and want to reduce the size of compiled code by 30%, but in some cases it will be 200%. As builtin or shared library we go to zero startup-time overhead for those modules. With compiled Config alone the memory savings are down to 5.6 levels.</p>
 
-<h3 id="strict-1.10c-as-builtin">strict 1.10c as builtin</h3>
+<h3 id="strict-1.11c-as-builtin">strict 1.11c as builtin</h3>
 
 <p>Starting with cperl (based on Perl 5.22) <a>strict</a> is now a builtin module, implemented as XS functions which are always available.</p>
 
@@ -796,11 +798,13 @@
 
 <h2 id="Proper-object-system">Proper object system</h2>
 
-<p>No, not Moose, but close. Closer to Mouse though, which is currently the recommended OO. Mouse with a perl6-like syntax. Rather an optimizable perl6-like object system in core. Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
+<p>No, not Moose, but close. Closer to Mouse though, which is currently the recommended OO. Mouse with a perl6-like syntax. Rather an optimizable perl6-like object system in core, similar to an extended base/fields OO with pseudohashes, roles and multi-dispatch.</p>
+
+<p>Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in perl6 or p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
 
 <p>Support multi-dispatch in perl6 syntax and optimize for early-bound method calls with typed arguments and closed classes.</p>
 
-<p>Dispatch is via C3, not the old depth-first left-to-right mro implementation.</p>
+<p>Dispatch is via C3, not the old depth-first left-to-right mro implementation. Many old core modules have broken inheritance, so C3 could not yet be enabled as default.</p>
 
 <p>For type inference we will need to make <code>new</code> a special keyword, which is a shortcut for <code>bless</code> with a fixed classname. <code>bless</code> can use computed classnames and thus enforces dynamic types.</p>
 
@@ -850,7 +854,7 @@
 
 <h2 id="Better-symbol-table">Better symbol table</h2>
 
-<p>Check converting the GV stash tree of hashes into a single global data structure, not a nested hash of hashes: Hash, AVL tree, Trie (TST or R&sup2; TST), Patricia trie or DAFSA (Deterministic acyclic finite state automaton) for faster dynamic variable and function name lookup. No binary names, all as UTF8. Maybe restrict to ASCII or valid identifiers to limit the trie memory (array of 26 vs 256). Stashes point then to trie nodes and need a HV check. Optionally provide partial read-only support for the compiler, as for <code>PL_strtab</code>. See the branch <i>feature/gh127-gvflat</i></p>
+<p>Check converting the GV stash tree of hashes into a single global data structure, not a nested hash of hashes: Hash, AVL tree, Trie (TST or R&sup2; TST), Patricia trie or DAFSA (Deterministic acyclic finite state automaton) for faster dynamic variable and function name lookup. No binary names, all as UTF8. Maybe restrict to ASCII or valid identifiers to limit the trie memory (array of 26 vs 256). Stashes point then to trie nodes and need a HV check. Optionally provide partial read-only support for the compiler, as for <code>PL_strtab</code>. See the branch <i>feature/gh127-gvflat</i>.</p>
 
 <h2 id="Coro-support">Coro support</h2>
 
@@ -893,7 +897,7 @@
 <dt id="classes-not-yet"><b>classes (not yet)</b></dt>
 <dd>
 
-<p>A true perl6-like and efficient object system is in work, but not yet enabled. It supports the perl6-like syntax for class, method, has, roles (mixins, compile-time composable classes), method modifiers (:before, :after, :around), multiple type dispatch (multi, no need to overload methods), finalizable classes (compile-time optimizations) and easier perl6-like syntax, which closely resembles early perl6 designs, Damian Conway&#39;s perl5i and <code>Moose</code> without its massive overhead.</p>
+<p>A true perl6-like and efficient object system is in work, but not yet enabled publicly, but internally a lot of support had been added already: Core and User-types, handling of restricted stashes and compile-time inheritance. It supports the perl6-like syntax for class, method, has, roles (mixins, compile-time composable classes), method modifiers (:before, :after, :around), multiple type dispatch (multi, no need to overload methods), finalizable classes (compile-time optimizations) and easier perl6-like syntax, which closely resembles early perl6 designs, Damian Conway&#39;s perl5i and <code>Moose</code> without its massive overhead.</p>
 
 <p>There&#39;s no <b>MOP</b> (meta-object protocol), but reflection. There&#39;s no need to override the internal behavior of the object system, the dispatch, the class and role layout.</p>
 
@@ -913,7 +917,7 @@
 
 <p>perl5 proper started being compiler unfriendly with 5.16, with changed security and then COW handling with 5.18. It can be compiled but it is not recommended, as it features only about 5% memory savings. B::C can still strip the nested stashes (namespaces), but needs to keep all COW strings dynamic. There are possible workarounds such as storing all simple strings as hash keys, or making them immutable, but this is not a viable solution.</p>
 
-<p>With cperl we can again compile to more efficient code, with &gt; 35% memory savings.</p>
+<p>With cperl we can again compile to more efficient code, with &gt;35% memory savings.</p>
 
 <p>See <a href="http://search.cpan.org/dist/B-C/">B::C</a></p>
 

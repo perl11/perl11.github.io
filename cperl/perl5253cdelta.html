@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+<link rev="made" href="mailto:root@elcapitan.internal.macports.net" />
 </head>
 
 <body>
@@ -17,6 +17,11 @@
   <li><a href="#Notice">Notice</a></li>
   <li><a href="#Core-Enhancements">Core Enhancements</a>
     <ul>
+      <li><a href="#No-magic-to-undef-yes-no-placeholder-SVs">No magic to undef/yes/no/placeholder SVs</a></li>
+      <li><a href="#Type-check-assignments">Type-check assignments</a></li>
+      <li><a href="#HvCLASS">HvCLASS</a></li>
+      <li><a href="#Type-infer-bless">Type-infer bless</a></li>
+      <li><a href="#Type-infer-subroutine-return-types">Type-infer subroutine return types</a></li>
       <li><a href="#for-qw-is-legal-again">for qw() is legal again</a></li>
       <li><a href="#Perl-can-now-do-default-collation-in-UTF-8-locales-on-platforms-that-support-it">Perl can now do default collation in UTF-8 locales on platforms that support it</a></li>
       <li><a href="#Better-locale-collation-of-strings-containing-embedded-NUL-characters">Better locale collation of strings containing embedded NUL characters</a></li>
@@ -37,9 +42,11 @@
   </li>
   <li><a href="#Security">Security</a>
     <ul>
+      <li><a href="#Storable-stack-overflows">Storable stack overflows</a></li>
       <li><a href="#Escaped-colons-and-relative-paths-in-PATH">&quot;Escaped&quot; colons and relative paths in PATH</a></li>
       <li><a href="#Unicode-identifiers:-Moderately-Restrictive-Level">Unicode identifiers: Moderately Restrictive Level</a></li>
       <li><a href="#chdir-heap-buffer-overflow-on-the-perl-stack">chdir heap-buffer-overflow on the perl stack</a></li>
+      <li><a href="#Improved-Hash-DDoS-prevention">Improved Hash DDoS prevention</a></li>
     </ul>
   </li>
   <li><a href="#Incompatible-Changes">Incompatible Changes</a>
@@ -53,7 +60,9 @@
   <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
   <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
     <ul>
+      <li><a href="#New-Modules-and-Pragmata">New Modules and Pragmata</a></li>
       <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+      <li><a href="#Removed-Modules-and-Pragmata">Removed Modules and Pragmata</a></li>
     </ul>
   </li>
   <li><a href="#Documentation">Documentation</a>
@@ -116,7 +125,6 @@
   <li><a href="#Platform-Support">Platform Support</a>
     <ul>
       <li><a href="#New-Platforms">New Platforms</a></li>
-      <li><a href="#Discontinued-Platforms">Discontinued Platforms</a></li>
       <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
     </ul>
   </li>
@@ -146,11 +154,35 @@
 
 <p><code>${^ENCODING}</code> and the encoding pragma was not removed, rather fixed instead.</p>
 
-<p>The still incomplete and slow implementation for the experimental subroutine signatures feature from 5.25.4 was not added, as cperl&#39;s signatures are twice as fast and have many more features. In detail the new <code>OP_ARGELEM</code>, <code>OP_ARGDEFELEM</code> and <code>OP_ARGCHECK</code> are not used, cperl still uses <code>OP_SIGNATURE</code> only.</p>
+<p>User-type support is greatly enhanced. See <a href="#Type-check-assignments">&quot;Type-check assignments&quot;</a>, <a href="#HvCLASS">&quot;HvCLASS&quot;</a>, <a href="#Type-infer-bless">&quot;Type-infer bless&quot;</a>, and <a href="#Type-infer-subroutine-return-types">&quot;Type-infer subroutine return types&quot;</a>. Before just coretypes were properly checked, now <code>use types</code> adds warnings for all other types.</p>
 
-<p>cperl doesn&#39;t use the slow Siphash 1-3 as default on 64bit, and no hybrid hash function as introduced with 5.25.8. cperl rather uses fast hash functions and other typical optimizations, while adding proper security in the collision resolution instead. A hash function can never ensure DoS safety for a hash table.</p>
+<p>The still incomplete and slow implementation for the experimental subroutine signatures feature from 5.25.4 was not added, as cperl&#39;s signatures are over 50% faster for over a year already and have many more features. In detail the new <code>OP_ARGELEM</code>, <code>OP_ARGDEFELEM</code> and <code>OP_ARGCHECK</code> are not used, cperl still uses <code>OP_SIGNATURE</code> only.</p>
+
+<p>cperl doesn&#39;t use the slow Siphash 1-3 as default on 64bit, and no hybrid hash function as introduced with 5.25.8. cperl rather uses a short and fast hash function and other typical hash table optimizations, while adding proper security in the collision resolution instead. A secure PRF (pseudo random function) can never ensure DoS safety for a hash table, contrary to the Siphash paper claims.</p>
 
 <h1 id="Core-Enhancements">Core Enhancements</h1>
+
+<h2 id="No-magic-to-undef-yes-no-placeholder-SVs">No magic to undef/yes/no/placeholder SVs</h2>
+
+<p>cperl silently forbids attaching magic to the four major builtin SV sentinels undef, yes, no and placeholder, which are mostly compared to by pointer. Adding magic to them will break that comparison.</p>
+
+<h2 id="Type-check-assignments">Type-check assignments</h2>
+
+<p>Assignment type violations are now also warned, with <code>use warnings &#39;types&#39;</code> enabled, previously only signature types were checked. Only signature type violations or <code>use types &#39;strict&#39;</code> violations are fatal.</p>
+
+<p>Note that the type system is still completely unsound. So far it is only there to catch the most common errors and enable coretype optimizations. cperl only.</p>
+
+<h2 id="HvCLASS">HvCLASS</h2>
+
+<p>With cperl <code>use base</code> or <code>use fields</code> now closes the <code>@ISA</code> and hereby enable compile-time checks and optimizations. The new <code>Internals::HvCLASS</code> function gets or sets the same type for base/field classes as with the upcoming class keyword. See <a href="https://github.com/perl11/cperl/issues/249">[cperl #249]</a>. cperl only.</p>
+
+<h2 id="Type-infer-bless">Type-infer bless</h2>
+
+<p>bless with a constant 2nd argument, the classname, infers this type to the enclosing sub if its the last statement in a body, or to the left-side assignment of a lexical variable. cperl only.</p>
+
+<h2 id="Type-infer-subroutine-return-types">Type-infer subroutine return types</h2>
+
+<p>Subroutine types, either declared or inferred, are now passed through to the type-checker at compile-time. cperl only.</p>
 
 <h2 id="for-qw-is-legal-again">for qw() is legal again</h2>
 
@@ -167,7 +199,7 @@
 
    perl5.12  -e&#39;for $_ qw(a b c) { print $_ }&#39;</code></pre>
 
-<p>The new additional cperl syntax is even easier to use than before. See <a href="https://github.com/perl11/cperl/issues/26">[cperl #26]</a>.</p>
+<p>The new additional cperl syntax is even easier to use than before. See <a href="https://github.com/perl11/cperl/issues/26">[cperl #26]</a>. cperl only.</p>
 
 <h2 id="Perl-can-now-do-default-collation-in-UTF-8-locales-on-platforms-that-support-it">Perl can now do default collation in UTF-8 locales on platforms that support it</h2>
 
@@ -279,9 +311,19 @@
 
 <p>With perl5 upstream those two longstanding PMC bugs made it impossible to use a partial Byte- or JitCache. It also makes it possible to re-instate the old python-like timestamp logic which was removed for pugs 2006 with commit <a href="https://github.com/perl11/cperl/commit/a91233bf4cf6a12df8935c3530a6ca900ca6ca2f">a91233bf4cf</a>.</p>
 
-<p><a href="https://github.com/perl11/cperl/issues/244">[cperl #244]</a>.</p>
+<p>See <a href="https://github.com/perl11/cperl/issues/244">[cperl #244]</a>. cperl only.</p>
 
 <h1 id="Security">Security</h1>
+
+<h2 id="Storable-stack-overflows">Storable stack overflows</h2>
+
+<p>By reading malcrafted local Storable files or memory you could easily overwrite the local stack with controlled data. With bigger values you could cause an immediate exit, without backtrace or an exception being caught.</p>
+
+<p>Another major stack-overflow fix is for <a href="https://rt.cpan.org/Ticket/Display.html?id=97526">[cpan #97526]</a>, limiting the maximal number of nested hash or arrays to 3000. Cpanel::JSON::XS has it at 512.</p>
+
+<p>Note that p5p doesn&#39;t think that these are security issues. <a href="https://rt.perl.org/Public/Bug/Display.html?id=130635">[perl #130635]</a> (even if similar less severe attacks had a CVE and a metasploit module, which cperl detects).</p>
+
+<p>cperl only so far. Uploaded to CPAN, but at this date still unauthorized.</p>
 
 <h2 id="Escaped-colons-and-relative-paths-in-PATH">&quot;Escaped&quot; colons and relative paths in PATH</h2>
 
@@ -326,13 +368,19 @@
 
 <p>When called without argument it overwrote subsequent stack entries with the easily controllable result. <a href="https://rt.perl.org/Public/Bug/Display.html?id=129130">[perl #129130]</a></p>
 
+<h2 id="Improved-Hash-DDoS-prevention">Improved Hash DDoS prevention</h2>
+
+<p>This is merely a theoretical problem, improving on the previous sleep solution against hash floods. Distributed hashflood attacks could lead to memory exhaustion and denial of service in threaded servers, which would bypass the original FAIL_DELAY-like intrusion detection and mitigation.</p>
+
+<p>First sleep, but if &gt;128 concurrent attacks are detected, exit hard. Use a global hash_slowdos counter. Note that this is also triggered by a 128*8*128 hash collision single source attack (=131072). This is still better, faster and smaller than the java solution to convert the linked list to a tree. We log the attackers and can block them. <a href="https://github.com/perl11/cperl/issues/246">[cperl #246]</a>. cperl only.</p>
+
 <h1 id="Incompatible-Changes">Incompatible Changes</h1>
 
 <h2 id="String-delimiters-that-arent-stand-alone-graphemes-are-illegal">String delimiters that aren&#39;t stand-alone graphemes are illegal</h2>
 
 <p>In order for Perl to eventually allow string delimiters to be Unicode grapheme clusters (which look like a single character, but may be a sequence of several ones), we stop allowing a single char delimiter that isn&#39;t a grapheme by itself. These are unlikely to exist in actual code, as they would typically display as attached to the character in front of them.</p>
 
-<p>E.g. <code>qr &#x302;foobar&#x302;;</code> is now an error, it is only deprecated with v5.25.9 upstream and will be illegal in perl5 v5.30.</p>
+<p>E.g. <code>qr &#x302;foobar&#x302;;</code> is now an error, it is only deprecated with v5.25.9 upstream and will be illegal in perl5 v5.30. cperl only.</p>
 
 <h2 id="for-state-loops-still-illegal">for state loops still illegal</h2>
 
@@ -375,6 +423,21 @@
 
 <ul>
 
+<li><p>Less initial array elements</p>
+
+<p>The initial size of empty arrays went in cperl from 4 to 2, AvMAX = 1. Array speed is 2-15% faster on perlbench, overall speed the fastest of all so far. Memory win: &lt;0.1%</p>
+
+</li>
+<li><p>if length($str) is faster</p>
+
+<p>length in boolean context without get magic doesn&#39;t need to calculate the utf8 length, it only needs to check if SvCUR field is empty. And it doesn&#39;t need to allocate a new IV for the result, just use the existing sv_yes or sv_no. Analog to <a href="https://github.com/perl11/cperl/issues/245">[cperl #245]</a> for ref. cperl only.</p>
+
+</li>
+<li><p>if ref() is faster</p>
+
+<p>ref in boolean context doesn&#39;t need to allocate a string. 2-3x faster. See <a href="https://github.com/perl11/cperl/issues/245">[cperl #245]</a> and <a href="https://rt.perl.org/Public/Bug/Display.html?id=78288">[perl #78288]</a> cperl only. in perl5 announced for 5.28.</p>
+
+</li>
 <li><p>readline is faster</p>
 
 <p>Reading from a file line-by-line with <code>readline()</code> or <code>&lt;&gt;</code> should now typically be faster due to a better implementation of the code that searches for the next newline character.</p>
@@ -383,7 +446,9 @@
 <li><p><code>$ref1 = $ref2</code> has been optimized.</p>
 
 </li>
-<li><p>Array and hash assignment are now faster, e.g.</p>
+<li><p>Array and hash assignment are faster</p>
+
+<p>e.g.</p>
 
 <pre><code>    (..., @a) = (...);
     (..., %h) = (...);</code></pre>
@@ -393,13 +458,19 @@
 <p>Note that perl5 hash assignment is still inferior to cperl hash assignment.</p>
 
 </li>
-<li><p>Reduce the number of odd special cases for the SvSCREAM flag.</p>
+<li><p>Less SvSCREAM</p>
+
+<p>Reduce the number of odd special cases for the SvSCREAM flag.</p>
 
 </li>
-<li><p>Avoid <code>sv_catpvn()</code> in <code>do_vop()</code> when unneeded.</p>
+<li><p>Better do_vop</p>
+
+<p>Avoid <code>sv_catpvn()</code> in <code>do_vop()</code> when unneeded.</p>
 
 </li>
-<li><p>Enhancements in Regex concat COW implementation.</p>
+<li><p>Better COW in Regex</p>
+
+<p>Enhancements in Regex concat COW implementation.</p>
 
 </li>
 <li><p>Speed up AV and HV clearing/undeffing.</p>
@@ -408,10 +479,14 @@
 <li><p>Converting a single-digit string to a number is now substantially faster.</p>
 
 </li>
-<li><p>The internal op implementing the <code>split</code> builtin has been simplified and sped up. Firstly, it no longer requires a subsidiary internal <code>pushre</code> op to do its work. Secondly, code of the form <code>my @x = split(...)</code> is now optimised in the same way as <code>@x = split(...)</code>, and is therefore a few percent faster.</p>
+<li><p>Simplified split</p>
+
+<p>The internal op implementing the <code>split</code> builtin has been simplified and sped up. Firstly, it no longer requires a subsidiary internal <code>pushre</code> op to do its work. Secondly, code of the form <code>my @x = split(...)</code> is now optimised in the same way as <code>@x = split(...)</code>, and is therefore a few percent faster. This required B::* compiler changes.</p>
 
 </li>
-<li><p>Bareword constant strings are now permitted to take part in constant folding. They were originally exempted from constant folding in August 1999, during the development of Perl 5.6, to ensure that <code>use strict &quot;subs&quot;</code> would still apply to bareword constants. That has now been accomplished a different way, so barewords, like other constants, now gain the performance benefits of constant folding.</p>
+<li><p>Constant fold with barewords</p>
+
+<p>Bareword constant strings are now permitted to take part in constant folding. They were originally exempted from constant folding in August 1999, during the development of Perl 5.6, to ensure that <code>use strict &quot;subs&quot;</code> would still apply to bareword constants. That has now been accomplished a different way, so barewords, like other constants, now gain the performance benefits of constant folding.</p>
 
 <p>This also means that void-context warnings on constant expressions of barewords now report the folded constant operand, rather than the operation; this matches the behaviour for non-bareword constants.</p>
 
@@ -419,6 +494,18 @@
 </ul>
 
 <h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="New-Modules-and-Pragmata">New Modules and Pragmata</h2>
+
+<dl>
+
+<dt id="types-0.01">types 0.01</dt>
+<dd>
+
+<p>Controls the type-checker. See <a>types</a> or <a href="/cperl/perltypes.html">perltypes</a>.</p>
+
+</dd>
+</dl>
 
 <h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
 
@@ -434,13 +521,25 @@
 <p>Check for gzip/bzip2 before round tripping gz/bz2 files in tests</p>
 
 </dd>
-<dt id="B-C-1.54_16">B-C 1.54_16</dt>
+<dt id="B-C-1.55_02">B-C 1.55_02</dt>
 <dd>
 
 <p>Fixes for PERL_OP_PARENT: moresib, sibling, parent.</p>
 
+<p>Fix hints/522_patched.pl dependency on C.so [cpan #120161]</p>
+
+<p>PUSHRE replaced by SPLIT, no xpad_cop_seq, SVpbm_VALID</p>
+
+<p>Improved dl_module_to_sofile without 2nd arg</p>
+
 </dd>
-<dt id="Carp-1.41c">Carp 1.41c</dt>
+<dt id="B-Debug-1.24">B-Debug 1.24</dt>
+<dd>
+
+<p>No changes</p>
+
+</dd>
+<dt id="Carp-1.42c">Carp 1.42c</dt>
 <dd>
 
 <p>Handle chunk errors phrases</p>
@@ -456,12 +555,40 @@
 <p>This was already fixed in cperl Dec 8 2015 but lost with the update to 2.069 Mar 28 2016. <a href="https://rt.cpan.org/Ticket/Display.html?id=100817">RT #100817</a> gcc 4.9.2 warning -Wmaybe-uninitialized for cost[3-5] Coped fix for same issue from <a href="https://rt.cpan.org/Ticket/Display.html?id=105647">RT #105647</a></p>
 
 </dd>
-<dt id="Compress-Raw-Zlib-2.071">Compress-Raw-Zlib 2.071</dt>
+<dt id="Compress-Raw-Zlib-2.072">Compress-Raw-Zlib 2.072</dt>
 <dd>
 
 <p>Better fix for the cperl APPEND logic.</p>
 
 <p>inflate.c: Fixed -1L compilation warning <a href="https://rt.cpan.org/Ticket/Display.html?id=119580">RT #119580</a></p>
+
+<p>More fixes needed for 2.072 which doesn&#39;t even compile.</p>
+
+<p>inflateUndermine: subvert arg conditionally used/unused <a href="https://rt.cpan.org/Ticket/Display.html?id=120207">RT #120207</a></p>
+
+<p>two gcc6-found problems <a href="https://rt.cpan.org/Ticket/Display.html?id=112829">RT #112829</a></p>
+
+<p>fix deflateParams for zlib &gt; 1.2.8 Tests broken with zlib-1.2.10 <a href="https://rt.cpan.org/Ticket/Display.html?id=119762">RT #119762</a></p>
+
+</dd>
+<dt id="CPAN-2.17">CPAN 2.17</dt>
+<dd>
+
+<p>with cperl support. See <a href="https://github.com/andk/cpanpm/pull/109">https://github.com/andk/cpanpm/pull/109</a></p>
+
+</dd>
+<dt id="CPAN-Meta-Requirements">CPAN-Meta-Requirements</dt>
+<dd>
+
+<p>Moved from cpan to dist. <a href="https://github.com/perl11/cperl/issues/154">[cperl #154]</a>.</p>
+
+</dd>
+<dt id="Cpanel-JSON-XS-3.0227">Cpanel-JSON-XS 3.0227</dt>
+<dd>
+
+<p>fix CLONE and END</p>
+
+<p>relax longdouble Gconvert test on ppc64le and aarch64-linux-ld</p>
 
 </dd>
 <dt id="DB_File-1.840">DB_File 1.840</dt>
@@ -472,6 +599,21 @@
 <p>The other 2 fixes were already in cperl, plus a fix for reproducible builds.</p>
 
 </dd>
+<dt id="DynaLoader-2.07c">DynaLoader 2.07c</dt>
+<dd>
+
+<p>Fixed dl_findfile refcounts, &quot;panic: attempt to copy freed scalar&quot; errors.</p>
+
+</dd>
+<dt id="Filter-1.57">Filter 1.57</dt>
+<dd>
+
+<pre><code>  * added 2 more pure tests
+  * Fixes for . in @INC
+  * added filter-util.pl to t/
+  * fixed INSTALLDIRS back to site since 5.12 [gh #2]</code></pre>
+
+</dd>
 <dt id="IO-Compress-2.070">IO-Compress 2.070</dt>
 <dd>
 
@@ -480,16 +622,58 @@
 <p>zipdetails: CVE-2016-1238: avoid loading optional modules from default <a href="https://rt.cpan.org/Ticket/Display.html?id=116538">RT #116538</a></p>
 
 </dd>
-<dt id="Net-Ping-2.56">Net-Ping 2.56</dt>
+<dt id="Math-BigInt-1.999809">Math-BigInt 1.999809</dt>
+<dd>
+
+<p>Merged CPAN updates with cperl-specific c3, stricter tests and . in @INC fixes.</p>
+
+</dd>
+<dt id="Math-BigInt-FastCalc-0.5006">Math-BigInt-FastCalc 0.5006</dt>
+<dd>
+
+<p>Updated from CPAN:</p>
+
+<p>2 new tests files from Math-BigInt.</p>
+
+<p>Math::BigInt::FastCalc is now a subclass of Math::BigInt::Calc, so remove aliases like *Math::BigInt::FastCalc::_xxx = \&amp;Math::BigInt::Calc::_xxx.</p>
+
+<p>Use OO-calls rather than function calls. (i.e slower but overridable)</p>
+
+</dd>
+<dt id="Math-BigRat-0.2611">Math-BigRat 0.2611</dt>
+<dd>
+
+<p>Updated from CPAN: No functional changes, and the few actual changes in the test lib were for the worse.</p>
+
+</dd>
+<dt id="Net-Ping-2.58">Net-Ping 2.58</dt>
 <dd>
 
 <p>Stabilized test, geocities.com is down.</p>
+
+<p>Return the port num as 5th return value with ack (jfraire).</p>
 
 </dd>
 <dt id="Opcode-1.35_01c">Opcode 1.35_01c</dt>
 <dd>
 
 <p>Add avhvswitch op</p>
+
+</dd>
+<dt id="Pod-HTML-2.23c">Pod-HTML 2.23c</dt>
+<dd>
+
+<p>fix cache races with parallel tests. add the PID to the temp. cache file</p>
+
+</dd>
+<dt id="Pod-Simple-4.35c">Pod-Simple 4.35c</dt>
+<dd>
+
+<p>Updated from CPAN 3.35: Turn off utf8 warnings when trying to see if a file is UTF-8 or not</p>
+
+<p>Merged with our cperl signature modernizations, tracked at <a href="https://github.com/rurban/pod-simple/tree/cperl">https://github.com/rurban/pod-simple/tree/cperl</a>.</p>
+
+<p>Moved from cpan to dist. <a href="https://github.com/perl11/cperl/issues/154">[cperl #154]</a>.</p>
 
 </dd>
 <dt id="POSIX-1.69_01">POSIX 1.69_01</dt>
@@ -510,10 +694,62 @@
 <p>Improved taint test.</p>
 
 </dd>
+<dt id="Storable-3.05_03">Storable 3.05_03</dt>
+<dd>
+
+<p>From <a href="https://github.com/rurban/Storable">https://github.com/rurban/Storable</a></p>
+
+<p>Fixed 3 null ptr dereferences leading to segfaults. <a href="https://rt.perl.org/Public/Bug/Display.html?id=130098">[perl #130098]</a></p>
+
+<p>Fixed some important security bugs with reading from Storable files or memory, directly controlling the stack (not the perl stack). See <a href="#Storable-stack-overflow-or-exit">&quot;Storable stack overflow or exit&quot;</a>.</p>
+
+<p>Another stack-overflow fix is for <a href="https://rt.cpan.org/Ticket/Display.html?id=97526">[cpan #97526]</a>, limiting the maximal number of nested hash or arrays to 3000. Cpanel::JSON::XS has it at 512.</p>
+
+<p>Fixed up early huge buffer and index support from 3.00c, which was failing with wrong malloc errors due to silently overwrap &gt;2GB. <i>t/huge.t</i> works now correctly. Note that 2 cases are not relevant since v5.25.1c/v5.24.1c anymore as with these releases we limit the maximum number of elements for hashes and arrays, and fail with &quot;Too many elements&quot; before. Bumped up PERL_TEST_MEMORY requirements to 8 and 16 for arrays and hashes. In reality the VMM subsystem will kill the process on perl5 before. <code>$a[9223372036854]=0</code> or <code>%a=(0..4294967296)</code> are easy ways to DoS a perl5 system. Only cperl is safe.</p>
+
+<p>Skip or croak when reading or writing 64bit large objects on 32bit systems.</p>
+
+</dd>
+<dt id="Test-Simple">Test-Simple</dt>
+<dd>
+
+<p>Moved from cpan to dist. <a href="https://github.com/perl11/cperl/issues/154">[cperl #154]</a>.</p>
+
+</dd>
 <dt id="threads-2.12_01">threads 2.12_01</dt>
 <dd>
 
 <p>Upstream 2.12 had no changes (!) We keep our 2 added tests. Improve the modglobal init. Add a longer and more realistic threads DESCRIPTION.</p>
+
+</dd>
+<dt id="Thread-Queue-3.12">Thread-Queue 3.12</dt>
+<dd>
+
+<p>Calling any of the dequeue methods with COUNT greater than a queue&#39;s limit will generate an error.</p>
+
+<p>But still have to keep our test fixes for . in @INC</p>
+
+</dd>
+<dt id="threads-shared-1.54">threads-shared 1.54</dt>
+<dd>
+
+<p>ifdef clang</p>
+
+</dd>
+</dl>
+
+<h2 id="Removed-Modules-and-Pragmata">Removed Modules and Pragmata</h2>
+
+<dl>
+
+<dt id="I18N-Collate-1.02">I18N-Collate 1.02</dt>
+<dd>
+
+<p>Compared 8-bit scalar data according to the current locale.</p>
+
+<p>Deprecated with 5.003_06. Its functionality was integrated into the Perl core language in the release 5.003_06.</p>
+
+<p>See <a href="/cperl/perllocale.html">perllocale</a> for further information.</p>
 
 </dd>
 </dl>
@@ -777,11 +1013,7 @@
 
 <p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
 
-<p>XXX New or changed warnings emitted by the core&#39;s <code>C</code> code go here. Also include any changes in <a href="/cperl/perldiag.html">perldiag</a> that reconcile it to the <code>C</code> code.</p>
-
 <h2 id="New-Diagnostics">New Diagnostics</h2>
-
-<p>XXX Newly added diagnostic messages go under here, separated into New Errors and New Warnings</p>
 
 <h3 id="New-Errors">New Errors</h3>
 
@@ -1036,7 +1268,10 @@
 
 <ul>
 
-<li><p>XS-APItest/t/utf8.t: Several small fixes and enhancements.</p>
+<li><p><i>t/run/dtrace.t</i> is inheritently unsafe to run in parallel with <code>fresh_perl</code>, as it causes segfaults on darwin. We added locking, but also re-arranged the order of parallel testing, running this test on darwin before all the comp tests (we have ~10s for this), before all the conflicting run tests.</p>
+
+</li>
+<li><p><i>XS-APItest/t/utf8.t</i>: Several small fixes and enhancements.</p>
 
 </li>
 <li><p>Tests for locales were erroneously using locales incompatible with Perl.</p>
@@ -1063,10 +1298,6 @@
 
 <h1 id="Platform-Support">Platform Support</h1>
 
-<p>XXX Any changes to platform support should be listed in the sections below.</p>
-
-<p>[ Within the sections, list each platform as a =item entry with specific changes as paragraphs below it. ]</p>
-
 <h2 id="New-Platforms">New Platforms</h2>
 
 <dl>
@@ -1079,20 +1310,6 @@
 <p>Test fixes and minor updates.</p>
 
 <p>Account for lack of <code>inf</code>, <code>nan</code>, and <code>-0.0</code> support.</p>
-
-</dd>
-</dl>
-
-<h2 id="Discontinued-Platforms">Discontinued Platforms</h2>
-
-<p>XXX List any platforms that this version of perl no longer compiles on.</p>
-
-<dl>
-
-<dt id="XXX-some-platform">XXX-some-platform</dt>
-<dd>
-
-<p>XXX</p>
 
 </dd>
 </dl>
@@ -1213,6 +1430,17 @@
 
 <ul>
 
+<li><p>Forbid attaching magic to 4 builtin SV sentinels.</p>
+
+<p>The unique sv_undef, sv_yes, sv_no and sv_placeholder SV values are compared by pointer. Adding magic to it will break that and is now silently skipped. If you need to magicalize sv_yes or sv_no, turn it into a normal IV before.</p>
+
+</li>
+<li><p>New public SV_YES and SV_NO macros were added, representing &amp;PL_sv_yes and &amp;PL_sv_no, plus new macros for CORE only: UNDEF and PLACEHOLDER. They cannot be used in headers, as they are used with extensions also.</p>
+
+</li>
+<li><p>Two internal debugging helpers <code>av_dump</code> and <code>hv_dump</code> had been added, to print all array elements and hash keys (and optional values).</p>
+
+</li>
 <li><p>New versions of macros like <code>isALPHA_utf8</code> and <code>toLOWER_utf8</code> have been added, each with the suffix <code>_safe</code>, like <code>isSPACE_utf8_safe</code>. These take an extra parameter, giving an upper limit of how far into the string it is safe to read. Using the old versions could cause attempts to read beyond the end of the input buffer if the UTF-8 is not well-formed, and ther use now raises a deprecation warning. Details are at <a href="/cperl/perlapi.html#Character-classification">&quot;Character classification&quot; in perlapi</a>.</p>
 
 </li>
@@ -1284,6 +1512,20 @@
 
 <ul>
 
+<li><p>Fixed an assertion error with DEBUGGING builds in the <code>ref</code> op, detected with <code>-T</code> in pod testing. Turn off taint magic for the return value of <code>ref</code> with fixed ref names. <a href="https://github.com/perl11/cperl/issues/254">[cperl #254]</a>.</p>
+
+</li>
+<li><p>Fix c3 ISA linearization with deleted ISA elements, leaving &quot;main&quot; plus an empty name.</p>
+
+<pre><code>    cperl -Mmro=c3 -e&#39;
+        @ISACLEAR::ISA=qw/XX YY ZZ/;
+        $ISACLEAR::ISA[1]=undef;
+        print join&quot;,&quot;,@{mro::get_linear_isa(&#39;ISACLEAR&#39;)}&#39;
+    =&gt; XX,main,,ZZ # wrong</code></pre>
+
+<p><a href="https://github.com/perl11/cperl/issues/251">[cperl #251]</a>.</p>
+
+</li>
 <li><p>Fix and explain sv_dump (also via Devel::Peek Dump) that maxnested means also maxelems, by printing now &quot;... (skipping Elt 5-20)&quot;. <a href="https://github.com/perl11/cperl/issues/243">[cperl #243]</a>.</p>
 
 </li>
@@ -1450,7 +1692,7 @@
 <li><p>Vivifying a subroutine stub in a deleted stash (e.g., <code>delete $My::{&quot;Foo::&quot;}; \&amp;My::Foo::foo</code>) no longer crashes. It had begun crashing in Perl 5.18. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128532">[perl #128532]</a></p>
 
 </li>
-<li><p>Some obscure cases of subroutines and file handles being freed at the same time could result in crashes, but have been fixed. The crash was introduced in Perl 5.22. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128597">[perl #128597]</a></p>
+<li><p>Some obscure cases of subroutines and file handles being freed at the same time could result in crashes, but have been fixed. The crash was introduced in Perl 5.22. The cperl fix doesn&#39;t hurt run-time performance as the perl5.26 fix does. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128597">[perl #128597]</a></p>
 
 </li>
 <li><p>Code that looks for a variable name associated with an uninitialized value could cause an assertion in cases where magic is involved, such as <code>$ISA[0][0]</code>. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128253">[perl #128253]</a></p>
@@ -1547,7 +1789,7 @@
 
 <dl>
 
-<dt id="Around-line-995">Around line 995:</dt>
+<dt id="Around-line-1253">Around line 1253:</dt>
 <dd>
 
 <p>Deleting unknown formatting code M&lt;&gt;</p>

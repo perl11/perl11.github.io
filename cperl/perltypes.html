@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:buildbot@teneleven-slave.macports.org" />
+<link rev="made" href="mailto:root@elcapitan.internal.macports.net" />
 </head>
 
 <body>
@@ -18,16 +18,19 @@
       <li><a href="#Dynamic-types">Dynamic types</a></li>
       <li><a href="#Static-types">Static types</a></li>
       <li><a href="#Why-types-Types-are-unperlish">Why types? Types are unperlish</a></li>
+      <li><a href="#Type-tree">Type tree</a></li>
       <li><a href="#coretypes">coretypes</a></li>
       <li><a href="#native-types">native types</a></li>
-      <li><a href="#type-checker">type checker</a></li>
-      <li><a href="#type-inference">type inference</a></li>
+      <li><a href="#Type-checker">Type checker</a></li>
+      <li><a href="#use-types-strict">use types &#39;strict&#39;</a></li>
+      <li><a href="#Type-inference">Type inference</a></li>
     </ul>
   </li>
   <li><a href="#FUNCTIONS">FUNCTIONS</a>
     <ul>
       <li><a href="#typedef-NY">typedef (NY)</a></li>
       <li><a href="#typeof-NY">typeof (NY)</a></li>
+      <li><a href="#Internals::HvCLASS">Internals::HvCLASS</a></li>
     </ul>
   </li>
   <li><a href="#More-type-terminology">More type terminology</a>
@@ -71,23 +74,33 @@
 
 <h2 id="Why-types-Types-are-unperlish">Why types? Types are unperlish</h2>
 
-<p>No, they are not. Types for lexical variables are permitted since 2001 and used in a few CPAN modules, i.e. Net::DNS. Perl6 uses types all over. Every perl5 value is typed at run-time. Just all the normal ops are generic and are allowed to change the type of its arguments and its result at will.</p>
+<p>No, they are not. Types for lexical variables are permitted since 2001, esp. with use fields and used in a few CPAN modules, i.e. Net::DNS, IPC::Run. Perl6 uses types all over. Every perl5 value is typed at run-time. Just all the normal ops are generic and are allowed to change the type of its arguments and its result at will.</p>
 
 <p>Checking types already at compile-time allows dramatic performance and size optimizations, lead to better documented code and lead to earlier compile-time errors, which less need to test all possible run-time types with extensive test suites, which rarely cover all type cases.</p>
 
 <p>Natively types arrays are 4x smaller and faster, typed loops can lead to static loop optimizations, array elements do not need to be checked for out-of-bounds at run-time. There&#39;s no need to check for tied methods or other magic for typed variables. Most of the run-time <i>magic</i>, i.e. checking for extraordinary conditions can be bypassed with typed variants. And with unboxed native types all the arithmetic ops are at least 2-4x faster.</p>
 
-<p>Without types no multi-dispatch, no proper object system. There&#39;s no need to overload internal methods anymore. The compiler and run-time can dispatch on the types of its arguments.</p>
+<p>Without types there will be no multi-dispatch, no proper object system, and smartmatch is almost impossible without types. There&#39;s no need to overload internal methods anymore. The compiler and run-time can dispatch on the types of its arguments.</p>
 
 <p>Without types no builtin FFI, foreign function interface. You still need to call an external FFI module or write a XS function, but loose all the benefits of builtin types.</p>
 
-<p>But even without explicit type declarations the compiler internally can handle the arguments and result types much better as e.g. the javascript v8 engine does, but observing the run-time types and optimize dynamically. You don&#39;t need dart to run fast javascript but it helps.</p>
+<p>But even without explicit type declarations the compiler internally can handle the arguments and result types much better as e.g. the javascript v8 engine does, but observing the run-time types and optimize dynamically. You don&#39;t need dart to run fast javascript but it helps. Every other dynamic languages switched in the meantime to optional typing. No other dynamic language forced type optimizations and checkers out of core.</p>
+
+<h2 id="Type-tree">Type tree</h2>
+
+<pre><code>  Scalar -&gt; Numeric -&gt; Int|Num -&gt; int|num
+                       Uint       uint
+         -&gt; Str -&gt; str
+
+         -&gt; Object -&gt; ...</code></pre>
+
+<p>From most generic left to more specific to the left. Contravariance enables you to use a more generic (less derived, more left) type than originally specified.</p>
 
 <h2 id="coretypes">coretypes</h2>
 
-<p>The builtin <code>coretypes</code> module implements efficient implementations and <b>strict types</b> of <code>Int</code>, <code>UInt</code>, <code>Num</code> and <code>Str</code>, which can be applied to scalars, arrays, hashes and functions, in lexical variable declarations and in signature declarations before the variable name, or afterwards as attribute.</p>
+<p>The builtin <code>coretypes</code> module implements efficient implementations and types of <code>Int</code>, <code>UInt</code>, <code>Num</code> and <code>Str</code>, which can be applied to scalars, arrays, hashes and functions, in lexical variable declarations and in signature declarations before the variable name, or afterwards as attribute.</p>
 
-<p>Any type change for those strictly typed variables will be detected at compile-time and if this fails at run-time. The type <code>Int</code> is interpreted as IV, <code>Num</code> as NV and <code>Str</code> as PV only. There is no stringification for IV and NV, no magic such as <a href="/cperl/perlfunc.html#tie">&quot;tie&quot; in perlfunc</a>, no setting to <code>undef</code> allowed.</p>
+<p>Any type change for typed variables will be detected at compile-time and if this fails at run-time. The type <code>Int</code> is interpreted as IV, <code>Num</code> as NV and <code>Str</code> as PV only. There is no stringification for IV and NV, no magic such as <a href="/cperl/perlfunc.html#tie">&quot;tie&quot; in perlfunc</a>, no setting to <code>undef</code> allowed.</p>
 
 <pre><code>    my Int @a = (0..9);
     tie @a, &#39;Tie::Array&#39;;
@@ -98,6 +111,14 @@
 <p>Operations on typed <code>Int</code> will not promote to double on overflow, such as under <code>use integer</code>, but arithmetic on untyped IVs will promote to doubles.</p>
 
 <p>The <code>@ISA</code> of the coretypes are guaranteed to be empty. Thus there will no parent of all, such as a generic type <code>Object</code>, <code>Scalar</code> or <code>Dynamic</code> to override coretypes, but there will be <i>subtyped</i> children of coretypes to allow stringification and undef. So it is safe to optimize coretypes to its native operations at compile-time.</p>
+
+<p><b>coretypes are less strict than user-types.</b></p>
+
+<p>Implicitly typed coretypes such as constant literals are treated not as strict, and are type-casted as before. With use warnings &quot;types&quot; however some warnings will be shown.</p>
+
+<p>The type checkers will not throw errors on coretype violations with existing ops, only <code>use types</code> or <code>use warnings &quot;types&quot;</code> warnings, which can be made fatal. The new signature op and feature however is stricter, and does throw type violation errors at compile-time on not matching coretypes. Other basic non-coretypes, i.e. user-types and Scalar, Numeric will always throw type violation errors. Any type can be promoted to int, num and str. Most constants, such as constant literal strings, numbers, integers are typed as coretypes.</p>
+
+<p>See <a href="#Type-checker">&quot;Type checker&quot;</a> below.</p>
 
 <p>See also <a href="/cperl/perldata.html#coretypes">&quot;coretypes&quot; in perldata</a> for examples.</p>
 
@@ -121,15 +142,46 @@
 
 <p>Unboxed native values can appear on the stack, on pads and in const ops.</p>
 
-<h2 id="type-checker">type checker</h2>
+<h2 id="Type-checker">Type checker</h2>
 
-<p>Compile-time type checks for user-defined types need to be enabled with <code>use types</code>. Type warnings are enabled with <code>use warnings &#39;types&#39;</code>.</p>
+<p>The type checker is totally unsound. Only a few ops are type-checked, currently only signature subroutine calls and scalar assignments.</p>
 
-<h2 id="type-inference">type inference</h2>
+<p>Compile-time type checks for user-defined types need to be enabled with <code>use types</code>. Type warnings are enabled with <code>use warnings &#39;types&#39;</code> and appear at compile-time. Note that currently <code>use types</code> just enables the types warnings category.</p>
+
+<p>Type warnings can of course be fatalized, e.g. with <code>use types &#39;strict&#39;</code> Signature type checks do not need <code>use types</code> and are always fatal, at compile-time.</p>
+
+<pre><code>    my int @a;
+    my MyClass $c = bless [], &#39;MyClass&#39;;
+    $a[0] = $c;
+    # compile-time types warning: Inserting type cast int to MyClass
+
+    my MyClass $a;
+    $a[0] = 0;
+    # no warning: objects are accepted and converted to coretypes.
+
+    use warnings;
+    my int @a;
+    $a[0] = &quot;&quot;;
+    # compile-time warning: Type of assignment to @a must be int (not Str)
+
+    use warnings FATAL =&gt; &#39;types&#39;;
+    my int @a;
+    $a[0] = &quot;&quot;;
+    # fatal compile-time warning: Type of scalar assignment to @a must be int (not Str)</code></pre>
+
+<p>use <a>base</a> and use <a>fields</a> was changed in cperl to behave as proper cperl classes. I.e. their @ISA are compile-time closed, which enables proper inheritance checks at compile-time.</p>
+
+<h2 id="use-types-strict">use types &#39;strict&#39;</h2>
+
+<p>The strict argument to the <a>types</a> pragma enables strict types warnings, so old-style code behaves like modern perl, dying on type violations. <code>use types</code> without strict just warns.</p>
+
+<p>With strict types even user-type violations will error, without only signature type violations are strict.</p>
+
+<h2 id="Type-inference">Type inference</h2>
 
 <p>The inferencer runs automatically on some very limited syntax and can currently only infer <code>Int</code> on array indices, ranges and <code>Str</code> on hash keys, but has to give up on magic, dualvars, and <code>no strict &#39;refs&#39;</code>. But the current type inference is fast. With the help of added declarations and type checks, as e.g. in <code>smartmatch</code> or <code>given</code>/<code>when</code> with type support it can infer much more.</p>
 
-<pre><code>    if (type $a == &quot;int&quot;) {  =&gt; $a is an int in this scope }</code></pre>
+<pre><code>    if (type $a == :int) {  =&gt; $a is an int in this scope }</code></pre>
 
 <p>Typed lexicals and signatures lead to a typical performance win to ~2x faster, you get compile-time type warnings, a business friendly coding environment and the possibility to display and put infered types automatically in your code, with a cooperating editor. e.g.</p>
 
@@ -157,6 +209,14 @@
 
 <p><b>typeof</b> returns the compile-time declared or inferred type of the expression. This may be different from the run-time class name, obtained with <a href="/cperl/perlfunc.html#ref">&quot;ref&quot; in perlfunc</a> or <a>&quot;reftype&quot; in Scalar::Util</a>.</p>
 
+<h2 id="Internals::HvCLASS">Internals::HvCLASS</h2>
+
+<p>Get or set the status of HvCLASS of stashes.</p>
+
+<p>Needed by the cperl variants of <a>base</a> and <a>fields</a> to make the <code>@ISA</code> inheritance readonly at compile-time, to enable compile-time checks of classes using base or fields. Those classes are essentially the same as the upcoming <b>class</b> keyword, which is fast sugar over the old base/field object system with pseudohashes.</p>
+
+<p>Without const @ISA we cannot do compile-time type checks, and we better don&#39;t do them at run-time. Only dynamic non HvCLASS packages are type-checked at run-time.</p>
+
 <h1 id="More-type-terminology">More type terminology</h1>
 
 <h2 id="nominal-type-system">nominal type system</h2>
@@ -182,11 +242,13 @@
 
 <p>Typed arguments accept the same type or more generic arguments. Int as accepted as Numeric, but Numeric is not accepted as Int.</p>
 
+<p><b>Contravariance</b> is the most used variance: Enables you to use a more generic (less derived) type than originally specified. It is used for all signature and assignment type matching.</p>
+
 </dd>
 <dt id="Covariance-of-return-types-in-the-subtype">Covariance of return types in the subtype.</dt>
 <dd>
 
-<p>Typed return values accept the same type or more specific types. Numeric is accepted as Int, but Int is not accepted as Numeric.</p>
+<p>Typed return values accept the same type or more specific types. Numeric is accepted as Int, but Int is not accepted as Numeric. This is only used for declared function return types. <i>Currently not implemented</i>.</p>
 
 </dd>
 <dt id="No-new-exceptions-should-be-thrown-by-methods-of-the-subtype">No new exceptions should be thrown by methods of the subtype</dt>
@@ -227,9 +289,9 @@
 
 <p><b>Avoiding the diamond problem</b>:</p>
 
-<p>subtypes need proper linearization of the inheritance tree.</p>
+<p>Subtypes need proper linearization of the inheritance tree.</p>
 
-<p>Therefore subtypes are required to use the <b>c3</b> inheritance, with <code>use mro &quot;c3&quot;</code>. subclasses defined with the new <code>class</code> keyword use the c3 inheritance already.</p>
+<p>Therefore cperl switched from the old default mro <b>dfs</b> to the better but stricter <b>c3</b> inheritance with v5.26.c. <code>@ISA</code> violations throw errors with c3. Many old perl5 packages have broken ISA trees, and either need to <code>use mro &#39;dfs&#39;</code>, or fix it.</p>
 
 <p><b>A typical violation</b>:</p>
 
@@ -310,6 +372,8 @@
 <p>When the method search goes only through const packages and their const <code>@ISA</code>, it is not possible to inject another package at run-time into the method search, thus the method call can be short-cut. This classes can be <b>finialized</b>, and all those method calls can be resolved at compile-time to static function calls, and can be inlined, and therefore even more optimized.</p>
 
 <p>Note that the <code>package MyBase</code> must be constant here. Otherwise <code>&amp;MyBase::new</code> can be deleted and <code>@MyBase::ISA</code> be changed to lead a parent object at run-time.</p>
+
+<p>base classes with optional fields just close the <code>@ISA</code>, but not the method hash.</p>
 
 <h3 id="Types-and-const-inheritance">Types and const inheritance</h3>
 
