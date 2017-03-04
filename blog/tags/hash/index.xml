@@ -10,6 +10,199 @@
     <atom:link href="http://perl11.org/blog/tags/hash.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>cperl hash tables</title>
+      <link>http://perl11.org/blog/cperl-hash-tables.html</link>
+      <pubDate>Sat, 04 Mar 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/cperl-hash-tables.html</guid>
+      <description>
+
+&lt;h1 id=&#34;the-old-perl5-hash-table-uses&#34;&gt;The old perl5 hash table uses&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;linked lists for its collisions, with slow out-of-cache pointer
+chasing and data overhead.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;unsorted flags at the end, while some flags are needed for compare.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;has questionable security measures to slow down all cases. seed ok,
+randomize iter maybe, but randomize the collisions and slow hash
+funcs is stupid. The security should be fixed with proper collision
+iteration, not by pseudo-security theatre upfront.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;no collision search abstraction. The internal implementation quirks
+leaked into core and even external modules.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;four different HE types. Only one is needed.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;inefficient combination of action flags. many magic hash key lookups
+involve internally 3-4 hash lookups.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;was seriously broken 4 times so far.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;in-order-to-clean-up-the-mess-i-did-the-following&#34;&gt;In order to clean up the mess, I did the following&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Added multiple new hash functions, run statistics and evaluated them.
+See &lt;a href=&#34;https://github.com/rurban/perl-hash-stats&#34;&gt;perl-hash-stats&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Took over maintainance of the general hash function test suite
+&lt;a href=&#34;https://github.com/rurban/smhasher#smhasher&#34;&gt;smhasher&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Attempt to fix the wrong wikipedia entry about hash tables. It
+prominently claims that perl5 hash tables are highly optimized, when
+in fact they are highly deoptimized, and are in fact the worst and
+slowest hash table implementation in existance.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Posted the results to p5p, which was ignored. A few sentences they
+said made it clear, that they had no idea what they were
+doing. E.g. they made fun of Donald Knuth, and of course of me
+&lt;em&gt;(besides calling me an asshole once again)&lt;/em&gt;. Hinting that they
+maybe should consult an independent expert sitting in the same
+office didn&amp;rsquo;t help. Revising their broken implementation of hash
+tables four times so far doesn&amp;rsquo;t improve trust into their abilities.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Started implementing perfect hashes, because they were needed to
+speed up all the readonly hashes in core (Config, warnings, unicode
+tables).  Found some interesting new results, esp. how to speed
+up memcmp by &lt;a href=&#34;http://blogs.perl.org/users/rurban/2014/08/perfect-hashes-and-faster-than-memcmp.html&#34;&gt;50% - 2000%&lt;/a&gt;
+with a constant string.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Studied hash function and hash table security, and detected a lot of
+theatre and wrong practices in most dynamic languages, but
+interestingly not in the more technical-orientated important public
+services, usually maintained by a single person. Apparently
+community driven development in large teams is the worst,
+contradicting &lt;a href=&#34;http://www.catb.org/esr/writings/cathedral-bazaar/&#34;&gt;&amp;ldquo;The Cathedral and the Bazaar&amp;rdquo;&lt;/a&gt;. I&amp;rsquo;ll have to seperate that into a new blog post. There are
+many more tellsigns of community-based development agony.
+Wrote brute-force and solver-based attacks. (&lt;em&gt;No, I&amp;rsquo;m not gonna publish
+these&lt;/em&gt;).  So far I could only convince google to revise their
+documentation.  Added hashflood testcases to cperl to test detecting
+such attacks.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;cperl-hash-tables-use&#34;&gt;cperl hash tables use&lt;/h1&gt;
+
+&lt;p&gt;✓ a &lt;strong&gt;fast and short hash function&lt;/strong&gt; &lt;a href=&#34;https://github.com/rurban/smhasher#smhasher&#34;&gt;FNV1A&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;✓ proper DoS and DDoS &lt;strong&gt;security&lt;/strong&gt; by detecting attacks, logging and
+  mitigating it. Not using the slowest of all usable hash function
+  SipHash, as this doesn&amp;rsquo;t really help against attacks.&lt;/p&gt;
+
+&lt;p&gt;✓ &lt;code&gt;PERTURB_KEYS_TOP&lt;/code&gt; &lt;strong&gt;move-to-front&lt;/strong&gt; with a linked list is the only
+  sane strategy for simple chained bucket lists with many reads.&lt;/p&gt;
+
+&lt;p&gt;✓ &lt;code&gt;HV_FILL_RATE&lt;/code&gt;: try lower fill rates than 100%.
+  100% is pretty insane, esp. with our bad hash funcs. Make it fast with builtin_ctz.
+  &lt;a href=&#34;https://github.com/rurban/perl-hash-stats#fill-rates&#34;&gt;&lt;img src=&#34;https://github.com/rurban/perl-hash-stats/raw/master/hash-fillrate-def-FNV1A.png&#34; alt=&#34;FNV1A fill rates&#34; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;✓ use &lt;code&gt;builtin_ctz&lt;/code&gt; for faster division in &lt;code&gt;DO_HSPLIT&lt;/code&gt;.
+  Allow &lt;code&gt;-DHV_FILL_RATE=90&lt;/code&gt; definition. (Tested to be the best with &lt;code&gt;FNV1A&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;✓ extract uncommon magical code in hot code to an extra static
+  function to help keep the icache smaller. only in rare cases this
+  branch is taken. (i.e filling ENV at startup). Measured 2-15% faster
+  with normal scripts, not using tied hashes.&lt;/p&gt;
+
+&lt;p&gt;✓ fixed &lt;code&gt;-DNODEFAULT_SHAREKEYS&lt;/code&gt;, preventing every single hash lookup
+  to be done twice.  First in strtab, then in the real hash.&lt;/p&gt;
+
+&lt;p&gt;✓ &lt;strong&gt;pre-extend&lt;/strong&gt; the hash size to the size of the resulting hashes in many cases
+  to avoid initialization splits:
+  internal stashes of some known packages, internal hashes of some known size,
+  fix the hash assign operator to that in user-code.&lt;/p&gt;
+
+&lt;p&gt;and several other minor optimizations. Typically 20% faster than in perl5.&lt;/p&gt;
+
+&lt;h1 id=&#34;cperl-is-working-on-these-improvements&#34;&gt;cperl is working on these improvements:&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;abstraction of the abstract &lt;strong&gt;HE_EACH&lt;/strong&gt; collision iterator in the
+&lt;a href=&#34;https://github.com/perl11/cperl/commits/feature/gh24-base-hash&#34;&gt;feature/gh24-base-hash&lt;/a&gt; branch &lt;em&gt;(stable)&lt;/em&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;array_he: &lt;strong&gt;abstract AHE&lt;/strong&gt;, inline parts of the HE into the
+array. array_he vs ll_he. (linked list, see also the he-array
+branch). array_he (&lt;code&gt;HvARRAY = AHE[]&lt;/code&gt;) can contain
+&lt;code&gt;{ hent_he, hent_hash }&lt;/code&gt;. This way the hash catches 99% of all comparisons
+already, and we don&amp;rsquo;t have to chase the external hek ptr, when the
+hash check fails. Every HE entry is then be 2 words (128), instead
+of one word (64), called AHE. The linked list still contains the old
+&lt;code&gt;HE*&lt;/code&gt;, with &lt;code&gt;{ hent_next, hent_hek, hent_val }&lt;/code&gt;. This is implemented and
+works fine in the
+&lt;a href=&#34;https://github.com/perl11/cperl/commits/feature/gh24-hash-loop&#34;&gt;featurex/gh24-hash-loop&lt;/a&gt; branch &lt;em&gt;(stable)&lt;/em&gt;, and on top of that the &lt;a href=&#34;https://github.com/perl11/cperl/commits/feature/gh24-array_he&#34;&gt;featurex/gh24-array_he&lt;/a&gt; branch,
+which is the base to most other hash tables below.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;HE_ARRAY: According to
+&lt;a href=&#34;http://goanna.cs.rmit.edu.au/~jz/fulltext/spire05.pdf&#34;&gt;http://goanna.cs.rmit.edu.au/~jz/fulltext/spire05.pdf&lt;/a&gt; the best for
+chained hashing is currently a &lt;strong&gt;cache-friendly array of buckets&lt;/strong&gt;,
+instead of a linked list. cache-friendly continuous buffer of HE&amp;rsquo;s
+w/ inlined HEK (char&lt;em&gt;) + SV&lt;/em&gt; val, but no hash, no next ptr. Also for
+shared he&amp;rsquo;s: PL_strtab.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;https://github.com/perl11/cperl/issues/102&#34;&gt;small hash type&lt;/a&gt;:
+linear search in embedded array up to 7 keys. ruby, v8 and several
+others measured 3-5 to be a big win, esp. for their object fields,
+but we don&amp;rsquo;t even have that yet. avoid the hash init, calc and search
+overhead, esp. with our overly slow hash tables.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;hash-sortbuckets: a sorted static list of collisions (up to 8, maybe
+start with 3, then 8) as in the Knuth &lt;strong&gt;&amp;ldquo;ordered hash table&amp;rdquo;&lt;/strong&gt;. We will not
+use that.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;khash&lt;/strong&gt;: use open addressing as everyone else. faster, less space. But
+khash needs a few fixes. And we can not use that, as perl5 is not properly
+abstracted to be able to use external hash tables.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;one-word-AHE&lt;/strong&gt;: As possible improvement on that on 64bit use 48bits
+for the HE ptr, and 16bits of the hash to be compared first. See
+&lt;a href=&#34;https://www.semanticscholar.org/paper/Fast-Dynamically-Sized-Concurrent-Hash-Table-Barnat-Rockai/ab7dd007587f411cf99bfe056639e055eff22e0c/pdf&#34;&gt;https://www.semanticscholar.org/paper/Fast-Dynamically-Sized-Concurrent-Hash-Table-Barnat-Rockai/ab7dd007587f411cf99bfe056639e055eff22e0c/pdf&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;use &lt;strong&gt;robin-hood&lt;/strong&gt; as this is currently the best worse-case strategy
+(being super defensive, but not so stupid to use SipHash, which adds
+no benefit). With better native threading support (shared hashes)
+eventually use &lt;strong&gt;leapfrog&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;compact ordered hash&lt;/strong&gt;. use an array of short indices into a compacted
+array of hash/key/val entries as in PyPy and now python: &amp;ldquo;compact
+ordered dict&amp;rdquo;. This saves a lot of space and only add&amp;rsquo;s one indirect
+lookup into cache-friendly array. See methane/cpython#1
+&lt;a href=&#34;https://mail.python.org/pipermail/python-dev/2016-September/146327.html&#34;&gt;https://mail.python.org/pipermail/python-dev/2016-September/146327.html&lt;/a&gt;
+This also iterates over the hash in insertion order, which
+effectively hides any attempt to get the seed over the
+iterators. For attacks you need to get collision and robin-hood
+reordering timings.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;get rid of &lt;strong&gt;HEK_WASUTF8&lt;/strong&gt;. &amp;ldquo;There shall be only one state, not
+two&amp;rdquo;. Rather fix the encoding bug (CPAN) instead.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;p5p-plans&#34;&gt;p5p plans&lt;/h1&gt;
+
+&lt;p&gt;p5p announced that it is working on switching to an abstract vtable
+for hash tables, which is similar to their idea to run-time switch
+hash functions truly horrendous.  They say it is needed to abstract
+readonly (i.e. perfect hashes), and maybe tied and restricted
+hashes.&lt;/p&gt;
+
+&lt;p&gt;The cost of this would be another indirection in every hash
+table call, and I don&amp;rsquo;t see any benefit.&lt;/p&gt;
+
+&lt;p&gt;I don&amp;rsquo;t see a cleanup of the monstrous implementation and different
+types and attempts to actually improve any of the problematic issues.
+As usual with p5p it will make the situation even worse, not better.&lt;/p&gt;
+
+&lt;h1 id=&#34;conflicts&#34;&gt;Conflicts&lt;/h1&gt;
+
+&lt;p&gt;Having worked with &lt;code&gt;PERTURB_KEYS_TOP&lt;/code&gt; move-to-front in cperl for a few
+years now, there&amp;rsquo;s only one broken module Text::CVS_XS, which assumes
+in one of its testcases for parse without headers that the ordering of
+keys is stable when the size did not change. The fix is in my
+&lt;a href=&#34;https://github.com/rurban/distroprefs/blob/master/sources/authors/id/R/RU/RURBAN/patches/Text-CSV_XS-cperl.patch&#34;&gt;distroprefs&lt;/a&gt;.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>The dangerous SipHash myth</title>
       <link>http://perl11.org/blog/seed.html</link>
       <pubDate>Sat, 26 Nov 2016 12:35:00 +0200</pubDate>

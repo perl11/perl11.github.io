@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>cperl hash tables // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="cperl hash tables" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/cperl-hash-tables.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">cperl hash tables</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/cperl-hash-tables.html" class="article-date">
+                <time datetime='2017-03-04T00:00:00.000&#43;00:00' itemprop="datePublished">2017-03-04</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="the-old-perl5-hash-table-uses">The old perl5 hash table uses</h1>
+
+<ul>
+<li><p>linked lists for its collisions, with slow out-of-cache pointer
+chasing and data overhead.</p></li>
+
+<li><p>unsorted flags at the end, while some flags are needed for compare.</p></li>
+
+<li><p>has questionable security measures to slow down all cases. seed ok,
+randomize iter maybe, but randomize the collisions and slow hash
+funcs is stupid. The security should be fixed with proper collision
+iteration, not by pseudo-security theatre upfront.</p></li>
+
+<li><p>no collision search abstraction. The internal implementation quirks
+leaked into core and even external modules.</p></li>
+
+<li><p>four different HE types. Only one is needed.</p></li>
+
+<li><p>inefficient combination of action flags. many magic hash key lookups
+involve internally 3-4 hash lookups.</p></li>
+
+<li><p>was seriously broken 4 times so far.</p></li>
+</ul>
+
+<h1 id="in-order-to-clean-up-the-mess-i-did-the-following">In order to clean up the mess, I did the following</h1>
+
+<ul>
+<li><p>Added multiple new hash functions, run statistics and evaluated them.
+See <a href="https://github.com/rurban/perl-hash-stats">perl-hash-stats</a></p></li>
+
+<li><p>Took over maintainance of the general hash function test suite
+<a href="https://github.com/rurban/smhasher#smhasher">smhasher</a></p></li>
+
+<li><p>Attempt to fix the wrong wikipedia entry about hash tables. It
+prominently claims that perl5 hash tables are highly optimized, when
+in fact they are highly deoptimized, and are in fact the worst and
+slowest hash table implementation in existance.</p></li>
+
+<li><p>Posted the results to p5p, which was ignored. A few sentences they
+said made it clear, that they had no idea what they were
+doing. E.g. they made fun of Donald Knuth, and of course of me
+<em>(besides calling me an asshole once again)</em>. Hinting that they
+maybe should consult an independent expert sitting in the same
+office didn&rsquo;t help. Revising their broken implementation of hash
+tables four times so far doesn&rsquo;t improve trust into their abilities.</p></li>
+
+<li><p>Started implementing perfect hashes, because they were needed to
+speed up all the readonly hashes in core (Config, warnings, unicode
+tables).  Found some interesting new results, esp. how to speed
+up memcmp by <a href="http://blogs.perl.org/users/rurban/2014/08/perfect-hashes-and-faster-than-memcmp.html">50% - 2000%</a>
+with a constant string.</p></li>
+
+<li><p>Studied hash function and hash table security, and detected a lot of
+theatre and wrong practices in most dynamic languages, but
+interestingly not in the more technical-orientated important public
+services, usually maintained by a single person. Apparently
+community driven development in large teams is the worst,
+contradicting <a href="http://www.catb.org/esr/writings/cathedral-bazaar/">&ldquo;The Cathedral and the Bazaar&rdquo;</a>. I&rsquo;ll have to seperate that into a new blog post. There are
+many more tellsigns of community-based development agony.
+Wrote brute-force and solver-based attacks. (<em>No, I&rsquo;m not gonna publish
+these</em>).  So far I could only convince google to revise their
+documentation.  Added hashflood testcases to cperl to test detecting
+such attacks.</p></li>
+</ul>
+
+<h1 id="cperl-hash-tables-use">cperl hash tables use</h1>
+
+<p>✓ a <strong>fast and short hash function</strong> <a href="https://github.com/rurban/smhasher#smhasher">FNV1A</a></p>
+
+<p>✓ proper DoS and DDoS <strong>security</strong> by detecting attacks, logging and
+  mitigating it. Not using the slowest of all usable hash function
+  SipHash, as this doesn&rsquo;t really help against attacks.</p>
+
+<p>✓ <code>PERTURB_KEYS_TOP</code> <strong>move-to-front</strong> with a linked list is the only
+  sane strategy for simple chained bucket lists with many reads.</p>
+
+<p>✓ <code>HV_FILL_RATE</code>: try lower fill rates than 100%.
+  100% is pretty insane, esp. with our bad hash funcs. Make it fast with builtin_ctz.
+  <a href="https://github.com/rurban/perl-hash-stats#fill-rates"><img src="https://github.com/rurban/perl-hash-stats/raw/master/hash-fillrate-def-FNV1A.png" alt="FNV1A fill rates" /></a></p>
+
+<p>✓ use <code>builtin_ctz</code> for faster division in <code>DO_HSPLIT</code>.
+  Allow <code>-DHV_FILL_RATE=90</code> definition. (Tested to be the best with <code>FNV1A</code>)</p>
+
+<p>✓ extract uncommon magical code in hot code to an extra static
+  function to help keep the icache smaller. only in rare cases this
+  branch is taken. (i.e filling ENV at startup). Measured 2-15% faster
+  with normal scripts, not using tied hashes.</p>
+
+<p>✓ fixed <code>-DNODEFAULT_SHAREKEYS</code>, preventing every single hash lookup
+  to be done twice.  First in strtab, then in the real hash.</p>
+
+<p>✓ <strong>pre-extend</strong> the hash size to the size of the resulting hashes in many cases
+  to avoid initialization splits:
+  internal stashes of some known packages, internal hashes of some known size,
+  fix the hash assign operator to that in user-code.</p>
+
+<p>and several other minor optimizations. Typically 20% faster than in perl5.</p>
+
+<h1 id="cperl-is-working-on-these-improvements">cperl is working on these improvements:</h1>
+
+<ul>
+<li><p>abstraction of the abstract <strong>HE_EACH</strong> collision iterator in the
+<a href="https://github.com/perl11/cperl/commits/feature/gh24-base-hash">feature/gh24-base-hash</a> branch <em>(stable)</em>.</p></li>
+
+<li><p>array_he: <strong>abstract AHE</strong>, inline parts of the HE into the
+array. array_he vs ll_he. (linked list, see also the he-array
+branch). array_he (<code>HvARRAY = AHE[]</code>) can contain
+<code>{ hent_he, hent_hash }</code>. This way the hash catches 99% of all comparisons
+already, and we don&rsquo;t have to chase the external hek ptr, when the
+hash check fails. Every HE entry is then be 2 words (128), instead
+of one word (64), called AHE. The linked list still contains the old
+<code>HE*</code>, with <code>{ hent_next, hent_hek, hent_val }</code>. This is implemented and
+works fine in the
+<a href="https://github.com/perl11/cperl/commits/feature/gh24-hash-loop">featurex/gh24-hash-loop</a> branch <em>(stable)</em>, and on top of that the <a href="https://github.com/perl11/cperl/commits/feature/gh24-array_he">featurex/gh24-array_he</a> branch,
+which is the base to most other hash tables below.</p></li>
+
+<li><p>HE_ARRAY: According to
+<a href="http://goanna.cs.rmit.edu.au/~jz/fulltext/spire05.pdf">http://goanna.cs.rmit.edu.au/~jz/fulltext/spire05.pdf</a> the best for
+chained hashing is currently a <strong>cache-friendly array of buckets</strong>,
+instead of a linked list. cache-friendly continuous buffer of HE&rsquo;s
+w/ inlined HEK (char<em>) + SV</em> val, but no hash, no next ptr. Also for
+shared he&rsquo;s: PL_strtab.</p></li>
+
+<li><p><a href="https://github.com/perl11/cperl/issues/102">small hash type</a>:
+linear search in embedded array up to 7 keys. ruby, v8 and several
+others measured 3-5 to be a big win, esp. for their object fields,
+but we don&rsquo;t even have that yet. avoid the hash init, calc and search
+overhead, esp. with our overly slow hash tables.</p></li>
+
+<li><p>hash-sortbuckets: a sorted static list of collisions (up to 8, maybe
+start with 3, then 8) as in the Knuth <strong>&ldquo;ordered hash table&rdquo;</strong>. We will not
+use that.</p></li>
+
+<li><p><strong>khash</strong>: use open addressing as everyone else. faster, less space. But
+khash needs a few fixes. And we can not use that, as perl5 is not properly
+abstracted to be able to use external hash tables.</p></li>
+
+<li><p><strong>one-word-AHE</strong>: As possible improvement on that on 64bit use 48bits
+for the HE ptr, and 16bits of the hash to be compared first. See
+<a href="https://www.semanticscholar.org/paper/Fast-Dynamically-Sized-Concurrent-Hash-Table-Barnat-Rockai/ab7dd007587f411cf99bfe056639e055eff22e0c/pdf">https://www.semanticscholar.org/paper/Fast-Dynamically-Sized-Concurrent-Hash-Table-Barnat-Rockai/ab7dd007587f411cf99bfe056639e055eff22e0c/pdf</a></p></li>
+
+<li><p>use <strong>robin-hood</strong> as this is currently the best worse-case strategy
+(being super defensive, but not so stupid to use SipHash, which adds
+no benefit). With better native threading support (shared hashes)
+eventually use <strong>leapfrog</strong>.</p></li>
+
+<li><p><strong>compact ordered hash</strong>. use an array of short indices into a compacted
+array of hash/key/val entries as in PyPy and now python: &ldquo;compact
+ordered dict&rdquo;. This saves a lot of space and only add&rsquo;s one indirect
+lookup into cache-friendly array. See methane/cpython#1
+<a href="https://mail.python.org/pipermail/python-dev/2016-September/146327.html">https://mail.python.org/pipermail/python-dev/2016-September/146327.html</a>
+This also iterates over the hash in insertion order, which
+effectively hides any attempt to get the seed over the
+iterators. For attacks you need to get collision and robin-hood
+reordering timings.</p></li>
+
+<li><p>get rid of <strong>HEK_WASUTF8</strong>. &ldquo;There shall be only one state, not
+two&rdquo;. Rather fix the encoding bug (CPAN) instead.</p></li>
+</ul>
+
+<h1 id="p5p-plans">p5p plans</h1>
+
+<p>p5p announced that it is working on switching to an abstract vtable
+for hash tables, which is similar to their idea to run-time switch
+hash functions truly horrendous.  They say it is needed to abstract
+readonly (i.e. perfect hashes), and maybe tied and restricted
+hashes.</p>
+
+<p>The cost of this would be another indirection in every hash
+table call, and I don&rsquo;t see any benefit.</p>
+
+<p>I don&rsquo;t see a cleanup of the monstrous implementation and different
+types and attempts to actually improve any of the problematic issues.
+As usual with p5p it will make the situation even worse, not better.</p>
+
+<h1 id="conflicts">Conflicts</h1>
+
+<p>Having worked with <code>PERTURB_KEYS_TOP</code> move-to-front in cperl for a few
+years now, there&rsquo;s only one broken module Text::CVS_XS, which assumes
+in one of its testcases for parse without headers that the ordering of
+keys is stable when the size did not change. The fix is in my
+<a href="https://github.com/rurban/distroprefs/blob/master/sources/authors/id/R/RU/RURBAN/patches/Text-CSV_XS-cperl.patch">distroprefs</a>.</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#the-old-perl5-hash-table-uses">The old perl5 hash table uses</a></li>
+<li><a href="#in-order-to-clean-up-the-mess-i-did-the-following">In order to clean up the mess, I did the following</a></li>
+<li><a href="#cperl-hash-tables-use">cperl hash tables use</a></li>
+<li><a href="#cperl-is-working-on-these-improvements">cperl is working on these improvements:</a></li>
+<li><a href="#p5p-plans">p5p plans</a></li>
+<li><a href="#conflicts">Conflicts</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/hash">hash
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/worst-perl5-bugs.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">Worst perl5 bugs&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
