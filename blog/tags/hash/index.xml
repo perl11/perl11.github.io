@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Hash on perl11 blog</title>
+    <link>http://perl11.org/blog/tags/hash.xml</link>
+    <description>Recent content in Hash on perl11 blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© 2016 Copyright Reini Urban</copyright>
+    <atom:link href="http://perl11.org/blog/tags/hash.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>The dangerous SipHash myth</title>
+      <link>http://perl11.org/blog/seed.html</link>
+      <pubDate>Sat, 26 Nov 2016 12:35:00 +0200</pubDate>
+      
+      <guid>http://perl11.org/blog/seed.html</guid>
+      <description>&lt;p&gt;SipHash claims that its &amp;ldquo;cryptographically strong pseudo random
+function&amp;rdquo; properties protects against hash table DoS flood attacks.
+This is wrong, because for a successful attack against a SipHash hash
+table with chained linked lists or linear probing it is enough to get
+the secret random seed, and then brute force create collisions, which
+is doable in &amp;lt;1s for 16k keys, 2m for 16k keys, and from 32k to 268M
+keys in 4 minutes. For any hash function, SipHash, AES or even SHA256.
+Which is far from being secure. Declaring a hash function for a hash
+table secure is wrong and pure security theatre, which unfortunately
+a lot of people started to believe in.&lt;/p&gt;
+
+&lt;p&gt;Normally you can prepare collisions offline, but as you see you can
+even create them online as soon as you know the seed.  Inserting 64k
+keys needs 32 seconds vs 0.01 seconds on e.g. PHP, from constant to
+quadratic, with an amplification factor of 200.
+&lt;a href=&#34;https://events.ccc.de/congress/2011/Fahrplan/events/4680.en.html&#34;&gt;https://events.ccc.de/congress/2011/Fahrplan/events/4680.en.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;So the only protection is the secrecy of the random seed, which has
+nothing to do with any properties of SipHash per se. A hash
+function can never protect a hash table from hash flood attacks on
+hash tables with simple lists on collisions. SipHash properties are
+that is not reversible, the seed is mixed in the box and not only
+at the beginning, so it&amp;rsquo;s is hard to get the seed from the hash
+function itself. But there&amp;rsquo;s no need for it, as it is trivial to
+get the seed via other means. The collisions are prone to timing
+attacks independent on the hash function, usually the hash
+iterator exposes the inner ordering and in most cases the random
+seed is exposable via traditional memory exposure. If the seed is
+hash table specific or global, i.e. process or thread specific.&lt;/p&gt;
+
+&lt;p&gt;E.g. in debian perl you get the seed at process startup via&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ PERL_HASH_SEED_DEBUG=1 /usr/bin/perl -e0
+=&amp;gt; HASH_FUNCTION = ONE_AT_A_TIME_HARD HASH_SEED = 0xd12d459fc36db4cf PERTURB_KEYS = 1 (RANDOM)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;to stderr.&lt;/p&gt;
+
+&lt;p&gt;On centos7:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ PERL_HASH_SEED_DEBUG=1 /usr/bin/perl -e0
+=&amp;gt; HASH_SEED = 10452142639498245987
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Older centos 5 and 6 has an unpatched perl hash table function which
+is vulnerable to much simplier DoS attacks, which is e.g. used on the
+redhat openshift public cloud.&lt;/p&gt;
+
+&lt;p&gt;For a running perl process the seed is at a known fixed offset.  Which
+is easily readable via some kind of poke function via the unpack &amp;ldquo;P&amp;rdquo;
+builtin op. See Devel::PeekPoke.  Similar for all other dynamic
+languages exposing the value of any pointer. Which is esp. problematic
+for languages who trusted the false claims of the SipHash authors,
+that using this secure hash function it makes it safe against such DoS
+attacks. Which are most prominently ruby, python, rust, haskell and
+others.  Perl5 at least changed the order of the iterator, cperl
+counts the collisions and adds a sleep on attacks, PHP limits the size
+of external keys to be passed to the hash table so only JSON or other
+formats are easily DoS-able. But more serious applications such as the
+linux kernel, glibc, cache or DNS servers use better hash table
+collisions schemes than unsafe chaining or linear probing.&lt;/p&gt;
+
+&lt;p&gt;Vulnerable are all implementors of hash tables who believed the false
+claims of the SipHash authors: ruby, python, rust, haskell, OpenBSD
+and some more.  But also others who don&amp;rsquo;t use a proper hash table
+collision resolution scheme or don&amp;rsquo;t protect their seed or easily
+expose the seed, such as perl5 and many more.  rust currently
+e.g. believes that SipHash makes it secure even if a trivial attack
+was just found against it, and changing the seed at table resize will
+help. It only helps a bit.  The seed is still exposable.  With an
+amplification factor of 200 with a table size large enough there&amp;rsquo;s
+enough attack surface to render a service useless.
+Reseeding on resize will lead to an amplification factor of 6.&lt;/p&gt;
+
+&lt;p&gt;Links:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/google/highwayhash/issues/28&#34;&gt;google/highwayshash False security claims&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/rurban/smhasher/#security&#34;&gt;SMHasher on Security&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/rurban/perl-hash-stats&#34;&gt;perl hash stats&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

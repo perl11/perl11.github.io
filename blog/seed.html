@@ -1,17 +1,81 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
 <head>
-  <title>The dangerous SipHash myth</title>
-  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
-  <link href="custom.css" rel="stylesheet" type="text/css"/>
+    <meta charset="utf-8">
+    <title>The dangerous SipHash myth // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="The dangerous SipHash myth" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/seed.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
 </head>
 
+
 <body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
 
-<h1>The dangerous SipHash myth</h1>
-
-<p>SipHash claims that its "cryptographically strong pseudo random
-function" properties protects against hash table DoS flood attacks.
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">The dangerous SipHash myth</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/seed.html" class="article-date">
+                <time datetime='2016-11-26T12:35:00.000&#43;02:00' itemprop="datePublished">2016-11-26</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            <p>SipHash claims that its &ldquo;cryptographically strong pseudo random
+function&rdquo; properties protects against hash table DoS flood attacks.
 This is wrong, because for a successful attack against a SipHash hash
 table with chained linked lists or linear probing it is enough to get
 the secret random seed, and then brute force create collisions, which
@@ -25,15 +89,15 @@ a lot of people started to believe in.</p>
 even create them online as soon as you know the seed.  Inserting 64k
 keys needs 32 seconds vs 0.01 seconds on e.g. PHP, from constant to
 quadratic, with an amplification factor of 200.
-<a href="https://events.ccc.de/congress/2011/Fahrplan/events/4680.en.html">events.ccc.de/congress/2011/Fahrplan/events/4680.en.html</a></p>
+<a href="https://events.ccc.de/congress/2011/Fahrplan/events/4680.en.html">https://events.ccc.de/congress/2011/Fahrplan/events/4680.en.html</a></p>
 
 <p>So the only protection is the secrecy of the random seed, which has
 nothing to do with any properties of SipHash per se. A hash
 function can never protect a hash table from hash flood attacks on
 hash tables with simple lists on collisions. SipHash properties are
 that is not reversible, the seed is mixed in the box and not only
-at the beginning, so it's is hard to get the seed from the hash
-function itself. But there's no need for it, as it is trivial to
+at the beginning, so it&rsquo;s is hard to get the seed from the hash
+function itself. But there&rsquo;s no need for it, as it is trivial to
 get the seed via other means. The collisions are prone to timing
 attacks independent on the hash function, usually the hash
 iterator exposes the inner ordering and in most cases the random
@@ -58,52 +122,31 @@ hash table specific or global, i.e. process or thread specific.</p>
 is vulnerable to much simplier DoS attacks, which is e.g. used on the
 redhat openshift public cloud.</p>
 
-<p>For a running perl process the seed is at a fixed offset from
-my_perl, the first argument to any VM op. Which is easily readable via
-some kind of poke function via the unpack "P" builtin op. See
-Devel::PeekPoke.  Similar for all other dynamic languages exposing the
-value of any pointer. Which is esp. problematic for languages who
-trusted the false claims of the SipHash authors, that using this
-secure hash function it makes it safe against such DoS attacks. Which
-are most prominently ruby, python, rust, haskell and others.  Perl5 at
-least changed the order of the iterator, cperl counts the collisions
-and adds a sleep on single attacks and hard exits on distributed attacks
-to avoid a "slowdos".
-PHP limits the size of external keys to be passed to the hash table so
-only JSON or other formats are easily DoS-able.
-
-More serious applications such as the linux kernel, glibc, cache or
-DNS servers use better hash table collisions schemes than unsafe
-chaining or linear probing.  java does it also right by trivially
-detecting such attacks and switching to a tree. This doesn't hurt
-performance such as SipHash does, and adds real protection.</p>
-
-<i>(Addendum: New linux net-next maintainers drank the SipHash coolaid
-also, and are proposing to switch from a fast hash function and also
-from SHA1 to SipHash to "protect" networking.  How about actually
-reading the SipHash paper, and implement proper hash table DoS
-protection instead, which would lead to proper DoS security and faster
-hash tables? SipHash is a secure but slow pseudo-random function, it
-is not a secure hash function and only improves security marginally by
-better hiding of the seed. Again, proper DoS resistance is done by
-protecting the O(1) to O(n) behavior in the collision resolution, and
-only marginally by improving the seed hiding to the colliding
-bucket. These things can be timed and calculated from 2 different
-externally observable variables. There's not much difference between
-FNV1, Jenkins or SipHash, other than SipHash is 3-10x slower and uses
-better seeding. - <a href="https://git.kernel.org/cgit/linux/kernel/git/davem/net-next.git/plain/Documentation/siphash.txt">kernel doc</a>).</i>
+<p>For a running perl process the seed is at a known fixed offset.  Which
+is easily readable via some kind of poke function via the unpack &ldquo;P&rdquo;
+builtin op. See Devel::PeekPoke.  Similar for all other dynamic
+languages exposing the value of any pointer. Which is esp. problematic
+for languages who trusted the false claims of the SipHash authors,
+that using this secure hash function it makes it safe against such DoS
+attacks. Which are most prominently ruby, python, rust, haskell and
+others.  Perl5 at least changed the order of the iterator, cperl
+counts the collisions and adds a sleep on attacks, PHP limits the size
+of external keys to be passed to the hash table so only JSON or other
+formats are easily DoS-able. But more serious applications such as the
+linux kernel, glibc, cache or DNS servers use better hash table
+collisions schemes than unsafe chaining or linear probing.</p>
 
 <p>Vulnerable are all implementors of hash tables who believed the false
 claims of the SipHash authors: ruby, python, rust, haskell, OpenBSD
-and some more.  But also others who don't use a proper hash table
-collision resolution scheme or don't protect their seed or easily
-expose the seed, such as perl5 and many more.<br>
-
-rust currently e.g. believes that SipHash makes it secure even if a
-trivial attack was just found against it, and changing the seed at
-table resize will help. It does not.  The seed is still exposable. And
-with an amplification factor of 200 with a table size large enough
-there's enough attack surface to render a rust service useless.</p>
+and some more.  But also others who don&rsquo;t use a proper hash table
+collision resolution scheme or don&rsquo;t protect their seed or easily
+expose the seed, such as perl5 and many more.  rust currently
+e.g. believes that SipHash makes it secure even if a trivial attack
+was just found against it, and changing the seed at table resize will
+help. It only helps a bit.  The seed is still exposable.  With an
+amplification factor of 200 with a table size large enough there&rsquo;s
+enough attack surface to render a service useless.
+Reseeding on resize will lead to an amplification factor of 6.</p>
 
 <p>Links:</p>
 
@@ -113,5 +156,115 @@ there's enough attack surface to render a rust service useless.</p>
 <li><a href="https://github.com/rurban/perl-hash-stats">perl hash stats</a></li>
 </ul>
 
+        </div>
+
+        
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/hash">hash
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/cperl-is-not-a-religion.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">cperl is not a religion&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
 </body>
 </html>
