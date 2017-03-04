@@ -7,8 +7,351 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Sat, 26 Nov 2016 12:35:00 +0200</lastBuildDate>
+    <lastBuildDate>Mon, 30 Jan 2017 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Worst perl5 bugs</title>
+      <link>http://perl11.org/blog/worst-perl5-bugs.html</link>
+      <pubDate>Mon, 30 Jan 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/worst-perl5-bugs.html</guid>
+      <description>
+
+&lt;h1 id=&#34;a-small-list-of-the-worst-perl5-bugs-all-fixed-in-cperl&#34;&gt;A small list of the worst perl5 bugs, all fixed in cperl&lt;/h1&gt;
+
+&lt;h1 id=&#34;dos&#34;&gt;DoS&lt;/h1&gt;
+
+&lt;p&gt;It&amp;rsquo;s trivial to DoS a perl5 system.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$a[9223372036854]=0;
+%a=(0..4294967296);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Examples for a 64bit system, but also trivial on 32bit.
+It creates a huge array or hash, which runs out of memory in the VMM
+subsystem which eventually kills the process.
+cperl dies with &amp;ldquo;Too many elements&amp;rdquo;, here even at compile-time.&lt;/p&gt;
+
+&lt;h1 id=&#34;no-hash-security&#34;&gt;No Hash Security&lt;/h1&gt;
+
+&lt;p&gt;Nothing is done against the root-cause of a hash flood denial of
+service attack with colliding keys, only some security theatre by
+using slower hash functions and slower collision resolution
+&lt;code&gt;KEY_PERTURB_RANDOM&lt;/code&gt;.  If the seed is exposed, trivially on perl5 as
+it is at a fixed known address offset readable via unpack, or exposed
+via the command line, there is no prevention. Only cperl is secure,
+and also much faster.  See e.g. &lt;a href=&#34;https://github.com/perl11/cperl/blob/master/t/op/hashflood.t&#34;&gt;cperl &lt;code&gt;t/op/hashflood.t&lt;/code&gt;&lt;/a&gt;
+Or &lt;a href=&#34;http://perl11.org/cperl/perl5241cdelta.html#Protect-and-warn-on-hash-flood-DoS&#34;&gt;perl5241cdelta/&amp;ldquo;Protect and warn on hash flood DoS&amp;rdquo;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;PERL_HASH_SEED_DEBUG=1 perl -e1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Pointing that out on p5p led to the developer simply ignoring it. Instead they
+are working on making it even slower, but not improving the horrible implementation
+and security.&lt;/p&gt;
+
+&lt;h1 id=&#34;language-maintainance&#34;&gt;Language Maintainance&lt;/h1&gt;
+
+&lt;h2 id=&#34;silent-integer-overwraps&#34;&gt;Silent integer overwraps&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code&gt;@a=(0,1); print $a[~1] =&amp;gt; 0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;~1&lt;/code&gt; is essentially &lt;code&gt;(UV)-2&lt;/code&gt; or &lt;code&gt;0xffff_fffe&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;@a=(1);print $a[18446744073709551615]&#39; =&amp;gt; 1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Silent overwrap of 18446744073709551615 to -1.&lt;/p&gt;
+
+&lt;p&gt;The same happens with overlong hash keys, they are not converted to
+SVs which can hold overlong strings. Everything in the buffer after
+I32 s ignored.  Or with overlong hashes, where you can create huge hashes
+&amp;gt;I32 but can only iterate over the first I32 entries.&lt;/p&gt;
+
+&lt;p&gt;With cperl the &amp;ldquo;Too many elements&amp;rdquo; error is now triggered when
+accessing or extending an out of bounds array index or trying to
+insert too many hash keys. This is to prevent from silent hash or
+array overflows. Previously extending a hash beyond it&amp;rsquo;s capable size
+was silently ignored, leading to performance degradation with overly
+high fill factors and extending an array failed only on memory
+exhaustion, but the signed index led to an index overflow between I32
+and U32, resp.  I64 and U64.&lt;/p&gt;
+
+&lt;p&gt;Even worse, accessing overflown unsigned array indices would silently
+access the signed counterpart, indices at the end.&lt;/p&gt;
+
+&lt;p&gt;chop/chomp only works on half of overlarge arrays.&lt;/p&gt;
+
+&lt;p&gt;Or ~&amp;ldquo;a&amp;rdquo;x2G complement of overlarge strings, silently processing only
+the half - as with overlong hash keys.&lt;/p&gt;
+
+&lt;p&gt;There was also a smartmatch Array - CodeRef rule, which passed only over
+half the array elements.  The Hash part was also wrong, but the wrong number
+was not used.&lt;/p&gt;
+
+&lt;p&gt;regex match group of &amp;gt;2GB string len.&lt;/p&gt;
+
+&lt;p&gt;repeat count &amp;gt;2GB and don&amp;rsquo;t silently cap it at IV_MAX. Which was
+at least better then silent wrap around.&lt;/p&gt;
+
+&lt;h1 id=&#34;names&#34;&gt;Names&lt;/h1&gt;
+
+&lt;h2 id=&#34;binary-names&#34;&gt;Binary names&lt;/h2&gt;
+
+&lt;p&gt;Only cperl is binary safe against \0 in names, which is esp. unsafe with
+package names, being mapped 1:1 to filenames.&lt;/p&gt;
+
+&lt;h2 id=&#34;insecure-unicode-names&#34;&gt;Insecure unicode names&lt;/h2&gt;
+
+&lt;p&gt;Unicode allows to be identifiers not identifiable, i.e. confusable
+evading visual inspection of 3rd party code. Bidi spoofs can contain
+right-to-left overwriting L-T-R characters, combining marks, mixed
+scripts (e.g. Cyrillic and Greek), &amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;There&amp;rsquo;s a TR39 security guideline for identifiers which &lt;a href=&#34;http://perl11.org/cperl/perl5252cdelta.html#Security&#34;&gt;cperl implements&lt;/a&gt;.
+perl5 has no idea about that and is not willing to fix it, even if perlcc
+prominently warns about that since 5.16.&lt;/p&gt;
+
+&lt;p&gt;No &lt;a href=&#34;http://perl11.org/cperl/perl5240cdelta.html#Security&#34;&gt;Unicode confusables +UFFA0, +U3164&lt;/a&gt;. In deviation from Unicode 1.1
+we treat the two HANGUL FILLER characters +UFFA0 and +U3164 not as
+valid ID_Start and ID_Continue characters for perl identifiers.&lt;/p&gt;
+
+&lt;h2 id=&#34;overlong-names&#34;&gt;overlong names&lt;/h2&gt;
+
+&lt;p&gt;The &amp;ldquo;panic: hash key too long&amp;rdquo; error is now thrown with overlarge hash keys in every
+&lt;code&gt;hv_common&lt;/code&gt; access and in Cpanel::JSON::XS.
+perl5 still silently ignores those failures, and truncates the keys.&lt;/p&gt;
+
+&lt;p&gt;Many more similar &amp;ldquo;panic: (file|keyword|mro|stash)? name too long&amp;rdquo; errors
+were added to the parser and compiler to protect from overlong names
+(&amp;gt; I32_MAX, 2147483647).&lt;/p&gt;
+
+&lt;h2 id=&#34;insecure-taint-mode&#34;&gt;Insecure taint mode&lt;/h2&gt;
+
+&lt;p&gt;perl5 has several known taint loopholes, see &lt;a href=&#34;http://perl11.org/cperl/perlsec.html#Taint-mode&#34;&gt;perlsec&lt;/a&gt;. cperl has them all fixed.&lt;/p&gt;
+
+&lt;p&gt;Of course it is much faster to use tainted variables, as you don&amp;rsquo;t have to
+check and sanitize every single variable, only external, tainted ones.&lt;/p&gt;
+
+&lt;h1 id=&#34;minor-issues-from-perl540cdelta-http-perl11-org-cperl-perl5240cdelta-html-security&#34;&gt;Minor issues from &lt;a href=&#34;http://perl11.org/cperl/perl5240cdelta.html#Security&#34;&gt;perl540cdelta&lt;/a&gt;&lt;/h1&gt;
+
+&lt;h2 id=&#34;dynaloader-format-string-hardening&#34;&gt;DynaLoader format string hardening&lt;/h2&gt;
+
+&lt;p&gt;Replace all &lt;code&gt;%&lt;/code&gt; characters in user-controlled library filenames, passed via
+the system dl_error call verbatim to &lt;code&gt;printf&lt;/code&gt;, without any arguments on the stack,
+which could lead to execution of arbitrary stack code. No CVE.
+This affects all systems with dynamic loading where the attacker can cause a
+dynamic loading error.&lt;/p&gt;
+
+&lt;p&gt;CVSSv2 Severity: 7.2
+(AV:L/AC:L/Au:N/C:C/I:C/A:C/E:U/RL:OF/RC:C/CDP:MH/TD:H/CR:H/IR:H/AR:ND)&lt;/p&gt;
+
+&lt;h2 id=&#34;xsloader-relative-paths-with-eval-or-line&#34;&gt;XSLoader relative paths with eval or #line&lt;/h2&gt;
+
+&lt;p&gt;Upstream XSLoader 0.22 (perl 5.26) fixed a minor security problem with
+XSLoader within eval or with a #line directive, which can load a local
+relative shared library, which is not in &lt;code&gt;@INC&lt;/code&gt;.
+See &lt;a href=&#34;https://rt.cpan.org/Ticket/Display.html?id=115808&#34;&gt;https://rt.cpan.org/Ticket/Display.html?id=115808&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;cperl XSLoader was already protected against the eval case since 5.22,
+when being rewritten in C. cperl-5.24.0 fixed now also ignoring a relative
+filename in a &lt;code&gt;#line&lt;/code&gt; directive, when the relative path is not in &lt;code&gt;@INC&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&#34;handle-method-calls-on-protected-stashes&#34;&gt;handle method calls on protected stashes&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/perl11/cperl/issues/171&#34;&gt;https://github.com/perl11/cperl/issues/171&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Known bug upstream, not fixed there. This problem appears more often
+with cperl with its protected coretypes than upstream.&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-do-not-crash-when-inserting-a-non-stash-into-a-stash&#34;&gt;fedora: Do not crash when inserting a non-stash into a stash&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128238&#34;&gt;Fedora Patch 37 RT#128238&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-do-not-treat-as-a-stash&#34;&gt;fedora: Do not treat %: as a stash&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128238&#34;&gt;Fedora Patch36 RT#128238&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-fix-precedence-in-hv-ename-delete&#34;&gt;fedora: Fix precedence in hv_ename_delete&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128086&#34;&gt;Fedora Patch35 RT#128086&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-do-not-use-unitialized-memory-in-h-const-warnings&#34;&gt;fedora: Do not use unitialized memory in $h{\const} warnings&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128189&#34;&gt;Fedora Patch34 RT#128189&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-do-not-mangle-errno-from-failed-socket-calls&#34;&gt;fedora: Do not mangle errno from failed socket calls&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128316&#34;&gt;Fedora Patch32 RT#128316&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;fedora-backport-memory-leak-when-compiling-a-regular-expression-with-a-posix-class&#34;&gt;fedora: Backport memory leak when compiling a regular expression with a POSIX class&lt;/h2&gt;
+
+&lt;p&gt;E.g. when C&lt;use re &#39;strict&#39;;&gt; is used.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://rt.perl.org/Public/Bug/Display.html?id=128313&#34;&gt;Fedora Patch31 RT#128313&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;suse-perl5-24-0-dif&#34;&gt;suse: perl5.24.0.dif&lt;/h2&gt;
+
+&lt;p&gt;Many Configure and linux hints enhancements, esp for lib64,
+probe fixes, gdbm and ODBM fixes, gnu readline integration with the debugger.
+See &lt;a href=&#34;https://build.opensuse.org/package/show/devel:languages:perl/perl&#34;&gt;https://build.opensuse.org/package/show/devel:languages:perl/perl&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;suse-fix-regexp-backref-overflows&#34;&gt;suse: fix regexp backref overflows&lt;/h2&gt;
+
+&lt;p&gt;With many backref groups (&amp;gt;I32)&lt;/p&gt;
+
+&lt;h2 id=&#34;suse-perl-saverecontext-diff-rt-76538&#34;&gt;suse: perl-saverecontext.diff RT#76538&lt;/h2&gt;
+
+&lt;p&gt;Handle get magic with globs in the regex compiler.
+Correctly restore context, esp. when loading unicode swashes.
+Reported at 5.12, patched for suse 5.14, still ignored with 5.24.&lt;/p&gt;
+
+&lt;h1 id=&#34;minor-issues-from-perl541cdelta-http-perl11-org-cperl-perl5241cdelta-html-security&#34;&gt;Minor issues from &lt;a href=&#34;http://perl11.org/cperl/perl5241cdelta.html#Security&#34;&gt;perl541cdelta&lt;/a&gt;&lt;/h1&gt;
+
+&lt;h2 id=&#34;warn-on-metasploit-cve-2015-1592&#34;&gt;Warn on metasploit CVE-2015-1592&lt;/h2&gt;
+
+&lt;p&gt;Detection of the destructive attack against Movable-Type, the third
+vector only, which tries to delete &lt;code&gt;mt-config.cgi&lt;/code&gt; was added to was
+added to cperl &lt;code&gt;Storable&lt;/code&gt; 3.01c.&lt;/p&gt;
+
+&lt;p&gt;Warns with &amp;ldquo;SECURITY: Movable-Type CVE-2015-1592 Storable metasploit attack&amp;rdquo;
+but does not protect against it.&lt;/p&gt;
+
+&lt;h2 id=&#34;warn-on-metasploit-reverse-shells&#34;&gt;Warn on metasploit reverse shells&lt;/h2&gt;
+
+&lt;p&gt;Detect the metasploit payload unix/reverse_perl and some existing
+variants.  This is just a dumb match at startup against existing
+exploits in the wild, but not future variants.  Warns with
+&amp;ldquo;SECURITY: metasploit reverse/bind shell payload&amp;rdquo;, but do not
+protect against it. This warning is thrown even without C&amp;lt;-w&amp;gt;.&lt;/p&gt;
+
+&lt;p&gt;Also detects the CVE-2012-1823 reverse/bind shell payload, which is
+widely exploited too. The security warning is called
+&amp;ldquo;SECURITY: CVE-2012-1823 reverse/bind shell payload&amp;rdquo;.&lt;/p&gt;
+
+&lt;h2 id=&#34;fixed-overwriting-the-hvhek-unshared-bit-in-the-hash-loop&#34;&gt;Fixed overwriting the HVhek_UNSHARED bit in the hash loop&lt;/h2&gt;
+
+&lt;p&gt;Broken with v5.9&lt;/p&gt;
+
+&lt;p&gt;This fixed &lt;code&gt;-DNODEFAULT_SHAREKEYS&lt;/code&gt;. In the default configuration
+without &lt;code&gt;NODEFAULT_SHAREKEYS&lt;/code&gt; since 5.003_001 all hash keys are stored
+twice, once in the hash and once again in &lt;code&gt;PL_strtab&lt;/code&gt;, the global
+string table, with the benefit of faster hash loops and copies. Almost
+all hashtables get the SHAREKEYS bit.&lt;/p&gt;
+
+&lt;p&gt;With &lt;code&gt;-Accflags=-DNODEFAULT_SHAREKEYS&lt;/code&gt; simple scripts are 20-30%
+faster.  &lt;a href=&#34;https://github.com/perl11/cperl/issues/201&#34;&gt;https://github.com/perl11/cperl/issues/201&lt;/a&gt; but practical
+usage is dominated by copying hashes, which is faster with shared
+keys.&lt;/p&gt;
+
+&lt;h2 id=&#34;dfortify-inc&#34;&gt;-Dfortify_inc&lt;/h2&gt;
+
+&lt;p&gt;Was in the very first cperl release 5.22.1. With full toolchain
+support, in all modules. perl5 caught up 2 years later, 5.26.
+But of course they changed the established name to their own
+&lt;code&gt;-Ddefault_inc_excludes_dot&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;perl4-package-seperator&#34;&gt;perl4 &amp;lsquo; package seperator&lt;/h2&gt;
+
+&lt;p&gt;cperl deleted that, and fixed all issues.&lt;/p&gt;
+
+&lt;h1 id=&#34;unicode-bugs&#34;&gt;unicode bugs&lt;/h1&gt;
+
+&lt;p&gt;e.g range is broken in perl5, fixed in cperl 5.24.1c.
+Apparently fixed with 5.26 finally.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my $r = chr 255; utf8::upgrade $r; my $num = (&amp;quot;a&amp;quot; .. $r);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;utf8-padnames&#34;&gt;utf8 padnames&lt;/h2&gt;
+
+&lt;p&gt;In perl5 all padnames are utf8 encoded by default. In cperl only those
+who are utf8 encoded. &lt;a href=&#34;https://github.com/perl11/cperl/issues/208&#34;&gt;https://github.com/perl11/cperl/issues/208&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;compiler-toolchain-support&#34;&gt;compiler toolchain support&lt;/h2&gt;
+
+&lt;p&gt;perl5 links with CC and ignores the linker LD, which disables advanced
+llvm thin, lto and cfe support. e.g. clang-4 is produces 20% faster
+code, and with cfe much safer code.&lt;/p&gt;
+
+&lt;p&gt;perl5 is inable to produce reproducible builds. cperl does it by default.&lt;/p&gt;
+
+&lt;h2 id=&#34;lexical-support&#34;&gt;lexical $_ support&lt;/h2&gt;
+
+&lt;p&gt;perl5 was not able to find and fix the trivial bugs.
+Their core features and modules rely on that, but they removed it.
+esp. given/when, smartmatch, List::Utils.
+cperl supports it.&lt;/p&gt;
+
+&lt;h2 id=&#34;use-encoding&#34;&gt;use encoding&lt;/h2&gt;
+
+&lt;p&gt;perl5 was not able to find and fix the trivial bugs. Many foreign devs
+rely on that, but they removed it.  cperl supports it.&lt;/p&gt;
+
+&lt;h2 id=&#34;pl-maxo&#34;&gt;PL_maxo&lt;/h2&gt;
+
+&lt;p&gt;perl5 removed it, while it is necessary to track custom ops.
+cperl supports it.&lt;/p&gt;
+
+&lt;h2 id=&#34;for-qw&#34;&gt;for qw(&amp;hellip;)&lt;/h2&gt;
+
+&lt;p&gt;perl5 removed support &lt;code&gt;for qw()&lt;/code&gt; with bogus justification. You need to write
+&lt;code&gt;for (qw(..)) {}&lt;/code&gt;
+The promised parser improvements never arrived.&lt;/p&gt;
+
+&lt;p&gt;cperl allows &lt;code&gt;for qw(...)&lt;/code&gt; and supporting it is trivial.&lt;/p&gt;
+
+&lt;h2 id=&#34;pmc-loading-and-reflection&#34;&gt;.pmc loading and reflection&lt;/h2&gt;
+
+&lt;p&gt;perl5 removed timestamp checks for pugs with 5.8, a module doesn&amp;rsquo;t
+know if it&amp;rsquo;s loaded from a .pmc, and force loading a .pm is not
+possible.&lt;/p&gt;
+
+&lt;p&gt;cperl fixed that for the upcoming JitCache support, which adds
+expensively optimized subs for a package to a .pmc. But only some, not
+all subs.  So a .pmc can never replace a full .pm. So reflection and
+loading .pm needs to be enabled.&lt;/p&gt;
+
+&lt;h1 id=&#34;core-modules&#34;&gt;Core modules&lt;/h1&gt;
+
+&lt;h2 id=&#34;storable&#34;&gt;Storable&lt;/h2&gt;
+
+&lt;p&gt;The CPAN version was never updated.  The core version suffers from
+several severe core bugs, similar to the inability in core to support
+huge &amp;gt;2GB data.&lt;/p&gt;
+
+&lt;p&gt;cperl Storable fixes JD&amp;rsquo;s stack-overflow write (totally a CVE),
+detects the known MetaSploit attack vector and supports large objects,
+strings, hashed and arrays.&lt;/p&gt;
+
+&lt;p&gt;There are also more stack-overflow attacks fixed in my CPAN version.&lt;/p&gt;
+
+&lt;h2 id=&#34;yaml&#34;&gt;YAML&lt;/h2&gt;
+
+&lt;p&gt;YAML is slow, incompatible with itself and insecure by default.&lt;/p&gt;
+
+&lt;p&gt;e.g. Parse-CPAN-Meta security: cperl is 10x faster, can read its own files
+and sets $YAML::XS::DisableCode, $YAML::XS::DisableBlessed while
+parsing META.yml or CPAN .yml files.&lt;/p&gt;
+
+&lt;p&gt;Very similar to Storable. At least with YAML the upstream maintainer is listening,
+but he needs &amp;gt;1 year to merge my fixes, which is not acceptable. Nothing published
+yet upstream. Needs to be forked to Cpanel::YAML::XS eventually.&lt;/p&gt;
+
+&lt;h2 id=&#34;json-xs&#34;&gt;JSON::XS&lt;/h2&gt;
+
+&lt;p&gt;Look at the relevant pod section in &lt;a href=&#34;http://search.cpan.org/dist/Cpanel-JSON-XS/XS.pm#SECURITY_CONSIDERATIONS&#34;&gt;Cpanel::JSON::XS&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;summary&#34;&gt;Summary&lt;/h1&gt;
+
+&lt;p&gt;For the security bugs see on cperl:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;grep -A20 &#39;=head1 Security&#39; pod/perl*cdelta.pod
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>The dangerous SipHash myth</title>

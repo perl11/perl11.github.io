@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Worst perl5 bugs // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="Worst perl5 bugs" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/worst-perl5-bugs.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">Worst perl5 bugs</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/worst-perl5-bugs.html" class="article-date">
+                <time datetime='2017-01-30T00:00:00.000&#43;00:00' itemprop="datePublished">2017-01-30</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="a-small-list-of-the-worst-perl5-bugs-all-fixed-in-cperl">A small list of the worst perl5 bugs, all fixed in cperl</h1>
+
+<h1 id="dos">DoS</h1>
+
+<p>It&rsquo;s trivial to DoS a perl5 system.</p>
+
+<pre><code>$a[9223372036854]=0;
+%a=(0..4294967296);
+</code></pre>
+
+<p>Examples for a 64bit system, but also trivial on 32bit.
+It creates a huge array or hash, which runs out of memory in the VMM
+subsystem which eventually kills the process.
+cperl dies with &ldquo;Too many elements&rdquo;, here even at compile-time.</p>
+
+<h1 id="no-hash-security">No Hash Security</h1>
+
+<p>Nothing is done against the root-cause of a hash flood denial of
+service attack with colliding keys, only some security theatre by
+using slower hash functions and slower collision resolution
+<code>KEY_PERTURB_RANDOM</code>.  If the seed is exposed, trivially on perl5 as
+it is at a fixed known address offset readable via unpack, or exposed
+via the command line, there is no prevention. Only cperl is secure,
+and also much faster.  See e.g. <a href="https://github.com/perl11/cperl/blob/master/t/op/hashflood.t">cperl <code>t/op/hashflood.t</code></a>
+Or <a href="http://perl11.org/cperl/perl5241cdelta.html#Protect-and-warn-on-hash-flood-DoS">perl5241cdelta/&ldquo;Protect and warn on hash flood DoS&rdquo;</a>.</p>
+
+<pre><code>PERL_HASH_SEED_DEBUG=1 perl -e1
+</code></pre>
+
+<p>Pointing that out on p5p led to the developer simply ignoring it. Instead they
+are working on making it even slower, but not improving the horrible implementation
+and security.</p>
+
+<h1 id="language-maintainance">Language Maintainance</h1>
+
+<h2 id="silent-integer-overwraps">Silent integer overwraps</h2>
+
+<pre><code>@a=(0,1); print $a[~1] =&gt; 0
+</code></pre>
+
+<p><code>~1</code> is essentially <code>(UV)-2</code> or <code>0xffff_fffe</code>.</p>
+
+<pre><code>@a=(1);print $a[18446744073709551615]' =&gt; 1
+</code></pre>
+
+<p>Silent overwrap of 18446744073709551615 to -1.</p>
+
+<p>The same happens with overlong hash keys, they are not converted to
+SVs which can hold overlong strings. Everything in the buffer after
+I32 s ignored.  Or with overlong hashes, where you can create huge hashes
+&gt;I32 but can only iterate over the first I32 entries.</p>
+
+<p>With cperl the &ldquo;Too many elements&rdquo; error is now triggered when
+accessing or extending an out of bounds array index or trying to
+insert too many hash keys. This is to prevent from silent hash or
+array overflows. Previously extending a hash beyond it&rsquo;s capable size
+was silently ignored, leading to performance degradation with overly
+high fill factors and extending an array failed only on memory
+exhaustion, but the signed index led to an index overflow between I32
+and U32, resp.  I64 and U64.</p>
+
+<p>Even worse, accessing overflown unsigned array indices would silently
+access the signed counterpart, indices at the end.</p>
+
+<p>chop/chomp only works on half of overlarge arrays.</p>
+
+<p>Or ~&ldquo;a&rdquo;x2G complement of overlarge strings, silently processing only
+the half - as with overlong hash keys.</p>
+
+<p>There was also a smartmatch Array - CodeRef rule, which passed only over
+half the array elements.  The Hash part was also wrong, but the wrong number
+was not used.</p>
+
+<p>regex match group of &gt;2GB string len.</p>
+
+<p>repeat count &gt;2GB and don&rsquo;t silently cap it at IV_MAX. Which was
+at least better then silent wrap around.</p>
+
+<h1 id="names">Names</h1>
+
+<h2 id="binary-names">Binary names</h2>
+
+<p>Only cperl is binary safe against \0 in names, which is esp. unsafe with
+package names, being mapped 1:1 to filenames.</p>
+
+<h2 id="insecure-unicode-names">Insecure unicode names</h2>
+
+<p>Unicode allows to be identifiers not identifiable, i.e. confusable
+evading visual inspection of 3rd party code. Bidi spoofs can contain
+right-to-left overwriting L-T-R characters, combining marks, mixed
+scripts (e.g. Cyrillic and Greek), &hellip;</p>
+
+<p>There&rsquo;s a TR39 security guideline for identifiers which <a href="http://perl11.org/cperl/perl5252cdelta.html#Security">cperl implements</a>.
+perl5 has no idea about that and is not willing to fix it, even if perlcc
+prominently warns about that since 5.16.</p>
+
+<p>No <a href="http://perl11.org/cperl/perl5240cdelta.html#Security">Unicode confusables +UFFA0, +U3164</a>. In deviation from Unicode 1.1
+we treat the two HANGUL FILLER characters +UFFA0 and +U3164 not as
+valid ID_Start and ID_Continue characters for perl identifiers.</p>
+
+<h2 id="overlong-names">overlong names</h2>
+
+<p>The &ldquo;panic: hash key too long&rdquo; error is now thrown with overlarge hash keys in every
+<code>hv_common</code> access and in Cpanel::JSON::XS.
+perl5 still silently ignores those failures, and truncates the keys.</p>
+
+<p>Many more similar &ldquo;panic: (file|keyword|mro|stash)? name too long&rdquo; errors
+were added to the parser and compiler to protect from overlong names
+(&gt; I32_MAX, 2147483647).</p>
+
+<h2 id="insecure-taint-mode">Insecure taint mode</h2>
+
+<p>perl5 has several known taint loopholes, see <a href="http://perl11.org/cperl/perlsec.html#Taint-mode">perlsec</a>. cperl has them all fixed.</p>
+
+<p>Of course it is much faster to use tainted variables, as you don&rsquo;t have to
+check and sanitize every single variable, only external, tainted ones.</p>
+
+<h1 id="minor-issues-from-perl540cdelta-http-perl11-org-cperl-perl5240cdelta-html-security">Minor issues from <a href="http://perl11.org/cperl/perl5240cdelta.html#Security">perl540cdelta</a></h1>
+
+<h2 id="dynaloader-format-string-hardening">DynaLoader format string hardening</h2>
+
+<p>Replace all <code>%</code> characters in user-controlled library filenames, passed via
+the system dl_error call verbatim to <code>printf</code>, without any arguments on the stack,
+which could lead to execution of arbitrary stack code. No CVE.
+This affects all systems with dynamic loading where the attacker can cause a
+dynamic loading error.</p>
+
+<p>CVSSv2 Severity: 7.2
+(AV:L/AC:L/Au:N/C:C/I:C/A:C/E:U/RL:OF/RC:C/CDP:MH/TD:H/CR:H/IR:H/AR:ND)</p>
+
+<h2 id="xsloader-relative-paths-with-eval-or-line">XSLoader relative paths with eval or #line</h2>
+
+<p>Upstream XSLoader 0.22 (perl 5.26) fixed a minor security problem with
+XSLoader within eval or with a #line directive, which can load a local
+relative shared library, which is not in <code>@INC</code>.
+See <a href="https://rt.cpan.org/Ticket/Display.html?id=115808">https://rt.cpan.org/Ticket/Display.html?id=115808</a></p>
+
+<p>cperl XSLoader was already protected against the eval case since 5.22,
+when being rewritten in C. cperl-5.24.0 fixed now also ignoring a relative
+filename in a <code>#line</code> directive, when the relative path is not in <code>@INC</code>.</p>
+
+<h2 id="handle-method-calls-on-protected-stashes">handle method calls on protected stashes</h2>
+
+<p><a href="https://github.com/perl11/cperl/issues/171">https://github.com/perl11/cperl/issues/171</a></p>
+
+<p>Known bug upstream, not fixed there. This problem appears more often
+with cperl with its protected coretypes than upstream.</p>
+
+<h2 id="fedora-do-not-crash-when-inserting-a-non-stash-into-a-stash">fedora: Do not crash when inserting a non-stash into a stash</h2>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128238">Fedora Patch 37 RT#128238</a></p>
+
+<h2 id="fedora-do-not-treat-as-a-stash">fedora: Do not treat %: as a stash</h2>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128238">Fedora Patch36 RT#128238</a></p>
+
+<h2 id="fedora-fix-precedence-in-hv-ename-delete">fedora: Fix precedence in hv_ename_delete</h2>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128086">Fedora Patch35 RT#128086</a></p>
+
+<h2 id="fedora-do-not-use-unitialized-memory-in-h-const-warnings">fedora: Do not use unitialized memory in $h{\const} warnings</h2>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128189">Fedora Patch34 RT#128189</a></p>
+
+<h2 id="fedora-do-not-mangle-errno-from-failed-socket-calls">fedora: Do not mangle errno from failed socket calls</h2>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128316">Fedora Patch32 RT#128316</a></p>
+
+<h2 id="fedora-backport-memory-leak-when-compiling-a-regular-expression-with-a-posix-class">fedora: Backport memory leak when compiling a regular expression with a POSIX class</h2>
+
+<p>E.g. when C<use re 'strict';> is used.</p>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=128313">Fedora Patch31 RT#128313</a></p>
+
+<h2 id="suse-perl5-24-0-dif">suse: perl5.24.0.dif</h2>
+
+<p>Many Configure and linux hints enhancements, esp for lib64,
+probe fixes, gdbm and ODBM fixes, gnu readline integration with the debugger.
+See <a href="https://build.opensuse.org/package/show/devel:languages:perl/perl">https://build.opensuse.org/package/show/devel:languages:perl/perl</a></p>
+
+<h2 id="suse-fix-regexp-backref-overflows">suse: fix regexp backref overflows</h2>
+
+<p>With many backref groups (&gt;I32)</p>
+
+<h2 id="suse-perl-saverecontext-diff-rt-76538">suse: perl-saverecontext.diff RT#76538</h2>
+
+<p>Handle get magic with globs in the regex compiler.
+Correctly restore context, esp. when loading unicode swashes.
+Reported at 5.12, patched for suse 5.14, still ignored with 5.24.</p>
+
+<h1 id="minor-issues-from-perl541cdelta-http-perl11-org-cperl-perl5241cdelta-html-security">Minor issues from <a href="http://perl11.org/cperl/perl5241cdelta.html#Security">perl541cdelta</a></h1>
+
+<h2 id="warn-on-metasploit-cve-2015-1592">Warn on metasploit CVE-2015-1592</h2>
+
+<p>Detection of the destructive attack against Movable-Type, the third
+vector only, which tries to delete <code>mt-config.cgi</code> was added to was
+added to cperl <code>Storable</code> 3.01c.</p>
+
+<p>Warns with &ldquo;SECURITY: Movable-Type CVE-2015-1592 Storable metasploit attack&rdquo;
+but does not protect against it.</p>
+
+<h2 id="warn-on-metasploit-reverse-shells">Warn on metasploit reverse shells</h2>
+
+<p>Detect the metasploit payload unix/reverse_perl and some existing
+variants.  This is just a dumb match at startup against existing
+exploits in the wild, but not future variants.  Warns with
+&ldquo;SECURITY: metasploit reverse/bind shell payload&rdquo;, but do not
+protect against it. This warning is thrown even without C&lt;-w&gt;.</p>
+
+<p>Also detects the CVE-2012-1823 reverse/bind shell payload, which is
+widely exploited too. The security warning is called
+&ldquo;SECURITY: CVE-2012-1823 reverse/bind shell payload&rdquo;.</p>
+
+<h2 id="fixed-overwriting-the-hvhek-unshared-bit-in-the-hash-loop">Fixed overwriting the HVhek_UNSHARED bit in the hash loop</h2>
+
+<p>Broken with v5.9</p>
+
+<p>This fixed <code>-DNODEFAULT_SHAREKEYS</code>. In the default configuration
+without <code>NODEFAULT_SHAREKEYS</code> since 5.003_001 all hash keys are stored
+twice, once in the hash and once again in <code>PL_strtab</code>, the global
+string table, with the benefit of faster hash loops and copies. Almost
+all hashtables get the SHAREKEYS bit.</p>
+
+<p>With <code>-Accflags=-DNODEFAULT_SHAREKEYS</code> simple scripts are 20-30%
+faster.  <a href="https://github.com/perl11/cperl/issues/201">https://github.com/perl11/cperl/issues/201</a> but practical
+usage is dominated by copying hashes, which is faster with shared
+keys.</p>
+
+<h2 id="dfortify-inc">-Dfortify_inc</h2>
+
+<p>Was in the very first cperl release 5.22.1. With full toolchain
+support, in all modules. perl5 caught up 2 years later, 5.26.
+But of course they changed the established name to their own
+<code>-Ddefault_inc_excludes_dot</code></p>
+
+<h2 id="perl4-package-seperator">perl4 &lsquo; package seperator</h2>
+
+<p>cperl deleted that, and fixed all issues.</p>
+
+<h1 id="unicode-bugs">unicode bugs</h1>
+
+<p>e.g range is broken in perl5, fixed in cperl 5.24.1c.
+Apparently fixed with 5.26 finally.</p>
+
+<pre><code>my $r = chr 255; utf8::upgrade $r; my $num = (&quot;a&quot; .. $r);
+</code></pre>
+
+<h2 id="utf8-padnames">utf8 padnames</h2>
+
+<p>In perl5 all padnames are utf8 encoded by default. In cperl only those
+who are utf8 encoded. <a href="https://github.com/perl11/cperl/issues/208">https://github.com/perl11/cperl/issues/208</a></p>
+
+<h2 id="compiler-toolchain-support">compiler toolchain support</h2>
+
+<p>perl5 links with CC and ignores the linker LD, which disables advanced
+llvm thin, lto and cfe support. e.g. clang-4 is produces 20% faster
+code, and with cfe much safer code.</p>
+
+<p>perl5 is inable to produce reproducible builds. cperl does it by default.</p>
+
+<h2 id="lexical-support">lexical $_ support</h2>
+
+<p>perl5 was not able to find and fix the trivial bugs.
+Their core features and modules rely on that, but they removed it.
+esp. given/when, smartmatch, List::Utils.
+cperl supports it.</p>
+
+<h2 id="use-encoding">use encoding</h2>
+
+<p>perl5 was not able to find and fix the trivial bugs. Many foreign devs
+rely on that, but they removed it.  cperl supports it.</p>
+
+<h2 id="pl-maxo">PL_maxo</h2>
+
+<p>perl5 removed it, while it is necessary to track custom ops.
+cperl supports it.</p>
+
+<h2 id="for-qw">for qw(&hellip;)</h2>
+
+<p>perl5 removed support <code>for qw()</code> with bogus justification. You need to write
+<code>for (qw(..)) {}</code>
+The promised parser improvements never arrived.</p>
+
+<p>cperl allows <code>for qw(...)</code> and supporting it is trivial.</p>
+
+<h2 id="pmc-loading-and-reflection">.pmc loading and reflection</h2>
+
+<p>perl5 removed timestamp checks for pugs with 5.8, a module doesn&rsquo;t
+know if it&rsquo;s loaded from a .pmc, and force loading a .pm is not
+possible.</p>
+
+<p>cperl fixed that for the upcoming JitCache support, which adds
+expensively optimized subs for a package to a .pmc. But only some, not
+all subs.  So a .pmc can never replace a full .pm. So reflection and
+loading .pm needs to be enabled.</p>
+
+<h1 id="core-modules">Core modules</h1>
+
+<h2 id="storable">Storable</h2>
+
+<p>The CPAN version was never updated.  The core version suffers from
+several severe core bugs, similar to the inability in core to support
+huge &gt;2GB data.</p>
+
+<p>cperl Storable fixes JD&rsquo;s stack-overflow write (totally a CVE),
+detects the known MetaSploit attack vector and supports large objects,
+strings, hashed and arrays.</p>
+
+<p>There are also more stack-overflow attacks fixed in my CPAN version.</p>
+
+<h2 id="yaml">YAML</h2>
+
+<p>YAML is slow, incompatible with itself and insecure by default.</p>
+
+<p>e.g. Parse-CPAN-Meta security: cperl is 10x faster, can read its own files
+and sets $YAML::XS::DisableCode, $YAML::XS::DisableBlessed while
+parsing META.yml or CPAN .yml files.</p>
+
+<p>Very similar to Storable. At least with YAML the upstream maintainer is listening,
+but he needs &gt;1 year to merge my fixes, which is not acceptable. Nothing published
+yet upstream. Needs to be forked to Cpanel::YAML::XS eventually.</p>
+
+<h2 id="json-xs">JSON::XS</h2>
+
+<p>Look at the relevant pod section in <a href="http://search.cpan.org/dist/Cpanel-JSON-XS/XS.pm#SECURITY_CONSIDERATIONS">Cpanel::JSON::XS</a></p>
+
+<h1 id="summary">Summary</h1>
+
+<p>For the security bugs see on cperl:</p>
+
+<pre><code>grep -A20 '=head1 Security' pod/perl*cdelta.pod
+</code></pre>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#a-small-list-of-the-worst-perl5-bugs-all-fixed-in-cperl">A small list of the worst perl5 bugs, all fixed in cperl</a></li>
+<li><a href="#dos">DoS</a></li>
+<li><a href="#no-hash-security">No Hash Security</a></li>
+<li><a href="#language-maintainance">Language Maintainance</a>
+<ul>
+<li><a href="#silent-integer-overwraps">Silent integer overwraps</a></li>
+</ul></li>
+<li><a href="#names">Names</a>
+<ul>
+<li><a href="#binary-names">Binary names</a></li>
+<li><a href="#insecure-unicode-names">Insecure unicode names</a></li>
+<li><a href="#overlong-names">overlong names</a></li>
+<li><a href="#insecure-taint-mode">Insecure taint mode</a></li>
+</ul></li>
+<li><a href="#minor-issues-from-perl540cdelta-http-perl11-org-cperl-perl5240cdelta-html-security">Minor issues from <a href="http://perl11.org/cperl/perl5240cdelta.html#Security">perl540cdelta</a></a>
+<ul>
+<li><a href="#dynaloader-format-string-hardening">DynaLoader format string hardening</a></li>
+<li><a href="#xsloader-relative-paths-with-eval-or-line">XSLoader relative paths with eval or #line</a></li>
+<li><a href="#handle-method-calls-on-protected-stashes">handle method calls on protected stashes</a></li>
+<li><a href="#fedora-do-not-crash-when-inserting-a-non-stash-into-a-stash">fedora: Do not crash when inserting a non-stash into a stash</a></li>
+<li><a href="#fedora-do-not-treat-as-a-stash">fedora: Do not treat %: as a stash</a></li>
+<li><a href="#fedora-fix-precedence-in-hv-ename-delete">fedora: Fix precedence in hv_ename_delete</a></li>
+<li><a href="#fedora-do-not-use-unitialized-memory-in-h-const-warnings">fedora: Do not use unitialized memory in $h{\const} warnings</a></li>
+<li><a href="#fedora-do-not-mangle-errno-from-failed-socket-calls">fedora: Do not mangle errno from failed socket calls</a></li>
+<li><a href="#fedora-backport-memory-leak-when-compiling-a-regular-expression-with-a-posix-class">fedora: Backport memory leak when compiling a regular expression with a POSIX class</a></li>
+<li><a href="#suse-perl5-24-0-dif">suse: perl5.24.0.dif</a></li>
+<li><a href="#suse-fix-regexp-backref-overflows">suse: fix regexp backref overflows</a></li>
+<li><a href="#suse-perl-saverecontext-diff-rt-76538">suse: perl-saverecontext.diff RT#76538</a></li>
+</ul></li>
+<li><a href="#minor-issues-from-perl541cdelta-http-perl11-org-cperl-perl5241cdelta-html-security">Minor issues from <a href="http://perl11.org/cperl/perl5241cdelta.html#Security">perl541cdelta</a></a>
+<ul>
+<li><a href="#warn-on-metasploit-cve-2015-1592">Warn on metasploit CVE-2015-1592</a></li>
+<li><a href="#warn-on-metasploit-reverse-shells">Warn on metasploit reverse shells</a></li>
+<li><a href="#fixed-overwriting-the-hvhek-unshared-bit-in-the-hash-loop">Fixed overwriting the HVhek_UNSHARED bit in the hash loop</a></li>
+<li><a href="#dfortify-inc">-Dfortify_inc</a></li>
+<li><a href="#perl4-package-seperator">perl4 &lsquo; package seperator</a></li>
+</ul></li>
+<li><a href="#unicode-bugs">unicode bugs</a>
+<ul>
+<li><a href="#utf8-padnames">utf8 padnames</a></li>
+<li><a href="#compiler-toolchain-support">compiler toolchain support</a></li>
+<li><a href="#lexical-support">lexical $_ support</a></li>
+<li><a href="#use-encoding">use encoding</a></li>
+<li><a href="#pl-maxo">PL_maxo</a></li>
+<li><a href="#for-qw">for qw(&hellip;)</a></li>
+<li><a href="#pmc-loading-and-reflection">.pmc loading and reflection</a></li>
+</ul></li>
+<li><a href="#core-modules">Core modules</a>
+<ul>
+<li><a href="#storable">Storable</a></li>
+<li><a href="#yaml">YAML</a></li>
+<li><a href="#json-xs">JSON::XS</a></li>
+</ul></li>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/perl5">perl5
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/seed.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">The dangerous SipHash myth&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
