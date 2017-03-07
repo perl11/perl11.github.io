@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Unicode Identifiers // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="Unicode Identifiers" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/unicode-identifiers.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">Unicode Identifiers</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/unicode-identifiers.html" class="article-date">
+                <time datetime='2017-03-07T00:00:00.000&#43;00:00' itemprop="datePublished">2017-03-07</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="binary-names-with-5-16">Binary names with 5.16</h1>
+
+<p>With perl 5.16 added support for binary names, announcing it as
+support for unicode names. Unicode names were already supported since
+5.8.4 with a negative length stored in the hash key of the symbol.</p>
+
+<p>Supporting binary names without any supporting measures opened huge
+security holes, as names are mapped 1:1 to filenames when searching
+for a package, and as we know the C API for files or names just
+ignores a \0, leading to inconsistencies. And you could now easily
+hide payloads in package names. Remember that p5p never announced this
+problem and feature, they only announced it as improved and full
+unicode support for names.  In the following years I had to fix most
+of the problems with binary names support, but many critical modules
+still have no idea, and are still vulnerable. Even the new perl5
+maintainer has no idea as he showed in his YAPC talk about XS
+programming. He happily used the old <code>gv_</code> interfaces not supporting
+\0, and there&rsquo;s no upgrade path in perl5 for old modules to avoid those
+security holes.</p>
+
+<p>Well, with unicode this would not have been a big problem, as our used
+encoding UTF-8 does not support \0. It&rsquo;s also illegal.
+Only with cperl-5.26 we finally got back safe names, \0 is illegal again.</p>
+
+<p>But here we want to talk about the unicode problems when a language
+decides to embrace unicode names. perl5 prides itself by being one of
+the scripting languages with the best unicode support.  Well, the
+libraries and strings, yes. But the language itself is still horribly
+unicode unsafe.</p>
+
+<p>The unicode consortium published many security addendums, as TRnn.
+Most of them are targetted to html forms, domains names used in
+browsers or DNS servers, and email names. The problem with unicode is,
+that different names are not identifiable as such, and thus you can
+easily fool someone to click on a wrong url. Identifiers need to be
+identifiable and restricted.  perl5 and perl6 pride themselves of
+anything goes, it does not enforce opinions on their users. Well, it&rsquo;s
+still insecure.</p>
+
+<p>The simpliest unicode problems are tricks with illegal UTF-8
+encodings.  This is also relevant to strings and therefore mostly
+fixed in perl5 and cperl.</p>
+
+<p>But there are many more security problems in most programming
+languages with unicode support. Only cperl, python3 and perl6 fixed
+some of them, by doing normalization of its identifiers.
+I didn&rsquo;t see any effort in all the others, besides java.</p>
+
+<p>The most basic overview is at <a href="http://websec.github.io/unicode-security-guide/">http://websec.github.io/unicode-security-guide/</a>.
+Go read it.</p>
+
+<p><em>&ldquo;Because Unicode contains such a large number of characters and
+ incorporates the varied writing systems of the world, incorrect usage
+ can expose programs or systems to possible security attacks. This is
+ especially important as more and more products are
+ internationalized. This document describes some of the security
+ considerations that programmers, system analysts, standards
+ developers, and users should take into account, and provides specific
+ recommendations to reduce the risk of problems.&rdquo;</em></p>
+
+<p>The most improtant documents are</p>
+
+<ul>
+<li><a href="http://www.unicode.org/reports/tr31/#Table_Candidate_Characters_for_Exclusion_from_Identifiers">TR31 Candidate Characters for Exclusion from Identifiers</a>.</li>
+<li><a href="http://www.unicode.org/reports/tr36/">TR36 Unicode Security Considerations</a>.</li>
+<li><a href="http://www.unicode.org/reports/tr39/">TR39 Unicode Security Mechanisms</a>.</li>
+</ul>
+
+<p>In short, those problems need to be fixed:</p>
+
+<h1 id="mixed-scripts">Mixed scripts</h1>
+
+<p>A written language is defined by its scripts (i.e. &ldquo;alphabets&rdquo;). Some
+languages allow multiple scripts, such as Japanese using characters
+from Chinese (Kanji/Han), Katagana (modern japanase) and Hiregana
+(the old middle-age script used by women).  So if you want to support
+japanese you need allow all these three scripts to be used in a program,
+without any declaration. Similar for Korean, which sometimes also use some old
+Han/Chinese characters, and Chinese which uses the biggest set of
+characters Han, plus one additional educational script, called Bopomofo.</p>
+
+<p>The problem is very apparent with Cyrillic and Greek. Both are
+different languages, but use almost the same characters, which are not
+identifiable in any font. If the character is a Greek or Cyrillic
+symbol, or if it&rsquo;s one of the mathematical symbols.</p>
+
+<p>So strict mixed-script profiles for identifiers forbid the default
+usage of Greek and Cyrillic characters in the same program.</p>
+
+<p>In cperl, which is currently the only unicode safe language, this
+is forbidden:</p>
+
+<pre><code>use utf8;
+my $Γ = 1;
+if ($Г) { warn; }
+</code></pre>
+
+<p><code>use utf8</code> declares that identifiers can be unicode, utf-8 encoded.
+<code>my $Γ = 1</code> sets a scalar lexical variable to 1, with the name <code>Γ</code>.
+What you don&rsquo;t see, only the parser, or if you inspect the program
+binary, e.g. with od, is that the first Γ character is the greek
+gamma, and the second variable uses the cyrillic gamma.
+Only with a restricted identifier profile you will see the problem.</p>
+
+<p>cperl does this:</p>
+
+<pre><code>$ cperl5.26.0d-nt -e'use utf8;my $Γ = 1;if ($Г) { warn }'
+Invalid script Cyrillic in identifier Г) { warn }
+for U+0413. Have Greek at -e line 1.
+</code></pre>
+
+<p>I.e. it allows the first greek character in a name to be used without
+declaration of a foreign script, but then fails when a cyrillic
+character in a name appears. With such characters in strings or
+buffers the user has to care, but with identifiers the parser has to
+care, as the identifier is not identifiable anymore.</p>
+
+<p>When a user really wants to use names in multiple languages in a
+program, he needs to declare them beforehand, so the casual reader is
+aware of the mixed scripts.</p>
+
+<pre><code>use utf8 (&quot;Greek&quot;, &quot;Cyrillic&quot;);
+my $Γ = 1;
+if ($Г) { warn }'
+</code></pre>
+
+<p>is now the valid variant. But note that mixing Cyrillic and Greek is
+still frowned upon, and needs to be warned, even when being declared
+as such.</p>
+
+<p>Similarily, some scripts can be used undeclared, and some need to be
+declared.  These recommendations are all specified in the TR39
+Restriction levels.</p>
+
+<h1 id="visual-spoofing">Visual spoofing</h1>
+
+<p>Unicode is pretty good in defining what characters are allowed as
+first character in an identifier, and what characters may
+follow. These classes are declared in the <code>ID_Start</code> and
+<code>ID_Continue</code>, see
+<a href="http://www.unicode.org/reports/tr31/#Table_Lexical_Classes_for_Identifiers">TR 31 Lexical_Classes_for_Identifiers</a>
+for the precise rules properly used in most languages with unicode
+support.</p>
+
+<p>I know only of one bug in these tables, the U+3164 HANGUL FILLER is
+wrongly specified as ID_Cont. Thus in perl5 this is valid:</p>
+
+<pre><code>perl -e'use utf8; $aㅤb == 2;'
+</code></pre>
+
+<p>but cperl detects the problem:</p>
+
+<pre><code>cperl -e'use utf8; $aㅤb == 2;'
+Unrecognized character \x{3164}; marked by &lt;-- HERE after e utf8; $a&lt;-- HERE
+near column 13 at -e line 1.
+</code></pre>
+
+<p>Same problem for the U+ffa0 HALFWIDTH HANGUL FILLER. See also
+<a href="https://github.com/jagracey/Awesome-Unicode#user-content-variable-identifiers-can-effectively-include-whitespace">https://github.com/jagracey/Awesome-Unicode#user-content-variable-identifiers-can-effectively-include-whitespace</a>
+According to according to
+<a href="http://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf">http://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf</a> those two
+fillers ᅟ..ᅠ HANGUL CHOSEONG FILLER..HANGUL JUNGSEONG FILLER are the
+proper replacements.</p>
+
+<p>But besides those rare bugs, spoofs and confusables are much more common.
+I only know of very few languages which actually detect those problems.</p>
+
+<p>Spoofs are certain trick character combinations.</p>
+
+<p>Popular spoof attacks were the Paypal.com IDN spoof of 2005. Setup to
+demonstrate the power of these attack vectors, Eric Johanson and The
+Schmoo Group successfully used a www.paypal.com lookalike domain name
+to fool visitors into providing personal information. The advisory
+references original research from 2002 by Evgeniy Gabrilovich and Alex
+Gontmakher at the Israel Institute of Technology. Their original paper
+described an attack using Microsoft.com as an example. - <a href="http://websec.github.io/unicode-security-guide/visual-spoofing/">visual-spoofing</a></p>
+
+<p>A typical bidi-spoof would involve a unicode aware text-editor or
+viewer, and identifiers which switch to right-to-left (arabic),
+overwrite the previous characters, and maybe even switch back to
+left-to-right. Visually the names look the same, but internally the
+spoofed name is much longer.</p>
+
+<p>Such spoofs are usually prevented with forbidding mixed scripts.</p>
+
+<h1 id="normalization">Normalization</h1>
+
+<p>Other simple spoofs can be be prevented with normalization. This is
+what Python3 started to do, also cperl and java.  With normalization
+of unicode character sequences all possible and valid character
+combinations are compressed to one single normal form. There are two
+defined normal forms, NFKC and NFC, interestingly python decided to
+pick the wrong one, normalizing to ligatures. cperl normalizes to the
+canonical normal form NFC. perl6 decided to normalize to their own
+format, called NFD, which allows invalid, private reserved characters
+in upper planes, which will be forbidden in upcoming perl5 and cperl
+releases.</p>
+
+<p>E.g. <code>café</code> (<code>&lt;c, a, f, e, U+0301&gt;</code>) is normalized to <code>café</code>
+<code>&lt;c, a, f, U+00E9&gt;</code>.
+<code>café́</code>, using two combining marks (<code>&lt;c, a, f, e, U+0301, U+0301&gt;</code>) is currently allowed.</p>
+
+<h1 id="same-script-confusables">Same Script Confusables</h1>
+
+<p>There&rsquo;s a whole table of confusables which are still confusable after
+restricting mixed scripts and after normalization.
+These confusables are typically optionally warned upon.</p>
+
+<h1 id="moderately-restrictive-level">Moderately Restrictive Level</h1>
+
+<p>cperl as first dynamic scripting language follows the <strong>General
+Security Profile</strong> for identifiers in programming languages.</p>
+
+<p><strong>Moderately Restrictive</strong>: Allow <code>Latin</code> with other Recommended or
+Aspirational scripts except <code>Cyrillic</code> and <code>Greek</code>. Otherwise, the same as
+<a href="http://www.unicode.org/reports/tr39/#Identifier_Characters">Highly Restrictive</a>,
+i.e. allow <code>:Japanese</code>, <code>:Korean</code> and <code>:Hanb</code> aliases.</p>
+
+<p><em>&ldquo;Some characters are not in modern customary use, and thus implementations
+may want to exclude them from identifiers.  These include characters in
+historic and obsolete scripts, scripts used mostly liturgically, and
+regional scripts used only in very small communities or with very limited
+current usage.  The set of characters in Table 4, Candidate Characters for
+Exclusion from Identifiers provides candidates of these.&rdquo;</em></p>
+
+<p>cperl honors the
+<a href="http://www.unicode.org/reports/tr31/#Table_Candidate_Characters_for_Exclusion_from_Identifiers">TR31 Candidate Characters for Exclusion from Identifiers</a>.</p>
+
+<p>I.e. You may still declare those scripts as valid, but they are not
+automatically allowed, similar to the need to declare mixed scripts.</p>
+
+<pre><code>use utf8;
+my $ᭅ = 1; # \x{1b45} BALINESE LETTER KAF SASAK
+
+=&gt; Invalid script Balinese in identifier ᭅ for U+1B45
+</code></pre>
+
+<p>but when declared as such:</p>
+
+<pre><code>use utf8 'Balinese';
+my $ᭅ = 1; # \x{1b45} BALINESE LETTER KAF SASAK
+print &quot;ok&quot;;
+
+=&gt; ok
+</code></pre>
+
+<p>The scripts listed at &ldquo;Table 6, Aspirational Use Scripts&rdquo;:
+<code>Canadian_Aboriginal</code>, <code>Miao</code>, <code>Mongolian</code>, <code>Tifinagh</code> and <code>Yi</code>
+are included, i.e. need not to be declared.</p>
+
+<p>With this restriction we are close to the implementation of the
+Moderately Restrictive level for identifiers by default. See
+<a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">http://www.unicode.org/reports/tr39/#General_Security_Profile</a> and
+<a href="http://www.unicode.org/reports/tr36/#Security_Levels_and_Alerts">http://www.unicode.org/reports/tr36/#Security_Levels_and_Alerts</a>.</p>
+
+<p>With special declarations of the used scripts you can weaken the
+restriction level to <strong>Minimally Restrictive</strong>.</p>
+
+<p>Missing for the <strong>Moderately Restrictive</strong> level are warnings on
+single-, mixed and whole-script confusables, and warnings on certain
+incompatible mixed-script pairs such as <strong>Greek + Cyrillic</strong>.</p>
+
+<p>All utf8 encoded names are checked for wellformed-ness.</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#binary-names-with-5-16">Binary names with 5.16</a></li>
+<li><a href="#mixed-scripts">Mixed scripts</a></li>
+<li><a href="#visual-spoofing">Visual spoofing</a></li>
+<li><a href="#normalization">Normalization</a></li>
+<li><a href="#same-script-confusables">Same Script Confusables</a></li>
+<li><a href="#moderately-restrictive-level">Moderately Restrictive Level</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/cperl-hash-tables.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">cperl hash tables&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
