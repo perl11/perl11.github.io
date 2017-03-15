@@ -984,13 +984,19 @@
 
 <p>Uses the value of EXPR as a filename and executes the contents of the file as a Perl script.</p>
 
-<pre><code>    do &#39;stat.pl&#39;;</code></pre>
+<pre><code>    do &#39;./stat.pl&#39;;</code></pre>
 
 <p>is largely like</p>
 
 <pre><code>    eval `cat stat.pl`;</code></pre>
 
-<p>except that it&#39;s more concise, runs no external processes, keeps track of the current filename for error messages, searches the <a href="/cperl/perlvar.html#INC"><code>@INC</code></a> directories, and updates <a href="/pod/perlvar.html#INC"><code>%INC</code></a> if the file is found. See <a href="/pod/perlvar.html#INC">&quot;@INC&quot; in perlvar</a> and <a href="/pod/perlvar.html#INC">&quot;%INC&quot; in perlvar</a> for these variables. It also differs in that code evaluated with <code>do FILE</code> cannot see lexicals in the enclosing scope; <code>eval STRING</code> does. It&#39;s the same, however, in that it does reparse the file every time you call it, so you probably don&#39;t want to do this inside a loop.</p>
+<p>except that it&#39;s more concise, runs no external processes, and keeps track of the current filename for error messages. It also differs in that code evaluated with <code>do FILE</code> cannot see lexicals in the enclosing scope; <code>eval STRING</code> does. It&#39;s the same, however, in that it does reparse the file every time you call it, so you probably don&#39;t want to do this inside a loop.</p>
+
+<p>Using <code>do</code> with no path, like</p>
+
+<pre><code>    do &#39;stat.pl&#39;;</code></pre>
+
+<p>will search the <a href="/cperl/perlvar.html#INC"><code>@INC</code></a> directories, and update <a href="/pod/perlvar.html#INC"><code>%INC</code></a> if the file is found. See <a href="/pod/perlvar.html#INC">&quot;@INC&quot; in perlvar</a> and <a href="/pod/perlvar.html#INC">&quot;%INC&quot; in perlvar</a> for these variables. In particular, note that whilst historically <a href="/pod/perlvar.html#INC"><code>@INC</code></a> contained &#39;.&#39; (the current directory) making these two cases equivalent, that is no longer necessarily the case, as there is now a compile-time option to disable this behaviour.</p>
 
 <p>If <a href="#do-EXPR"><code>do</code></a> can read the file but cannot compile it, it returns <a href="#undef-EXPR"><code>undef</code></a> and sets an error message in <a href="/cperl/perlvar.html#pod"><code>$@</code></a>. If <a href="#do-EXPR"><code>do</code></a> cannot read the file, it returns undef and sets <a href="/pod/perlvar.html#pod"><code>$!</code></a> to the error. Always check <a href="/pod/perlvar.html#pod"><code>$@</code></a> first, as compilation could fail in a way that also sets <a href="/pod/perlvar.html#pod"><code>$!</code></a>. If the file is successfully compiled, <a href="#do-EXPR"><code>do</code></a> returns the value of the last expression evaluated.</p>
 
@@ -1122,25 +1128,104 @@
 <dt id="eval">eval</dt>
 <dd>
 
-<p>In the first form, often referred to as a &quot;string eval&quot;, the return value of EXPR is parsed and executed as if it were a little Perl program. The value of the expression (which is itself determined within scalar context) is first parsed, and if there were no errors, executed as a block within the lexical context of the current Perl program. This means, that in particular, any outer lexical variables are visible to it, and any package variable settings or subroutine and format definitions remain afterwards.</p>
+<p><code>eval</code> in all its forms is used to execute a little Perl program, trapping any errors encountered so they don&#39;t crash the calling program.</p>
 
-<p>Note that the value is parsed every time the <a href="#eval-EXPR"><code>eval</code></a> executes. If EXPR is omitted, evaluates <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a>. This form is typically used to delay parsing and subsequent execution of the text of EXPR until run time.</p>
+<p>Plain <code>eval</code> with no argument is just <code>eval EXPR</code>, where the expression is understood to be contained in <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a>. Thus there are only two real <code>eval</code> forms; the one with an EXPR is often called &quot;string eval&quot;. In a string eval, the value of the expression (which is itself determined within scalar context) is first parsed, and if there were no errors, executed as a block within the lexical context of the current Perl program. This form is typically used to delay parsing and subsequent execution of the text of EXPR until run time. Note that the value is parsed every time the <code>eval</code> executes.</p>
 
-<p>If the <a><code>&quot;unicode_eval&quot;</code> feature</a> is enabled (which is the default under a <code>use 5.16</code> or higher declaration), EXPR or <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a> is treated as a string of characters, so <a><code>use utf8</code></a> declarations have no effect, and source filters are forbidden. In the absence of the <a><code>&quot;unicode_eval&quot;</code> feature</a>, will sometimes be treated as characters and sometimes as bytes, depending on the internal encoding, and source filters activated within the <a href="#eval-EXPR"><code>eval</code></a> exhibit the erratic, but historical, behaviour of affecting some outer file scope that is still compiling. See also the <a href="#evalbytes-EXPR"><code>evalbytes</code></a> operator, which always treats its input as a byte stream and works properly with source filters, and the <a>feature</a> pragma.</p>
+<p>The other form is called &quot;block eval&quot;. It is less general than string eval, but the code within the BLOCK is parsed only once (at the same time the code surrounding the <code>eval</code> itself was parsed) and executed within the context of the current Perl program. This form is typically used to trap exceptions more efficiently than the first, while also providing the benefit of checking the code within BLOCK at compile time. BLOCK is parsed and compiled just once. Since errors are trapped, it often is used to check if a given feature is available.</p>
+
+<p>In both forms, the value returned is the value of the last expression evaluated inside the mini-program; a return statement may also be used, just as with subroutines. The expression providing the return value is evaluated in void, scalar, or list context, depending on the context of the <code>eval</code> itself. See <a href="#wantarray"><code>wantarray</code></a> for more on how the evaluation context can be determined.</p>
+
+<p>If there is a syntax error or runtime error, or a <a href="#die-LIST"><code>die</code></a> statement is executed, <code>eval</code> returns <a href="#undef-EXPR"><code>undef</code></a> in scalar context, or an empty list in list context, and <a href="/cperl/perlvar.html#pod"><code>$@</code></a> is set to the error message. (Prior to 5.16, a bug caused <a href="#undef-EXPR"><code>undef</code></a> to be returned in list context for syntax errors, but not for runtime errors.) If there was no error, <a href="/pod/perlvar.html#pod"><code>$@</code></a> is set to the empty string. A control flow operator like <a href="#last-LABEL"><code>last</code></a> or <a href="#goto-LABEL"><code>goto</code></a> can bypass the setting of <a href="/pod/perlvar.html#pod"><code>$@</code></a>. Beware that using <code>eval</code> neither silences Perl from printing warnings to STDERR, nor does it stuff the text of warning messages into <a href="/pod/perlvar.html#pod"><code>$@</code></a>. To do either of those, you have to use the <a href="/pod/perlvar.html#SIG"><code>$SIG{__WARN__}</code></a> facility, or turn off warnings inside the BLOCK or EXPR using <span style="white-space: nowrap;"><code>no warnings &#39;all&#39;</code></span>. See <a href="#warn-LIST"><code>warn</code></a>, <a href="/pod/perlvar.html">perlvar</a>, and <a>warnings</a>.</p>
+
+<p>Note that, because <code>eval</code> traps otherwise-fatal errors, it is useful for determining whether a particular feature (such as <a href="#socket-SOCKET-DOMAIN-TYPE-PROTOCOL"><code>socket</code></a> or <a href="#symlink-OLDFILE-NEWFILE"><code>symlink</code></a>) is implemented. It is also Perl&#39;s exception-trapping mechanism, where the <a href="#die-LIST"><code>die</code></a> operator is used to raise exceptions.</p>
+
+<p>Before Perl 5.14, the assignment to <a href="/cperl/perlvar.html#pod"><code>$@</code></a> occurred before restoration of localized variables, which means that for your code to run on older versions, a temporary is required if you want to mask some, but not all errors:</p>
+
+<pre><code> # alter $@ on nefarious repugnancy only
+ {
+    my $e;
+    {
+      local $@; # protect existing $@
+      eval { test_repugnancy() };
+      # $@ =~ /nefarious/ and die $@; # Perl 5.14 and higher only
+      $@ =~ /nefarious/ and $e = $@;
+    }
+    die $e if defined $e
+ }</code></pre>
+
+<p>There are some different considerations for each form:</p>
+
+<dl>
+
+<dt id="String-eval">String eval</dt>
+<dd>
+
+<p>Since the return value of EXPR is executed as a block within the lexical context of the current Perl program, any outer lexical variables are visible to it, and any package variable settings or subroutine and format definitions remain afterwards.</p>
+
+<dl>
+
+<dt id="Under-the-unicode_eval-feature">Under the <a><code>&quot;unicode_eval&quot;</code> feature</a></dt>
+<dd>
+
+<p>If this feature is enabled (which is the default under a <code>use 5.16</code> or higher declaration), EXPR is considered to be in the same encoding as the surrounding program. Thus if <span style="white-space: nowrap;"><a><code>use utf8</code></a></span> is in effect, the string will be treated as being UTF-8 encoded. Otherwise, the string is considered to be a sequence of independent bytes. Bytes that correspond to ASCII-range code points will have their normal meanings for operators in the string. The treatment of the other bytes depends on if the <a><code>&#39;unicode_strings&quot;</code> feature</a> is in effect.</p>
+
+<p>In a plain <code>eval</code> without an EXPR argument, being in <span style="white-space: nowrap;"><code>use utf8</code></span> or not is irrelevant; the UTF-8ness of <code>$_</code> itself determines the behavior.</p>
+
+<p>Any <span style="white-space: nowrap;"><code>use utf8</code></span> or <span style="white-space: nowrap;"><code>no utf8</code></span> declarations within the string have no effect, and source filters are forbidden. (<code>unicode_strings</code>, however, can appear within the string.) See also the <a href="#evalbytes-EXPR"><code>evalbytes</code></a> operator, which works properly with source filters.</p>
+
+<p>Variables defined outside the <code>eval</code> and used inside it retain their original UTF-8ness. Everything inside the string follows the normal rules for a Perl program with the given state of <span style="white-space: nowrap;"><code>use utf8</code></span>.</p>
+
+</dd>
+<dt id="Outside-the-unicode_eval-feature">Outside the <code>&quot;unicode_eval&quot;</code> feature</dt>
+<dd>
+
+<p>In this case, the behavior is problematic and is not so easily described. Here are two bugs that cannot easily be fixed without breaking existing programs:</p>
+
+<ul>
+
+<li><p>It can lose track of whether something should be encoded as UTF-8 or not.</p>
+
+</li>
+<li><p>Source filters activated within <code>eval</code> leak out into whichever file scope is currently being compiled. To give an example with the CPAN module <a>Semi::Semicolons</a>:</p>
+
+<pre><code> BEGIN { eval &quot;use Semi::Semicolons; # not filtered&quot; }
+ # filtered here!</code></pre>
+
+<p><a href="#evalbytes-EXPR"><code>evalbytes</code></a> fixes that to work the way one would expect:</p>
+
+<pre><code> use feature &quot;evalbytes&quot;;
+ BEGIN { evalbytes &quot;use Semi::Semicolons; # filtered&quot; }
+ # not filtered</code></pre>
+
+</li>
+</ul>
+
+</dd>
+</dl>
 
 <p>Problems can arise if the string expands a scalar containing a floating point number. That scalar can expand to letters, such as <code>&quot;NaN&quot;</code> or <code>&quot;Infinity&quot;</code>; or, within the scope of a <a><code>use locale</code></a>, the decimal point character may be something other than a dot (such as a comma). None of these are likely to parse as you are likely expecting.</p>
 
-<p>In the second form, the code within the BLOCK is parsed only once--at the same time the code surrounding the <a href="#eval-EXPR"><code>eval</code></a> itself was parsed--and executed within the context of the current Perl program. This form is typically used to trap exceptions more efficiently than the first (see below), while also providing the benefit of checking the code within BLOCK at compile time.</p>
+<p>You should be especially careful to remember what&#39;s being looked at when:</p>
 
-<p>The final semicolon, if any, may be omitted from the value of EXPR or within the BLOCK.</p>
+<pre><code>    eval $x;        # CASE 1
+    eval &quot;$x&quot;;      # CASE 2
 
-<p>In both forms, the value returned is the value of the last expression evaluated inside the mini-program; a return statement may be also used, just as with subroutines. The expression providing the return value is evaluated in void, scalar, or list context, depending on the context of the <a href="#eval-EXPR"><code>eval</code></a> itself. See <a href="#wantarray"><code>wantarray</code></a> for more on how the evaluation context can be determined.</p>
+    eval &#39;$x&#39;;      # CASE 3
+    eval { $x };    # CASE 4
 
-<p>If there is a syntax error or runtime error, or a <a href="#die-LIST"><code>die</code></a> statement is executed, <a href="#eval-EXPR"><code>eval</code></a> returns <a href="#undef-EXPR"><code>undef</code></a> in scalar context or an empty list in list context, and <a href="/cperl/perlvar.html#pod"><code>$@</code></a> is set to the error message. (Prior to 5.16, a bug caused <a href="#undef-EXPR"><code>undef</code></a> to be returned in list context for syntax errors, but not for runtime errors.) If there was no error, <a href="/pod/perlvar.html#pod"><code>$@</code></a> is set to the empty string. A control flow operator like <a href="#last-LABEL"><code>last</code></a> or <a href="#goto-LABEL"><code>goto</code></a> can bypass the setting of <a href="/pod/perlvar.html#pod"><code>$@</code></a>. Beware that using <a href="#eval-EXPR"><code>eval</code></a> neither silences Perl from printing warnings to STDERR, nor does it stuff the text of warning messages into <a href="/pod/perlvar.html#pod"><code>$@</code></a>. To do either of those, you have to use the <a href="/pod/perlvar.html#SIG"><code>$SIG{__WARN__}</code></a> facility, or turn off warnings inside the BLOCK or EXPR using <span style="white-space: nowrap;"><code>no warnings &#39;all&#39;</code></span>. See <a href="#warn-LIST"><code>warn</code></a>, <a href="/pod/perlvar.html">perlvar</a>, and <a>warnings</a>.</p>
+    eval &quot;\$$x++&quot;;  # CASE 5
+    $$x++;          # CASE 6</code></pre>
 
-<p>Note that, because <a href="#eval-EXPR"><code>eval</code></a> traps otherwise-fatal errors, it is useful for determining whether a particular feature (such as <a href="#socket-SOCKET-DOMAIN-TYPE-PROTOCOL"><code>socket</code></a> or <a href="#symlink-OLDFILE-NEWFILE"><code>symlink</code></a>) is implemented. It is also Perl&#39;s exception-trapping mechanism, where the <a href="#die-LIST"><code>die</code></a> operator is used to raise exceptions.</p>
+<p>Cases 1 and 2 above behave identically: they run the code contained in the variable $x. (Although case 2 has misleading double quotes making the reader wonder what else might be happening (nothing is).) Cases 3 and 4 likewise behave in the same way: they run the code <code>&#39;$x&#39;</code>, which does nothing but return the value of $x. (Case 4 is preferred for purely visual reasons, but it also has the advantage of compiling at compile-time instead of at run-time.) Case 5 is a place where normally you <i>would</i> like to use double quotes, except that in this particular situation, you can just use symbolic references instead, as in case 6.</p>
 
-<p>If you want to trap errors when loading an XS module, some problems with the binary interface (such as Perl version skew) may be fatal even with <a href="#eval-EXPR"><code>eval</code></a> unless <code>$ENV{PERL_DL_NONLAZY}</code> is set. See <a href="/cperl/perlrun.html">perlrun</a>.</p>
+<p>An <code>eval &#39;&#39;</code> executed within a subroutine defined in the <code>DB</code> package doesn&#39;t see the usual surrounding lexical scope, but rather the scope of the first non-DB piece of code that called it. You don&#39;t normally need to worry about this unless you are writing a Perl debugger.</p>
+
+<p>The final semicolon, if any, may be omitted from the value of EXPR.</p>
+
+</dd>
+<dt id="Block-eval">Block eval</dt>
+<dd>
 
 <p>If the code to be executed doesn&#39;t vary, you may use the eval-BLOCK form to trap run-time errors without incurring the penalty of recompiling each time. The error, if any, is still returned in <a href="/cperl/perlvar.html#pod"><code>$@</code></a>. Examples:</p>
 
@@ -1155,6 +1240,8 @@
 
     # a run-time error
     eval &#39;$answer =&#39;;   # sets $@</code></pre>
+
+<p>If you want to trap errors when loading an XS module, some problems with the binary interface (such as Perl version skew) may be fatal even with <code>eval</code> unless <code>$ENV{PERL_DL_NONLAZY}</code> is set. See <a href="/cperl/perlrun.html">perlrun</a>.</p>
 
 <p>Using the <code>eval {}</code> form as an exception trap in libraries does have some issues. Due to the current arguably broken state of <code>__DIE__</code> hooks, you may wish not to trigger any <code>__DIE__</code> hooks that user code may have installed. You can use the <code>local $SIG{__DIE__}</code> construct for this purpose, as this example shows:</p>
 
@@ -1174,36 +1261,12 @@
 
 <p>Because this promotes action at a distance, this counterintuitive behavior may be fixed in a future release.</p>
 
-<p>With an <a href="#eval-EXPR"><code>eval</code></a>, you should be especially careful to remember what&#39;s being looked at when:</p>
-
-<pre><code>    eval $x;        # CASE 1
-    eval &quot;$x&quot;;      # CASE 2
-
-    eval &#39;$x&#39;;      # CASE 3
-    eval { $x };    # CASE 4
-
-    eval &quot;\$$x++&quot;;  # CASE 5
-    $$x++;          # CASE 6</code></pre>
-
-<p>Cases 1 and 2 above behave identically: they run the code contained in the variable $x. (Although case 2 has misleading double quotes making the reader wonder what else might be happening (nothing is).) Cases 3 and 4 likewise behave in the same way: they run the code <code>&#39;$x&#39;</code>, which does nothing but return the value of $x. (Case 4 is preferred for purely visual reasons, but it also has the advantage of compiling at compile-time instead of at run-time.) Case 5 is a place where normally you <i>would</i> like to use double quotes, except that in this particular situation, you can just use symbolic references instead, as in case 6.</p>
-
-<p>Before Perl 5.14, the assignment to <a href="/cperl/perlvar.html#pod"><code>$@</code></a> occurred before restoration of localized variables, which means that for your code to run on older versions, a temporary is required if you want to mask some but not all errors:</p>
-
-<pre><code>    # alter $@ on nefarious repugnancy only
-    {
-       my $e;
-       {
-         local $@; # protect existing $@
-         eval { test_repugnancy() };
-         # $@ =~ /nefarious/ and die $@; # Perl 5.14 and higher only
-         $@ =~ /nefarious/ and $e = $@;
-       }
-       die $e if defined $e
-    }</code></pre>
-
 <p><code>eval BLOCK</code> does <i>not</i> count as a loop, so the loop control statements <a href="#next-LABEL"><code>next</code></a>, <a href="#last-LABEL"><code>last</code></a>, or <a href="#redo-LABEL"><code>redo</code></a> cannot be used to leave or restart the block.</p>
 
-<p>An <code>eval &#39;&#39;</code> executed within a subroutine defined in the <code>DB</code> package doesn&#39;t see the usual surrounding lexical scope, but rather the scope of the first non-DB piece of code that called it. You don&#39;t normally need to worry about this unless you are writing a Perl debugger.</p>
+<p>The final semicolon, if any, may be omitted from within the BLOCK.</p>
+
+</dd>
+</dl>
 
 </dd>
 <dt id="evalbytes-EXPR">evalbytes EXPR </dt>
@@ -1213,9 +1276,26 @@
 <dt id="evalbytes">evalbytes</dt>
 <dd>
 
-<p>This function is like <a href="#eval-EXPR"><code>eval</code></a> with a string argument, except it always parses its argument, or <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a> if EXPR is omitted, as a string of bytes. A string containing characters whose ordinal value exceeds 255 results in an error. Source filters activated within the evaluated code apply to the code itself.</p>
+<p>This function is similar to a <a href="#eval-EXPR">string eval</a>, except it always parses its argument (or <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a> if EXPR is omitted) as a string of independent bytes.</p>
 
-<p><a href="#evalbytes-EXPR"><code>evalbytes</code></a> is available only if the <a><code>&quot;evalbytes&quot;</code> feature</a> is enabled or if it is prefixed with <code>CORE::</code>. The <a><code>&quot;evalbytes&quot;</code> feature</a> is enabled automatically with a <code>use v5.16</code> (or higher) declaration in the current scope.</p>
+<p>If called when <span style="white-space: nowrap;"><code>use utf8</code></span> is in effect, the string will be assumed to be encoded in UTF-8, and <code>evalbytes</code> will make a temporary copy to work from, downgraded to non-UTF-8. If this is not possible (because one or more characters in it require UTF-8), the <code>evalbytes</code> will fail with the error stored in <code>$@</code>.</p>
+
+<p>Bytes that correspond to ASCII-range code points will have their normal meanings for operators in the string. The treatment of the other bytes depends on if the <a><code>&#39;unicode_strings&quot;</code> feature</a> is in effect.</p>
+
+<p>Of course, variables that are UTF-8 and are referred to in the string retain that:</p>
+
+<pre><code> my $a = &quot;\x{100}&quot;;
+ evalbytes &#39;print ord $a, &quot;\n&quot;&#39;;</code></pre>
+
+<p>prints</p>
+
+<pre><code> 256</code></pre>
+
+<p>and <code>$@</code> is empty.</p>
+
+<p>Source filters activated within the evaluated code apply to the code itself.</p>
+
+<p><a href="#evalbytes-EXPR"><code>evalbytes</code></a> is available starting in Perl v5.16. To access it, you must say <code>CORE::evalbytes</code>, but you can omit the <code>CORE::</code> if the <a><code>&quot;evalbytes&quot;</code> feature</a> is enabled. This is enabled automatically with a <code>use v5.16</code> (or higher) declaration in the current scope.</p>
 
 </dd>
 <dt id="exec-LIST">exec LIST  </dt>
@@ -2203,7 +2283,7 @@
 
 <p>This function cannot be used on an entire array or hash to find out how many elements these have. For that, use <code>scalar @array</code> and <code>scalar keys %hash</code>, respectively.</p>
 
-<p>Like all Perl character operations, <a href="#length-EXPR"><code>length</code></a> normally deals in logical characters, not physical bytes. For how many bytes a string encoded as UTF-8 would take up, use <code>length(Encode::encode_utf8(EXPR))</code> (you&#39;ll have to <code>use Encode</code> first). See <a>Encode</a> and <a href="/cperl/perlunicode.html">perlunicode</a>.</p>
+<p>Like all Perl character operations, <a href="#length-EXPR"><code>length</code></a> normally deals in logical characters, not physical bytes. For how many bytes a string encoded as UTF-8 would take up, use <code>length(Encode::encode(&#39;UTF-8&#39;, EXPR))</code> (you&#39;ll have to <code>use Encode</code> first). See <a>Encode</a> and <a href="/cperl/perlunicode.html">perlunicode</a>.</p>
 
 </dd>
 <dt id="LINE__">__LINE__ </dt>
@@ -2652,8 +2732,8 @@
 
 <p>To (re)open <code>STDOUT</code> or <code>STDERR</code> as an in-memory file, close it first:</p>
 
-<pre><code>    close STDOUT;
-    open(STDOUT, &quot;&gt;&quot;, \$variable)
+<pre><code>    close *STDOUT;
+    open(*STDOUT, &quot;&gt;&quot;, \$variable)
         or die &quot;Can&#39;t open STDOUT: $!&quot;;</code></pre>
 
 <p>See <a href="/cperl/perliol.html">perliol</a> for detailed info on PerlIO.</p>
@@ -3455,7 +3535,7 @@
 <p>If you&#39;re storing handles in an array or hash, or in general whenever you&#39;re using any expression more complex than a bareword handle or a plain, unsubscripted scalar variable to retrieve it, you will have to use a block returning the filehandle value instead, in which case the LIST may not be omitted:</p>
 
 <pre><code>    print { $files[$i] } &quot;stuff\n&quot;;
-    print { $OK ? STDOUT : STDERR } &quot;stuff\n&quot;;</code></pre>
+    print { $OK ? *STDOUT : *STDERR } &quot;stuff\n&quot;;</code></pre>
 
 <p>Printing to a closed pipe or socket will generate a SIGPIPE signal. See <a href="/cperl/perlipc.html">perlipc</a> for more on signal handling.</p>
 
@@ -3731,7 +3811,7 @@
 
 <p>Receives a message on a socket. Attempts to receive LENGTH characters of data into variable SCALAR from the specified SOCKET filehandle. SCALAR will be grown or shrunk to the length actually read. Takes the same flags as the system call of the same name. Returns the address of the sender if SOCKET&#39;s protocol supports this; returns an empty string otherwise. If there&#39;s an error, returns the undefined value. This call is actually implemented in terms of the <a href="http://man.he.net/man2/recvfrom">recvfrom(2)</a> system call. See <a href="/cperl/perlipc.html#UDP:-Message-Passing">&quot;UDP: Message Passing&quot; in perlipc</a> for examples.</p>
 
-<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are received. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(utf8)</code> I/O layer (see the <a>open</a> pragma), the I/O will operate on UTF8-encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be read.</p>
+<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are received. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(UTF-8)</code> I/O layer (see the <a>open</a> pragma), the I/O will operate on UTF8-encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be read.</p>
 
 </dd>
 <dt id="redo-LABEL">redo LABEL </dt>
@@ -4118,7 +4198,7 @@
 
 <p>Sets FILEHANDLE&#39;s position, just like the <a href="http://man.he.net/man3/fseek">fseek(3)</a> call of C <code>stdio</code>. FILEHANDLE may be an expression whose value gives the name of the filehandle. The values for WHENCE are <code>0</code> to set the new position <i>in bytes</i> to POSITION; <code>1</code> to set it to the current position plus POSITION; and <code>2</code> to set it to EOF plus POSITION, typically negative. For WHENCE you may use the constants <code>SEEK_SET</code>, <code>SEEK_CUR</code>, and <code>SEEK_END</code> (start of the file, current position, end of the file) from the <a>Fcntl</a> module. Returns <code>1</code> on success, false otherwise.</p>
 
-<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(utf8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
+<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(UTF-8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
 
 <p>If you want to position the file for <a href="#sysread-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>sysread</code></a> or <a href="#syswrite-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>syswrite</code></a>, don&#39;t use <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, because buffering makes its effect on the file&#39;s read-write position unpredictable and non-portable. Use <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> instead.</p>
 
@@ -4271,7 +4351,7 @@
 
 <p>Sends a message on a socket. Attempts to send the scalar MSG to the SOCKET filehandle. Takes the same flags as the system call of the same name. On unconnected sockets, you must specify a destination to <i>send to</i>, in which case it does a <a href="http://man.he.net/man2/sendto">sendto(2)</a> syscall. Returns the number of characters sent, or the undefined value on error. The <a href="http://man.he.net/man2/sendmsg">sendmsg(2)</a> syscall is currently unimplemented. See <a href="/cperl/perlipc.html#UDP:-Message-Passing">&quot;UDP: Message Passing&quot; in perlipc</a> for examples.</p>
 
-<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are sent. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(utf8)</code> I/O layer (see <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, or the <a>open</a> pragma), the I/O will operate on UTF-8 encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be sent.</p>
+<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are sent. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(UTF-8)</code> I/O layer (see <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, or the <a>open</a> pragma), the I/O will operate on UTF-8 encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be sent.</p>
 
 </dd>
 <dt id="setpgrp-PID-PGRP">setpgrp PID,PGRP  </dt>
@@ -4445,7 +4525,7 @@
 
 <p>If SUBNAME or BLOCK is omitted, <a href="#sort-SUBNAME-LIST"><code>sort</code></a>s in standard string comparison order. If SUBNAME is specified, it gives the name of a subroutine that returns an integer less than, equal to, or greater than <code>0</code>, depending on how the elements of the list are to be ordered. (The <code>&lt;=&gt;</code> and <code>cmp</code> operators are extremely useful in such routines.) SUBNAME may be a scalar variable name (unsubscripted), in which case the value provides the name of (or a reference to) the actual subroutine to use. In place of a SUBNAME, you can provide a BLOCK as an anonymous, in-line sort subroutine.</p>
 
-<p>If the subroutine&#39;s prototype is <code>($$)</code>, the elements to be compared are passed by reference in <a href="/cperl/perlvar.html#pod-_"><code>@_</code></a>, as for a normal subroutine. This is slower than unprototyped subroutines, where the elements to be compared are passed into the subroutine as the package global variables <code>$a</code> and <code>$b</code> (see example below). Note that in the latter case, it is usually highly counter-productive to declare <code>$a</code> and <code>$b</code> as lexicals.</p>
+<p>If the subroutine&#39;s prototype is <code>($$)</code>, the elements to be compared are passed by reference in <a href="/cperl/perlvar.html#pod-_"><code>@_</code></a>, as for a normal subroutine. This is slower than unprototyped subroutines, where the elements to be compared are passed into the subroutine as the package global variables <code>$a</code> and <code>$b</code> (see example below).</p>
 
 <p>If the subroutine is an XSUB, the elements to be compared are pushed on to the stack, the way arguments are usually passed to XSUBs. <code>$a</code> and <code>$b</code> are not set.</p>
 
@@ -4562,13 +4642,54 @@
     my @contact = sort(find_records @key);
     my @contact = sort(find_records (@key));</code></pre>
 
-<p>You <i>must not</i> declare <code>$a</code> and <code>$b</code> as lexicals. They are package globals. That means that if you&#39;re in the <code>main</code> package and type</p>
+<p><code>$a</code> and <code>$b</code> are set as package globals in the package the sort() is called from. That means <code>$main::a</code> and <code>$main::b</code> (or <code>$::a</code> and <code>$::b</code>) in the <code>main</code> package, <code>$FooPack::a</code> and <code>$FooPack::b</code> in the <code>FooPack</code> package, etc. If the sort block is in scope of a <code>my</code> or <code>state</code> declaration of <code>$a</code> and/or <code>$b</code>, you <i>must</i> spell out the full name of the variables in the sort block :</p>
 
-<pre><code>    my @articles = sort {$b &lt;=&gt; $a} @files;</code></pre>
+<pre><code>   package main;
+   my $a = &quot;C&quot;; # DANGER, Will Robinson, DANGER !!!
 
-<p>then <code>$a</code> and <code>$b</code> are <code>$main::a</code> and <code>$main::b</code> (or <code>$::a</code> and <code>$::b</code>), but if you&#39;re in the <code>FooPack</code> package, it&#39;s the same as typing</p>
+   print sort { $a cmp $b }               qw(A C E G B D F H);
+                                          # WRONG
+   sub badlexi { $a cmp $b }
+   print sort badlexi                     qw(A C E G B D F H);
+                                          # WRONG
+   # the above prints BACFEDGH or some other incorrect ordering
 
-<pre><code>    my @articles = sort {$FooPack::b &lt;=&gt; $FooPack::a} @files;</code></pre>
+   print sort { $::a cmp $::b }           qw(A C E G B D F H);
+                                          # OK
+   print sort { our $a cmp our $b }       qw(A C E G B D F H);
+                                          # also OK
+   print sort { our ($a, $b); $a cmp $b } qw(A C E G B D F H);
+                                          # also OK
+   sub lexi { our $a cmp our $b }
+   print sort lexi                        qw(A C E G B D F H);
+                                          # also OK
+   # the above print ABCDEFGH</code></pre>
+
+<p>With proper care you may mix package and my (or state) <code>$a</code> and/or <code>$b</code>:</p>
+
+<pre><code>   my $a = {
+      tiny   =&gt; -2,
+      small  =&gt; -1,
+      normal =&gt; 0,
+      big    =&gt; 1,
+      huge   =&gt; 2
+   };
+
+   say sort { $a-&gt;{our $a} &lt;=&gt; $a-&gt;{our $b} }
+       qw{ huge normal tiny small big};
+
+   # prints tinysmallnormalbighuge</code></pre>
+
+<p><code>$a</code> and <code>$b</code> are implicitely local to the sort() execution and regain their former values upon completing the sort.</p>
+
+<p>Sort subroutines written using <code>$a</code> and <code>$b</code> are bound to their calling package. It is possible, but of limited interest, to define them in a different package, since the subroutine must still refer to the calling package&#39;s <code>$a</code> and <code>$b</code> :</p>
+
+<pre><code>   package Foo;
+   sub lexi { $Bar::a cmp $Bar::b }
+   package Bar;
+   ... sort Foo::lexi ...</code></pre>
+
+<p>Use the prototyped versions (see above) for a more generic alternative.</p>
 
 <p>The comparison function is required to behave. If it returns inconsistent results (sometimes saying <code>$x[1]</code> is less than <code>$x[2]</code> and sometimes saying the opposite, for example) the results are not well-defined.</p>
 
@@ -4657,7 +4778,11 @@
 
 <p>If PATTERN is <code>/^/</code>, then it is treated as if it used the <a href="/cperl/perlreref.html#OPERATORS">multiline modifier</a> (<code>/^/m</code>), since it isn&#39;t much use otherwise.</p>
 
+<p><code>/m</code> and any of the other pattern modifiers valid for <code>qr</code> (summarized in <a href="/cperl/perlop.html#qr-STRING-msixpodualn">&quot;qr/STRING/msixpodualn&quot; in perlop</a>) may be specified explicitly.</p>
+
 <p>As another special case, <a href="#split-PATTERN-EXPR-LIMIT"><code>split</code></a> emulates the default behavior of the command line tool <b>awk</b> when the PATTERN is either omitted or a string composed of a single space character (such as <span style="white-space: nowrap;"><code>&#39; &#39;</code></span> or <span style="white-space: nowrap;"><code>&quot;\x20&quot;</code></span>, but not e.g. <span style="white-space: nowrap;"><code>/ /</code></span>). In this case, any leading whitespace in EXPR is removed before splitting occurs, and the PATTERN is instead treated as if it were <code>/\s+/</code>; in particular, this means that <i>any</i> contiguous whitespace (not just a single space character) is used as a separator. However, this special treatment can be avoided by specifying the pattern <span style="white-space: nowrap;"><code>/ /</code></span> instead of the string <span style="white-space: nowrap;"><code>&quot; &quot;</code></span>, thereby allowing only a single space character to be a separator. In earlier Perls this special case was restricted to the use of a plain <span style="white-space: nowrap;"><code>&quot; &quot;</code></span> as the pattern argument to split; in Perl 5.18.0 and later this special case is triggered by any expression which evaluates to the simple string <span style="white-space: nowrap;"><code>&quot; &quot;</code></span>.</p>
+
+<p>As of cperl v5.26 or Perl 5.28, this special-cased whitespace splitting works as expected in the scope of <a><span style="white-space: nowrap;"><code>&quot;use feature &#39;unicode_strings&quot;</code></span></a>. In previous versions, and outside the scope of that feature, it exhibits <a href="/cperl/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>: characters that are whitespace according to Unicode rules but not according to ASCII rules can be treated as part of fields rather than as field separators, depending on the string&#39;s internal encoding.</p>
 
 <p>If omitted, PATTERN defaults to a single space, <span style="white-space: nowrap;"><code>&quot; &quot;</code></span>, triggering the previously described <i>awk</i> emulation.</p>
 
@@ -5331,7 +5456,7 @@
 
 <pre><code>    require &#39;syscall.ph&#39;;        # may need to run h2ph
     my $s = &quot;hi there\n&quot;;
-    syscall(SYS_write(), fileno(STDOUT), $s, length $s);</code></pre>
+    syscall(SYS_write(), fileno(*STDOUT), $s, length $s);</code></pre>
 
 <p>Note that Perl supports passing of up to only 14 arguments to your syscall, which in practice should (usually) suffice.</p>
 
@@ -5395,7 +5520,7 @@
 
 <p>Sets FILEHANDLE&#39;s system position <i>in bytes</i> using <a href="http://man.he.net/man2/lseek">lseek(2)</a>. FILEHANDLE may be an expression whose value gives the name of the filehandle. The values for WHENCE are <code>0</code> to set the new position to POSITION; <code>1</code> to set the it to the current position plus POSITION; and <code>2</code> to set it to EOF plus POSITION, typically negative.</p>
 
-<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(utf8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
+<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(UTF-8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
 
 <p><a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> bypasses normal buffered IO, so mixing it with reads other than <a href="#sysread-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>sysread</code></a> (for example <a href="#readline-EXPR"><code>readline</code></a> or <a href="#read-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>read</code></a>), <a href="#print-FILEHANDLE-LIST"><code>print</code></a>, <a href="#write-FILEHANDLE"><code>write</code></a>, <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, or <a href="#eof-FILEHANDLE"><code>eof</code></a> may cause confusion.</p>
 
@@ -5479,7 +5604,7 @@
 
 <p>Returns the current position <i>in bytes</i> for FILEHANDLE, or -1 on error. FILEHANDLE may be an expression whose value gives the name of the actual filehandle. If FILEHANDLE is omitted, assumes the file last read.</p>
 
-<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(utf8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
+<p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(UTF-8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
 
 <p>The return value of <a href="#tell-FILEHANDLE"><code>tell</code></a> for the standard streams like the STDIN depends on the operating system: it may return -1 or something else. <a href="#tell-FILEHANDLE"><code>tell</code></a> on pipes, fifos, and sockets usually returns -1.</p>
 
@@ -5940,7 +6065,7 @@
 
 <p>If the selected element is outside the string, the value 0 is returned. If an element off the end of the string is written to, Perl will first extend the string with sufficiently many zero bytes. It is an error to try to write off the beginning of the string (i.e., negative OFFSET).</p>
 
-<p>If the string happens to be encoded as UTF-8 internally (and thus has the UTF8 flag set), this is ignored by <a href="#vec-EXPR-OFFSET-BITS"><code>vec</code></a>, and it operates on the internal byte string, not the conceptual character string, even if you only have characters with values less than 256.</p>
+<p>If the string happens to be encoded as UTF-8 internally (and thus has the UTF8 flag set), <a href="#vec-EXPR-OFFSET-BITS"><code>vec</code></a> tries to convert it to use a one-byte-per-character internal representation. However, if the string contains characters with values of 256 or higher, that conversion will fail. In that situation, <code>vec</code> will operate on the underlying buffer regardless, in its internal UTF-8 representation.</p>
 
 <p>Strings created with <a href="#vec-EXPR-OFFSET-BITS"><code>vec</code></a> can also be manipulated with the logical operators <code>|</code>, <code>&amp;</code>, <code>^</code>, and <code>~</code>. These operators will assume a bit vector operation is desired when both operands are strings. See <a href="/cperl/perlop.html#Bitwise-String-Operators">&quot;Bitwise String Operators&quot; in perlop</a>.</p>
 

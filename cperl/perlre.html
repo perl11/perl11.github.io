@@ -15,6 +15,11 @@
   <li><a href="#NAME">NAME   </a></li>
   <li><a href="#DESCRIPTION">DESCRIPTION</a>
     <ul>
+      <li><a href="#The-Basics">The Basics   </a>
+        <ul>
+          <li><a href="#Metacharacters">Metacharacters          </a></li>
+        </ul>
+      </li>
       <li><a href="#Modifiers">Modifiers</a>
         <ul>
           <li><a href="#Overview">Overview</a></li>
@@ -34,7 +39,6 @@
       </li>
       <li><a href="#Regular-Expressions">Regular Expressions</a>
         <ul>
-          <li><a href="#Metacharacters">Metacharacters</a></li>
           <li><a href="#Quantifiers">Quantifiers</a></li>
           <li><a href="#Escape-sequences">Escape sequences</a></li>
           <li><a href="#Character-Classes-and-other-Special-Escapes">Character Classes and other Special Escapes</a></li>
@@ -46,7 +50,6 @@
       <li><a href="#Extended-Patterns">Extended Patterns</a></li>
       <li><a href="#Backtracking">Backtracking  </a></li>
       <li><a href="#Special-Backtracking-Control-Verbs">Special Backtracking Control Verbs</a></li>
-      <li><a href="#Version-8-Regular-Expressions">Version 8 Regular Expressions   </a></li>
       <li><a href="#Warning-on-1-Instead-of-1">Warning on \1 Instead of $1</a></li>
       <li><a href="#Repeated-Patterns-Matching-a-Zero-length-Substring">Repeated Patterns Matching a Zero-length Substring</a></li>
       <li><a href="#Combining-RE-Pieces">Combining RE Pieces</a></li>
@@ -69,22 +72,151 @@
 
 <p>If you haven&#39;t used regular expressions before, a tutorial introduction is available in <a href="/cperl/perlretut.html">perlretut</a>. If you know just a little about them, a quick-start introduction is available in <a href="/pod/perlrequick.html">perlrequick</a>.</p>
 
-<p>This page assumes you are familiar with regular expression basics, like what is a &quot;pattern&quot;, what does it look like, and how is it basically used. For a reference on how they are used, plus various examples of the same, see discussions of <code>m//</code>, <code>s///</code>, <code>qr//</code> and <code>&quot;??&quot;</code> in <a href="/cperl/perlop.html#Regexp-Quote-Like-Operators">&quot;Regexp Quote-Like Operators&quot; in perlop</a>.</p>
+<p>Except for <a href="#The-Basics">&quot;The Basics&quot;</a> section, this page assumes you are familiar with regular expression basics, like what is a &quot;pattern&quot;, what does it look like, and how it is basically used. For a reference on how they are used, plus various examples of the same, see discussions of <code>m//</code>, <code>s///</code>, <code>qr//</code> and <code>&quot;??&quot;</code> in <a href="/cperl/perlop.html#Regexp-Quote-Like-Operators">&quot;Regexp Quote-Like Operators&quot; in perlop</a>.</p>
 
 <p>New in v5.22, <a><code>use re &#39;strict&#39;</code></a> applies stricter rules than otherwise when compiling regular expression patterns. It can find things that, while legal, may not be what you intended.</p>
+
+<h2 id="The-Basics">The Basics   </h2>
+
+<p>Regular expressions are strings with the very particular syntax and meaning described in this document and auxiliary documents referred to by this one. The strings are called &quot;patterns&quot;. Patterns are used to determine if some other string, called the &quot;target&quot;, has (or doesn&#39;t have) the characteristics specified by the pattern. We call this &quot;matching&quot; the target string against the pattern. Usually the match is done by having the target be the first operand, and the pattern be the second operand, of one of the two binary operators <code>=~</code> and <code>!~</code>, listed in <a href="/cperl/perlop.html#Binding-Operators">&quot;Binding Operators&quot; in perlop</a>; and the pattern will have been converted from an ordinary string by one of the operators in <a href="/pod/perlop.html#Regexp-Quote-Like-Operators">&quot;Regexp Quote-Like Operators&quot; in perlop</a>, like so:</p>
+
+<pre><code> $foo =~ m/abc/</code></pre>
+
+<p>This evaluates to true if and only if the string in the variable <code>$foo</code> contains somewhere in it, the sequence of characters &quot;a&quot;, &quot;b&quot;, then &quot;c&quot;. (The <code>=~ m</code>, or match operator, is described in <a href="/cperl/perlop.html#m-PATTERN-msixpodualngc">&quot;m/PATTERN/msixpodualngc&quot; in perlop</a>.)</p>
+
+<p>Patterns that aren&#39;t already stored in some variable must be delimitted, at both ends, by delimitter characters. These are often, as in the example above, forward slashes, and the typical way a pattern is written in documentation is with those slashes. In most cases, the delimitter is the same character, fore and aft, but there are a few cases where a character looks like it has a mirror-image mate, where the opening version is the beginning delimiter, and the closing one is the ending delimiter, like</p>
+
+<pre><code> $foo =~ m&lt;abc&gt;</code></pre>
+
+<p>Most times, the pattern is evaluated in double-quotish context, but it is possible to choose delimiters to force single-quotish, like</p>
+
+<pre><code> $foo =~ m&#39;abc&#39;</code></pre>
+
+<p>If the pattern contains its delimiter within it, that delimiter must be escaped. Prefixing it with a backslash (<i>e.g.</i>, <code>&quot;/foo\/bar/&quot;</code>) serves this purpose.</p>
+
+<p>Any single character in a pattern matches that same character in the target string, unless the character is a <i>metacharacter</i> with a special meaning described in this document. A sequence of non-metacharacters matches the same sequence in the target string, as we saw above with <code>m/abc/</code>.</p>
+
+<p>Only a few characters (all of them being ASCII punctuation characters) are metacharacters. The most commonly used one is a dot <code>&quot;.&quot;</code>, which normally matches almost any character (including a dot itself).</p>
+
+<p>You can cause characters that normally function as metacharacters to be interpreted literally by prefixing them with a <code>&quot;\&quot;</code>, just like the pattern&#39;s delimiter must be escaped if it also occurs within the pattern. Thus, <code>&quot;\.&quot;</code> matches just a literal dot, <code>&quot;.&quot;</code> instead of its normal meaning. This means that the backslash is also a metacharacter, so <code>&quot;\\&quot;</code> matches a single <code>&quot;\&quot;</code>. And a sequence that contains an escaped metacharacter matches the same sequence (but without the escape) in the target string. So, the pattern <code>/blur\\fl/</code> would match any target string that contains the sequence <code>&quot;blur\fl&quot;</code>.</p>
+
+<p>The metacharacter <code>&quot;|&quot;</code> is used to match one thing or another. Thus</p>
+
+<pre><code> $foo =~ m/this|that/</code></pre>
+
+<p>is TRUE if and only if <code>$foo</code> contains either the sequence <code>&quot;this&quot;</code> or the sequence <code>&quot;that&quot;</code>. Like all metacharacters, prefixing the <code>&quot;|&quot;</code> with a backslash makes it match the plain punctuation character; in its case, the VERTICAL LINE.</p>
+
+<pre><code> $foo =~ m/this\|that/</code></pre>
+
+<p>is TRUE if and only if <code>$foo</code> contains the sequence <code>&quot;this|that&quot;</code>.</p>
+
+<p>You aren&#39;t limited to just a single <code>&quot;|&quot;</code>.</p>
+
+<pre><code> $foo =~ m/fee|fie|foe|fum/</code></pre>
+
+<p>is TRUE if and only if <code>$foo</code> contains any of those 4 sequences from the children&#39;s story &quot;Jack and the Beanstalk&quot;.</p>
+
+<p>As you can see, the <code>&quot;|&quot;</code> binds less tightly than a sequence of ordinary characters. We can override this by using the grouping metacharacters, the parentheses <code>&quot;(&quot;</code> and <code>&quot;)&quot;</code>.</p>
+
+<pre><code> $foo =~ m/th(is|at) thing/</code></pre>
+
+<p>is TRUE if and only if <code>$foo</code> contains either the sequence <span style="white-space: nowrap;"><code>&quot;this thing&quot;</code></span> or the sequence <span style="white-space: nowrap;"><code>&quot;that thing&quot;</code></span>. The portions of the string that match the portions of the pattern enclosed in parentheses are normally made available separately for use later in the pattern, substitution, or program. This is called &quot;capturing&quot;, and it can get complicated. See <a href="#Capture-groups">&quot;Capture groups&quot;</a>.</p>
+
+<p>The first alternative includes everything from the last pattern delimiter (<code>&quot;(&quot;</code>, <code>&quot;(?:&quot;</code> (described later), <i>etc</i>. or the beginning of the pattern) up to the first <code>&quot;|&quot;</code>, and the last alternative contains everything from the last <code>&quot;|&quot;</code> to the next closing pattern delimiter. That&#39;s why it&#39;s common practice to include alternatives in parentheses: to minimize confusion about where they start and end.</p>
+
+<p>Alternatives are tried from left to right, so the first alternative found for which the entire expression matches, is the one that is chosen. This means that alternatives are not necessarily greedy. For example: when matching <code>foo|foot</code> against <code>&quot;barefoot&quot;</code>, only the <code>&quot;foo&quot;</code> part will match, as that is the first alternative tried, and it successfully matches the target string. (This might not seem important, but it is important when you are capturing matched text using parentheses.)</p>
+
+<p>Besides taking away the special meaning of a metacharacter, a prefixed backslash changes some letter and digit characters away from matching just themselves to instead have special meaning. These are called &quot;escape sequences&quot;, and all such are described in <a href="/cperl/perlrebackslash.html">perlrebackslash</a>. A backslash sequence (of a letter or digit) that doesn&#39;t currently have special meaning to Perl will raise a warning if warnings are enabled, as those are reserved for potential future use.</p>
+
+<p>One such sequence is <code>\b</code>, which matches a boundary of some sort. <code>\b{wb}</code> and a few others give specialized types of boundaries. (They are all described in detail starting at <a href="/cperl/perlrebackslash.html#b-b-B-B">&quot;\b{}, \b, \B{}, \B&quot; in perlrebackslash</a>.) Note that these don&#39;t match characters, but the zero-width spaces between characters. They are an example of a <a href="#Assertions">zero-width assertion</a>. Consider again,</p>
+
+<pre><code> $foo =~ m/fee|fie|foe|fum/</code></pre>
+
+<p>It evaluates to TRUE if, besides those 4 words, any of the sequences &quot;feed&quot;, &quot;field&quot;, &quot;Defoe&quot;, &quot;fume&quot;, and many others are in <code>$foo</code>. By judicious use of <code>\b</code> (or better (because it is designed to handle natural language) <code>\b{wb}</code>), we can make sure that only the Giant&#39;s words are matched:</p>
+
+<pre><code> $foo =~ m/\b(fee|fie|foe|fum)\b/
+ $foo =~ m/\b{wb}(fee|fie|foe|fum)\b{wb}/</code></pre>
+
+<p>The final example shows that the characters <code>&quot;{&quot;</code> and <code>&quot;}&quot;</code> are metacharacters.</p>
+
+<p>Another use for escape sequences is to specify characters that cannot (or which you prefer not to) be written literally. These are described in detail in <a href="/cperl/perlrebackslash.html#Character-Escapes">&quot;Character Escapes&quot; in perlrebackslash</a>, but the next three paragraphs briefly describe some of them.</p>
+
+<p>Various control characters can be written in C language style: <code>&quot;\n&quot;</code> matches a newline, <code>&quot;\t&quot;</code> a tab, <code>&quot;\r&quot;</code> a carriage return, <code>&quot;\f&quot;</code> a form feed, <i>etc</i>.</p>
+
+<p>More generally, <code>\<i>nnn</i></code>, where <i>nnn</i> is a string of three octal digits, matches the character whose native code point is <i>nnn</i>. You can easily run into trouble if you don&#39;t have exactly three digits. So always use three, or since Perl 5.14, you can use <code>\o{...}</code> to specify any number of octal digits.</p>
+
+<p>Similarly, <code>\x<i>nn</i></code>, where <i>nn</i> are hexadecimal digits, matches the character whose native ordinal is <i>nn</i>. Again, not using exactly two digits is a recipe for disaster, but you can use <code>\x{...}</code> to specify any number of hex digits.</p>
+
+<p>Besides being a metacharacter, the <code>&quot;.&quot;</code> is an example of a &quot;character class&quot;, something that can match any single character of a given set of them. In its case, the set is just about all possible characters. Perl predefines several character classes besides the <code>&quot;.&quot;</code>; there is a separate reference page about just these, <a href="/cperl/perlrecharclass.html">perlrecharclass</a>.</p>
+
+<p>You can define your own custom character classes, by putting into your pattern in the appropriate place(s), a list of all the characters you want in the set. You do this by enclosing the list within <code>[]</code> bracket characters. These are called &quot;bracketed character classes&quot; when we are being precise, but often the word &quot;bracketed&quot; is dropped. (Dropping it usually doesn&#39;t cause confusion.) This means that the <code>&quot;[&quot;</code> character is another metacharacter. It doesn&#39;t match anything just by itelf; it is used only to tell Perl that what follows it is a bracketed character class. If you want to match a literal left square bracket, you must escape it, like <code>&quot;\[&quot;</code>. The matching <code>&quot;]&quot;</code> is also a metacharacter; again it doesn&#39;t match anything by itself, but just marks the end of your custom class to Perl. It is an example of a &quot;sometimes metacharacter&quot;. It isn&#39;t a metacharacter if there is no corresponding <code>&quot;[&quot;</code>, and matches its literal self:</p>
+
+<pre><code> print &quot;]&quot; =~ /]/;  # prints 1</code></pre>
+
+<p>The list of characters within the character class gives the set of characters matched by the class. <code>&quot;[abc]&quot;</code> matches a single &quot;a&quot; or &quot;b&quot; or &quot;c&quot;. But if the first character after the <code>&quot;[&quot;</code> is <code>&quot;^&quot;</code>, the class matches any character not in the list. Within a list, the <code>&quot;-&quot;</code> character specifies a range of characters, so that <code>a-z</code> represents all characters between &quot;a&quot; and &quot;z&quot;, inclusive. If you want either <code>&quot;-&quot;</code> or <code>&quot;]&quot;</code> itself to be a member of a class, put it at the start of the list (possibly after a <code>&quot;^&quot;</code>), or escape it with a backslash. <code>&quot;-&quot;</code> is also taken literally when it is at the end of the list, just before the closing <code>&quot;]&quot;</code>. (The following all specify the same class of three characters: <code>[-az]</code>, <code>[az-]</code>, and <code>[a\-z]</code>. All are different from <code>[a-z]</code>, which specifies a class containing twenty-six characters, even on EBCDIC-based character sets.)</p>
+
+<p>There is lots more to bracketed character classes; full details are in <a href="/cperl/perlrecharclass.html#Bracketed-Character-Classes">&quot;Bracketed Character Classes&quot; in perlrecharclass</a>.</p>
+
+<h3 id="Metacharacters">Metacharacters          </h3>
+
+<p><a href="#The-Basics">&quot;The Basics&quot;</a> introduced some of the metacharacters. This section gives them all. Most of them have the same meaning as in the <i>egrep</i> command.</p>
+
+<p>Only the <code>&quot;\&quot;</code> is always a metacharacter. The others are metacharacters just sometimes. The following tables lists all of them, summarizes their use, and gives the contexts where they are metacharacters. Outside those contexts or if prefixed by a <code>&quot;\&quot;</code>, they match their corresponding punctuation character. In some cases, their meaning varies depending on various pattern modifiers that alter the default behaviors. See <a href="#Modifiers">&quot;Modifiers&quot;</a>.</p>
+
+<pre><code>            PURPOSE                                  WHERE
+ \   Escape the next character                    Always, except when
+                                                  escaped by another \
+ ^   Match the beginning of the string            Not in []
+       (or line, if /m is used)
+ ^   Complement the [] class                      At the beginning of []
+ .   Match any single character except newline    Not in []
+       (under /s, includes newline)
+ $   Match the end of the string                  Not in [], but can
+       (or before newline at the end of the       mean interpolate a
+       string; or before any newline if /m is     scalar
+       used)
+ |   Alternation                                  Not in []
+ ()  Grouping                                     Not in []
+ [   Start Bracketed Character class              Not in []
+ ]   End Bracketed Character class                Only in [], and
+                                                    not first
+ *   Matches the preceding element 0 or more      Not in []
+       times
+ +   Matches the preceding element 1 or more      Not in []
+       times
+ ?   Matches the preceding element 0 or 1         Not in []
+       times
+ {   Starts a sequence that gives number(s)       Not in []
+       of times the preceding element can be
+       matched
+ {   when following certain escape sequences
+       starts a modifier to the meaning of the
+       sequence
+ }   End sequence started by {
+ -   Indicates a range                            Only in [] interior</code></pre>
+
+<p>Notice that most of the metacharacters lose their special meaning when they occur in a bracketed character class, except <code>&quot;^&quot;</code> has a different meaning when it is at the beginning of such a class. And <code>&quot;-&quot;</code> and <code>&quot;]&quot;</code> are metacharacters only at restricted positions within bracketed character classes; while <code>&quot;}&quot;</code> is a metacharacter only when closing a special construct started by <code>&quot;{&quot;</code>.</p>
+
+<p>In double-quotish context, as is usually the case, you need to be careful about <code>&quot;$&quot;</code> and the non-metacharacter <code>&quot;@&quot;</code>. Those could interpolate variables, which may or may not be what you intended.</p>
+
+<p>These rules were designed for compactness of expression, rather than legibility and maintainability. The <a href="#x-and-xx">&quot;/x and /xx&quot;</a> pattern modifiers allow you to insert white space to improve readability. And use of <span style="white-space: nowrap;"><code><a>re &#39;strict&#39;</a></code></span> adds extra checking to catch some typos that might silently compile into something unintended.</p>
+
+<p>By default, the <code>&quot;^&quot;</code> character is guaranteed to match only the beginning of the string, the <code>&quot;$&quot;</code> character only the end (or before the newline at the end), and Perl does certain optimizations with the assumption that the string contains only one line. Embedded newlines will not be matched by <code>&quot;^&quot;</code> or <code>&quot;$&quot;</code>. You may, however, wish to treat a string as a multi-line buffer, such that the <code>&quot;^&quot;</code> will match after any newline within the string (except if the newline is the last character in the string), and <code>&quot;$&quot;</code> will match before any newline. At the cost of a little more overhead, you can do this by using the <a href="#m">&quot;<code>/m</code>&quot;</a> modifier on the pattern match operator. (Older programs did this by setting <code>$*</code>, but this option was removed in perl 5.10.)   </p>
+
+<p>To simplify multi-line substitutions, the <code>&quot;.&quot;</code> character never matches a newline unless you use the <a href="#s"><code>/s</code></a> modifier, which in effect tells Perl to pretend the string is a single line--even if it isn&#39;t.  </p>
 
 <h2 id="Modifiers">Modifiers</h2>
 
 <h3 id="Overview">Overview</h3>
 
-<p>Matching operations can have various modifiers. Modifiers that relate to the interpretation of the regular expression inside are listed below. Modifiers that alter the way a regular expression is used by Perl are detailed in <a href="/cperl/perlop.html#Regexp-Quote-Like-Operators">&quot;Regexp Quote-Like Operators&quot; in perlop</a> and <a href="/pod/perlop.html#Gory-details-of-parsing-quoted-constructs">&quot;Gory details of parsing quoted constructs&quot; in perlop</a>.</p>
+<p>The default behavior for matching can be changed, using various modifiers. Modifiers that relate to the interpretation of the pattern are listed just below. Modifiers that alter the way a pattern is used by Perl are detailed in <a href="/cperl/perlop.html#Regexp-Quote-Like-Operators">&quot;Regexp Quote-Like Operators&quot; in perlop</a> and <a href="/pod/perlop.html#Gory-details-of-parsing-quoted-constructs">&quot;Gory details of parsing quoted constructs&quot; in perlop</a>.</p>
 
 <dl>
 
 <dt id="m"><b><code>m</code></b>    </dt>
 <dd>
 
-<p>Treat the string as multiple lines. That is, change <code>&quot;^&quot;</code> and <code>&quot;$&quot;</code> from matching the start of the string&#39;s first line and the end of its last line to matching the start and end of each line within the string.</p>
+<p>Treat the string being matched against as multiple lines. That is, change <code>&quot;^&quot;</code> and <code>&quot;$&quot;</code> from matching the start of the string&#39;s first line and the end of its last line to matching the start and end of each line within the string.</p>
 
 </dd>
 <dt id="s"><b><code>s</code></b>    </dt>
@@ -132,13 +264,13 @@
 <dt id="a-d-l-and-u"><b><code>a</code></b>, <b><code>d</code></b>, <b><code>l</code></b>, and <b><code>u</code></b>    </dt>
 <dd>
 
-<p>These modifiers, all new in 5.14, affect which character-set rules (Unicode, etc.) are used, as described below in <a href="#Character-set-modifiers">&quot;Character set modifiers&quot;</a>.</p>
+<p>These modifiers, all new in 5.14, affect which character-set rules (Unicode, <i>etc</i>.) are used, as described below in <a href="#Character-set-modifiers">&quot;Character set modifiers&quot;</a>.</p>
 
 </dd>
 <dt id="n"><b><code>n</code></b>    </dt>
 <dd>
 
-<p>Prevent the grouping metacharacters <code>()</code> from capturing. This modifier, new in 5.22, will stop <code>$1</code>, <code>$2</code>, etc... from being filled in.</p>
+<p>Prevent the grouping metacharacters <code>()</code> from capturing. This modifier, new in 5.22, will stop <code>$1</code>, <code>$2</code>, <i>etc</i>... from being filled in.</p>
 
 <pre><code>  &quot;hello&quot; =~ /(hi|hello)/;   # $1 is &quot;hello&quot;
   &quot;hello&quot; =~ /(hi|hello)/n;  # $1 is undef</code></pre>
@@ -174,7 +306,7 @@
 </dd>
 </dl>
 
-<p>Regular expression modifiers are usually written in documentation as e.g., &quot;the <code>/x</code> modifier&quot;, even though the delimiter in question might not really be a slash. The modifiers <code>/imnsxadlup</code> may also be embedded within the regular expression itself using the <code>(?...)</code> construct, see <a href="#Extended-Patterns">&quot;Extended Patterns&quot;</a> below.</p>
+<p>Regular expression modifiers are usually written in documentation as <i>e.g.</i>, &quot;the <code>/x</code> modifier&quot;, even though the delimiter in question might not really be a slash. The modifiers <code>/imnsxadlup</code> may also be embedded within the regular expression itself using the <code>(?...)</code> construct, see <a href="#Extended-Patterns">&quot;Extended Patterns&quot;</a> below.</p>
 
 <h3 id="Details-on-some-modifiers">Details on some modifiers</h3>
 
@@ -188,9 +320,9 @@
 
 <p>You can use <a href="#text">&quot;(?#text)&quot;</a> to create a comment that ends earlier than the end of the current line, but <code>text</code> also can&#39;t contain the closing delimiter unless escaped with a backslash.</p>
 
-<p>A common pitfall is to forget that <code>#</code> characters begin a comment under <code>/x</code> and are not matched literally. Just keep that in mind when trying to puzzle out why a particular <code>/x</code> pattern isn&#39;t working as expected.</p>
+<p>A common pitfall is to forget that <code>&quot;#&quot;</code> characters begin a comment under <code>/x</code> and are not matched literally. Just keep that in mind when trying to puzzle out why a particular <code>/x</code> pattern isn&#39;t working as expected.</p>
 
-<p>Starting in Perl v5.26, if the modifier has a second <code>x</code> within it, it does everything that a single <code>/x</code> does, but additionally non-backslashed SPACE and TAB characters within bracketed character classes are also generally ignored, and hence can be added to make the classes more readable.</p>
+<p>Starting in Perl v5.26, if the modifier has a second <code>&quot;x&quot;</code> within it, it does everything that a single <code>/x</code> does, but additionally non-backslashed SPACE and TAB characters within bracketed character classes are also generally ignored, and hence can be added to make the classes more readable.</p>
 
 <pre><code>    / [d-e g-i 3-7]/xx
     /[ ! @ &quot; # $ % ^ &amp; * () = ? &lt;&gt; &#39; ]/xx</code></pre>
@@ -327,7 +459,7 @@
 
 <h4 id="a-and-aa">/a (and /aa)</h4>
 
-<p>This modifier stands for ASCII-restrict (or ASCII-safe). This modifier, unlike the others, may be doubled-up to increase its effect.</p>
+<p>This modifier stands for ASCII-restrict (or ASCII-safe). This modifier may be doubled-up to increase its effect.</p>
 
 <p>When it appears singly, it causes the sequences <code>\d</code>, <code>\s</code>, <code>\w</code>, and the Posix character classes to match only in the ASCII range. They thus revert to their pre-5.6, pre-Unicode meanings. Under <code>/a</code>, <code>\d</code> always means precisely the digits <code>&quot;0&quot;</code> to <code>&quot;9&quot;</code>; <code>\s</code> means the five characters <code>[ \f\n\r\t]</code>, and starting in Perl v5.18, the vertical tab; <code>\w</code> means the 63 characters <code>[A-Za-z0-9_]</code>; and likewise, all the Posix classes such as <code>[[:print:]]</code> match only the appropriate ASCII-range characters.</p>
 
@@ -339,7 +471,7 @@
 
 <p>Otherwise, <code>/a</code> behaves like the <code>/u</code> modifier, in that case-insensitive matching uses Unicode rules; for example, &quot;k&quot; will match the Unicode <code>\N{KELVIN SIGN}</code> under <code>/i</code> matching, and code points in the Latin1 range, above ASCII will have Unicode rules when it comes to case-insensitive matching.</p>
 
-<p>To forbid ASCII/non-ASCII matches (like &quot;k&quot; with <code>\N{KELVIN SIGN}</code>), specify the <code>&quot;a&quot;</code> twice, for example <code>/aai</code> or <code>/aia</code>. (The first occurrence of <code>&quot;a&quot;</code> restricts the <code>\d</code>, etc., and the second occurrence adds the <code>/i</code> restrictions.) But, note that code points outside the ASCII range will use Unicode rules for <code>/i</code> matching, so the modifier doesn&#39;t really restrict things to just ASCII; it just forbids the intermixing of ASCII and non-ASCII.</p>
+<p>To forbid ASCII/non-ASCII matches (like &quot;k&quot; with <code>\N{KELVIN SIGN}</code>), specify the <code>&quot;a&quot;</code> twice, for example <code>/aai</code> or <code>/aia</code>. (The first occurrence of <code>&quot;a&quot;</code> restricts the <code>\d</code>, <i>etc</i>., and the second occurrence adds the <code>/i</code> restrictions.) But, note that code points outside the ASCII range will use Unicode rules for <code>/i</code> matching, so the modifier doesn&#39;t really restrict things to just ASCII; it just forbids the intermixing of ASCII and non-ASCII.</p>
 
 <p>To summarize, this modifier provides protection for applications that don&#39;t wish to be exposed to all of Unicode. Specifying it twice gives added protection.</p>
 
@@ -351,7 +483,7 @@
 
 <p>The <code><a>use re &#39;/foo&#39;</a></code> pragma can be used to set default modifiers (including these) for regular expressions compiled within its scope. This pragma has precedence over the other pragmas listed below that also change the defaults.</p>
 
-<p>Otherwise, <code><a href="/cperl/perllocale.html">use locale</a></code> sets the default modifier to <code>/l</code>; and <code><a>use feature &#39;unicode_strings</a></code>, or <code><a href="/pod/perlfunc.html#use-VERSION">use 5.012</a></code> (or higher) set the default to <code>/u</code> when not in the same scope as either <code><a href="/pod/perllocale.html">use locale</a></code> or <code><a>use bytes</a></code>. (<code><a href="/pod/perllocale.html#Unicode-and-UTF-8">use locale &#39;:not_characters&#39;</a></code> also sets the default to <code>/u</code>, overriding any plain <code>use locale</code>.) Unlike the mechanisms mentioned above, these affect operations besides regular expressions pattern matching, and so give more consistent results with other operators, including using <code>\U</code>, <code>\l</code>, etc. in substitution replacements.</p>
+<p>Otherwise, <code><a href="/cperl/perllocale.html">use locale</a></code> sets the default modifier to <code>/l</code>; and <code><a>use feature &#39;unicode_strings</a></code>, or <code><a href="/pod/perlfunc.html#use-VERSION">use 5.012</a></code> (or higher) set the default to <code>/u</code> when not in the same scope as either <code><a href="/pod/perllocale.html">use locale</a></code> or <code><a>use bytes</a></code>. (<code><a href="/pod/perllocale.html#Unicode-and-UTF-8">use locale &#39;:not_characters&#39;</a></code> also sets the default to <code>/u</code>, overriding any plain <code>use locale</code>.) Unlike the mechanisms mentioned above, these affect operations besides regular expressions pattern matching, and so give more consistent results with other operators, including using <code>\U</code>, <code>\l</code>, <i>etc</i>. in substitution replacements.</p>
 
 <p>If none of the above apply, for backwards compatibility reasons, the <code>/d</code> modifier is the one in effect by default. As this can lead to unexpected results, it is best to specify which other rule set should be used.</p>
 
@@ -361,28 +493,9 @@
 
 <h2 id="Regular-Expressions">Regular Expressions</h2>
 
-<h3 id="Metacharacters">Metacharacters</h3>
-
-<p>The patterns used in Perl pattern matching evolved from those supplied in the Version 8 regex routines. (The routines are derived (distantly) from Henry Spencer&#39;s freely redistributable reimplementation of the V8 routines.) See <a href="#Version-8-Regular-Expressions">&quot;Version 8 Regular Expressions&quot;</a> for details.</p>
-
-<p>In particular the following metacharacters have their standard <i>egrep</i>-ish meanings:          </p>
-
-<pre><code>    \        Quote the next metacharacter
-    ^        Match the beginning of the line
-    .        Match any character (except newline)
-    $        Match the end of the string (or before newline at the end
-             of the string)
-    |        Alternation
-    ()       Grouping
-    []       Bracketed Character class</code></pre>
-
-<p>By default, the <code>&quot;^&quot;</code> character is guaranteed to match only the beginning of the string, the <code>&quot;$&quot;</code> character only the end (or before the newline at the end), and Perl does certain optimizations with the assumption that the string contains only one line. Embedded newlines will not be matched by <code>&quot;^&quot;</code> or <code>&quot;$&quot;</code>. You may, however, wish to treat a string as a multi-line buffer, such that the <code>&quot;^&quot;</code> will match after any newline within the string (except if the newline is the last character in the string), and <code>&quot;$&quot;</code> will match before any newline. At the cost of a little more overhead, you can do this by using the /m modifier on the pattern match operator. (Older programs did this by setting <code>$*</code>, but this option was removed in perl 5.10.)   </p>
-
-<p>To simplify multi-line substitutions, the <code>&quot;.&quot;</code> character never matches a newline unless you use the <code>/s</code> modifier, which in effect tells Perl to pretend the string is a single line--even if it isn&#39;t.  </p>
-
 <h3 id="Quantifiers">Quantifiers</h3>
 
-<p>The following standard quantifiers are recognized:        </p>
+<p>Quantifiers are used when a particular portion of a pattern needs to match a certain number (or numbers) of times. If there isn&#39;t a quantifier the number of times to match is exactly one. The following standard quantifiers are recognized:        </p>
 
 <pre><code>    *           Match 0 or more times
     +           Match 1 or more times
@@ -391,7 +504,7 @@
     {n,}        Match at least n times
     {n,m}       Match at least n but not more than m times</code></pre>
 
-<p>(If a curly bracket occurs in a context other than one of the quantifiers listed above, where it does not form part of a backslashed sequence like <code>\x{...}</code>, it is treated as a regular character. However, a deprecation warning is raised for these occurrences, and in Perl v5.26, literal uses of a curly bracket will be required to be escaped, say by preceding them with a backslash (<code>&quot;\{&quot;</code>) or enclosing them within square brackets (<code>&quot;[{]&quot;</code>). This change will allow for future syntax extensions (like making the lower bound of a quantifier optional), and better error checking of quantifiers.)</p>
+<p>(If a non-escaped curly bracket occurs in a context other than one of the quantifiers listed above, where it does not form part of a backslashed sequence like <code>\x{...}</code>, it is either a fatal syntax error, or treated as a regular character, generally with a deprecation warning raised. To escape it, you can precede it with a backslash (<code>&quot;\{&quot;</code>) or enclose it within square brackets (<code>&quot;[{]&quot;</code>). This change will allow for future syntax extensions (like making the lower bound of a quantifier optional), and better error checking of quantifiers).</p>
 
 <p>The <code>&quot;*&quot;</code> quantifier is equivalent to <code>{0,}</code>, the <code>&quot;+&quot;</code> quantifier to <code>{1,}</code>, and the <code>&quot;?&quot;</code> quantifier to <code>{0,1}</code>. <i>n</i> and <i>m</i> are limited to non-negative integral values less than a preset limit defined when perl is built. This is usually 32766 on the most common platforms. The actual limit can be seen in the error message generated by code such as this:</p>
 
@@ -419,7 +532,7 @@
 
 <pre><code>   &#39;aaaa&#39; =~ /a++a/</code></pre>
 
-<p>will never match, as the <code>a++</code> will gobble up all the <code>a</code>&#39;s in the string and won&#39;t leave any for the remaining part of the pattern. This feature can be extremely useful to give perl hints about where it shouldn&#39;t backtrack. For instance, the typical &quot;match a double-quoted string&quot; problem can be most efficiently performed when written as:</p>
+<p>will never match, as the <code>a++</code> will gobble up all the <code>&quot;a&quot;</code>&#39;s in the string and won&#39;t leave any for the remaining part of the pattern. This feature can be extremely useful to give perl hints about where it shouldn&#39;t backtrack. For instance, the typical &quot;match a double-quoted string&quot; problem can be most efficiently performed when written as:</p>
 
 <pre><code>   /&quot;(?:[^&quot;\\]++|\\.)*+&quot;/</code></pre>
 
@@ -553,16 +666,16 @@
 
 <h3 id="Assertions">Assertions</h3>
 
-<p>Perl defines the following zero-width assertions:           </p>
+<p>Besides <a href="#Metacharacters"><code>&quot;^&quot;</code> and <code>&quot;$&quot;</code></a>, Perl defines the following zero-width assertions:           </p>
 
-<pre><code>    \b{} Match at Unicode boundary of specified type
-    \B{} Match where corresponding \b{} doesn&#39;t match
-    \b  Match a word boundary
-    \B  Match except at a word boundary
-    \A  Match only at beginning of string
-    \Z  Match only at end of string, or before newline at the end
-    \z  Match only at end of string
-    \G  Match only at pos() (e.g. at the end-of-match position
+<pre><code> \b{}   Match at Unicode boundary of specified type
+ \B{}   Match where corresponding \b{} doesn&#39;t match
+ \b     Match a \w\W or \W\w boundary
+ \B     Match except at a \w\W or \W\w boundary
+ \A     Match only at beginning of string
+ \Z     Match only at end of string, or before newline at the end
+ \z     Match only at end of string
+ \G     Match only at pos() (e.g. at the end-of-match position
         of prior m//g)</code></pre>
 
 <p>A Unicode boundary (<code>\b{}</code>), available starting in v5.22, is a spot between two characters, or before the first character in the string, or after the final character in the string where certain criteria defined by Unicode are met. See <a href="/cperl/perlrebackslash.html#b-b-B-B">&quot;\b{}, \b, \B{}, \B&quot; in perlrebackslash</a> for details.</p>
@@ -590,7 +703,7 @@
 
 <h3 id="Capture-groups">Capture groups</h3>
 
-<p>The bracketing construct <code>( ... )</code> creates capture groups (also referred to as capture buffers). To refer to the current contents of a group later on, within the same pattern, use <code>\g1</code> (or <code>\g{1}</code>) for the first, <code>\g2</code> (or <code>\g{2}</code>) for the second, and so on. This is called a <i>backreference</i>.                     There is no limit to the number of captured substrings that you may use. Groups are numbered with the leftmost open parenthesis being number 1, etc. If a group did not match, the associated backreference won&#39;t match either. (This can happen if the group is optional, or in a different branch of an alternation.) You can omit the <code>&quot;g&quot;</code>, and write <code>&quot;\1&quot;</code>, etc, but there are some issues with this form, described below.</p>
+<p>The grouping construct <code>( ... )</code> creates capture groups (also referred to as capture buffers). To refer to the current contents of a group later on, within the same pattern, use <code>\g1</code> (or <code>\g{1}</code>) for the first, <code>\g2</code> (or <code>\g{2}</code>) for the second, and so on. This is called a <i>backreference</i>.                     There is no limit to the number of captured substrings that you may use. Groups are numbered with the leftmost open parenthesis being number 1, <i>etc</i>. If a group did not match, the associated backreference won&#39;t match either. (This can happen if the group is optional, or in a different branch of an alternation.) You can omit the <code>&quot;g&quot;</code>, and write <code>&quot;\1&quot;</code>, <i>etc</i>, but there are some issues with this form, described below.</p>
 
 <p>You can also refer to capture groups relatively, by using a negative number, so that <code>\g-1</code> and <code>\g{-1}</code> both refer to the immediately preceding capture group, and <code>\g-2</code> and <code>\g{-2}</code> both refer to the group before it. For example:</p>
 
@@ -607,11 +720,11 @@
 
 <p>You can dispense with numbers altogether and create named capture groups. The notation is <code>(?&lt;<i>name</i>&gt;...)</code> to declare and <code>\g{<i>name</i>}</code> to reference. (To be compatible with .Net regular expressions, <code>\g{<i>name</i>}</code> may also be written as <code>\k{<i>name</i>}</code>, <code>\k&lt;<i>name</i>&gt;</code> or <code>\k&#39;<i>name</i>&#39;</code>.) <i>name</i> must not begin with a number, nor contain hyphens. When different groups within the same pattern have the same name, any reference to that name assumes the leftmost defined group. Named groups count in absolute and relative numbering, and so can also be referred to by those numbers. (It&#39;s possible to do things with named capture groups that would otherwise require <code>(??{})</code>.)</p>
 
-<p>Capture group contents are dynamically scoped and available to you outside the pattern until the end of the enclosing block or until the next successful match, whichever comes first. (See <a href="/cperl/perlsyn.html#Compound-Statements">&quot;Compound Statements&quot; in perlsyn</a>.) You can refer to them by absolute number (using <code>&quot;$1&quot;</code> instead of <code>&quot;\g1&quot;</code>, etc); or by name via the <code>%+</code> hash, using <code>&quot;$+{<i>name</i>}&quot;</code>.</p>
+<p>Capture group contents are dynamically scoped and available to you outside the pattern until the end of the enclosing block or until the next successful match, whichever comes first. (See <a href="/cperl/perlsyn.html#Compound-Statements">&quot;Compound Statements&quot; in perlsyn</a>.) You can refer to them by absolute number (using <code>&quot;$1&quot;</code> instead of <code>&quot;\g1&quot;</code>, <i>etc</i>); or by name via the <code>%+</code> hash, using <code>&quot;$+{<i>name</i>}&quot;</code>.</p>
 
 <p>Braces are required in referring to named capture groups, but are optional for absolute or relative numbered ones. Braces are safer when creating a regex by concatenating smaller strings. For example if you have <code>qr/$a$b/</code>, and <code>$a</code> contained <code>&quot;\g1&quot;</code>, and <code>$b</code> contained <code>&quot;37&quot;</code>, you would get <code>/\g137/</code> which is probably not what you intended.</p>
 
-<p>The <code>\g</code> and <code>\k</code> notations were introduced in Perl 5.10.0. Prior to that there were no named nor relative numbered capture groups. Absolute numbered groups were referred to using <code>\1</code>, <code>\2</code>, etc., and this notation is still accepted (and likely always will be). But it leads to some ambiguities if there are more than 9 capture groups, as <code>\10</code> could mean either the tenth capture group, or the character whose ordinal in octal is 010 (a backspace in ASCII). Perl resolves this ambiguity by interpreting <code>\10</code> as a backreference only if at least 10 left parentheses have opened before it. Likewise <code>\11</code> is a backreference only if at least 11 left parentheses have opened before it. And so on. <code>\1</code> through <code>\9</code> are always interpreted as backreferences. There are several examples below that illustrate these perils. You can avoid the ambiguity by always using <code>\g{}</code> or <code>\g</code> if you mean capturing groups; and for octal constants always using <code>\o{}</code>, or for <code>\077</code> and below, using 3 digits padded with leading zeros, since a leading zero implies an octal constant.</p>
+<p>The <code>\g</code> and <code>\k</code> notations were introduced in Perl 5.10.0. Prior to that there were no named nor relative numbered capture groups. Absolute numbered groups were referred to using <code>\1</code>, <code>\2</code>, <i>etc</i>., and this notation is still accepted (and likely always will be). But it leads to some ambiguities if there are more than 9 capture groups, as <code>\10</code> could mean either the tenth capture group, or the character whose ordinal in octal is 010 (a backspace in ASCII). Perl resolves this ambiguity by interpreting <code>\10</code> as a backreference only if at least 10 left parentheses have opened before it. Likewise <code>\11</code> is a backreference only if at least 11 left parentheses have opened before it. And so on. <code>\1</code> through <code>\9</code> are always interpreted as backreferences. There are several examples below that illustrate these perils. You can avoid the ambiguity by always using <code>\g{}</code> or <code>\g</code> if you mean capturing groups; and for octal constants always using <code>\o{}</code>, or for <code>\077</code> and below, using 3 digits padded with leading zeros, since a leading zero implies an octal constant.</p>
 
 <p>The <code>\<i>digit</i></code> notation also works in certain circumstances outside the pattern. See <a href="#Warning-on-1-Instead-of-1">&quot;Warning on \1 Instead of $1&quot;</a> below for details.</p>
 
@@ -650,13 +763,13 @@
 
 <p>Several special variables also refer back to portions of the previous match. <code>$+</code> returns whatever the last bracket match matched. <code>$&amp;</code> returns the entire matched string. (At one point <code>$0</code> did also, but now it returns the name of the program.) <code>$`</code> returns everything before the matched string. <code>$&#39;</code> returns everything after the matched string. And <code>$^N</code> contains whatever was matched by the most-recently closed group (submatch). <code>$^N</code> can be used in extended patterns (see below), for example to assign a submatch to a variable.     </p>
 
-<p>These special variables, like the <code>%+</code> hash and the numbered match variables (<code>$1</code>, <code>$2</code>, <code>$3</code>, etc.) are dynamically scoped until the end of the enclosing block or until the next successful match, whichever comes first. (See <a href="/cperl/perlsyn.html#Compound-Statements">&quot;Compound Statements&quot; in perlsyn</a>.)              </p>
+<p>These special variables, like the <code>%+</code> hash and the numbered match variables (<code>$1</code>, <code>$2</code>, <code>$3</code>, <i>etc</i>.) are dynamically scoped until the end of the enclosing block or until the next successful match, whichever comes first. (See <a href="/cperl/perlsyn.html#Compound-Statements">&quot;Compound Statements&quot; in perlsyn</a>.)              </p>
 
 <p><b>NOTE</b>: Failed matches in Perl do not reset the match variables, which makes it easier to write code that tests for a series of more specific cases and remembers the best match.</p>
 
 <p><b>WARNING</b>: If your code is to run on Perl 5.16 or earlier, beware that once Perl sees that you need one of <code>$&amp;</code>, <code>$`</code>, or <code>$&#39;</code> anywhere in the program, it has to provide them for every pattern match. This may substantially slow your program.</p>
 
-<p>Perl uses the same mechanism to produce <code>$1</code>, <code>$2</code>, etc, so you also pay a price for each pattern that contains capturing parentheses. (To avoid this cost while retaining the grouping behaviour, use the extended regular expression <code>(?: ... )</code> instead.) But if you never use <code>$&amp;</code>, <code>$`</code> or <code>$&#39;</code>, then patterns <i>without</i> capturing parentheses will not be penalized. So avoid <code>$&amp;</code>, <code>$&#39;</code>, and <code>$`</code> if you can, but if you can&#39;t (and some algorithms really appreciate them), once you&#39;ve used them once, use them at will, because you&#39;ve already paid the price.   </p>
+<p>Perl uses the same mechanism to produce <code>$1</code>, <code>$2</code>, <i>etc</i>, so you also pay a price for each pattern that contains capturing parentheses. (To avoid this cost while retaining the grouping behaviour, use the extended regular expression <code>(?: ... )</code> instead.) But if you never use <code>$&amp;</code>, <code>$`</code> or <code>$&#39;</code>, then patterns <i>without</i> capturing parentheses will not be penalized. So avoid <code>$&amp;</code>, <code>$&#39;</code>, and <code>$`</code> if you can, but if you can&#39;t (and some algorithms really appreciate them), once you&#39;ve used them once, use them at will, because you&#39;ve already paid the price.   </p>
 
 <p>Perl 5.16 introduced a slightly more efficient mechanism that notes separately whether each of <code>$`</code>, <code>$&amp;</code>, and <code>$&#39;</code> have been seen, and thus may only need to copy part of the string. Perl 5.20 introduced a much more efficient copy-on-write mechanism which eliminates any slowdown.</p>
 
@@ -741,7 +854,7 @@
 
 <pre><code>    /((?im)foo(?-m)bar)/</code></pre>
 
-<p>matches all of <code>foobar</code> case insensitively, but uses <code>/m</code> rules for only the <code>foo</code> portion. The <code>a</code> flag overrides <code>aa</code> as well; likewise <code>aa</code> overrides <code>a</code>. The same goes for <code>x</code> and <code>xx</code>. Hence, in</p>
+<p>matches all of <code>foobar</code> case insensitively, but uses <code>/m</code> rules for only the <code>foo</code> portion. The <code>&quot;a&quot;</code> flag overrides <code>aa</code> as well; likewise <code>aa</code> overrides <code>&quot;a&quot;</code>. The same goes for <code>&quot;x&quot;</code> and <code>xx</code>. Hence, in</p>
 
 <pre><code>    /(?-x)foo/xx</code></pre>
 
@@ -749,15 +862,15 @@
 
 <pre><code>    /(?x)foo/x</code></pre>
 
-<p><code>/x</code> but NOT <code>/xx</code> is turned on for matching <code>foo</code>. (One might mistakenly think that since the inner <code>(?x)</code> is already in the scope of <code>/x</code>, that the result would effectively be the sum of them, yielding <code>/xx</code>. It doesn&#39;t work that way.) Similarly, doing something like <code>(?xx-x)foo</code> turns off all <code>x</code> behavior for matching <code>foo</code>, it is not that you subtract 1 <code>x</code> from 2 to get 1 <code>x</code> remaining.</p>
+<p><code>/x</code> but NOT <code>/xx</code> is turned on for matching <code>foo</code>. (One might mistakenly think that since the inner <code>(?x)</code> is already in the scope of <code>/x</code>, that the result would effectively be the sum of them, yielding <code>/xx</code>. It doesn&#39;t work that way.) Similarly, doing something like <code>(?xx-x)foo</code> turns off all <code>&quot;x&quot;</code> behavior for matching <code>foo</code>, it is not that you subtract 1 <code>&quot;x&quot;</code> from 2 to get 1 <code>&quot;x&quot;</code> remaining.</p>
 
 <p>Any of these modifiers can be set to apply globally to all regular expressions compiled within the scope of a <code>use re</code>. See <a>&quot;&#39;/flags&#39; mode&quot; in re</a>.</p>
 
 <p>Starting in Perl 5.14, a <code>&quot;^&quot;</code> (caret or circumflex accent) immediately after the <code>&quot;?&quot;</code> is a shorthand equivalent to <code>d-imnsx</code>. Flags (except <code>&quot;d&quot;</code>) may follow the caret to override it. But a minus sign is not legal with it.</p>
 
-<p>Note that the <code>a</code>, <code>d</code>, <code>l</code>, <code>p</code>, and <code>u</code> modifiers are special in that they can only be enabled, not disabled, and the <code>a</code>, <code>d</code>, <code>l</code>, and <code>u</code> modifiers are mutually exclusive: specifying one de-specifies the others, and a maximum of one (or two <code>a</code>&#39;s) may appear in the construct. Thus, for example, <code>(?-p)</code> will warn when compiled under <code>use warnings</code>; <code>(?-d:...)</code> and <code>(?dl:...)</code> are fatal errors.</p>
+<p>Note that the <code>&quot;a&quot;</code>, <code>&quot;d&quot;</code>, <code>&quot;l&quot;</code>, <code>&quot;p&quot;</code>, and <code>&quot;u&quot;</code> modifiers are special in that they can only be enabled, not disabled, and the <code>&quot;a&quot;</code>, <code>&quot;d&quot;</code>, <code>&quot;l&quot;</code>, and <code>&quot;u&quot;</code> modifiers are mutually exclusive: specifying one de-specifies the others, and a maximum of one (or two <code>&quot;a&quot;</code>&#39;s) may appear in the construct. Thus, for example, <code>(?-p)</code> will warn when compiled under <code>use warnings</code>; <code>(?-d:...)</code> and <code>(?dl:...)</code> are fatal errors.</p>
 
-<p>Note also that the <code>p</code> modifier is special in that its presence anywhere in a pattern has a global effect.</p>
+<p>Note also that the <code>&quot;p&quot;</code> modifier is special in that its presence anywhere in a pattern has a global effect.</p>
 
 </dd>
 <dt id="pattern"><code>(?:pattern)</code> </dt>
@@ -791,7 +904,7 @@
 
 <p>Note that any <code>()</code> constructs enclosed within this one will still capture unless the <code>/n</code> modifier is in effect.</p>
 
-<p>Like the <a href="#adlupimnsx-imnsx">&quot;(?adlupimnsx-imnsx)&quot;</a> construct, <code>aa</code> and <code>a</code> override each other, as do <code>xx</code> and <code>x</code>. They are not additive. So, doing something like <code>(?xx-x:foo)</code> turns off all <code>x</code> behavior for matching <code>foo</code>.</p>
+<p>Like the <a href="#adlupimnsx-imnsx">&quot;(?adlupimnsx-imnsx)&quot;</a> construct, <code>aa</code> and <code>&quot;a&quot;</code> override each other, as do <code>xx</code> and <code>&quot;x&quot;</code>. They are not additive. So, doing something like <code>(?xx-x:foo)</code> turns off all <code>&quot;x&quot;</code> behavior for matching <code>foo</code>.</p>
 
 <p>Starting in Perl 5.14, a <code>&quot;^&quot;</code> (caret or circumflex accent) immediately after the <code>&quot;?&quot;</code> is a shorthand equivalent to <code>d-imnsx</code>. Any positive flags (except <code>&quot;d&quot;</code>) may follow the caret, so</p>
 
@@ -827,9 +940,9 @@
 
 <p>Consider the following pattern. The numbers underneath show in which group the captured content will be stored.</p>
 
-<pre><code>    # before  ---------------branch-reset----------- after        
+<pre><code>    # before  ---------------branch-reset----------- after
     / ( a )  (?| x ( y ) z | (p (q) r) | (t) u (v) ) ( z ) /x
-    # 1            2         2  3        2     3     4  </code></pre>
+    # 1            2         2  3        2     3     4</code></pre>
 
 <p>Be careful when using the branch reset pattern in combination with named captures. Named captures are implemented as being aliases to numbered groups holding the captures, and that interferes with the implementation of the branch reset pattern. If you are using named captures in a branch reset pattern, it&#39;s best to use the same names, in the same order, in each of the alternations:</p>
 
@@ -1033,7 +1146,7 @@
     &quot;ABBA&quot; =~ /^(.)(??{ $inner })\1/;
     print $1; # prints &quot;A&quot;;</code></pre>
 
-<p>Note that this means that there is no way for the inner pattern to refer to a capture group defined outside. (The code block itself can use <code>$1</code>, etc., to refer to the enclosing pattern&#39;s capture groups.) Thus, although</p>
+<p>Note that this means that there is no way for the inner pattern to refer to a capture group defined outside. (The code block itself can use <code>$1</code>, <i>etc</i>., to refer to the enclosing pattern&#39;s capture groups.) Thus, although</p>
 
 <pre><code>    (&#39;a&#39; x 100)=~/(??{&#39;(.)&#39; x 100})/</code></pre>
 
@@ -1053,7 +1166,7 @@
 
 <p>See also <a href="#PARNO--PARNO-PARNO-R-0"><code>(?<i>PARNO</i>)</code></a> for a different, more efficient way to accomplish the same task.</p>
 
-<p>Executing a postponed regular expression 50 times without consuming any input string will result in a fatal error. The maximum depth is compiled into perl, so changing it requires a custom build.</p>
+<p>Executing a postponed regular expression too many times without consuming any input string will also result in a fatal error. The depth at which that happens is compiled into perl, so it can be changed with a custom build.</p>
 
 </dd>
 <dt id="PARNO--PARNO-PARNO-R-0"><code>(?<i>PARNO</i>)</code> <code>(?-<i>PARNO</i>)</code> <code>(?+<i>PARNO</i>)</code> <code>(?R)</code> <code>(?0)</code>              </dt>
@@ -1096,7 +1209,7 @@
     $2 = (bar(baz)+baz(bop))
     $3 = bar(baz)+baz(bop)</code></pre>
 
-<p>If there is no corresponding capture group defined, then it is a fatal error. Recursing deeper than 50 times without consuming any input string will also result in a fatal error. The maximum depth is compiled into perl, so changing it requires a custom build.</p>
+<p>If there is no corresponding capture group defined, then it is a fatal error. Recursing deeply without consuming any input string will also result in a fatal error. The depth at which that happens is compiled into perl, so it can be changed with a custom build.</p>
 
 <p>The following shows how using negative indexing can make it easier to embed recursive patterns inside of a <code>qr//</code> construct for later use:</p>
 
@@ -1150,7 +1263,7 @@
 <dt id="the-special-symbol-R">the special symbol <code>(R)</code></dt>
 <dd>
 
-<p>(true when evaluated inside of recursion or eval). Additionally the <code>R</code> may be followed by a number, (which will be true when evaluated when recursing inside of the appropriate group), or by <code>&amp;NAME</code>, in which case it will be true only when evaluated during recursion in the named group.</p>
+<p>(true when evaluated inside of recursion or eval). Additionally the <code>&quot;R&quot;</code> may be followed by a number, (which will be true when evaluated when recursing inside of the appropriate group), or by <code>&amp;NAME</code>, in which case it will be true only when evaluated during recursion in the named group.</p>
 
 </dd>
 </dl>
@@ -1256,7 +1369,7 @@
 
 <p>An &quot;independent&quot; subexpression, one which matches the substring that a <i>standalone</i> <code>pattern</code> would match if anchored at the given position, and it matches <i>nothing other than this substring</i>. This construct is useful for optimizations of what would otherwise be &quot;eternal&quot; matches, because it will not backtrack (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). It may also be useful in places where the &quot;grab all you can, and do not give anything back&quot; semantic is desirable.</p>
 
-<p>For example: <code>^(?&gt;a*)ab</code> will never match, since <code>(?&gt;a*)</code> (anchored at the beginning of string, as above) will match <i>all</i> characters <code>a</code> at the beginning of string, leaving no <code>a</code> for <code>ab</code> to match. In contrast, <code>a*ab</code> will match the same as <code>a+b</code>, since the match of the subgroup <code>a*</code> is influenced by the following group <code>ab</code> (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). In particular, <code>a*</code> inside <code>a*ab</code> will match fewer characters than a standalone <code>a*</code>, since this makes the tail match.</p>
+<p>For example: <code>^(?&gt;a*)ab</code> will never match, since <code>(?&gt;a*)</code> (anchored at the beginning of string, as above) will match <i>all</i> characters <code>&quot;a&quot;</code> at the beginning of string, leaving no <code>&quot;a&quot;</code> for <code>ab</code> to match. In contrast, <code>a*ab</code> will match the same as <code>a+b</code>, since the match of the subgroup <code>a*</code> is influenced by the following group <code>ab</code> (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). In particular, <code>a*</code> inside <code>a*ab</code> will match fewer characters than a standalone <code>a*</code>, since this makes the tail match.</p>
 
 <p><code>(?&gt;pattern)</code> does not disable backtracking altogether once it has matched. It is still possible to backtrack past the construct, but not into it. So <code>((?&gt;a*)|(?&gt;b*))ar</code> will still match &quot;bar&quot;.</p>
 
@@ -1284,9 +1397,9 @@
        \)
      }x</code></pre>
 
-<p>which uses <code>(?&gt;...)</code> matches exactly when the one above does (verifying this yourself would be a productive exercise), but finishes in a fourth the time when used on a similar string with 1000000 <code>a</code>s. Be aware, however, that, when this construct is followed by a quantifier, it currently triggers a warning message under the <code>use warnings</code> pragma or <b>-w</b> switch saying it <code>&quot;matches null string many times in regex&quot;</code>.</p>
+<p>which uses <code>(?&gt;...)</code> matches exactly when the one above does (verifying this yourself would be a productive exercise), but finishes in a fourth the time when used on a similar string with 1000000 <code>&quot;a&quot;</code>s. Be aware, however, that, when this construct is followed by a quantifier, it currently triggers a warning message under the <code>use warnings</code> pragma or <b>-w</b> switch saying it <code>&quot;matches null string many times in regex&quot;</code>.</p>
 
-<p>On simple groups, such as the pattern <code>(?&gt; [^()]+ )</code>, a comparable effect may be achieved by negative lookahead, as in <code>[^()]+ (?! [^()] )</code>. This was only 4 times slower on a string with 1000000 <code>a</code>s.</p>
+<p>On simple groups, such as the pattern <code>(?&gt; [^()]+ )</code>, a comparable effect may be achieved by negative lookahead, as in <code>[^()]+ (?! [^()] )</code>. This was only 4 times slower on a string with 1000000 <code>&quot;a&quot;</code>s.</p>
 
 <p>The &quot;grab all you can, and do not give anything back&quot; semantic is desirable in many situations where on the first sight a simple <code>()*</code> looks like the correct solution. Suppose we parse text with comments being delimited by <code>&quot;#&quot;</code> followed by some optional (horizontal) whitespace. Contrary to its appearance, <code>#[ \t]*</code> <i>is not</i> the correct subexpression to match the comment delimiter, because it may &quot;give up&quot; some whitespace if the remainder of the pattern can be made to match that way. The correct answer is either one of these:</p>
 
@@ -1324,7 +1437,7 @@
 
 <p>NOTE: This section presents an abstract approximation of regular expression behavior. For a more rigorous (and complicated) view of the rules involved in selecting a match among possible alternatives, see <a href="#Combining-RE-Pieces">&quot;Combining RE Pieces&quot;</a>.</p>
 
-<p>A fundamental feature of regular expression matching involves the notion called <i>backtracking</i>, which is currently used (when needed) by all regular non-possessive expression quantifiers, namely <code>*</code>, <code>*?</code>, <code>+</code>, <code>+?</code>, <code>{n,m}</code>, and <code>{n,m}?</code>. Backtracking is often optimized internally, but the general principle outlined here is valid.</p>
+<p>A fundamental feature of regular expression matching involves the notion called <i>backtracking</i>, which is currently used (when needed) by all regular non-possessive expression quantifiers, namely <code>&quot;*&quot;</code>, <code>*?</code>, <code>&quot;+&quot;</code>, <code>+?</code>, <code>{n,m}</code>, and <code>{n,m}?</code>. Backtracking is often optimized internally, but the general principle outlined here is valid.</p>
 
 <p>For a regular expression to match, the <i>entire</i> regular expression must match, not just part of it. So if the beginning of a pattern containing a quantifier succeeds in a way that causes later parts in the pattern to fail, the matching engine backs up and recalculates the beginning part--that&#39;s why it&#39;s called backtracking.</p>
 
@@ -1608,7 +1721,7 @@
 
 <pre><code>  &#39;AB&#39; =~ /(A (A|B(*ACCEPT)|C) D)(E)/x;</code></pre>
 
-<p>will match, and <code>$1</code> will be <code>AB</code> and <code>$2</code> will be <code>B</code>, <code>$3</code> will not be set. If another branch in the inner parentheses was matched, such as in the string &#39;ACDE&#39;, then the <code>D</code> and <code>E</code> would have to be matched as well.</p>
+<p>will match, and <code>$1</code> will be <code>AB</code> and <code>$2</code> will be <code>&quot;B&quot;</code>, <code>$3</code> will not be set. If another branch in the inner parentheses was matched, such as in the string &#39;ACDE&#39;, then the <code>&quot;D&quot;</code> and <code>&quot;E&quot;</code> would have to be matched as well.</p>
 
 <p>You can provide an argument, which will be available in the var <code>$REGMARK</code> after the match completes.</p>
 
@@ -1617,32 +1730,6 @@
 
 </dd>
 </dl>
-
-<h2 id="Version-8-Regular-Expressions">Version 8 Regular Expressions   </h2>
-
-<p>In case you&#39;re not familiar with the &quot;regular&quot; Version 8 regex routines, here are the pattern-matching rules not described above.</p>
-
-<p>Any single character matches itself, unless it is a <i>metacharacter</i> with a special meaning described here or above. You can cause characters that normally function as metacharacters to be interpreted literally by prefixing them with a <code>&quot;\&quot;</code> (e.g., <code>&quot;\.&quot;</code> matches a <code>&quot;.&quot;</code>, not any character; &quot;\\&quot; matches a <code>&quot;\&quot;</code>). This escape mechanism is also required for the character used as the pattern delimiter.</p>
-
-<p>A series of characters matches that series of characters in the target string, so the pattern <code>blurfl</code> would match &quot;blurfl&quot; in the target string.</p>
-
-<p>You can specify a character class, by enclosing a list of characters in <code>[]</code>, which will match any character from the list. If the first character after the <code>&quot;[&quot;</code> is <code>&quot;^&quot;</code>, the class matches any character not in the list. Within a list, the <code>&quot;-&quot;</code> character specifies a range, so that <code>a-z</code> represents all characters between &quot;a&quot; and &quot;z&quot;, inclusive. If you want either <code>&quot;-&quot;</code> or <code>&quot;]&quot;</code> itself to be a member of a class, put it at the start of the list (possibly after a <code>&quot;^&quot;</code>), or escape it with a backslash. <code>&quot;-&quot;</code> is also taken literally when it is at the end of the list, just before the closing <code>&quot;]&quot;</code>. (The following all specify the same class of three characters: <code>[-az]</code>, <code>[az-]</code>, and <code>[a\-z]</code>. All are different from <code>[a-z]</code>, which specifies a class containing twenty-six characters, even on EBCDIC-based character sets.) Also, if you try to use the character classes <code>\w</code>, <code>\W</code>, <code>\s</code>, <code>\S</code>, <code>\d</code>, or <code>\D</code> as endpoints of a range, the <code>&quot;-&quot;</code> is understood literally.</p>
-
-<p>Note also that the whole range idea is rather unportable between character sets, except for four situations that Perl handles specially. Any subset of the ranges <code>[A-Z]</code>, <code>[a-z]</code>, and <code>[0-9]</code> are guaranteed to match the expected subset of ASCII characters, no matter what character set the platform is running. The fourth portable way to specify ranges is to use the <code>\N{...}</code> syntax to specify either end point of the range. For example, <code>[\N{U+04}-\N{U+07}]</code> means to match the Unicode code points <code>\N{U+04}</code>, <code>\N{U+05}</code>, <code>\N{U+06}</code>, and <code>\N{U+07}</code>, whatever their native values may be on the platform. Under <a>use re &#39;strict&#39;</a> or within a <a href="#pod">&quot;<code>(?[ ])</code>&quot;</a>, a warning is raised, if enabled, and the other end point of a range which has a <code>\N{...}</code> endpoint is not portably specified. For example,</p>
-
-<pre><code> [\N{U+00}-\x06]    # Warning under &quot;use re &#39;strict&#39;&quot;.</code></pre>
-
-<p>It is hard to understand without digging what exactly matches ranges other than subsets of <code>[A-Z]</code>, <code>[a-z]</code>, and <code>[0-9]</code>. A sound principle is to use only ranges that begin from and end at either alphabetics of equal case ([a-e], [A-E]), or digits ([0-9]). Anything else is unsafe or unclear. If in doubt, spell out the range in full.</p>
-
-<p>Characters may be specified using a metacharacter syntax much like that used in C: &quot;\n&quot; matches a newline, &quot;\t&quot; a tab, &quot;\r&quot; a carriage return, &quot;\f&quot; a form feed, etc. More generally, \<i>nnn</i>, where <i>nnn</i> is a string of three octal digits, matches the character whose coded character set value is <i>nnn</i>. Similarly, \x<i>nn</i>, where <i>nn</i> are hexadecimal digits, matches the character whose ordinal is <i>nn</i>. The expression \c<i>x</i> matches the character control-<i>x</i>. Finally, the <code>&quot;.&quot;</code> metacharacter matches any character except &quot;\n&quot; (unless you use <code>/s</code>).</p>
-
-<p>You can specify a series of alternatives for a pattern using <code>&quot;|&quot;</code> to separate them, so that <code>fee|fie|foe</code> will match any of &quot;fee&quot;, &quot;fie&quot;, or &quot;foe&quot; in the target string (as would <code>f(e|i|o)e</code>). The first alternative includes everything from the last pattern delimiter (<code>&quot;(&quot;</code>, &quot;(?:&quot;, etc. or the beginning of the pattern) up to the first <code>&quot;|&quot;</code>, and the last alternative contains everything from the last <code>&quot;|&quot;</code> to the next closing pattern delimiter. That&#39;s why it&#39;s common practice to include alternatives in parentheses: to minimize confusion about where they start and end.</p>
-
-<p>Alternatives are tried from left to right, so the first alternative found for which the entire expression matches, is the one that is chosen. This means that alternatives are not necessarily greedy. For example: when matching <code>foo|foot</code> against &quot;barefoot&quot;, only the &quot;foo&quot; part will match, as that is the first alternative tried, and it successfully matches the target string. (This might not seem important, but it is important when you are capturing matched text using parentheses.)</p>
-
-<p>Also remember that <code>&quot;|&quot;</code> is interpreted as a literal within square brackets, so if you write <code>[fee|fie|foe]</code> you&#39;re really only matching <code>[feio|]</code>.</p>
-
-<p>Within a pattern, you may designate subpatterns for later reference by enclosing them in parentheses, and you may refer back to the <i>n</i>th subpattern later in the pattern using the metacharacter \<i>n</i> or \g<i>n</i>. Subpatterns are numbered based on the left to right order of their opening parenthesis. A backreference matches whatever actually matched the subpattern in the string being examined, not the rules for that subpattern. Therefore, <code>(0|0x)\d*\s\g1\d*</code> will match &quot;0x1234 0x4321&quot;, but not &quot;0x1234 01234&quot;, because subpattern 1 matched &quot;0x&quot;, even though the rule <code>0|0x</code> could potentially match the leading 0 in the second number.</p>
 
 <h2 id="Warning-on-1-Instead-of-1">Warning on <code>\1</code> Instead of <code>$1</code></h2>
 
@@ -1670,7 +1757,7 @@
 
 <pre><code>    &#39;foo&#39; =~ m{ ( o? )* }x;</code></pre>
 
-<p>The <code>o?</code> matches at the beginning of <code>&#39;foo&#39;</code>, and since the position in the string is not moved by the match, <code>o?</code> would match again and again because of the <code>&quot;*&quot;</code> quantifier. Another common way to create a similar cycle is with the looping modifier <code>//g</code>:</p>
+<p>The <code>o?</code> matches at the beginning of &quot;<code>foo</code>&quot;, and since the position in the string is not moved by the match, <code>o?</code> would match again and again because of the <code>&quot;*&quot;</code> quantifier. Another common way to create a similar cycle is with the looping modifier <code>/g</code>:</p>
 
 <pre><code>    @matches = ( &#39;foo&#39; =~ m{ o? }xg );</code></pre>
 
@@ -1733,32 +1820,32 @@
 
 <h2 id="Combining-RE-Pieces">Combining RE Pieces</h2>
 
-<p>Each of the elementary pieces of regular expressions which were described before (such as <code>ab</code> or <code>\Z</code>) could match at most one substring at the given position of the input string. However, in a typical regular expression these elementary pieces are combined into more complicated patterns using combining operators <code>ST</code>, <code>S|T</code>, <code>S*</code> etc. (in these examples <code>S</code> and <code>T</code> are regular subexpressions).</p>
+<p>Each of the elementary pieces of regular expressions which were described before (such as <code>ab</code> or <code>\Z</code>) could match at most one substring at the given position of the input string. However, in a typical regular expression these elementary pieces are combined into more complicated patterns using combining operators <code>ST</code>, <code>S|T</code>, <code>S*</code> <i>etc</i>. (in these examples <code>&quot;S&quot;</code> and <code>&quot;T&quot;</code> are regular subexpressions).</p>
 
 <p>Such combinations can include alternatives, leading to a problem of choice: if we match a regular expression <code>a|ab</code> against <code>&quot;abc&quot;</code>, will it match substring <code>&quot;a&quot;</code> or <code>&quot;ab&quot;</code>? One way to describe which substring is actually matched is the concept of backtracking (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). However, this description is too low-level and makes you think in terms of a particular implementation.</p>
 
 <p>Another description starts with notions of &quot;better&quot;/&quot;worse&quot;. All the substrings which may be matched by the given regular expression can be sorted from the &quot;best&quot; match to the &quot;worst&quot; match, and it is the &quot;best&quot; match which is chosen. This substitutes the question of &quot;what is chosen?&quot; by the question of &quot;which matches are better, and which are worse?&quot;.</p>
 
-<p>Again, for elementary pieces there is no such question, since at most one match at a given position is possible. This section describes the notion of better/worse for combining operators. In the description below <code>S</code> and <code>T</code> are regular subexpressions.</p>
+<p>Again, for elementary pieces there is no such question, since at most one match at a given position is possible. This section describes the notion of better/worse for combining operators. In the description below <code>&quot;S&quot;</code> and <code>&quot;T&quot;</code> are regular subexpressions.</p>
 
 <dl>
 
 <dt id="ST"><code>ST</code></dt>
 <dd>
 
-<p>Consider two possible matches, <code>AB</code> and <code>A&#39;B&#39;</code>, <code>A</code> and <code>A&#39;</code> are substrings which can be matched by <code>S</code>, <code>B</code> and <code>B&#39;</code> are substrings which can be matched by <code>T</code>.</p>
+<p>Consider two possible matches, <code>AB</code> and <code>A&#39;B&#39;</code>, <code>&quot;A&quot;</code> and <code>A&#39;</code> are substrings which can be matched by <code>&quot;S&quot;</code>, <code>&quot;B&quot;</code> and <code>B&#39;</code> are substrings which can be matched by <code>&quot;T&quot;</code>.</p>
 
-<p>If <code>A</code> is a better match for <code>S</code> than <code>A&#39;</code>, <code>AB</code> is a better match than <code>A&#39;B&#39;</code>.</p>
+<p>If <code>&quot;A&quot;</code> is a better match for <code>&quot;S&quot;</code> than <code>A&#39;</code>, <code>AB</code> is a better match than <code>A&#39;B&#39;</code>.</p>
 
-<p>If <code>A</code> and <code>A&#39;</code> coincide: <code>AB</code> is a better match than <code>AB&#39;</code> if <code>B</code> is a better match for <code>T</code> than <code>B&#39;</code>.</p>
+<p>If <code>&quot;A&quot;</code> and <code>A&#39;</code> coincide: <code>AB</code> is a better match than <code>AB&#39;</code> if <code>&quot;B&quot;</code> is a better match for <code>&quot;T&quot;</code> than <code>B&#39;</code>.</p>
 
 </dd>
 <dt id="S-T"><code>S|T</code></dt>
 <dd>
 
-<p>When <code>S</code> can match, it is a better match than when only <code>T</code> can match.</p>
+<p>When <code>&quot;S&quot;</code> can match, it is a better match than when only <code>&quot;T&quot;</code> can match.</p>
 
-<p>Ordering of two matches for <code>S</code> is the same as for <code>S</code>. Similar for two matches for <code>T</code>.</p>
+<p>Ordering of two matches for <code>&quot;S&quot;</code> is the same as for <code>&quot;S&quot;</code>. Similar for two matches for <code>&quot;T&quot;</code>.</p>
 
 </dd>
 <dt id="S-REPEAT_COUNT"><code>S{REPEAT_COUNT}</code></dt>
@@ -1794,19 +1881,19 @@
 <dt id="S"><code>(?&gt;S)</code></dt>
 <dd>
 
-<p>Matches the best match for <code>S</code> and only that.</p>
+<p>Matches the best match for <code>&quot;S&quot;</code> and only that.</p>
 
 </dd>
 <dt id="S-S"><code>(?=S)</code>, <code>(?&lt;=S)</code></dt>
 <dd>
 
-<p>Only the best match for <code>S</code> is considered. (This is important only if <code>S</code> has capturing parentheses, and backreferences are used somewhere else in the whole regular expression.)</p>
+<p>Only the best match for <code>&quot;S&quot;</code> is considered. (This is important only if <code>&quot;S&quot;</code> has capturing parentheses, and backreferences are used somewhere else in the whole regular expression.)</p>
 
 </dd>
 <dt id="S-S1"><code>(?!S)</code>, <code>(?&lt;!S)</code></dt>
 <dd>
 
-<p>For this grouping operator there is no need to describe the ordering, since only whether or not <code>S</code> can match is important.</p>
+<p>For this grouping operator there is no need to describe the ordering, since only whether or not <code>&quot;S&quot;</code> can match is important.</p>
 
 </dd>
 <dt id="EXPR-PARNO"><code>(??{ EXPR })</code>, <code>(?<i>PARNO</i>)</code></dt>
@@ -1857,7 +1944,7 @@
       return $re;
     }</code></pre>
 
-<p>Now <code>use customre</code> enables the new escape in constant regular expressions, i.e., those without any runtime variable interpolations. As documented in <a>overload</a>, this conversion will work only over literal parts of regular expressions. For <code>\Y|$re\Y|</code> the variable part of this regular expression needs to be converted explicitly (but only if the special meaning of <code>\Y|</code> should be enabled inside <code>$re</code>):</p>
+<p>Now <code>use customre</code> enables the new escape in constant regular expressions, <i>i.e.</i>, those without any runtime variable interpolations. As documented in <a>overload</a>, this conversion will work only over literal parts of regular expressions. For <code>\Y|$re\Y|</code> the variable part of this regular expression needs to be converted explicitly (but only if the special meaning of <code>\Y|</code> should be enabled inside <code>$re</code>):</p>
 
 <pre><code>    use customre;
     $re = &lt;&gt;;
@@ -1867,7 +1954,7 @@
 
 <h2 id="Embedded-Code-Execution-Frequency">Embedded Code Execution Frequency</h2>
 
-<p>The exact rules for how often (??{}) and (?{}) are executed in a pattern are unspecified. In the case of a successful match you can assume that they DWIM and will be executed in left to right order the appropriate number of times in the accepting path of the pattern as would any other meta-pattern. How non-accepting pathways and match failures affect the number of times a pattern is executed is specifically unspecified and may vary depending on what optimizations can be applied to the pattern and is likely to change from version to version.</p>
+<p>The exact rules for how often <code>(??{})</code> and <code>(?{})</code> are executed in a pattern are unspecified. In the case of a successful match you can assume that they DWIM and will be executed in left to right order the appropriate number of times in the accepting path of the pattern as would any other meta-pattern. How non-accepting pathways and match failures affect the number of times a pattern is executed is specifically unspecified and may vary depending on what optimizations can be applied to the pattern and is likely to change from version to version.</p>
 
 <p>For instance in</p>
 
@@ -1915,13 +2002,15 @@
 
 <h1 id="BUGS">BUGS</h1>
 
-<p>There are a number of issues with regard to case-insensitive matching in Unicode rules. See <code>i</code> under <a href="#Modifiers">&quot;Modifiers&quot;</a> above.</p>
+<p>There are a number of issues with regard to case-insensitive matching in Unicode rules. See <code>&quot;i&quot;</code> under <a href="#Modifiers">&quot;Modifiers&quot;</a> above.</p>
 
 <p>This document varies from difficult to understand to completely and utterly opaque. The wandering prose riddled with jargon is hard to fathom in several places.</p>
 
 <p>This document needs a rewrite that separates the tutorial content from the reference content.</p>
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The syntax of patterns used in Perl pattern matching evolved from those supplied in the Bell Labs Research Unix 8th Edition (Version 8) regex routines. (The code is actually derived (distantly) from Henry Spencer&#39;s freely redistributable reimplementation of those V8 routines.)</p>
 
 <p><a href="/cperl/perlrequick.html">perlrequick</a>.</p>
 

@@ -430,7 +430,7 @@
 
 <p>CHECK callback for smartmatch (s2)</p>
 
-<p>Rearranges the kids if not SPECIAL, and optimizes the runtime MATCH to a compile-time QR. OP * ck_smartmatch(OP *o)</p>
+<p>Rearranges the kids to refs if not SPECIAL, and optimizes the runtime MATCH to a compile-time QR. OP * ck_smartmatch(OP *o)</p>
 
 </dd>
 <dt id="ck_spair">ck_spair </dt>
@@ -505,6 +505,16 @@
 <pre><code>                is_types_strict;</code></pre>
 
 </dd>
+<dt id="match_type">match_type </dt>
+<dd>
+
+<p>Match a coretype from arg or op (atyp) to the declared stash of a variable (dtyp). Searches stash in @aname::ISA (contravariant, for arguments).</p>
+
+<p>Added a 4th parameter if to allow inserting a type cast: numify. Scalar =&gt; Bool/Numeric Currently castable is only: Scalar/Ref/Sub/Regexp =&gt; Bool/Numeric Maybe allow casting from Scalar/Numeric to Int =&gt; int() and Scalar to Str =&gt; stringify()</p>
+
+<p>On atyp == type_Object check the name and its ISA instead. int match_type(const HV* stash, core_types_t atyp, const char* aname, bool au8, int *castable)</p>
+
+</dd>
 <dt id="match_type1">match_type1 </dt>
 <dd>
 
@@ -531,7 +541,7 @@
 
 <p>On return-type checks the arguments get in reversed (covariant).</p>
 
-<p>Note that old-style package ISA&#39;s are created dynamically. Only classes with compile-time known ISA&#39;s can be checked at compile-time. Which are currently: use base/fields using Internals::HvCLASS, and later the perl6 syntax class Name is Parent {} Todo: Moose syntax match_user_type;</p>
+<p>Note that old-style package ISA&#39;s are created dynamically. Only classes with compile-time known ISA&#39;s can be checked at compile-time. Which are currently: use base/fields using Internals::HvCLASS, and later the perl6 syntax class Name is Parent {} match_user_type;</p>
 
 </dd>
 <dt id="maybe_multideref">maybe_multideref </dt>
@@ -564,6 +574,14 @@
 <p>check the targ of the first INDEX_padsv of a MDEREF_AV, compare it with the given targ, and set INDEX_uoob. bool mderef_uoob_targ(OP* o, PADOFFSET targ)</p>
 
 </dd>
+<dt id="op_typed_user">op_typed_user </dt>
+<dd>
+
+<p>Return the type as core_types_t enum of the op. User-defined types are only returned as type_Object, get the name of those with S_typename().</p>
+
+<p>TODO: add defined return types of all ops, and user-defined CV types for entersub. core_types_t op_typed_user(OP* o, char** usertype, int* u8)</p>
+
+</dd>
 <dt id="op_check_type">_op_check_type </dt>
 <dd>
 
@@ -571,7 +589,9 @@
 
 <p>Different to arg_check_type a type violation is not fatal, it only throws a compile-time warning when no applicable type-conversion can be applied. Return-types and assignments are passed through the type inferencer and applied to old constructs, not signatures, hence not so strict.</p>
 
-<p>Contravariant: Enables you to use a more generic (less derived) type than originally specified. _op_check_type;</p>
+<p>Contravariant: Enables you to use a more generic (less derived) type than originally specified.</p>
+
+<p>But note this special implicit perl case: scalar = list; # (array|hash) &lt;=&gt; scalar = shift list; _op_check_type;</p>
 
 </dd>
 <dt id="peep-void-peep-OP-o">peep  void peep(OP* o)</dt>
@@ -612,6 +632,14 @@
 <p>More important, it sets op_opt to 1 by default, even if it has no intention to nullify (&quot;optimize away&quot;) the current op. Any optimization which wants to keep the op needs to unset op_opt.</p>
 
 <pre><code>        void    rpeep(OP* o)</code></pre>
+
+</dd>
+<dt id="stash_to_coretype">stash_to_coretype </dt>
+<dd>
+
+<p>stash_to_coretype(HV* stash) converts the name of the padname type to the core_types_t enum.</p>
+
+<p>For native types we still return the non-native counterpart. PERL_NATIVE_TYPES is implemented in the native type branch, with escape analysis, upgrading long-enough sequences to native ops in rpeep. core_types_t stash_to_coretype(const HV* stash)</p>
 
 </dd>
 </dl>
@@ -658,8 +686,14 @@
 <pre><code>        OP*     fold_constants(OP * const o)</code></pre>
 
 </dd>
-<dt id="gen_constant_list-OP-gen_constant_list-OP-o">gen_constant_list  OP* gen_constant_list(OP* o)</dt>
+<dt id="gen_constant_list">gen_constant_list </dt>
 <dd>
+
+<p>Compile-time expansion of a range list.</p>
+
+<pre><code>  e.g. 0..4 =&gt; 0,1,2,3,4
+
+        OP*     gen_constant_list(OP* o)</code></pre>
 
 </dd>
 <dt id="jmaybe-OP-jmaybe-OP-o">jmaybe  OP* jmaybe(OP *o)</dt>
@@ -1530,9 +1564,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
         case &#39;*&#39;:               /* $* */
         case &#39;#&#39;:               /* $# */
             if (sv_type == SVt_PV)
-                /* diag_listed_as: $* is no longer supported */
+                /* diag_listed_as: $* is no longer supported. Its use will be fatal in Perl 5.30 */
                 Perl_ck_warner_d(aTHX_ packWARN2(WARN_DEPRECATED, WARN_SYNTAX),
-                                 &quot;$%c is no longer supported&quot;, *name);
+                                 &quot;$%c is no longer supported. Its use &quot;
+                                 &quot;will be fatal in Perl 5.30&quot;, *name);
             break;
         case &#39;\010&#39;:    /* $^H */
             {
@@ -1631,10 +1666,11 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
             require_tie_mod_s(gv, *name, &quot;Tie::Hash::NamedCapture&quot;, 0);
     } else if (sv_type == SVt_PV) {
         if (*name == &#39;*&#39; || *name == &#39;#&#39;) {
-            /* diag_listed_as: $* is no longer supported */
+            /* diag_listed_as: $# is no longer supported. Its use will be fatal in Perl 5.30 */
             Perl_ck_warner_d(aTHX_ packWARN2(WARN_DEPRECATED,
                                              WARN_SYNTAX),
-                             &quot;$%c is no longer supported&quot;, *name);
+                             &quot;$%c is no longer supported. Its use &quot;
+                             &quot;will be fatal in Perl 5.30&quot;, *name);
         }
     }
     if (sv_type==SVt_PV || sv_type==SVt_PVGV) {
@@ -3161,6 +3197,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="byte_dump_string">_byte_dump_string </dt>
+<dd>
+
+</dd>
 <dt id="core_swash_init">_core_swash_init </dt>
 <dd>
 
@@ -3270,6 +3310,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="warn_problematic_locale">_warn_problematic_locale </dt>
+<dd>
+
+</dd>
+<dt id="abort_execution">abort_execution </dt>
 <dd>
 
 </dd>
@@ -4113,6 +4157,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="notify_parser_that_changed_to_utf8">notify_parser_that_changed_to_utf8 </dt>
+<dd>
+
+</dd>
 <dt id="oopsAV">oopsAV </dt>
 <dd>
 
@@ -4130,6 +4178,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="op_refcnt_inc">op_refcnt_inc </dt>
+<dd>
+
+</dd>
+<dt id="op_typed">op_typed </dt>
 <dd>
 
 </dd>
@@ -4317,10 +4369,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="stash_to_coretype">stash_to_coretype </dt>
-<dd>
-
-</dd>
 <dt id="sub_crush_depth">sub_crush_depth </dt>
 <dd>
 
@@ -4453,6 +4501,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="yyquit">yyquit </dt>
+<dd>
+
+</dd>
 <dt id="yyunlex">yyunlex </dt>
 <dd>
 
@@ -4473,7 +4525,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-2134">Around line 2134:</dt>
+<dt id="Around-line-2194">Around line 2194:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>

@@ -350,9 +350,7 @@
 <dt id="sortsv">sortsv </dt>
 <dd>
 
-<p>Sort an array. Here is an example:</p>
-
-<pre><code>    sortsv(AvARRAY(av), av_top_index(av)+1, Perl_sv_cmp_locale);</code></pre>
+<p>In-place sort an array of SV pointers with the given comparison routine.</p>
 
 <p>Currently this always uses mergesort. See <code><a href="#sortsv_flags">&quot;sortsv_flags&quot;</a></code> for a more flexible routine.</p>
 
@@ -363,7 +361,7 @@
 <dt id="sortsv_flags">sortsv_flags </dt>
 <dd>
 
-<p>Sort an array, with various options.</p>
+<p>In-place sort an array of SV pointers with the given comparison routine, with various SORTf_* flag options.</p>
 
 <pre><code>        void    sortsv_flags(SV** array, size_t num_elts,
                              SVCOMPARE_t cmp, U32 flags)</code></pre>
@@ -1775,6 +1773,14 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    magic_dump(const MAGIC *mg)</code></pre>
 
 </dd>
+<dt id="op_class">op_class </dt>
+<dd>
+
+<p>Given an op, determine what type of struct it has been allocated as. Returns one of the OPclass enums, such as OPclass_LISTOP.</p>
+
+<pre><code>        OPclass op_class(const OP *o)</code></pre>
+
+</dd>
 <dt id="op_dump">op_dump </dt>
 <dd>
 
@@ -2974,7 +2980,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="hv_iterinit">hv_iterinit </dt>
 <dd>
 
-<p>Prepares a starting point to traverse a hash table. Returns the number of keys in the hash (i.e. the same as <code>HvUSEDKEYS(hv)</code>). The return value is currently only meaningful for hashes without tie magic.</p>
+<p>Prepares a starting point to traverse a hash table. Returns the number of keys in the hash, including placeholders (i.e. the same as <code>HvTOTALKEYS(hv)</code>). The return value is currently only meaningful for hashes without tie magic.</p>
 
 <p>NOTE: Before version 5.004_65, <code>hv_iterinit</code> used to return the number of hash buckets that happen to be in use. If you still need that esoteric value, you can get it through the macro <code>HvFILL(hv)</code>.</p>
 
@@ -3326,7 +3332,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Creates and initialises a new lexer/parser state object, supplying a context in which to lex and parse from a new source of Perl code. A pointer to the new state object is placed in <a href="#PL_parser">&quot;PL_parser&quot;</a>. An entry is made on the save stack so that upon unwinding the new state object will be destroyed and the former value of <a href="#PL_parser">&quot;PL_parser&quot;</a> will be restored. Nothing else need be done to clean up the parsing context.</p>
+<p>Creates and initialises a new lexer/parser state object, supplying a context in which to lex and parse from a new source of Perl code. A pointer to the new state object is placed in <a href="#PL_parser">&quot;PL_parser&quot;</a>. An entry is made on the save stack so that upon unwinding, the new state object will be destroyed and the former value of <a href="#PL_parser">&quot;PL_parser&quot;</a> will be restored. Nothing else need be done to clean up the parsing context.</p>
 
 <p>The code to be parsed comes from <code>line</code> and <code>rsfp</code>. <code>line</code>, if non-null, provides a string (in SV form) containing code to be parsed. A copy of the string is made, so subsequent modification of <code>line</code> does not affect parsing. <code>rsfp</code>, if non-null, provides an input stream from which code will be read to be parsed. If both are non-null, the code in <code>line</code> comes first and must consist of complete lines of input, and <code>rsfp</code> supplies the remainder of the source.</p>
 
@@ -3574,6 +3580,8 @@ NOTE: the perl_ form of this function is deprecated.
 <p>The content of the text chunk in the buffer is commonly exactly one complete line of input, up to and including a newline terminator, but there are situations where it is otherwise. The octets of the buffer may be intended to be interpreted as either UTF-8 or Latin-1. The function <a href="#lex_bufutf8">&quot;lex_bufutf8&quot;</a> tells you which. Do not use the <code>SvUTF8</code> flag on this scalar, which may disagree with it.</p>
 
 <p>For direct examination of the buffer, the variable <a href="#PL_parser--bufend">&quot;PL_parser-&gt;bufend&quot;</a> points to the end of the buffer. The current lexing position is pointed to by <a href="#PL_parser--bufptr">&quot;PL_parser-&gt;bufptr&quot;</a>. Direct use of these pointers is usually preferable to examination of the scalar through normal scalar means.</p>
+
+<p>cperl guarantees that the size of the buffer is minimal the PTRSIZE so we can use faster word-comparisons for longer strings, perl5 not.</p>
 
 </dd>
 </dl>
@@ -5358,7 +5366,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="OP_CLASS">OP_CLASS </dt>
 <dd>
 
-<p>Return the class of the provided OP: that is, which of the *OP structures it uses. For core ops this currently gets the information out of <code>PL_opargs</code>, which does not always accurately reflect the type used. For custom ops the type is returned from the registration, and it is up to the registree to ensure it is accurate. The value returned will be one of the <code>OA_</code>* constants from <i>op.h</i>.</p>
+<p>Return the class of the provided OP: that is, which of the *OP structures it uses. For core ops this currently gets the information out of <code>PL_opargs</code>, which does not always accurately reflect the type used; in v5.26 onwards, see also the function <code><a href="#op_class">&quot;op_class&quot;</a></code> which can do a better job of determining the used type.</p>
+
+<p>For custom ops the type is returned from the registration, and it is up to the registree to ensure it is accurate. The value returned will be one of the <code>OA_</code>* constants from <i>op.h</i>.</p>
 
 <pre><code>        U32     OP_CLASS(OP *o)</code></pre>
 
@@ -6527,7 +6537,9 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>Creates a new SV and copies a string (which may contain <code>NUL</code> (<code>\0</code>) characters) into it. The reference count for the SV is set to 1. If <code>len</code> is zero, Perl will compute the length using <code>strlen()</code>, (which means if you use this option, that <code>s</code> can&#39;t have embedded <code>NUL</code> characters and has to have a terminating <code>NUL</code> byte).</p>
 
-<p>For efficiency, consider using <code>newSVpvn</code> instead.</p>
+<p>This function can cause reliability issues if you are likely to pass in empty strings that are not null terminated, because it will run strlen on the string and potentially run past valid memory.</p>
+
+<p>Using <a href="#newSVpvn">&quot;newSVpvn&quot;</a> is a safer alternative for non <code>NUL</code> terminated strings. For string literals use <a href="#newSVpvs">&quot;newSVpvs&quot;</a> instead. This function will work fine for <code>NUL</code> terminated strings, but if you want to avoid the if statement on whether to call <code>strlen</code> use <code>newSVpvn</code> instead (calling <code>strlen</code> yourself).</p>
 
 <pre><code>        SV*     newSVpv(const char *const s, const STRLEN len)</code></pre>
 
@@ -7079,7 +7091,7 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    sv_insert_flags(SV *const bigstr,
                                 const STRLEN offset,
                                 const STRLEN len,
-                                const char *const little,
+                                const char *little,
                                 const STRLEN littlelen,
                                 const U32 flags)</code></pre>
 

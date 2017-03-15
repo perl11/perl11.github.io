@@ -1173,6 +1173,16 @@
 <p>Starting in Perl 5.16.0, consistent quoting rules are used within the scope of <code>unicode_strings</code>, as described in <a href="/cperl/perlfunc.html#quotemeta">&quot;quotemeta&quot; in perlfunc</a>. Prior to that, or outside its scope, no code points above 127 are quoted in UTF-8 encoded strings, but in byte encoded strings, code points between 128-255 are always quoted.</p>
 
 </li>
+<li><p>In the <code>..</code> or <a href="/cperl/perlop.html#Range-Operators">range</a> operator.</p>
+
+<p>Starting in Perl 5.26.0, the range operator on strings treats their lengths consistently within the scope of <code>unicode_strings</code>. Prior to that, or outside its scope, it could produce strings whose length in characters exceeded that of the right-hand side, where the right-hand side took up more bytes than the correct range endpoint.</p>
+
+</li>
+<li><p>In <a href="/cperl/perlfunc.html#split"><code>split</code>&#39;s special-case whitespace splitting</a>.</p>
+
+<p>Starting in cperl v5.26c and Perl 5.28.0, the <code>split</code> function with a pattern specified as a string containing a single space handles whitespace characters consistently within the scope of of <code>unicode_strings</code>. Prior to that, or outside its scope, characters that are whitespace according to Unicode rules but not according to ASCII rules were treated as field contents rather than field separators when they appear in byte-encoded strings.</p>
+
+</li>
 </ul>
 
 <p>You can see from the above that the effect of <code>unicode_strings</code> increased over several Perl releases. (And Perl&#39;s support for Unicode continues to improve; it&#39;s best to use the latest available release in order to get the most complete and accurate results possible.) Note that <code>unicode_strings</code> is automatically chosen if you <span style="white-space: nowrap;"><code>use 5.012</code></span> or higher.</p>
@@ -1208,7 +1218,7 @@
 <li><p>A filehandle that should read or write UTF-8</p>
 
 <pre><code>  if ($] &gt; 5.008) {
-    binmode $fh, &quot;:encoding(utf8)&quot;;
+    binmode $fh, &quot;:encoding(UTF-8)&quot;;
   }</code></pre>
 
 </li>
@@ -1218,7 +1228,7 @@
 
 <pre><code>  if ($] &gt; 5.008) {
     require Encode;
-    $val = Encode::encode_utf8($val); # make octets
+    $val = Encode::encode(&quot;UTF-8&quot;, $val); # make octets
   }</code></pre>
 
 </li>
@@ -1228,7 +1238,7 @@
 
 <pre><code>  if ($] &gt; 5.008) {
     require Encode;
-    $val = Encode::decode_utf8($val);
+    $val = Encode::decode(&quot;UTF-8&quot;, $val);
   }</code></pre>
 
 </li>
@@ -1301,8 +1311,8 @@
 <pre><code>    sub my_escape_html ($) {
         my($what) = shift;
         return unless defined $what;
-        Encode::decode_utf8(Foo::Bar::escape_html(
-                                         Encode::encode_utf8($what)));
+        Encode::decode(&quot;UTF-8&quot;, Foo::Bar::escape_html(
+                                     Encode::encode(&quot;UTF-8&quot;, $what)));
     }</code></pre>
 
 <p>Sometimes, when the extension does not convert data but just stores and retrieves it, you will be able to use the otherwise dangerous <a><code>Encode::_utf8_on()</code></a> function. Let&#39;s say the popular <code>Foo::Bar</code> extension, written in C, provides a <code>param</code> method that lets you store and retrieve data according to these prototypes:</p>

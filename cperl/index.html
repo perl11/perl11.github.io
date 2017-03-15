@@ -71,6 +71,7 @@
       <li><a href="#Faster-functions-and-method-calls">Faster functions and method calls</a></li>
       <li><a href="#tailcall-eliminiation">tailcall eliminiation</a></li>
       <li><a href="#Proper-object-system">Proper object system</a></li>
+      <li><a href="#Macros">Macros</a></li>
       <li><a href="#libffi-in-core">libffi in core</a></li>
       <li><a href="#Editor-integration">Editor integration</a></li>
       <li><a href="#Jit">Jit</a></li>
@@ -808,6 +809,24 @@
 
 <p>For type inference we will need to make <code>new</code> a special keyword, which is a shortcut for <code>bless</code> with a fixed classname. <code>bless</code> can use computed classnames and thus enforces dynamic types.</p>
 
+<h2 id="Macros">Macros</h2>
+
+<p>Use the existing perl6 S06 synopsis and testcases. In the absence of a signature to the contrary, a macro is called as if it were a method on the current match object returned from the grammar rule being reduced; that is, all the current parse information is available by treating <code>self</code> as if it were a <code>$/</code> object. Macros may return either a string to be reparsed, or a syntax tree that needs no further parsing.</p>
+
+<p>Change the syntax a little bit to harmonize with perl5:</p>
+
+<pre><code>    {{{ }}} =&gt; `` for unquote splicing.</code></pre>
+
+<p>Expand the ast inside the backticks at compile-time as a subprocess would be expanded with its result. Use <code>qx()</code> for subprocesses instead.</p>
+
+<pre><code>    macro infix:&lt;name&gt; () =&gt; macro &#39;name&#39; :infix ()</code></pre>
+
+<p>Use perl5 attributes as perl6 operator overloaders to tell macros if they have non-standard position: infix, prefix, postfix, circumfix, postcircumfix.</p>
+
+<p>Don&#39;t support the quasi attributes <code>:ast/:lang/:unquote</code>, other than <code>:COMPILING</code>. Support the <code>COMPILING::</code> pseudo-package.</p>
+
+<p>See the <i>feature/gh261-macros</i> branch.</p>
+
 <h2 id="libffi-in-core">libffi in core</h2>
 
 <p>Declare extern functions and libraries and call them. There&#39;s no need for XS and seperate compilation for most bindings. Not everybody has a compiler, the very same compiler perl was compiled with. libffi is the slowest ffi library, but has the best platform support, as it is integrated with gcc for java jni support.</p>
@@ -816,7 +835,7 @@
    extern sub itoa(int $s):str;
    extern sub printf(str $s, ...):void;</code></pre>
 
-<p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not.</p>
+<p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not. And we prefer the more natural C-like syntax over the more obscure perl6 syntax.</p>
 
 <p>The alternative syntax would be via a <code>:native</code> attribute, which would allow options, as in <code>sub atoi(str $s):int :native($libc);</code>.</p>
 
