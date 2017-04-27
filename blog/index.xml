@@ -7,8 +7,103 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Tue, 07 Mar 2017 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 27 Apr 2017 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Automatic cperl deployments</title>
+      <link>http://perl11.org/blog/automatic-deployments.html</link>
+      <pubDate>Thu, 27 Apr 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/automatic-deployments.html</guid>
+      <description>
+
+&lt;h1 id=&#34;binary-packages&#34;&gt;Binary packages&lt;/h1&gt;
+
+&lt;p&gt;perl5 relies on external packagers to update and maintain packages for
+various distributions. It only provides source packages as tarballs.&lt;/p&gt;
+
+&lt;p&gt;cperl does a bit better by also providing binary packages for all
+major platforms. See also &lt;strong&gt;Installation&lt;/strong&gt; at the
+&lt;a href=&#34;http://perl11.org/cperl/STATUS.html&#34;&gt;STATUS&lt;/a&gt; page.
+&lt;a href=&#34;http://perl11.org/win/&#34;&gt;win32, win64&lt;/a&gt;, debian 7 i686, debian 8 amd64,
+centos 7 x86_64, centos 6 i686+x86_64 and &lt;a href=&#34;http://perl11.org/osx/&#34;&gt;darwin amd64&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Packaging was done with this &lt;a href=&#34;https://github.com/perl11/cperl/blob/master/Porting/do-make-cperl-release&#34;&gt;do-make-cperl-release&lt;/a&gt; script, leading to&lt;/p&gt;
+
+&lt;p&gt;Centos/Fedora/RHEL as el6 or el7 &lt;code&gt;/etc/yum.repos.d/perl11.repo&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[perl11]
+name=perl11
+baseurl=http://perl11.org/rpm/el7/$basearch
+enabled=1
+gpgkey=http://perl11.org/rpm/RPM-GPG-KEY-rurban
+gpgcheck=1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;or for Debian/Ubuntu &lt;code&gt;/etc/apt/sources.list.d/perl11.list&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;deb http://perl11.org/deb/ sid main
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;So far the packaging was done on private build VM&amp;rsquo;s, and the hosting
+was done on github.  Yes, you can easily host deb and rpm distros for
+free at github pages.  But the idea is also to use external package
+providers, like &lt;a href=&#34;https://build.opensuse.org/&#34;&gt;OpenSUSE OBS&lt;/a&gt;
+or &lt;a href=&#34;https://bintray.com/perl11/&#34;&gt;Bintray&lt;/a&gt;, which do packaging and
+hosting for many more platforms.&lt;/p&gt;
+
+&lt;h1 id=&#34;autodeploy&#34;&gt;Autodeploy&lt;/h1&gt;
+
+&lt;p&gt;With cperl-5.26.0c the packaging for at least win32 and the new win64
+platforms with MSVC12 and darwin is done automatically via tagging a release and pushing it
+to &lt;a href=&#34;https://github.com/perl11/cperl/releases&#34;&gt;github&lt;/a&gt;.
+For MSVC12 you&amp;rsquo;ll need the &lt;em&gt;msvcr120.dll&lt;/em&gt; runtime,
+available e.g. from the Microsoft VS 2013 C++ Redistributable Package
+from &lt;a href=&#34;https://www.microsoft.com/en-us/download/details.aspx?id=40784&#34;&gt;https://www.microsoft.com/en-us/download/details.aspx?id=40784&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Since &lt;a href=&#34;https://github.com/perl11/cperl/commit/9a79df78a29fb50a3c2837cdd2a8422fe98b760a&#34;&gt;today&lt;/a&gt; appveyor provides the windows deployments, and &lt;a href=&#34;https://travis-ci.org/perl11/cperl/builds&#34;&gt;travis&lt;/a&gt; the linux src tarballs and darwin deployments.&lt;/p&gt;
+
+&lt;p&gt;Additionally &lt;a href=&#34;https://ci.appveyor.com/project/rurban/cperl/history&#34;&gt;appveyor&lt;/a&gt;
+provides also nightly builds on every master change. This is for now
+only in private draft releases, but I&amp;rsquo;ll think about enabling it as
+pre-releases.&lt;/p&gt;
+
+&lt;p&gt;Travis does not support nightly builds as easy as Appveyor.
+With Appveyor you can tag your deployments as&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;draft: true
+prerelease: true
+force_update: true
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;but with Travis you can only deploy tags. So for a nightly you would need to add a
+tag for every master change, there&amp;rsquo;s no deploy condition:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;on:
+  appveyor_repo_tag: true
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;vs.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;on:
+  branch: /(master|relprep)/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The missing &lt;code&gt;prerelease&lt;/code&gt; or &lt;code&gt;draft&lt;/code&gt; tag on Travis also means that
+every deployment on tags is a proper release, and you have to manually
+change that to a &lt;em&gt;Pre-Release&lt;/em&gt; on the github release page. You cannot
+change that to an invisible &lt;em&gt;Draft&lt;/em&gt; release.&lt;/p&gt;
+
+&lt;p&gt;The Appveyor &lt;code&gt;force_update: true&lt;/code&gt; deploy tag means that you can start
+a deployment from win32/msvc12 and add files from e.g. win64 later to
+that github release. Travis always allows that. E.g. teh src tarballs
+are added first and darwin pkgbuild files are added later.&lt;/p&gt;
+
+&lt;p&gt;One could also think of extending that to CPAN uploads, by encrypting the PAUSE key
+and let Travis-CI trigger the cpan upload on every new release tag.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Unicode Identifiers</title>
