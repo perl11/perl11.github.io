@@ -7,8 +7,234 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Thu, 27 Apr 2017 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 16 May 2017 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>strict hashpairs</title>
+      <link>http://perl11.org/blog/strict-hashpairs.html</link>
+      <pubDate>Tue, 16 May 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/strict-hashpairs.html</guid>
+      <description>
+
+&lt;h1 id=&#34;perl5-optionally-warns-on-odd-hash-elements&#34;&gt;perl5 optionally warns on odd hash elements&lt;/h1&gt;
+
+&lt;pre&gt;&lt;code&gt;my %h = (0,1,2);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;is legal code in perl5. The second pair is constructed with the undef value.
+With &lt;code&gt;use warnings &#39;misc&#39;&lt;/code&gt; it will warn at least.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use warnings;
+my %h = (0,1,2);
+=&amp;gt; Odd number of elements in hash assignment (WARNING only)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;perl6-throws-on-odd-hash-elements&#34;&gt;perl6 throws on odd hash elements&lt;/h1&gt;
+
+&lt;p&gt;perl6 is sane and strict by default.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my %h = (0..2);
+=&amp;gt; Odd number of elements found where hash initializer expected:
+Found 3 (implicit) elements:
+Last element seen: 2
+  in block &amp;lt;unit&amp;gt; at &amp;lt;unknown file&amp;gt; line 1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;cperl-5-27-throws-with-use-strict&#34;&gt;cperl 5.27 throws with use strict&lt;/h1&gt;
+
+&lt;p&gt;Since cperl 5.27.0 use strict added two new keys: &lt;strong&gt;&amp;lsquo;hashpairs&amp;rsquo;&lt;/strong&gt; and
+&amp;lsquo;names&amp;rsquo;.&lt;/p&gt;
+
+&lt;p&gt;strict hashpairs ensure that no hashes can get created from lists or arrays with odd elements.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use strict;
+my %h = (0,1,2);
+=&amp;gt; Only pairs in hash assignment allowed while &amp;quot;strict hashpairs&amp;quot;, got 3 elements
+Execution of -e aborted due to compilation errors
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;With constant arrays or lists this is even a compile-time error, as seen above.&lt;/p&gt;
+
+&lt;p&gt;With map it is even more strict. With map only a missing or a single
+pair is allowed to construct a hash, not multiple pairs.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use strict;
+my %h = map {$_=&amp;gt;1, $_+1} (0..2);
+=&amp;gt; Only pair in map hash assignment allowed while &amp;quot;strict hashpairs&amp;quot;, got 3 elements
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This was legal in perl5 and is now a run-time error. Net::DNS did it
+to construct two pairs in one loop.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use strict;
+my %h = map {$_} @array;
+=&amp;gt; Only pair in map hash assignment allowed while &amp;quot;strict hashpairs&amp;quot;, got 1 elements
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Typical oddities, which are now forbidden:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;%h = map { $ =&amp;gt; (0,1) } (0..3);
+=&amp;gt; 1=&amp;gt;3, 2=&amp;gt;0, 0=&amp;gt;1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Only 3 keys, not 4. Because &lt;code&gt;@h=map{$=&amp;gt;(0,1)}(0..3);print join&amp;quot; &amp;quot;,@h&#39;&lt;/code&gt;
+=&amp;gt; &lt;code&gt;0 0 1 1 0 1 2 0 1 3 0 1&lt;/code&gt; and the duplicate keys collapse.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;%h = map { $_ } (0..3);
+=&amp;gt; 2=&amp;gt;3, 0=&amp;gt;1 (2 keys, of course)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;more-warnings&#34;&gt;More warnings&lt;/h1&gt;
+
+&lt;p&gt;cperl 5.27 added detection for more &amp;ldquo;Odd elements&amp;rdquo; warnings, esp.
+when a map assigned to a hash produces no pairs.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;no strict;
+use warnings;
+%h = map { $_ } (0..1);
+# =&amp;gt; Odd number of map elements in hash assignment
+%h = map { $_ =&amp;gt; (0,1) } (0..1);
+# =&amp;gt; Odd number of map elements in hash assignment
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The warning is only produced once for each map, not for every map iteration.&lt;/p&gt;
+
+&lt;h1 id=&#34;cpan-impact&#34;&gt;CPAN Impact&lt;/h1&gt;
+
+&lt;p&gt;One might think changing the strictness of the language might break a lot of modules.
+Thanksfully most module authors already use sane coding principles, only a few
+produce multiple pairs per map to a hash.&lt;/p&gt;
+
+&lt;p&gt;All of them have been fixed in my distroprefs patches, and some also upstream.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Net-NDS: &lt;a href=&#34;https://rt.cpan.org/Ticket/Display.html?id=121680&#34;&gt;https://rt.cpan.org/Ticket/Display.html?id=121680&lt;/a&gt; &lt;a href=&#34;https://github.com/rurban/distroprefs/commit/63cd16b8359d1ccd062f0c4b913fa77b4b8681ff&#34;&gt;rurban/distroprefs@63cd16b&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Moose: &lt;a href=&#34;https://github.com/rurban/distroprefs/commit/f929f794fc64b5fef3b29c81f5b313c28f60da92&#34;&gt;rurban/distroprefs@f929f79&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;DBI: &lt;a href=&#34;https://github.com/rurban/distroprefs/commit/2f0c82d7e938e8d10420c3d76eab235fbb229fff&#34;&gt;rurban/distroprefs@2f0c82d&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Class::Tiny &lt;a href=&#34;https://github.com/rurban/distroprefs/commit/02054335a9c30aa3d5d7abfe7ca6002d5ccd4033&#34;&gt;rurban/distroprefs@0205433&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;MooseX::Types &lt;a href=&#34;https://github.com/rurban/distroprefs/commit/e1e3fc0fc6f03a6dcc6afdf9afd4ac85abd6076a&#34;&gt;rurban/distroprefs@e1e3fc0&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Encode &lt;a href=&#34;https://github.com/dankogai/p5-encode/pull/100&#34;&gt;dankogai/p5-encode#100&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Only one module at all used a double pair in a map, Net::DNS. This was easily fixed.
+The other modules use &lt;code&gt;%opts = @_;&lt;/code&gt; to assign a hash from the pairwise arguments of a
+subroutine call. Perfectly fine usage.&lt;/p&gt;
+
+&lt;p&gt;It get&amp;rsquo;s crazy with something like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my %p = map { %{$_} } @_;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;in &lt;code&gt;Moose/Util/TypeConstraints.pm&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Or&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my %attrs = map { %{ Class::MOP::Class-&amp;gt;initialize($_)-&amp;gt;_attribute_map } }
+            reverse $self-&amp;gt;linearized_isa;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;in &lt;code&gt;Class/MOP/Class.pm&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my %defaults = map { ref $_ eq &#39;HASH&#39; ? %$_ : ( $_ =&amp;gt; undef ) } @spec;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;in &lt;code&gt;Class/Tiny.pm&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my %order = map {
+            my $order = $_;
+            map { ( $_ =&amp;gt; $order ) } @{ $dbh-&amp;gt;{sql_init_order}{$order} };
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;in DBI. Here you also see the manual prevention of the problem described
+below, protecting the iteration key from the global iterator in nested
+map loops.&lt;/p&gt;
+
+&lt;p&gt;These cases just deserve a &lt;code&gt;no strict &amp;quot;hashpairs&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&#34;sideeffects-and-wrong-order-of-evaluation-in-map&#34;&gt;Sideeffects and wrong order of evaluation in map&lt;/h1&gt;
+
+&lt;p&gt;And now look at these oddities, detected by Patrick Cronin and rafl for their
+new &lt;a href=&#34;https://github.com/PatrickCronin/Map-Functional/&#34;&gt;Map::Functional&lt;/a&gt;
+module.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;sub x{$_,&amp;quot;ouch&amp;quot;}; %h = map { $_ =&amp;gt; x } (0..3);
+=&amp;gt; %h =&amp;gt; 3=&amp;gt;ouch, ouch=&amp;gt;3, 1=&amp;gt;ouch, 2=&amp;gt;2, 0=&amp;gt;0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;5 not 4 keys. Still the normal list comprehension problem..
+But what if the value changes the key?&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;sub x{$_ = &amp;quot;ouch&amp;quot;}; %h = map { $_ =&amp;gt; x } (0..3);
+=&amp;gt; %h =&amp;gt; ouch=&amp;gt;ouch
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;A sideffect in the value evaluation changed the key, because the &lt;code&gt;$_&lt;/code&gt;
+inside the x subroutine is the same as the global &lt;code&gt;$_&lt;/code&gt; loop iterator
+inside map.  They experience problems with the global topic trampled
+over inside a loop by various other ops, just as &lt;code&gt;while (&amp;lt;&amp;gt;){}&lt;/code&gt; called from
+the value, which changed the key.&lt;/p&gt;
+
+&lt;p&gt;Too bad &lt;a href=&#34;http://blogs.perl.org/users/rurban/2016/04/the-removal-of-the-lexical-topic-feature-in-524.html&#34;&gt;perl5 removed the lexical &lt;code&gt;$_&lt;/code&gt; topic&lt;/a&gt;. This
+would at least have saved the loop iterator.&lt;/p&gt;
+
+&lt;p&gt;But it is worse than that. It is even broken without a lexical &lt;code&gt;$_&lt;/code&gt;,
+and without a function.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;%h = map { $_ =&amp;gt; ($_ = &amp;quot;ouch&amp;quot;) } (0..3);
+=&amp;gt; %h =&amp;gt; ouch=&amp;gt;ouch
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;All the values inside the map are computed at once, hence the first
+&lt;code&gt;$_&lt;/code&gt; is changed also, and the list produced by the map block is
+consumed later, when the block is done.  In a proper language with
+proper of left to right evaluation order the key would be consumed
+first, and then the value.&lt;/p&gt;
+
+&lt;p&gt;The underlying design problem is that the map lambda has no formal argument
+list, where you could enforce that order. &lt;code&gt;map sub(a,b){ a =&amp;gt; b } (0..3)&lt;/code&gt;
+perl5 just uses a block body with a silent &lt;code&gt;($_)&lt;/code&gt; lambda
+signature and the return value(s) just spill over to the stack.&lt;/p&gt;
+
+&lt;p&gt;But it is still solvable by detecting lists inside map blocks and
+consume them one by one.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;map { $_ =&amp;gt; ($_ = &amp;quot;ouch&amp;quot;) } (0..3);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;is roughly compiled as:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mapstart { stmt, stmt } mapwhile rv2av const(AV)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I might change it to:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mapstart { stmt; mapwhile; stmt } mapwhile rv2av const(AV)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The embedded mapwhile op would consume the first element, push it into
+the stack and continue. This would make hash assignments via map much safer.&lt;/p&gt;
+
+&lt;h1 id=&#34;strict-names&#34;&gt;strict names&lt;/h1&gt;
+
+&lt;p&gt;&lt;strong&gt;strict &amp;lsquo;names&amp;rsquo;&lt;/strong&gt; is not yet enabled. It will check for valid
+identifiers being created from strings under no strict &amp;lsquo;refs&amp;rsquo;. Which
+helps in &lt;a href=&#34;unicode-identifiers.html&#34;&gt;fighting invalid identifiers&lt;/a&gt;
+being created, which cannot be handled by the rest of perl, and
+esp. since 5.16 with additional embedded NUL.  cperl 5.26 made
+embedded NUL&amp;rsquo;s and invalid unicode
+identifiers &lt;a href=&#34;https://github.com/perl11/cperl/issues/233&#34;&gt;illegal&lt;/a&gt;,
+and &lt;a href=&#34;https://github.com/perl11/cperl/issues/228&#34;&gt;normalizes unicode identifiers&lt;/a&gt;. But
+there&amp;rsquo;s still room left to create invalid and potentially harmful
+unicode names. Some cases are only warned against.  strict names will
+ensure no illegal name will get created.&lt;/p&gt;
+
+&lt;p&gt;And it clashes with a reserved VMS hint. Means on VMS strict names will be a no-op.&lt;/p&gt;
+
+&lt;h1 id=&#34;comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-5xofay-strict-hashpairs&#34;&gt;Comments on &lt;a href=&#34;https://www.reddit.com/r/cperl/comments/5xofay/strict_hashpairs/&#34;&gt;/r/cperl&lt;/a&gt;&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Automatic cperl deployments</title>

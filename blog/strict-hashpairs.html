@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>strict hashpairs // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="strict hashpairs" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/strict-hashpairs.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">strict hashpairs</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/strict-hashpairs.html" class="article-date">
+                <time datetime='2017-05-16T00:00:00.000&#43;00:00' itemprop="datePublished">2017-05-16</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="perl5-optionally-warns-on-odd-hash-elements">perl5 optionally warns on odd hash elements</h1>
+
+<pre><code>my %h = (0,1,2);
+</code></pre>
+
+<p>is legal code in perl5. The second pair is constructed with the undef value.
+With <code>use warnings 'misc'</code> it will warn at least.</p>
+
+<pre><code>use warnings;
+my %h = (0,1,2);
+=&gt; Odd number of elements in hash assignment (WARNING only)
+</code></pre>
+
+<h1 id="perl6-throws-on-odd-hash-elements">perl6 throws on odd hash elements</h1>
+
+<p>perl6 is sane and strict by default.</p>
+
+<pre><code>my %h = (0..2);
+=&gt; Odd number of elements found where hash initializer expected:
+Found 3 (implicit) elements:
+Last element seen: 2
+  in block &lt;unit&gt; at &lt;unknown file&gt; line 1
+</code></pre>
+
+<h1 id="cperl-5-27-throws-with-use-strict">cperl 5.27 throws with use strict</h1>
+
+<p>Since cperl 5.27.0 use strict added two new keys: <strong>&lsquo;hashpairs&rsquo;</strong> and
+&lsquo;names&rsquo;.</p>
+
+<p>strict hashpairs ensure that no hashes can get created from lists or arrays with odd elements.</p>
+
+<pre><code>use strict;
+my %h = (0,1,2);
+=&gt; Only pairs in hash assignment allowed while &quot;strict hashpairs&quot;, got 3 elements
+Execution of -e aborted due to compilation errors
+</code></pre>
+
+<p>With constant arrays or lists this is even a compile-time error, as seen above.</p>
+
+<p>With map it is even more strict. With map only a missing or a single
+pair is allowed to construct a hash, not multiple pairs.</p>
+
+<pre><code>use strict;
+my %h = map {$_=&gt;1, $_+1} (0..2);
+=&gt; Only pair in map hash assignment allowed while &quot;strict hashpairs&quot;, got 3 elements
+</code></pre>
+
+<p>This was legal in perl5 and is now a run-time error. Net::DNS did it
+to construct two pairs in one loop.</p>
+
+<pre><code>use strict;
+my %h = map {$_} @array;
+=&gt; Only pair in map hash assignment allowed while &quot;strict hashpairs&quot;, got 1 elements
+</code></pre>
+
+<p>Typical oddities, which are now forbidden:</p>
+
+<pre><code>%h = map { $ =&gt; (0,1) } (0..3);
+=&gt; 1=&gt;3, 2=&gt;0, 0=&gt;1
+</code></pre>
+
+<p>Only 3 keys, not 4. Because <code>@h=map{$=&gt;(0,1)}(0..3);print join&quot; &quot;,@h'</code>
+=&gt; <code>0 0 1 1 0 1 2 0 1 3 0 1</code> and the duplicate keys collapse.</p>
+
+<pre><code>%h = map { $_ } (0..3);
+=&gt; 2=&gt;3, 0=&gt;1 (2 keys, of course)
+</code></pre>
+
+<h1 id="more-warnings">More warnings</h1>
+
+<p>cperl 5.27 added detection for more &ldquo;Odd elements&rdquo; warnings, esp.
+when a map assigned to a hash produces no pairs.</p>
+
+<pre><code>no strict;
+use warnings;
+%h = map { $_ } (0..1);
+# =&gt; Odd number of map elements in hash assignment
+%h = map { $_ =&gt; (0,1) } (0..1);
+# =&gt; Odd number of map elements in hash assignment
+</code></pre>
+
+<p>The warning is only produced once for each map, not for every map iteration.</p>
+
+<h1 id="cpan-impact">CPAN Impact</h1>
+
+<p>One might think changing the strictness of the language might break a lot of modules.
+Thanksfully most module authors already use sane coding principles, only a few
+produce multiple pairs per map to a hash.</p>
+
+<p>All of them have been fixed in my distroprefs patches, and some also upstream.</p>
+
+<ul>
+<li>Net-NDS: <a href="https://rt.cpan.org/Ticket/Display.html?id=121680">https://rt.cpan.org/Ticket/Display.html?id=121680</a> <a href="https://github.com/rurban/distroprefs/commit/63cd16b8359d1ccd062f0c4b913fa77b4b8681ff">rurban/distroprefs@63cd16b</a></li>
+<li>Moose: <a href="https://github.com/rurban/distroprefs/commit/f929f794fc64b5fef3b29c81f5b313c28f60da92">rurban/distroprefs@f929f79</a></li>
+<li>DBI: <a href="https://github.com/rurban/distroprefs/commit/2f0c82d7e938e8d10420c3d76eab235fbb229fff">rurban/distroprefs@2f0c82d</a></li>
+<li>Class::Tiny <a href="https://github.com/rurban/distroprefs/commit/02054335a9c30aa3d5d7abfe7ca6002d5ccd4033">rurban/distroprefs@0205433</a></li>
+<li>MooseX::Types <a href="https://github.com/rurban/distroprefs/commit/e1e3fc0fc6f03a6dcc6afdf9afd4ac85abd6076a">rurban/distroprefs@e1e3fc0</a></li>
+<li>Encode <a href="https://github.com/dankogai/p5-encode/pull/100">dankogai/p5-encode#100</a></li>
+</ul>
+
+<p>Only one module at all used a double pair in a map, Net::DNS. This was easily fixed.
+The other modules use <code>%opts = @_;</code> to assign a hash from the pairwise arguments of a
+subroutine call. Perfectly fine usage.</p>
+
+<p>It get&rsquo;s crazy with something like</p>
+
+<pre><code>my %p = map { %{$_} } @_;
+</code></pre>
+
+<p>in <code>Moose/Util/TypeConstraints.pm</code>.</p>
+
+<p>Or</p>
+
+<pre><code>my %attrs = map { %{ Class::MOP::Class-&gt;initialize($_)-&gt;_attribute_map } }
+            reverse $self-&gt;linearized_isa;
+</code></pre>
+
+<p>in <code>Class/MOP/Class.pm</code>.</p>
+
+<pre><code>my %defaults = map { ref $_ eq 'HASH' ? %$_ : ( $_ =&gt; undef ) } @spec;
+</code></pre>
+
+<p>in <code>Class/Tiny.pm</code></p>
+
+<pre><code>my %order = map {
+            my $order = $_;
+            map { ( $_ =&gt; $order ) } @{ $dbh-&gt;{sql_init_order}{$order} };
+</code></pre>
+
+<p>in DBI. Here you also see the manual prevention of the problem described
+below, protecting the iteration key from the global iterator in nested
+map loops.</p>
+
+<p>These cases just deserve a <code>no strict &quot;hashpairs&quot;</code>.</p>
+
+<h1 id="sideeffects-and-wrong-order-of-evaluation-in-map">Sideeffects and wrong order of evaluation in map</h1>
+
+<p>And now look at these oddities, detected by Patrick Cronin and rafl for their
+new <a href="https://github.com/PatrickCronin/Map-Functional/">Map::Functional</a>
+module.</p>
+
+<pre><code>sub x{$_,&quot;ouch&quot;}; %h = map { $_ =&gt; x } (0..3);
+=&gt; %h =&gt; 3=&gt;ouch, ouch=&gt;3, 1=&gt;ouch, 2=&gt;2, 0=&gt;0
+</code></pre>
+
+<p>5 not 4 keys. Still the normal list comprehension problem..
+But what if the value changes the key?</p>
+
+<pre><code>sub x{$_ = &quot;ouch&quot;}; %h = map { $_ =&gt; x } (0..3);
+=&gt; %h =&gt; ouch=&gt;ouch
+</code></pre>
+
+<p>A sideffect in the value evaluation changed the key, because the <code>$_</code>
+inside the x subroutine is the same as the global <code>$_</code> loop iterator
+inside map.  They experience problems with the global topic trampled
+over inside a loop by various other ops, just as <code>while (&lt;&gt;){}</code> called from
+the value, which changed the key.</p>
+
+<p>Too bad <a href="http://blogs.perl.org/users/rurban/2016/04/the-removal-of-the-lexical-topic-feature-in-524.html">perl5 removed the lexical <code>$_</code> topic</a>. This
+would at least have saved the loop iterator.</p>
+
+<p>But it is worse than that. It is even broken without a lexical <code>$_</code>,
+and without a function.</p>
+
+<pre><code>%h = map { $_ =&gt; ($_ = &quot;ouch&quot;) } (0..3);
+=&gt; %h =&gt; ouch=&gt;ouch
+</code></pre>
+
+<p>All the values inside the map are computed at once, hence the first
+<code>$_</code> is changed also, and the list produced by the map block is
+consumed later, when the block is done.  In a proper language with
+proper of left to right evaluation order the key would be consumed
+first, and then the value.</p>
+
+<p>The underlying design problem is that the map lambda has no formal argument
+list, where you could enforce that order. <code>map sub(a,b){ a =&gt; b } (0..3)</code>
+perl5 just uses a block body with a silent <code>($_)</code> lambda
+signature and the return value(s) just spill over to the stack.</p>
+
+<p>But it is still solvable by detecting lists inside map blocks and
+consume them one by one.</p>
+
+<pre><code>map { $_ =&gt; ($_ = &quot;ouch&quot;) } (0..3);
+</code></pre>
+
+<p>is roughly compiled as:</p>
+
+<pre><code>mapstart { stmt, stmt } mapwhile rv2av const(AV)
+</code></pre>
+
+<p>I might change it to:</p>
+
+<pre><code>mapstart { stmt; mapwhile; stmt } mapwhile rv2av const(AV)
+</code></pre>
+
+<p>The embedded mapwhile op would consume the first element, push it into
+the stack and continue. This would make hash assignments via map much safer.</p>
+
+<h1 id="strict-names">strict names</h1>
+
+<p><strong>strict &lsquo;names&rsquo;</strong> is not yet enabled. It will check for valid
+identifiers being created from strings under no strict &lsquo;refs&rsquo;. Which
+helps in <a href="unicode-identifiers.html">fighting invalid identifiers</a>
+being created, which cannot be handled by the rest of perl, and
+esp. since 5.16 with additional embedded NUL.  cperl 5.26 made
+embedded NUL&rsquo;s and invalid unicode
+identifiers <a href="https://github.com/perl11/cperl/issues/233">illegal</a>,
+and <a href="https://github.com/perl11/cperl/issues/228">normalizes unicode identifiers</a>. But
+there&rsquo;s still room left to create invalid and potentially harmful
+unicode names. Some cases are only warned against.  strict names will
+ensure no illegal name will get created.</p>
+
+<p>And it clashes with a reserved VMS hint. Means on VMS strict names will be a no-op.</p>
+
+<h1 id="comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-5xofay-strict-hashpairs">Comments on <a href="https://www.reddit.com/r/cperl/comments/5xofay/strict_hashpairs/">/r/cperl</a></h1>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#perl5-optionally-warns-on-odd-hash-elements">perl5 optionally warns on odd hash elements</a></li>
+<li><a href="#perl6-throws-on-odd-hash-elements">perl6 throws on odd hash elements</a></li>
+<li><a href="#cperl-5-27-throws-with-use-strict">cperl 5.27 throws with use strict</a></li>
+<li><a href="#more-warnings">More warnings</a></li>
+<li><a href="#cpan-impact">CPAN Impact</a></li>
+<li><a href="#sideeffects-and-wrong-order-of-evaluation-in-map">Sideeffects and wrong order of evaluation in map</a></li>
+<li><a href="#strict-names">strict names</a></li>
+<li><a href="#comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-5xofay-strict-hashpairs">Comments on <a href="https://www.reddit.com/r/cperl/comments/5xofay/strict_hashpairs/">/r/cperl</a></a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/hash">hash
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/automatic-deployments.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">Automatic cperl deployments&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
