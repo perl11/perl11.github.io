@@ -79,7 +79,7 @@
 
 <p>This document will help you learn the best way to go about hacking on the Perl core C code. It covers common problems, debugging, profiling, and more.</p>
 
-<p>If you haven&#39;t read <a href="/cperl/perlhack.html">perlhack</a> and <a href="/pod/perlhacktut.html">perlhacktut</a> yet, you might want to do that first.</p>
+<p>If you haven&#39;t read <a href="/cperl/perlhack.html">perlhack</a> and <a href="/cperl/perlhacktut.html">perlhacktut</a> yet, you might want to do that first.</p>
 
 <h1 id="COMMON-PROBLEMS">COMMON PROBLEMS</h1>
 
@@ -452,7 +452,7 @@
 <p>A good resource on the predefined macros for various operating systems, compilers, and so forth is <a href="http://sourceforge.net/p/predef/wiki/Home/">http://sourceforge.net/p/predef/wiki/Home/</a></p>
 
 </li>
-<li><p>Assuming the contents of static memory pointed to by the return values of Perl wrappers for C library functions doesn&#39;t change. Many C library functions return pointers to static storage that can be overwritten by subsequent calls to the same or related functions. Perl has light-weight wrappers for some of these functions, and which don&#39;t make copies of the static memory. A good example is the interface to the environment variables that are in effect for the program. Perl has <code>PerlEnv_getenv</code> to get values from the environment. But the return is a pointer to static memory in the C library. If you are using the value to immediately test for something, that&#39;s fine, but if you save the value and expect it to be unchanged by later processing, you would be wrong, but perhaps you wouldn&#39;t know it because different C library implementations behave differently, and the one on the platform you&#39;re testing on might work for your situation. But on some platforms, a subsequent call to <code>PerlEnv_getenv</code> or related function WILL overwrite the memory that your first call points to. This has led to some hard-to-debug problems. Do a <a href="/cperl/perlapi.html#savepv">&quot;savepv&quot; in perlapi</a> to make a copy, thus avoiding these problems. You will have to free the copy when you&#39;re done to avoid memory leaks. If you don&#39;t have control over when it gets freed, you&#39;ll need to make the copy in a mortal scalar, like so:</p>
+<li><p>Assuming the contents of static memory pointed to by the return values of Perl wrappers for C library functions doesn&#39;t change. Many C library functions return pointers to static storage that can be overwritten by subsequent calls to the same or related functions. Perl has light-weight wrappers for some of these functions, and which don&#39;t make copies of the static memory. A good example is the interface to the environment variables that are in effect for the program. Perl has <code>PerlEnv_getenv</code> to get values from the environment. But the return is a pointer to static memory in the C library. If you are using the value to immediately test for something, that&#39;s fine, but if you save the value and expect it to be unchanged by later processing, you would be wrong, but perhaps you wouldn&#39;t know it because different C library implementations behave differently, and the one on the platform you&#39;re testing on might work for your situation. But on some platforms, a subsequent call to <code>PerlEnv_getenv</code> or related function WILL overwrite the memory that your first call points to. This has led to some hard-to-debug problems. Do a <a>&quot;savepv&quot; in perlapi</a> to make a copy, thus avoiding these problems. You will have to free the copy when you&#39;re done to avoid memory leaks. If you don&#39;t have control over when it gets freed, you&#39;ll need to make the copy in a mortal scalar, like so:</p>
 
 <pre><code> if ((s = PerlEnv_getenv(&quot;foo&quot;) == NULL) {
     ... /* handle NULL case */
@@ -501,7 +501,7 @@
 </li>
 <li><p>Do not use sprintf() or vsprintf()</p>
 
-<p>If you really want just plain byte strings, use my_snprintf() and my_vsnprintf() instead, which will try to use snprintf() and vsnprintf() if those safer APIs are available. If you want something fancier than a plain byte string, use <a href="/cperl/perlapi.html#form"><code>Perl_form</code>()</a> or SVs and <a href="/pod/perlapi.html#sv_catpvf"><code>Perl_sv_catpvf()</code></a>.</p>
+<p>If you really want just plain byte strings, use my_snprintf() and my_vsnprintf() instead, which will try to use snprintf() and vsnprintf() if those safer APIs are available. If you want something fancier than a plain byte string, use <a><code>Perl_form</code>()</a> or SVs and <a><code>Perl_sv_catpvf()</code></a>.</p>
 
 <p>Note that glibc <code>printf()</code>, <code>sprintf()</code>, etc. are buggy before glibc version 2.17. They won&#39;t allow a <code>%.s</code> format with a precision to create a string that isn&#39;t valid UTF-8 if the current underlying locale of the program is UTF-8. What happens is that the <code>%s</code> and its operand are simply skipped without any notice. <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=6530">https://sourceware.org/bugzilla/show_bug.cgi?id=6530</a>.</p>
 
