@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>strict names // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="strict names" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/strict-names.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">strict names</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/strict-names.html" class="article-date">
+                <time datetime='2017-05-18T00:00:00.000&#43;00:00' itemprop="datePublished">2017-05-18</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="consistent-identifier-parsing-rules">Consistent identifier parsing rules</h1>
+
+<p>perl5 and cperl older than 5.27.0 accepts any string as valid
+identifier name when being created under <code>no strict 'refs'</code> at
+run-time, even when most such names are illegal, and cannot be handled
+by most external modules.
+Even invalid unicode is allowed.</p>
+
+<p>cperl 5.26 fixed embedded NUL&rsquo;s and invalid unicode
+identifiers <a href="https://github.com/perl11/cperl/issues/233">illegal</a>,
+and
+<a href="https://github.com/perl11/cperl/issues/228">normalizes unicode identifiers</a> in
+the parser.</p>
+
+<p>Since cperl 5.27.1 dynamically created names are treated the same way
+as when they are parsed. Which means illegal utf8 names are
+rejected, unicode names are now normalized at run-time in the rv2sv
+OP, via <code>${&quot;string&quot;}</code>.</p>
+
+<h1 id="strict-names">strict names</h1>
+
+<p><strong>strict &lsquo;names&rsquo;</strong> is now implemented, included in the default and
+enabled with cperl 5.27.1. It checks
+for <a href="http://perl11.org/cperl/perldata.html#Identifier-parsing">valid identifiers</a> being
+created from strings under <code>no strict 'refs'</code> at run-time to match the
+same rules as when they would have been created at compile-time by the
+parser. Which helps
+in <a href="unicode-identifiers.html">fighting invalid identifiers</a>, which
+cannot be handled by the rest of perl.
+But there was still room left to create invalid and
+potentially harmful utf8 names at run-time via <code>no strict 'refs'</code>.
+strict names ensures no illegal name will get created.</p>
+
+<p>Note that p5p insists that illegal identifiers are still legal to
+create at run-time. Only compile-time illegal identifiers are illegal.</p>
+
+<p>Currently it clashes with a reserved VMS hint. That means on VMS
+strict names will be implemented in a slower way, via a hints hash
+key, not a hints scalar bit.</p>
+
+<h1 id="examples">Examples</h1>
+
+<ul>
+<li>This was legal before and is now illegal:</li>
+</ul>
+
+<pre><code>    use strict; no strict 'refs';
+
+    ${&quot;\xc3\x28&quot;}
+    
+    my $s = &quot;\xe2\x28\xa1&quot;;
+    ${$s}
+    
+    ${&quot;$s\::xx&quot;}
+    
+    ${&quot;\cTAINT&quot;}
+</code></pre>
+
+<p>=&gt; Invalid identifier &ldquo;\24AINT&rdquo; while &ldquo;strict names&rdquo; in use</p>
+
+<ul>
+<li>This symbol is since 5.26 normalized, previously not.</li>
+</ul>
+
+<pre><code>    use strict; no strict &quot;refs&quot;;
+    my $café = &quot;café&quot;;   # &lt;c, a, f, e, U+0301, U+0301&gt;
+    print $café;         # &lt;c, a, f, U+00E9&gt;
+</code></pre>
+
+<p>Before:</p>
+
+<pre><code>Empty
+</code></pre>
+
+<p>Now:</p>
+
+<pre><code>café
+</code></pre>
+
+<ul>
+<li>And the illegal UTF-8 variant:</li>
+</ul>
+
+<pre><code>     use strict; no strict 'refs';
+     my $café = &quot;café&quot;; # &lt;c, a, f, e, U+0301, U+0301&gt; 
+     print ${$café};    # &lt;c, a, f, U+00E9&gt;
+</code></pre>
+
+<p>Before:</p>
+
+<pre><code>Global symbol &quot;$café&quot; requires explicit package name (did you forget to declare &quot;my $café&quot;?) at -e line 3.
+</code></pre>
+
+<p>Now:</p>
+
+<pre><code>Malformed UTF-8 character: \x81 (unexpected continuation byte 0x81, with no preceding start byte) in scalar dereference at -e line 3.
+Malformed UTF-8 character (fatal) at -e line 3.
+</code></pre>
+
+<h1 id="cpan-impact">CPAN Impact</h1>
+
+<p>Not many CPAN modules are affected by strict names being on by
+default.  This is expected as strict names mostly protects against
+run-time security attacks.</p>
+
+<ul>
+<li><p>Pod-Perldoc: <a href="https://rt.cpan.org/Ticket/Display.html?id=121771">https://rt.cpan.org/Ticket/Display.html?id=121771</a></p>
+
+<p><code>my $version = do { no strict 'refs'; ${ '$' . $class . '::VERSION' } };</code>
+=&gt; Invalid identifier &ldquo;$Pod::Perldoc::VERSION&rdquo; while &ldquo;strict names&rdquo; in use</p></li>
+</ul>
+
+<p>cperl caught the wrong leading <code>$</code> here.</p>
+
+<h1 id="comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bgya8-strict-names">Comments on <a href="https://www.reddit.com/r/cperl/comments/6bgya8/strict_names/">/r/cperl</a></h1>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#consistent-identifier-parsing-rules">Consistent identifier parsing rules</a></li>
+<li><a href="#strict-names">strict names</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#cpan-impact">CPAN Impact</a></li>
+<li><a href="#comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bgya8-strict-names">Comments on <a href="https://www.reddit.com/r/cperl/comments/6bgya8/strict_names/">/r/cperl</a></a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/strict-hashpairs.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">strict hashpairs&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

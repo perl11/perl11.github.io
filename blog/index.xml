@@ -7,8 +7,134 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Tue, 16 May 2017 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 18 May 2017 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>strict names</title>
+      <link>http://perl11.org/blog/strict-names.html</link>
+      <pubDate>Thu, 18 May 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/strict-names.html</guid>
+      <description>
+
+&lt;h1 id=&#34;consistent-identifier-parsing-rules&#34;&gt;Consistent identifier parsing rules&lt;/h1&gt;
+
+&lt;p&gt;perl5 and cperl older than 5.27.0 accepts any string as valid
+identifier name when being created under &lt;code&gt;no strict &#39;refs&#39;&lt;/code&gt; at
+run-time, even when most such names are illegal, and cannot be handled
+by most external modules.
+Even invalid unicode is allowed.&lt;/p&gt;
+
+&lt;p&gt;cperl 5.26 fixed embedded NUL&amp;rsquo;s and invalid unicode
+identifiers &lt;a href=&#34;https://github.com/perl11/cperl/issues/233&#34;&gt;illegal&lt;/a&gt;,
+and
+&lt;a href=&#34;https://github.com/perl11/cperl/issues/228&#34;&gt;normalizes unicode identifiers&lt;/a&gt; in
+the parser.&lt;/p&gt;
+
+&lt;p&gt;Since cperl 5.27.1 dynamically created names are treated the same way
+as when they are parsed. Which means illegal utf8 names are
+rejected, unicode names are now normalized at run-time in the rv2sv
+OP, via &lt;code&gt;${&amp;quot;string&amp;quot;}&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&#34;strict-names&#34;&gt;strict names&lt;/h1&gt;
+
+&lt;p&gt;&lt;strong&gt;strict &amp;lsquo;names&amp;rsquo;&lt;/strong&gt; is now implemented, included in the default and
+enabled with cperl 5.27.1. It checks
+for &lt;a href=&#34;http://perl11.org/cperl/perldata.html#Identifier-parsing&#34;&gt;valid identifiers&lt;/a&gt; being
+created from strings under &lt;code&gt;no strict &#39;refs&#39;&lt;/code&gt; at run-time to match the
+same rules as when they would have been created at compile-time by the
+parser. Which helps
+in &lt;a href=&#34;unicode-identifiers.html&#34;&gt;fighting invalid identifiers&lt;/a&gt;, which
+cannot be handled by the rest of perl.
+But there was still room left to create invalid and
+potentially harmful utf8 names at run-time via &lt;code&gt;no strict &#39;refs&#39;&lt;/code&gt;.
+strict names ensures no illegal name will get created.&lt;/p&gt;
+
+&lt;p&gt;Note that p5p insists that illegal identifiers are still legal to
+create at run-time. Only compile-time illegal identifiers are illegal.&lt;/p&gt;
+
+&lt;p&gt;Currently it clashes with a reserved VMS hint. That means on VMS
+strict names will be implemented in a slower way, via a hints hash
+key, not a hints scalar bit.&lt;/p&gt;
+
+&lt;h1 id=&#34;examples&#34;&gt;Examples&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This was legal before and is now illegal:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;    use strict; no strict &#39;refs&#39;;
+
+    ${&amp;quot;\xc3\x28&amp;quot;}
+    
+    my $s = &amp;quot;\xe2\x28\xa1&amp;quot;;
+    ${$s}
+    
+    ${&amp;quot;$s\::xx&amp;quot;}
+    
+    ${&amp;quot;\cTAINT&amp;quot;}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;=&amp;gt; Invalid identifier &amp;ldquo;\24AINT&amp;rdquo; while &amp;ldquo;strict names&amp;rdquo; in use&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This symbol is since 5.26 normalized, previously not.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;    use strict; no strict &amp;quot;refs&amp;quot;;
+    my $café = &amp;quot;café&amp;quot;;   # &amp;lt;c, a, f, e, U+0301, U+0301&amp;gt;
+    print $café;         # &amp;lt;c, a, f, U+00E9&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Before:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Empty
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;café
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;And the illegal UTF-8 variant:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;     use strict; no strict &#39;refs&#39;;
+     my $café = &amp;quot;café&amp;quot;; # &amp;lt;c, a, f, e, U+0301, U+0301&amp;gt; 
+     print ${$café};    # &amp;lt;c, a, f, U+00E9&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Before:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Global symbol &amp;quot;$café&amp;quot; requires explicit package name (did you forget to declare &amp;quot;my $café&amp;quot;?) at -e line 3.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Malformed UTF-8 character: \x81 (unexpected continuation byte 0x81, with no preceding start byte) in scalar dereference at -e line 3.
+Malformed UTF-8 character (fatal) at -e line 3.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;cpan-impact&#34;&gt;CPAN Impact&lt;/h1&gt;
+
+&lt;p&gt;Not many CPAN modules are affected by strict names being on by
+default.  This is expected as strict names mostly protects against
+run-time security attacks.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Pod-Perldoc: &lt;a href=&#34;https://rt.cpan.org/Ticket/Display.html?id=121771&#34;&gt;https://rt.cpan.org/Ticket/Display.html?id=121771&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;my $version = do { no strict &#39;refs&#39;; ${ &#39;$&#39; . $class . &#39;::VERSION&#39; } };&lt;/code&gt;
+=&amp;gt; Invalid identifier &amp;ldquo;$Pod::Perldoc::VERSION&amp;rdquo; while &amp;ldquo;strict names&amp;rdquo; in use&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;cperl caught the wrong leading &lt;code&gt;$&lt;/code&gt; here.&lt;/p&gt;
+
+&lt;h1 id=&#34;comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bgya8-strict-names&#34;&gt;Comments on &lt;a href=&#34;https://www.reddit.com/r/cperl/comments/6bgya8/strict_names/&#34;&gt;/r/cperl&lt;/a&gt;&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>strict hashpairs</title>
