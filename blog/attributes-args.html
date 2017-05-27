@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Attributes arguments // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="Attributes arguments" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/attributes-args.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">Attributes arguments</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/attributes-args.html" class="article-date">
+                <time datetime='2017-05-27T00:00:00.000&#43;00:00' itemprop="datePublished">2017-05-27</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="perl5-had-broken-attribute-handling-forever">perl5 had broken attribute handling forever</h1>
+
+<p>perl5 attributes were invented to provide extendable hooks to attach
+data or run code at any data, and made for nice syntax, almost
+resembling other languages.</p>
+
+<p>E.g.</p>
+
+<pre><code>my $i :Int = 1;
+sub calc :prototype($$) { shift + shift }
+</code></pre>
+
+<p>There were a few number of builtin attributes, like <code>:lvalue</code>,
+<code>:shared</code>, <code>:const</code>, adding a flag to a function or data, and you could
+add package-specific for compile-time or run-time hooks to process arbitrary custom
+attributes.</p>
+
+<p>A <code>&amp;MyClass::FETCH_SCALAR_ATTRIBUTES</code> hook would be called on every
+not-builtin <code>MyClass::</code> scalar attribute at run-time, and
+<code>&amp;MyClass::MODIFY_SCALAR_ATTRIBUTES</code> at compile-time.</p>
+
+<p>If you would want to process attributes in all classes you&rsquo;d need to add <code>UNIVERSAL</code> hooks
+or use handlers like <code>Attribute::Handlers</code>.
+This would simplify declaring code for attributes.</p>
+
+<pre><code>sub Good : ATTR(SCALAR) {
+    my ($package, $symbol, $referent, $attr, $data) = @_;
+
+    # Invoked for any scalar variable with a :Good attribute,
+    # provided the variable was declared in MyClass (or
+    # a derived class) or typed to MyClass.
+
+    # Do whatever to $referent here (executed in CHECK phase).
+    ...
+}
+</code></pre>
+
+<p>Note the last <code>$data</code> argument above. This is the optional argument
+for an <code>:Good</code> attribute, such as in
+<code>my MyClass $obj :Good(print a number);</code>. Do you see the problem?</p>
+
+<p><code>$data</code> will be the result of the evaluation of <code>print a number</code>.
+Which will create this error: <code>Can't locate object method &quot;a&quot; via package &quot;number&quot;</code>.
+This would be the correct declaration: <code>my MyClass $obj :Good(&quot;print a number&quot;);</code>.
+So <code>Attribute::Handlers</code> is entirely unsafe by evaluating all attribute arguments.</p>
+
+<p>But Damian was right thinking of the use-cases. Attribute arguments
+are needed to attach certain data to a variable of function. He just
+didn&rsquo;t implement it properly, as with all of his modules.</p>
+
+<p>E.g. in cperl we added type support via attributes:
+<code>sub calc ($a:int) :int { $a + 10 }</code> declares calc as returning an <code>int</code> type, and the
+<code>$a</code> argument to accept <code>int</code> types.</p>
+
+<p>For the upcoming cperl ffi (Foreign FunctionCall Interface) we need
+attribute arguments more urgently.</p>
+
+<p><code>sub random () :native :long;</code> declares random as native function,
+searched in all loaded shared libraries. I.e. <code>libc</code> must already be
+loaded. It is by default, so this works. But for non-default shared
+libraries we need to specify the name of the library.</p>
+
+<p>Look e.g. at this perl6 NativeCall declaration:</p>
+
+<pre><code>use NativeCall;
+sub mysql_init( OpaquePointer $mysql_client )
+    returns OpaquePointer
+    is native('libmysqlclient')
+    { ... }
+</code></pre>
+
+<p>Of course this syntax is not ideal.</p>
+
+<ul>
+<li><code>returns OpaquePointer</code> is abbrevated in cperl to <code>:OpaquePointer</code>.</li>
+<li><code>is native('libmysqlclient')</code> has the syntax <code>:native('mysqlclient')</code>.</li>
+<li>The empty <code>{ ... }</code> block is of course left out. Ditto for <code>{ * }</code>. This is superfluous syntax.</li>
+</ul>
+
+<p>A ffi declaration is just a declaration without a body. The body is looked up by the native
+attribute, in the declared library, and optionally under the <code>:symbol('mysql_init')</code> name.
+See the <a href="https://docs.perl6.org/language/nativecall#Changing_names">p6 nativecall docs</a>.</p>
+
+<p>cperl syntax:</p>
+
+<pre><code>use NativeCall;
+extern sub mysql_init( OpaquePointer $mysql_client ) :OpaquePointer :native('mysqlclient');
+</code></pre>
+
+<p>The <code>extern sub</code> declaration is syntax sugar, <code>extern</code> means the same
+as <code>:native</code>, it just looks better, as in better languages.</p>
+
+<h1 id="attribute-arguments">Attribute arguments</h1>
+
+<p>Now to the <code>:native</code> argument, the name of library. You saw in the
+first zavolaj example the <code>lib</code> prefix stated explictly. <code>is native('libmysqlclient')</code></p>
+
+<p>This will not work on windows and cygwin.  cygwin needs a <code>cyg</code> prefix
+and a version suffix, the dll is called <code>cygmysqlclient-18.dll</code>.</p>
+
+<p>On windows the library would be called <code>libmysql.dll</code>, but this varies
+wildly, as there&rsquo;s no naming convention for shared libs, only for
+import libs.</p>
+
+<p>The world is not made for FFI&rsquo;s, just for linking libraries at
+compile-time. There a <code>-lmysqlclient</code> is enough, on windows this would
+find <code>libmysqlclient.dll.a</code> or <code>libmysqlclient.lib</code>, which is an
+import library which refers to the proper versioned name of the
+current shared library. Remember that windows does not solve the
+versionining problem of shared libraries via symlinks. One does not
+load shared libraries directly on Windows.</p>
+
+<p>So your FFI mysql connector would do some little application logic, like</p>
+
+<pre><code>    my $libname = &quot;mysqlclient&quot;;
+    $libname = &quot;cygmysqlclient-18.dll&quot; if $^O eq 'cygwin`;
+    
+    sub mysql_init( OpaquePointer $mysql_client ) :OpaquePointer :native($libname);
+</code></pre>
+
+<p>It cannot be solved in the native attribute handler unless you add the
+version, like <code>:native('mysqlclient', 18)</code>. Then the library searcher
+can add some magic to find the proper shared library.  But it is
+usually done application specific.</p>
+
+<p>But all this will not work in perl5, as perl5 has no proper way to resolve the
+attribute argument <code>$libname</code> at run-time. What perl5 does is parsing
+<code>:native($libname)</code> to the string <code>'native($libname)'</code> and passes it
+to <code>BEGIN { use attributes ... ':native($libname)'; }</code>.</p>
+
+<p>Note <code>':native($libname)'</code> and not <code>&quot;:native($libname)&quot;</code>,
+i.e. <code>$libname</code> is not expanded to it&rsquo;s value, and it would not help much
+as the call happens at compile-time, so <code>$libname</code> would have been empty still.</p>
+
+<p>What it should have done instead is to inject the code
+<code>use attributes ... &quot;native($libname)&quot;;</code>, which is the equivalent of</p>
+
+<pre><code>BEGIN { require attributes; }
+attributes-&gt;import(__PACKAGE__, \&amp;msql_init, &quot;native&quot;, $libname);
+</code></pre>
+
+<p>Which means the import call needs to be deferred to run-time. perl5
+does this only for <strong>my</strong> variable attribute parsing, but not for functions.</p>
+
+<p><code>my $var :native($libname)</code> would correctly call the importer at
+run-time, but <code>sub random() :native($libname);</code> would falsely call the
+importer at compile-time, and the argument would not be parsed at
+all. Everything is passed as string to the importer, and the hook
+needs to parse the argument. Hence the Attribute:Handler security
+nightmare, simply calling eval on all args. Which is a lot of fun
+e.g. with a documentation attribute with <code>App::Rad</code>, when your
+docstring is eval&rsquo;ed.</p>
+
+<p>Now with cperl there are now two kind of builtin attributes. The old
+:prototype args are still compiled as barewords, but the new :native
+and :symbol attribute args (and probably more upcoming) are compiled
+as data, with constant strings being compiled at compile-time, and
+scalar values being defered to run-time.  Just as with <code>use attributes
+&quot;native&quot;, $libname;</code></p>
+
+<h1 id="internally">Internally</h1>
+
+<p>Internally perl5 has 3 attrs API&rsquo;s. Two of them are useful, if still broken.</p>
+
+<p><code>apply_attrs</code> is the compile-time variant, passing the verbatim string
+with the argument to the attribute import call at compile-time.</p>
+
+<p>This translates <code>sub func :native($libname)</code> to
+<code>BEGIN { use attributes __PACKAGE__, \&amp;func, 'native($libname)'; }</code>.</p>
+
+<p><code>apply_attrs_my</code> is the run-time variant, passing the verbatim string
+with the argument to the attribute import call at run-time.</p>
+
+<p>This translates <code>my $var :native($libname);</code> to <code>my $var; use
+attributes __PACKAGE__, \&amp;var, 'native($libname);</code>.  This is almost
+correct. At least the import is done at run-time, and the attribute
+handler will have a chance to handle the value of the thing inside the
+parens. So eval will work there.</p>
+
+<p>cperl detects in the lexer scalar variables from attribute arguments,
+constructs a proper list for the argument,
+and passes it to <code>apply_attrs()</code>, which then tries to detect needed
+run-time deferral. And if so calls <code>apply_attrs_my()</code> instead.</p>
+
+<p>This translates <code>my $var :native($libname);</code> to</p>
+
+<pre><code>my $var; use attributes __PACKAGE__, \$var, 'native', $libname;
+</code></pre>
+
+<p>And <code>sub func :native($libname);</code> to</p>
+
+<pre><code>sub func; use attributes __PACKAGE__, \&amp;func, 'native', $libname;
+</code></pre>
+
+<p>The third internal API <code>apply_attrs_string</code> is extremely naive and
+only useful to process simple <code>ATTRS:</code> token in XS declarations. It
+cannot handle utf8, and splits arguments by space, not being able to
+handle nested parens. And then it calls the importer at compile-time.</p>
+
+<p>In cperl I added an <code>attrs_runtime()</code> API, which looks at the list of
+attrs from the lexer, and calls the runtime variant <code>apply_attrs_my</code> when
+a scalar variable or function call is detected.</p>
+
+<p>So far I treat :native and :symbol barewords as constant strings and
+not as function calls.
+I.e. <code>:native(mysqlclient)</code> does not call the mysqlclient function to return the name.
+Attribute::Handler would do that. I&rsquo;ll probably add that with the more explicit
+<code>:native(&amp;mysqlclient)</code> syntax.</p>
+
+<h1 id="why-attributes">Why attributes?</h1>
+
+<p>A better idea than attributes to attach data would have been metadata
+as methods, because then you could also query the current values. With
+attributes you can only set it.</p>
+
+<pre><code>\&amp;mysql_ffi_fetch-&gt;NATIVE = &quot;mysqlclient.6.so&quot;;
+print \&amp;mysql_ffi_fetch-&gt;NATIVE, \&amp;mysql_ffi_fetch-&gt;SYMBOL;
+</code></pre>
+
+<p>This would be independent of packages, and much easier than with
+package specific <code>FETCH_CODE_ATTRIBUTES</code> hooks. You just query the
+data. And the magic method would be <strong>lvalue</strong>, so it could be used as
+getter and setter.</p>
+
+<p>But for compatibility with other languages attributes do make a fine
+syntax to declare data properties. So cperl will continue to use the perl5
+attribute syntax for perl6 <code>traits</code>.</p>
+
+<h1 id="see-also">See also</h1>
+
+<ul>
+<li><a href="https://github.com/perl11/cperl/issues/22">ffi #22</a></li>
+<li><a href="https://github.com/perl11/cperl/issues/291">Resolve core attribute arguments, runtime setters, safely #291</a></li>
+<li><a href="https://github.com/perl11/cperl/commits/feature/gh22-ffi">feature/gh22-ffi branch</a></li>
+</ul>
+
+<h1 id="comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bvokz-attributes-args">Comments on <a href="https://www.reddit.com/r/cperl/comments/6bvokz/attributes-args/">/r/cperl</a></h1>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#perl5-had-broken-attribute-handling-forever">perl5 had broken attribute handling forever</a></li>
+<li><a href="#attribute-arguments">Attribute arguments</a></li>
+<li><a href="#internally">Internally</a></li>
+<li><a href="#why-attributes">Why attributes?</a></li>
+<li><a href="#see-also">See also</a></li>
+<li><a href="#comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bvokz-attributes-args">Comments on <a href="https://www.reddit.com/r/cperl/comments/6bvokz/attributes-args/">/r/cperl</a></a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/attributes">attributes
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/strict-names.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">strict names&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

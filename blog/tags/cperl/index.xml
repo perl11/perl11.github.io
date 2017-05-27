@@ -10,6 +10,254 @@
     <atom:link href="http://perl11.org/blog/tags/cperl.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>Attributes arguments</title>
+      <link>http://perl11.org/blog/attributes-args.html</link>
+      <pubDate>Sat, 27 May 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/attributes-args.html</guid>
+      <description>
+
+&lt;h1 id=&#34;perl5-had-broken-attribute-handling-forever&#34;&gt;perl5 had broken attribute handling forever&lt;/h1&gt;
+
+&lt;p&gt;perl5 attributes were invented to provide extendable hooks to attach
+data or run code at any data, and made for nice syntax, almost
+resembling other languages.&lt;/p&gt;
+
+&lt;p&gt;E.g.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my $i :Int = 1;
+sub calc :prototype($$) { shift + shift }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There were a few number of builtin attributes, like &lt;code&gt;:lvalue&lt;/code&gt;,
+&lt;code&gt;:shared&lt;/code&gt;, &lt;code&gt;:const&lt;/code&gt;, adding a flag to a function or data, and you could
+add package-specific for compile-time or run-time hooks to process arbitrary custom
+attributes.&lt;/p&gt;
+
+&lt;p&gt;A &lt;code&gt;&amp;amp;MyClass::FETCH_SCALAR_ATTRIBUTES&lt;/code&gt; hook would be called on every
+not-builtin &lt;code&gt;MyClass::&lt;/code&gt; scalar attribute at run-time, and
+&lt;code&gt;&amp;amp;MyClass::MODIFY_SCALAR_ATTRIBUTES&lt;/code&gt; at compile-time.&lt;/p&gt;
+
+&lt;p&gt;If you would want to process attributes in all classes you&amp;rsquo;d need to add &lt;code&gt;UNIVERSAL&lt;/code&gt; hooks
+or use handlers like &lt;code&gt;Attribute::Handlers&lt;/code&gt;.
+This would simplify declaring code for attributes.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;sub Good : ATTR(SCALAR) {
+    my ($package, $symbol, $referent, $attr, $data) = @_;
+
+    # Invoked for any scalar variable with a :Good attribute,
+    # provided the variable was declared in MyClass (or
+    # a derived class) or typed to MyClass.
+
+    # Do whatever to $referent here (executed in CHECK phase).
+    ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note the last &lt;code&gt;$data&lt;/code&gt; argument above. This is the optional argument
+for an &lt;code&gt;:Good&lt;/code&gt; attribute, such as in
+&lt;code&gt;my MyClass $obj :Good(print a number);&lt;/code&gt;. Do you see the problem?&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;$data&lt;/code&gt; will be the result of the evaluation of &lt;code&gt;print a number&lt;/code&gt;.
+Which will create this error: &lt;code&gt;Can&#39;t locate object method &amp;quot;a&amp;quot; via package &amp;quot;number&amp;quot;&lt;/code&gt;.
+This would be the correct declaration: &lt;code&gt;my MyClass $obj :Good(&amp;quot;print a number&amp;quot;);&lt;/code&gt;.
+So &lt;code&gt;Attribute::Handlers&lt;/code&gt; is entirely unsafe by evaluating all attribute arguments.&lt;/p&gt;
+
+&lt;p&gt;But Damian was right thinking of the use-cases. Attribute arguments
+are needed to attach certain data to a variable of function. He just
+didn&amp;rsquo;t implement it properly, as with all of his modules.&lt;/p&gt;
+
+&lt;p&gt;E.g. in cperl we added type support via attributes:
+&lt;code&gt;sub calc ($a:int) :int { $a + 10 }&lt;/code&gt; declares calc as returning an &lt;code&gt;int&lt;/code&gt; type, and the
+&lt;code&gt;$a&lt;/code&gt; argument to accept &lt;code&gt;int&lt;/code&gt; types.&lt;/p&gt;
+
+&lt;p&gt;For the upcoming cperl ffi (Foreign FunctionCall Interface) we need
+attribute arguments more urgently.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;sub random () :native :long;&lt;/code&gt; declares random as native function,
+searched in all loaded shared libraries. I.e. &lt;code&gt;libc&lt;/code&gt; must already be
+loaded. It is by default, so this works. But for non-default shared
+libraries we need to specify the name of the library.&lt;/p&gt;
+
+&lt;p&gt;Look e.g. at this perl6 NativeCall declaration:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use NativeCall;
+sub mysql_init( OpaquePointer $mysql_client )
+    returns OpaquePointer
+    is native(&#39;libmysqlclient&#39;)
+    { ... }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Of course this syntax is not ideal.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;returns OpaquePointer&lt;/code&gt; is abbrevated in cperl to &lt;code&gt;:OpaquePointer&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;is native(&#39;libmysqlclient&#39;)&lt;/code&gt; has the syntax &lt;code&gt;:native(&#39;mysqlclient&#39;)&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;The empty &lt;code&gt;{ ... }&lt;/code&gt; block is of course left out. Ditto for &lt;code&gt;{ * }&lt;/code&gt;. This is superfluous syntax.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;A ffi declaration is just a declaration without a body. The body is looked up by the native
+attribute, in the declared library, and optionally under the &lt;code&gt;:symbol(&#39;mysql_init&#39;)&lt;/code&gt; name.
+See the &lt;a href=&#34;https://docs.perl6.org/language/nativecall#Changing_names&#34;&gt;p6 nativecall docs&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;cperl syntax:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;use NativeCall;
+extern sub mysql_init( OpaquePointer $mysql_client ) :OpaquePointer :native(&#39;mysqlclient&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &lt;code&gt;extern sub&lt;/code&gt; declaration is syntax sugar, &lt;code&gt;extern&lt;/code&gt; means the same
+as &lt;code&gt;:native&lt;/code&gt;, it just looks better, as in better languages.&lt;/p&gt;
+
+&lt;h1 id=&#34;attribute-arguments&#34;&gt;Attribute arguments&lt;/h1&gt;
+
+&lt;p&gt;Now to the &lt;code&gt;:native&lt;/code&gt; argument, the name of library. You saw in the
+first zavolaj example the &lt;code&gt;lib&lt;/code&gt; prefix stated explictly. &lt;code&gt;is native(&#39;libmysqlclient&#39;)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;This will not work on windows and cygwin.  cygwin needs a &lt;code&gt;cyg&lt;/code&gt; prefix
+and a version suffix, the dll is called &lt;code&gt;cygmysqlclient-18.dll&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;On windows the library would be called &lt;code&gt;libmysql.dll&lt;/code&gt;, but this varies
+wildly, as there&amp;rsquo;s no naming convention for shared libs, only for
+import libs.&lt;/p&gt;
+
+&lt;p&gt;The world is not made for FFI&amp;rsquo;s, just for linking libraries at
+compile-time. There a &lt;code&gt;-lmysqlclient&lt;/code&gt; is enough, on windows this would
+find &lt;code&gt;libmysqlclient.dll.a&lt;/code&gt; or &lt;code&gt;libmysqlclient.lib&lt;/code&gt;, which is an
+import library which refers to the proper versioned name of the
+current shared library. Remember that windows does not solve the
+versionining problem of shared libraries via symlinks. One does not
+load shared libraries directly on Windows.&lt;/p&gt;
+
+&lt;p&gt;So your FFI mysql connector would do some little application logic, like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    my $libname = &amp;quot;mysqlclient&amp;quot;;
+    $libname = &amp;quot;cygmysqlclient-18.dll&amp;quot; if $^O eq &#39;cygwin`;
+    
+    sub mysql_init( OpaquePointer $mysql_client ) :OpaquePointer :native($libname);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It cannot be solved in the native attribute handler unless you add the
+version, like &lt;code&gt;:native(&#39;mysqlclient&#39;, 18)&lt;/code&gt;. Then the library searcher
+can add some magic to find the proper shared library.  But it is
+usually done application specific.&lt;/p&gt;
+
+&lt;p&gt;But all this will not work in perl5, as perl5 has no proper way to resolve the
+attribute argument &lt;code&gt;$libname&lt;/code&gt; at run-time. What perl5 does is parsing
+&lt;code&gt;:native($libname)&lt;/code&gt; to the string &lt;code&gt;&#39;native($libname)&#39;&lt;/code&gt; and passes it
+to &lt;code&gt;BEGIN { use attributes ... &#39;:native($libname)&#39;; }&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Note &lt;code&gt;&#39;:native($libname)&#39;&lt;/code&gt; and not &lt;code&gt;&amp;quot;:native($libname)&amp;quot;&lt;/code&gt;,
+i.e. &lt;code&gt;$libname&lt;/code&gt; is not expanded to it&amp;rsquo;s value, and it would not help much
+as the call happens at compile-time, so &lt;code&gt;$libname&lt;/code&gt; would have been empty still.&lt;/p&gt;
+
+&lt;p&gt;What it should have done instead is to inject the code
+&lt;code&gt;use attributes ... &amp;quot;native($libname)&amp;quot;;&lt;/code&gt;, which is the equivalent of&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;BEGIN { require attributes; }
+attributes-&amp;gt;import(__PACKAGE__, \&amp;amp;msql_init, &amp;quot;native&amp;quot;, $libname);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Which means the import call needs to be deferred to run-time. perl5
+does this only for &lt;strong&gt;my&lt;/strong&gt; variable attribute parsing, but not for functions.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;my $var :native($libname)&lt;/code&gt; would correctly call the importer at
+run-time, but &lt;code&gt;sub random() :native($libname);&lt;/code&gt; would falsely call the
+importer at compile-time, and the argument would not be parsed at
+all. Everything is passed as string to the importer, and the hook
+needs to parse the argument. Hence the Attribute:Handler security
+nightmare, simply calling eval on all args. Which is a lot of fun
+e.g. with a documentation attribute with &lt;code&gt;App::Rad&lt;/code&gt;, when your
+docstring is eval&amp;rsquo;ed.&lt;/p&gt;
+
+&lt;p&gt;Now with cperl there are now two kind of builtin attributes. The old
+:prototype args are still compiled as barewords, but the new :native
+and :symbol attribute args (and probably more upcoming) are compiled
+as data, with constant strings being compiled at compile-time, and
+scalar values being defered to run-time.  Just as with &lt;code&gt;use attributes
+&amp;quot;native&amp;quot;, $libname;&lt;/code&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;internally&#34;&gt;Internally&lt;/h1&gt;
+
+&lt;p&gt;Internally perl5 has 3 attrs API&amp;rsquo;s. Two of them are useful, if still broken.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;apply_attrs&lt;/code&gt; is the compile-time variant, passing the verbatim string
+with the argument to the attribute import call at compile-time.&lt;/p&gt;
+
+&lt;p&gt;This translates &lt;code&gt;sub func :native($libname)&lt;/code&gt; to
+&lt;code&gt;BEGIN { use attributes __PACKAGE__, \&amp;amp;func, &#39;native($libname)&#39;; }&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;apply_attrs_my&lt;/code&gt; is the run-time variant, passing the verbatim string
+with the argument to the attribute import call at run-time.&lt;/p&gt;
+
+&lt;p&gt;This translates &lt;code&gt;my $var :native($libname);&lt;/code&gt; to &lt;code&gt;my $var; use
+attributes __PACKAGE__, \&amp;amp;var, &#39;native($libname);&lt;/code&gt;.  This is almost
+correct. At least the import is done at run-time, and the attribute
+handler will have a chance to handle the value of the thing inside the
+parens. So eval will work there.&lt;/p&gt;
+
+&lt;p&gt;cperl detects in the lexer scalar variables from attribute arguments,
+constructs a proper list for the argument,
+and passes it to &lt;code&gt;apply_attrs()&lt;/code&gt;, which then tries to detect needed
+run-time deferral. And if so calls &lt;code&gt;apply_attrs_my()&lt;/code&gt; instead.&lt;/p&gt;
+
+&lt;p&gt;This translates &lt;code&gt;my $var :native($libname);&lt;/code&gt; to&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my $var; use attributes __PACKAGE__, \$var, &#39;native&#39;, $libname;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And &lt;code&gt;sub func :native($libname);&lt;/code&gt; to&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;sub func; use attributes __PACKAGE__, \&amp;amp;func, &#39;native&#39;, $libname;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The third internal API &lt;code&gt;apply_attrs_string&lt;/code&gt; is extremely naive and
+only useful to process simple &lt;code&gt;ATTRS:&lt;/code&gt; token in XS declarations. It
+cannot handle utf8, and splits arguments by space, not being able to
+handle nested parens. And then it calls the importer at compile-time.&lt;/p&gt;
+
+&lt;p&gt;In cperl I added an &lt;code&gt;attrs_runtime()&lt;/code&gt; API, which looks at the list of
+attrs from the lexer, and calls the runtime variant &lt;code&gt;apply_attrs_my&lt;/code&gt; when
+a scalar variable or function call is detected.&lt;/p&gt;
+
+&lt;p&gt;So far I treat :native and :symbol barewords as constant strings and
+not as function calls.
+I.e. &lt;code&gt;:native(mysqlclient)&lt;/code&gt; does not call the mysqlclient function to return the name.
+Attribute::Handler would do that. I&amp;rsquo;ll probably add that with the more explicit
+&lt;code&gt;:native(&amp;amp;mysqlclient)&lt;/code&gt; syntax.&lt;/p&gt;
+
+&lt;h1 id=&#34;why-attributes&#34;&gt;Why attributes?&lt;/h1&gt;
+
+&lt;p&gt;A better idea than attributes to attach data would have been metadata
+as methods, because then you could also query the current values. With
+attributes you can only set it.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;\&amp;amp;mysql_ffi_fetch-&amp;gt;NATIVE = &amp;quot;mysqlclient.6.so&amp;quot;;
+print \&amp;amp;mysql_ffi_fetch-&amp;gt;NATIVE, \&amp;amp;mysql_ffi_fetch-&amp;gt;SYMBOL;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This would be independent of packages, and much easier than with
+package specific &lt;code&gt;FETCH_CODE_ATTRIBUTES&lt;/code&gt; hooks. You just query the
+data. And the magic method would be &lt;strong&gt;lvalue&lt;/strong&gt;, so it could be used as
+getter and setter.&lt;/p&gt;
+
+&lt;p&gt;But for compatibility with other languages attributes do make a fine
+syntax to declare data properties. So cperl will continue to use the perl5
+attribute syntax for perl6 &lt;code&gt;traits&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&#34;see-also&#34;&gt;See also&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/perl11/cperl/issues/22&#34;&gt;ffi #22&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/perl11/cperl/issues/291&#34;&gt;Resolve core attribute arguments, runtime setters, safely #291&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/perl11/cperl/commits/feature/gh22-ffi&#34;&gt;feature/gh22-ffi branch&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-6bvokz-attributes-args&#34;&gt;Comments on &lt;a href=&#34;https://www.reddit.com/r/cperl/comments/6bvokz/attributes-args/&#34;&gt;/r/cperl&lt;/a&gt;&lt;/h1&gt;
+</description>
+    </item>
+    
+    <item>
       <title>strict names</title>
       <link>http://perl11.org/blog/strict-names.html</link>
       <pubDate>Thu, 18 May 2017 00:00:00 +0000</pubDate>
