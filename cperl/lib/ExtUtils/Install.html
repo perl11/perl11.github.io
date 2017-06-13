@@ -1,0 +1,236 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Functions">Functions</a></li>
+    </ul>
+  </li>
+  <li><a href="#ENVIRONMENT">ENVIRONMENT</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::Install - install files from here to there</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use ExtUtils::Install;
+
+  install({ &#39;blib/lib&#39; =&gt; &#39;some/install/dir&#39; } );
+
+  uninstall($packlist);
+
+  pm_to_blib({ &#39;lib/Foo/Bar.pm&#39; =&gt; &#39;blib/lib/Foo/Bar.pm&#39; });</code></pre>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>2.08</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Handles the installing and uninstalling of perl modules, scripts, man pages, etc...</p>
+
+<p>Both install() and uninstall() are specific to the way ExtUtils::MakeMaker handles the installation and deinstallation of perl modules. They are not designed as general purpose tools.</p>
+
+<p>On some operating systems such as Win32 installation may not be possible until after a reboot has occurred. This can have varying consequences: removing an old DLL does not impact programs using the new one, but if a new DLL cannot be installed properly until reboot then anything depending on it must wait. The package variable</p>
+
+<pre><code>  $ExtUtils::Install::MUST_REBOOT</code></pre>
+
+<p>is used to store this status.</p>
+
+<p>If this variable is true then such an operation has occurred and anything depending on this module cannot proceed until a reboot has occurred.</p>
+
+<p>If this value is defined but false then such an operation has ocurred, but should not impact later operations.</p>
+
+<ul>
+
+</ul>
+
+<h2 id="Functions">Functions</h2>
+
+<dl>
+
+<dt id="install"><b>install</b></dt>
+<dd>
+
+<pre><code>    # deprecated forms
+    install(\%from_to);
+    install(\%from_to, $verbose, $dry_run, $uninstall_shadows,
+                $skip, $always_copy, \%result);
+
+    # recommended form as of 1.47
+    install([
+        from_to =&gt; \%from_to,
+        verbose =&gt; 1,
+        dry_run =&gt; 0,
+        uninstall_shadows =&gt; 1,
+        skip =&gt; undef,
+        always_copy =&gt; 1,
+        result =&gt; \%install_results,
+    ]);</code></pre>
+
+<p>Copies each directory tree of %from_to to its corresponding value preserving timestamps and permissions.</p>
+
+<p>There are two keys with a special meaning in the hash: &quot;read&quot; and &quot;write&quot;. These contain packlist files. After the copying is done, install() will write the list of target files to $from_to{write}. If $from_to{read} is given the contents of this file will be merged into the written file. The read and the written file may be identical, but on AFS it is quite likely that people are installing to a different directory than the one where the files later appear.</p>
+
+<p>If $verbose is true, will print out each file removed. Default is false. This is &quot;make install VERBINST=1&quot;. $verbose values going up to 5 show increasingly more diagnostics output.</p>
+
+<p>If $dry_run is true it will only print what it was going to do without actually doing it. Default is false.</p>
+
+<p>If $uninstall_shadows is true any differing versions throughout @INC will be uninstalled. This is &quot;make install UNINST=1&quot;</p>
+
+<p>As of 1.37_02 install() supports the use of a list of patterns to filter out files that shouldn&#39;t be installed. If $skip is omitted or undefined then install will try to read the list from INSTALL.SKIP in the CWD. This file is a list of regular expressions and is just like the MANIFEST.SKIP file used by <a href="/cperl/lib/ExtUtils/Manifest.html">ExtUtils::Manifest</a>.</p>
+
+<p>A default site INSTALL.SKIP may be provided by setting then environment variable EU_INSTALL_SITE_SKIPFILE, this will only be used when there isn&#39;t a distribution specific INSTALL.SKIP. If the environment variable EU_INSTALL_IGNORE_SKIP is true then no install file filtering will be performed.</p>
+
+<p>If $skip is undefined then the skip file will be autodetected and used if it is found. If $skip is a reference to an array then it is assumed the array contains the list of patterns, if $skip is a true non reference it is assumed to be the filename holding the list of patterns, any other value of $skip is taken to mean that no install filtering should occur.</p>
+
+<p><b>Changes As of Version 1.47</b></p>
+
+<p>As of version 1.47 the following additions were made to the install interface. Note that the new argument style and use of the %result hash is recommended.</p>
+
+<p>The $always_copy parameter which when true causes files to be updated regardless as to whether they have changed, if it is defined but false then copies are made only if the files have changed, if it is undefined then the value of the environment variable EU_INSTALL_ALWAYS_COPY is used as default.</p>
+
+<p>The %result hash will be populated with the various keys/subhashes reflecting the install. Currently these keys and their structure are:</p>
+
+<pre><code>    install             =&gt; { $target    =&gt; $source },
+    install_fail        =&gt; { $target    =&gt; $source },
+    install_unchanged   =&gt; { $target    =&gt; $source },
+
+    install_filtered    =&gt; { $source    =&gt; $pattern },
+
+    uninstall           =&gt; { $uninstalled =&gt; $source },
+    uninstall_fail      =&gt; { $uninstalled =&gt; $source },</code></pre>
+
+<p>where <code>$source</code> is the filespec of the file being installed. <code>$target</code> is where it is being installed to, and <code>$uninstalled</code> is any shadow file that is in <code>@INC</code> or <code>$ENV{PERL5LIB}</code> or other standard locations, and <code>$pattern</code> is the pattern that caused a source file to be skipped. In future more keys will be added, such as to show created directories, however this requires changes in other modules and must therefore wait.</p>
+
+<p>These keys will be populated before any exceptions are thrown should there be an error.</p>
+
+<p>Note that all updates of the %result are additive, the hash will not be cleared before use, thus allowing status results of many installs to be easily aggregated.</p>
+
+<p><b>NEW ARGUMENT STYLE</b></p>
+
+<p>If there is only one argument and it is a reference to an array then the array is assumed to contain a list of key-value pairs specifying the options. In this case the option &quot;from_to&quot; is mandatory. This style means that you do not have to supply a cryptic list of arguments and can use a self documenting argument list that is easier to understand.</p>
+
+<p>This is now the recommended interface to install().</p>
+
+<p><b>RETURN</b></p>
+
+<p>If all actions were successful install will return a hashref of the results as described above for the $result parameter. If any action is a failure then install will die, therefore it is recommended to pass in the $result parameter instead of using the return value. If the result parameter is provided then the returned hashref will be the passed in hashref.</p>
+
+</dd>
+<dt id="install_default-DISCOURAGED"><b>install_default</b> <i>DISCOURAGED</i></dt>
+<dd>
+
+<pre><code>    install_default();
+    install_default($fullext);</code></pre>
+
+<p>Calls install() with arguments to copy a module from blib/ to the default site installation location.</p>
+
+<p>$fullext is the name of the module converted to a directory (ie. Foo::Bar would be Foo/Bar). If $fullext is not specified, it will attempt to read it from @ARGV.</p>
+
+<p>This is primarily useful for install scripts.</p>
+
+<p><b>NOTE</b> This function is not really useful because of the hard-coded install location with no way to control site vs core vs vendor directories and the strange way in which the module name is given. Consider its use discouraged.</p>
+
+</dd>
+<dt id="uninstall"><b>uninstall</b></dt>
+<dd>
+
+<pre><code>    uninstall($packlist_file);
+    uninstall($packlist_file, $verbose, $dont_execute);</code></pre>
+
+<p>Removes the files listed in a $packlist_file.</p>
+
+<p>If $verbose is true, will print out each file removed. Default is false.</p>
+
+<p>If $dont_execute is true it will only print what it was going to do without actually doing it. Default is false.</p>
+
+</dd>
+<dt id="pm_to_blib"><b>pm_to_blib</b></dt>
+<dd>
+
+<pre><code>    pm_to_blib(\%from_to);
+    pm_to_blib(\%from_to, $autosplit_dir);
+    pm_to_blib(\%from_to, $autosplit_dir, $filter_cmd);</code></pre>
+
+<p>Copies each key of %from_to to its corresponding value efficiently. If an $autosplit_dir is provided, all .pm files will be autosplit into it. Any destination directories are created.</p>
+
+<p>$filter_cmd is an optional shell command to run each .pm file through prior to splitting and copying. Input is the contents of the module, output the new module contents.</p>
+
+<p>You can have an environment variable PERL_INSTALL_ROOT set which will be prepended as a directory to each installed file (and directory).</p>
+
+<p>By default verbose output is generated, setting the PERL_INSTALL_QUIET environment variable will silence this output.</p>
+
+</dd>
+</dl>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<dl>
+
+<dt id="PERL_INSTALL_ROOT"><b>PERL_INSTALL_ROOT</b></dt>
+<dd>
+
+<p>Will be prepended to each install path.</p>
+
+</dd>
+<dt id="EU_INSTALL_IGNORE_SKIP"><b>EU_INSTALL_IGNORE_SKIP</b></dt>
+<dd>
+
+<p>Will prevent the automatic use of INSTALL.SKIP as the install skip file.</p>
+
+</dd>
+<dt id="EU_INSTALL_SITE_SKIPFILE"><b>EU_INSTALL_SITE_SKIPFILE</b></dt>
+<dd>
+
+<p>If there is no INSTALL.SKIP file in the make directory then this value can be used to provide a default.</p>
+
+</dd>
+<dt id="EU_INSTALL_ALWAYS_COPY"><b>EU_INSTALL_ALWAYS_COPY</b></dt>
+<dd>
+
+<p>If this environment variable is true then normal install processes will always overwrite older identical files during the install process.</p>
+
+<p>Note that the alias EU_ALWAYS_COPY will be supported if EU_INSTALL_ALWAYS_COPY is not defined until at least the 1.50 release. Please ensure you use the correct EU_INSTALL_ALWAYS_COPY.</p>
+
+</dd>
+</dl>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Original author lost in the mists of time. Probably the same as Makemaker.</p>
+
+<p>Production release currently maintained by demerphq <code>yves at cpan.org</code>, extensive changes by Michael G. Schwern.</p>
+
+<p>Send bug reports via http://rt.cpan.org/. Please send your generated Makefile along with your report.</p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>See <a href="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</a></p>
+
+
+</body>
+
+</html>
+
+

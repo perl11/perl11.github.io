@@ -1,0 +1,438 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a></li>
+  <li><a href="#USING-B::Deparse-AS-A-MODULE">USING B::Deparse AS A MODULE</a>
+    <ul>
+      <li><a href="#Synopsis">Synopsis</a></li>
+      <li><a href="#Description">Description</a></li>
+      <li><a href="#new">new</a></li>
+      <li><a href="#ambient_pragmas">ambient_pragmas</a></li>
+      <li><a href="#coderef2text">coderef2text</a></li>
+    </ul>
+  </li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>B::Deparse - Perl compiler backend to produce perl code</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>perl</b> <b>-MO=Deparse</b>[<b>,-d</b>][<b>,-f</b><i>FILE</i>][<b>,-p</b>][<b>,-q</b>][<b>,-l</b>] [<b>,-s</b><i>LETTERS</i>][<b>,-x</b><i>LEVEL</i>] <i>prog.pl</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>B::Deparse is a backend module for the Perl compiler that generates perl source code, based on the internal compiled structure that perl itself creates after parsing a program. The output of B::Deparse won&#39;t be exactly the same as the original source, since perl doesn&#39;t keep track of comments or whitespace, and there isn&#39;t a one-to-one correspondence between perl&#39;s syntactical constructions and their compiled form, but it will often be close. When you use the <b>-p</b> option, the output also includes parentheses even when they are not required by precedence, which can make it easy to see if perl is parsing your expressions the way you intended.</p>
+
+<p>While B::Deparse goes to some lengths to try to figure out what your original program was doing, some parts of the language can still trip it up; it still fails even on some parts of Perl&#39;s own test suite. If you encounter a failure other than the most common ones described in the BUGS section below, you can help contribute to B::Deparse&#39;s ongoing development by submitting a bug report with a small example.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<p>As with all compiler backend options, these must follow directly after the &#39;-MO=Deparse&#39;, separated by a comma but not any white space.</p>
+
+<dl>
+
+<dt id="d"><b>-d</b></dt>
+<dd>
+
+<p>Output data values (when they appear as constants) using Data::Dumper. Without this option, B::Deparse will use some simple routines of its own for the same purpose. Currently, Data::Dumper is better for some kinds of data (such as complex structures with sharing and self-reference) while the built-in routines are better for others (such as odd floating-point values).</p>
+
+</dd>
+<dt id="fFILE"><b>-f</b><i>FILE</i></dt>
+<dd>
+
+<p>Normally, B::Deparse deparses the main code of a program, and all the subs defined in the same file. To include subs defined in other files, pass the <b>-f</b> option with the filename. You can pass the <b>-f</b> option several times, to include more than one secondary file. (Most of the time you don&#39;t want to use it at all.) You can also use this option to include subs which are defined in the scope of a <b>#line</b> directive with two parameters.</p>
+
+</dd>
+<dt id="l"><b>-l</b></dt>
+<dd>
+
+<p>Add &#39;#line&#39; declarations to the output based on the line and file locations of the original code.</p>
+
+</dd>
+<dt id="p"><b>-p</b></dt>
+<dd>
+
+<p>Print extra parentheses. Without this option, B::Deparse includes parentheses in its output only when they are needed, based on the structure of your program. With <b>-p</b>, it uses parentheses (almost) whenever they would be legal. This can be useful if you are used to LISP, or if you want to see how perl parses your input. If you say</p>
+
+<pre><code>    if ($var &amp; 0x7f == 65) {print &quot;Gimme an A!&quot;}
+    print ($which ? $a : $b), &quot;\n&quot;;
+    $name = $ENV{USER} or &quot;Bob&quot;;</code></pre>
+
+<p><code>B::Deparse,-p</code> will print</p>
+
+<pre><code>    if (($var &amp; 0)) {
+        print(&#39;Gimme an A!&#39;)
+    };
+    (print(($which ? $a : $b)), &#39;???&#39;);
+    (($name = $ENV{&#39;USER&#39;}) or &#39;???&#39;)</code></pre>
+
+<p>which probably isn&#39;t what you intended (the <code>&#39;???&#39;</code> is a sign that perl optimized away a constant value).</p>
+
+</dd>
+<dt id="P"><b>-P</b></dt>
+<dd>
+
+<p>Disable prototype checking. With this option, all function calls are deparsed as if no prototype was defined for them. In other words,</p>
+
+<pre><code>    perl -MO=Deparse,-P -e &#39;sub foo (\@) { 1 } foo @x&#39;</code></pre>
+
+<p>will print</p>
+
+<pre><code>    sub foo (\@) {
+        1;
+    }
+    &amp;foo(\@x);</code></pre>
+
+<p>making clear how the parameters are actually passed to <code>foo</code>.</p>
+
+</dd>
+<dt id="q"><b>-q</b></dt>
+<dd>
+
+<p>Expand double-quoted strings into the corresponding combinations of concatenation, uc, ucfirst, lc, lcfirst, quotemeta, and join. For instance, print</p>
+
+<pre><code>    print &quot;Hello, $world, @ladies, \u$gentlemen\E, \u\L$me!&quot;;</code></pre>
+
+<p>as</p>
+
+<pre><code>    print &#39;Hello, &#39; . $world . &#39;, &#39; . join($&quot;, @ladies) . &#39;, &#39;
+          . ucfirst($gentlemen) . &#39;, &#39; . ucfirst(lc $me . &#39;!&#39;);</code></pre>
+
+<p>Note that the expanded form represents the way perl handles such constructions internally -- this option actually turns off the reverse translation that B::Deparse usually does. On the other hand, note that <code>$x = &quot;$y&quot;</code> is not the same as <code>$x = $y</code>: the former makes the value of $y into a string before doing the assignment.</p>
+
+</dd>
+<dt id="sLETTERS"><b>-s</b><i>LETTERS</i></dt>
+<dd>
+
+<p>Tweak the style of B::Deparse&#39;s output. The letters should follow directly after the &#39;s&#39;, with no space or punctuation. The following options are available:</p>
+
+<dl>
+
+<dt id="C"><b>C</b></dt>
+<dd>
+
+<p>Cuddle <code>elsif</code>, <code>else</code>, and <code>continue</code> blocks. For example, print</p>
+
+<pre><code>    if (...) {
+         ...
+    } else {
+         ...
+    }</code></pre>
+
+<p>instead of</p>
+
+<pre><code>    if (...) {
+         ...
+    }
+    else {
+         ...
+    }</code></pre>
+
+<p>The default is not to cuddle.</p>
+
+</dd>
+<dt id="iNUMBER"><b>i</b><i>NUMBER</i></dt>
+<dd>
+
+<p>Indent lines by multiples of <i>NUMBER</i> columns. The default is 4 columns.</p>
+
+</dd>
+<dt id="T"><b>T</b></dt>
+<dd>
+
+<p>Use tabs for each 8 columns of indent. The default is to use only spaces. For instance, if the style options are <b>-si4T</b>, a line that&#39;s indented 3 times will be preceded by one tab and four spaces; if the options were <b>-si8T</b>, the same line would be preceded by three tabs.</p>
+
+</dd>
+<dt id="vSTRING"><b>v</b><i>STRING</i><b>.</b></dt>
+<dd>
+
+<p>Print <i>STRING</i> for the value of a constant that can&#39;t be determined because it was optimized away (mnemonic: this happens when a constant is used in <b>v</b>oid context). The end of the string is marked by a period. The string should be a valid perl expression, generally a constant. Note that unless it&#39;s a number, it probably needs to be quoted, and on a command line quotes need to be protected from the shell. Some conventional values include 0, 1, 42, &#39;&#39;, &#39;foo&#39;, and &#39;Useless use of constant omitted&#39; (which may need to be <b>-sv&quot;&#39;Useless use of constant omitted&#39;.&quot;</b> or something similar depending on your shell). The default is &#39;???&#39;. If you&#39;re using B::Deparse on a module or other file that&#39;s require&#39;d, you shouldn&#39;t use a value that evaluates to false, since the customary true constant at the end of a module will be in void context when the file is compiled as a main program.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="xLEVEL"><b>-x</b><i>LEVEL</i></dt>
+<dd>
+
+<p>Expand conventional syntax constructions into equivalent ones that expose their internal operation. <i>LEVEL</i> should be a digit, with higher values meaning more expansion. As with <b>-q</b>, this actually involves turning off special cases in B::Deparse&#39;s normal operations.</p>
+
+<p>If <i>LEVEL</i> is at least 3, <code>for</code> loops will be translated into equivalent while loops with continue blocks; for instance</p>
+
+<pre><code>    for ($i = 0; $i &lt; 10; ++$i) {
+        print $i;
+    }</code></pre>
+
+<p>turns into</p>
+
+<pre><code>    $i = 0;
+    while ($i &lt; 10) {
+        print $i;
+    } continue {
+        ++$i
+    }</code></pre>
+
+<p>Note that in a few cases this translation can&#39;t be perfectly carried back into the source code -- if the loop&#39;s initializer declares a my variable, for instance, it won&#39;t have the correct scope outside of the loop.</p>
+
+<p>If <i>LEVEL</i> is at least 5, <code>use</code> declarations will be translated into <code>BEGIN</code> blocks containing calls to <code>require</code> and <code>import</code>; for instance,</p>
+
+<pre><code>    use strict &#39;refs&#39;;</code></pre>
+
+<p>turns into</p>
+
+<pre><code>    sub BEGIN {
+        require strict;
+        do {
+            &#39;strict&#39;-&gt;import(&#39;refs&#39;)
+        };
+    }</code></pre>
+
+<p>If <i>LEVEL</i> is at least 7, <code>if</code> statements will be translated into equivalent expressions using <code>&amp;&amp;</code>, <code>?:</code> and <code>do {}</code>; for instance</p>
+
+<pre><code>    print &#39;hi&#39; if $nice;
+    if ($nice) {
+        print &#39;hi&#39;;
+    }
+    if ($nice) {
+        print &#39;hi&#39;;
+    } else {
+        print &#39;bye&#39;;
+    }</code></pre>
+
+<p>turns into</p>
+
+<pre><code>    $nice and print &#39;hi&#39;;
+    $nice and do { print &#39;hi&#39; };
+    $nice ? do { print &#39;hi&#39; } : do { print &#39;bye&#39; };</code></pre>
+
+<p>Long sequences of elsifs will turn into nested ternary operators, which B::Deparse doesn&#39;t know how to indent nicely.</p>
+
+</dd>
+</dl>
+
+<h1 id="USING-B::Deparse-AS-A-MODULE">USING B::Deparse AS A MODULE</h1>
+
+<h2 id="Synopsis">Synopsis</h2>
+
+<pre><code>    use B::Deparse;
+    $deparse = B::Deparse-&gt;new(&quot;-p&quot;, &quot;-sC&quot;);
+    $body = $deparse-&gt;coderef2text(\&amp;func);
+    eval &quot;sub func $body&quot;; # the inverse operation</code></pre>
+
+<h2 id="Description">Description</h2>
+
+<p>B::Deparse can also be used on a sub-by-sub basis from other perl programs.</p>
+
+<h2 id="new">new</h2>
+
+<pre><code>    $deparse = B::Deparse-&gt;new(OPTIONS)</code></pre>
+
+<p>Create an object to store the state of a deparsing operation and any options. The options are the same as those that can be given on the command line (see <a href="#OPTIONS">&quot;OPTIONS&quot;</a>); options that are separated by commas after <b>-MO=Deparse</b> should be given as separate strings.</p>
+
+<h2 id="ambient_pragmas">ambient_pragmas</h2>
+
+<pre><code>    $deparse-&gt;ambient_pragmas(strict =&gt; &#39;all&#39;, &#39;$[&#39; =&gt; $[);</code></pre>
+
+<p>The compilation of a subroutine can be affected by a few compiler directives, <b>pragmas</b>. These are:</p>
+
+<ul>
+
+<li><p>use strict;</p>
+
+</li>
+<li><p>use warnings;</p>
+
+</li>
+<li><p>Assigning to the special variable $[</p>
+
+</li>
+<li><p>use integer;</p>
+
+</li>
+<li><p>use bytes;</p>
+
+</li>
+<li><p>use utf8;</p>
+
+</li>
+<li><p>use re;</p>
+
+</li>
+</ul>
+
+<p>Ordinarily, if you use B::Deparse on a subroutine which has been compiled in the presence of one or more of these pragmas, the output will include statements to turn on the appropriate directives. So if you then compile the code returned by coderef2text, it will behave the same way as the subroutine which you deparsed.</p>
+
+<p>However, you may know that you intend to use the results in a particular context, where some pragmas are already in scope. In this case, you use the <b>ambient_pragmas</b> method to describe the assumptions you wish to make.</p>
+
+<p>Not all of the options currently have any useful effect. See <a href="#BUGS">&quot;BUGS&quot;</a> for more details.</p>
+
+<p>The parameters it accepts are:</p>
+
+<dl>
+
+<dt id="strict">strict</dt>
+<dd>
+
+<p>Takes a string, possibly containing several values separated by whitespace. The special values &quot;all&quot; and &quot;none&quot; mean what you&#39;d expect.</p>
+
+<pre><code>    $deparse-&gt;ambient_pragmas(strict =&gt; &#39;subs refs&#39;);</code></pre>
+
+</dd>
+<dt id="pod">$[</dt>
+<dd>
+
+<p>Takes a number, the value of the array base $[. Cannot be non-zero on Perl 5.15.3 or later.</p>
+
+</dd>
+<dt id="bytes">bytes</dt>
+<dd>
+
+</dd>
+<dt id="utf8">utf8</dt>
+<dd>
+
+</dd>
+<dt id="integer">integer</dt>
+<dd>
+
+<p>If the value is true, then the appropriate pragma is assumed to be in the ambient scope, otherwise not.</p>
+
+</dd>
+<dt id="re">re</dt>
+<dd>
+
+<p>Takes a string, possibly containing a whitespace-separated list of values. The values &quot;all&quot; and &quot;none&quot; are special. It&#39;s also permissible to pass an array reference here.</p>
+
+<pre><code>    $deparser-&gt;ambient_pragmas(re =&gt; &#39;eval&#39;);</code></pre>
+
+</dd>
+<dt id="warnings">warnings</dt>
+<dd>
+
+<p>Takes a string, possibly containing a whitespace-separated list of values. The values &quot;all&quot; and &quot;none&quot; are special, again. It&#39;s also permissible to pass an array reference here.</p>
+
+<pre><code>    $deparser-&gt;ambient_pragmas(warnings =&gt; [qw[void io]]);</code></pre>
+
+<p>If one of the values is the string &quot;FATAL&quot;, then all the warnings in that list will be considered fatal, just as with the <b>warnings</b> pragma itself. Should you need to specify that some warnings are fatal, and others are merely enabled, you can pass the <b>warnings</b> parameter twice:</p>
+
+<pre><code>    $deparser-&gt;ambient_pragmas(
+        warnings =&gt; &#39;all&#39;,
+        warnings =&gt; [FATAL =&gt; qw/void io/],
+    );</code></pre>
+
+<p>See <a href="/cperl/lib/warnings.html">warnings</a> for more information about lexical warnings.</p>
+
+</dd>
+<dt id="hint_bits">hint_bits</dt>
+<dd>
+
+</dd>
+<dt id="warning_bits">warning_bits</dt>
+<dd>
+
+<p>These two parameters are used to specify the ambient pragmas in the format used by the special variables $^H and ${^WARNING_BITS}.</p>
+
+<p>They exist principally so that you can write code like:</p>
+
+<pre><code>    { my ($hint_bits, $warning_bits);
+    BEGIN {($hint_bits, $warning_bits) = ($^H, ${^WARNING_BITS})}
+    $deparser-&gt;ambient_pragmas (
+        hint_bits    =&gt; $hint_bits,
+        warning_bits =&gt; $warning_bits,
+        &#39;$[&#39;         =&gt; 0 + $[
+    ); }</code></pre>
+
+<p>which specifies that the ambient pragmas are exactly those which are in scope at the point of calling.</p>
+
+</dd>
+<dt id="H">%^H</dt>
+<dd>
+
+<p>This parameter is used to specify the ambient pragmas which are stored in the special hash %^H.</p>
+
+</dd>
+</dl>
+
+<h2 id="coderef2text">coderef2text</h2>
+
+<pre><code>    $body = $deparse-&gt;coderef2text(\&amp;func)
+    $body = $deparse-&gt;coderef2text(sub ($$) { ... })</code></pre>
+
+<p>Return source code for the body of a subroutine (a block, optionally preceded by a prototype in parens), given a reference to the sub. Because a subroutine can have no names, or more than one name, this method doesn&#39;t return a complete subroutine definition -- if you want to eval the result, you should prepend &quot;sub subname &quot;, or &quot;sub &quot; for an anonymous function constructor. Unless the sub was defined in the main:: package, the code will include a package declaration.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<ul>
+
+<li><p>In Perl 5.20 and earlier, the only pragmas to be completely supported are: <code>use warnings</code>, <code>use strict</code>, <code>use bytes</code>, <code>use integer</code> and <code>use feature</code>. (<code>$[</code>, which behaves like a pragma, is also supported.)</p>
+
+<p>Excepting those listed above, we&#39;re currently unable to guarantee that B::Deparse will produce a pragma at the correct point in the program. (Specifically, pragmas at the beginning of a block often appear right before the start of the block instead.) Since the effects of pragmas are often lexically scoped, this can mean that the pragma holds sway over a different portion of the program than in the input file.</p>
+
+</li>
+<li><p>In fact, the above is a specific instance of a more general problem: we can&#39;t guarantee to produce BEGIN blocks or <code>use</code> declarations in exactly the right place. So if you use a module which affects compilation (such as by over-riding keywords, overloading constants or whatever) then the output code might not work as intended.</p>
+
+<p>This is the most serious problem in Perl 5.20 and earlier. Fixing this required internal changes in Perl 5.22.</p>
+
+</li>
+<li><p>Some constants don&#39;t print correctly either with or without <b>-d</b>. For instance, neither B::Deparse nor Data::Dumper know how to print dual-valued scalars correctly, as in:</p>
+
+<pre><code>    use constant E2BIG =&gt; ($!=7); $y = E2BIG; print $y, 0+$y;
+
+    use constant H =&gt; { &quot;#&quot; =&gt; 1 }; H-&gt;{&quot;#&quot;};</code></pre>
+
+</li>
+<li><p>An input file that uses source filtering probably won&#39;t be deparsed into runnable code, because it will still include the <b>use</b> declaration for the source filtering module, even though the code that is produced is already ordinary Perl which shouldn&#39;t be filtered again.</p>
+
+</li>
+<li><p>Optimized-away statements are rendered as &#39;???&#39;. This includes statements that have a compile-time side-effect, such as the obscure</p>
+
+<pre><code>    my $x if 0;</code></pre>
+
+<p>which is not, consequently, deparsed correctly.</p>
+
+<pre><code>    foreach my $i (@_) { 0 }
+  =&gt;
+    foreach my $i (@_) { &#39;???&#39; }</code></pre>
+
+</li>
+<li><p>Lexical (my) variables declared in scopes external to a subroutine appear in coderef2text output text as package variables. This is a tricky problem, as perl has no native facility for referring to a lexical variable defined within a different scope, although <a>PadWalker</a> is a good start.</p>
+
+<p>See also <a>Data::Dump::Streamer</a>, which combines B::Deparse and <a>PadWalker</a> to serialize closures properly.</p>
+
+</li>
+<li><p>There are probably many more bugs on non-ASCII platforms (EBCDIC).</p>
+
+</li>
+<li><p>Prior to Perl 5.22, lexical <code>my</code> subroutines were not deparsed properly. They were emitted as pure declarations, sometimes in the wrong place. Lexical <code>state</code> subroutines were not deparsed at all.</p>
+
+</li>
+</ul>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Stephen McCamant &lt;smcc@CSUA.Berkeley.EDU&gt;, based on an earlier version by Malcolm Beattie &lt;mbeattie@sable.ox.ac.uk&gt;, with contributions from Gisle Aas, James Duncan, Albert Dvornik, Robin Houston, Dave Mitchell, Hugo van der Sanden, Gurusamy Sarathy, Nick Ing-Simmons, Rafael Garcia-Suarez and Reini Urban.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,184 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#NOTES">NOTES</a>
+    <ul>
+      <li><a href="#Windows">Windows</a></li>
+      <li><a href="#Mac-OS-X">Mac OS X</a></li>
+      <li><a href="#POSIX-Linux-and-other-Unixes">POSIX (Linux and other Unixes)</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::MakeMaker::Locale - bundled Encode::Locale</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Encode::Locale;
+  use Encode;
+
+  $string = decode(locale =&gt; $bytes);
+  $bytes = encode(locale =&gt; $string);
+
+  if (-t) {
+      binmode(STDIN, &quot;:encoding(console_in)&quot;);
+      binmode(STDOUT, &quot;:encoding(console_out)&quot;);
+      binmode(STDERR, &quot;:encoding(console_out)&quot;);
+  }
+
+  # Processing file names passed in as arguments
+  my $uni_filename = decode(locale =&gt; $ARGV[0]);
+  open(my $fh, &quot;&lt;&quot;, encode(locale_fs =&gt; $uni_filename))
+     || die &quot;Can&#39;t open &#39;$uni_filename&#39;: $!&quot;;
+  binmode($fh, &quot;:encoding(locale)&quot;);
+  ...</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>In many applications it&#39;s wise to let Perl use Unicode for the strings it processes. Most of the interfaces Perl has to the outside world are still byte based. Programs therefore need to decode byte strings that enter the program from the outside and encode them again on the way out.</p>
+
+<p>The POSIX locale system is used to specify both the language conventions requested by the user and the preferred character set to consume and output. The <code>Encode::Locale</code> module looks up the charset and encoding (called a CODESET in the locale jargon) and arranges for the <a href="/cperl/lib/Encode.html">Encode</a> module to know this encoding under the name &quot;locale&quot;. It means bytes obtained from the environment can be converted to Unicode strings by calling <code>Encode::encode(locale =&gt; $bytes)</code> and converted back again with <code>Encode::decode(locale =&gt; $string)</code>.</p>
+
+<p>Where file systems interfaces pass file names in and out of the program we also need care. The trend is for operating systems to use a fixed file encoding that don&#39;t actually depend on the locale; and this module determines the most appropriate encoding for file names. The <a href="/cperl/lib/Encode.html">Encode</a> module will know this encoding under the name &quot;locale_fs&quot;. For traditional Unix systems this will be an alias to the same encoding as &quot;locale&quot;.</p>
+
+<p>For programs running in a terminal window (called a &quot;Console&quot; on some systems) the &quot;locale&quot; encoding is usually a good choice for what to expect as input and output. Some systems allows us to query the encoding set for the terminal and <code>Encode::Locale</code> will do that if available and make these encodings known under the <code>Encode</code> aliases &quot;console_in&quot; and &quot;console_out&quot;. For systems where we can&#39;t determine the terminal encoding these will be aliased as the same encoding as &quot;locale&quot;. The advice is to use &quot;console_in&quot; for input known to come from the terminal and &quot;console_out&quot; for output to the terminal.</p>
+
+<p>In addition to arranging for various Encode aliases the following functions and variables are provided:</p>
+
+<dl>
+
+<dt id="decode_argv">decode_argv( )</dt>
+<dd>
+
+</dd>
+<dt id="decode_argv-Encode::FB_CROAK">decode_argv( Encode::FB_CROAK )</dt>
+<dd>
+
+<p>This will decode the command line arguments to perl (the <code>@ARGV</code> array) in-place.</p>
+
+<p>The function will by default replace characters that can&#39;t be decoded by &quot;\x{FFFD}&quot;, the Unicode replacement character.</p>
+
+<p>Any argument provided is passed as CHECK to underlying Encode::decode() call. Pass the value <code>Encode::FB_CROAK</code> to have the decoding croak if not all the command line arguments can be decoded. See <a href="/cperl/lib/Encode.html#Handling-Malformed-Data">&quot;Handling Malformed Data&quot; in Encode</a> for details on other options for CHECK.</p>
+
+</dd>
+<dt id="env-uni_key">env( $uni_key )</dt>
+<dd>
+
+</dd>
+<dt id="env-uni_key-uni_value">env( $uni_key =&gt; $uni_value )</dt>
+<dd>
+
+<p>Interface to get/set environment variables. Returns the current value as a Unicode string. The $uni_key and $uni_value arguments are expected to be Unicode strings as well. Passing <code>undef</code> as $uni_value deletes the environment variable named $uni_key.</p>
+
+<p>The returned value will have the characters that can&#39;t be decoded replaced by &quot;\x{FFFD}&quot;, the Unicode replacement character.</p>
+
+<p>There is no interface to request alternative CHECK behavior as for decode_argv(). If you need that you need to call encode/decode yourself. For example:</p>
+
+<pre><code>    my $key = Encode::encode(locale =&gt; $uni_key, Encode::FB_CROAK);
+    my $uni_value = Encode::decode(locale =&gt; $ENV{$key}, Encode::FB_CROAK);</code></pre>
+
+</dd>
+<dt id="reinit">reinit( )</dt>
+<dd>
+
+</dd>
+<dt id="reinit-encoding">reinit( $encoding )</dt>
+<dd>
+
+<p>Reinitialize the encodings from the locale. You want to call this function if you changed anything in the environment that might influence the locale.</p>
+
+<p>This function will croak if the determined encoding isn&#39;t recognized by the Encode module.</p>
+
+<p>With argument force $ENCODING_... variables to set to the given value.</p>
+
+</dd>
+<dt id="ENCODING_LOCALE">$ENCODING_LOCALE</dt>
+<dd>
+
+<p>The encoding name determined to be suitable for the current locale. <a href="/cperl/lib/Encode.html">Encode</a> know this encoding as &quot;locale&quot;.</p>
+
+</dd>
+<dt id="ENCODING_LOCALE_FS">$ENCODING_LOCALE_FS</dt>
+<dd>
+
+<p>The encoding name determined to be suitable for file system interfaces involving file names. <a href="/cperl/lib/Encode.html">Encode</a> know this encoding as &quot;locale_fs&quot;.</p>
+
+</dd>
+<dt id="ENCODING_CONSOLE_IN">$ENCODING_CONSOLE_IN</dt>
+<dd>
+
+</dd>
+<dt id="ENCODING_CONSOLE_OUT">$ENCODING_CONSOLE_OUT</dt>
+<dd>
+
+<p>The encodings to be used for reading and writing output to the a console. <a href="/cperl/lib/Encode.html">Encode</a> know these encodings as &quot;console_in&quot; and &quot;console_out&quot;.</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTES">NOTES</h1>
+
+<p>This table summarizes the mapping of the encodings set up by the <code>Encode::Locale</code> module:</p>
+
+<pre><code>  Encode      |         |              |
+  Alias       | Windows | Mac OS X     | POSIX
+  ------------+---------+--------------+------------
+  locale      | ANSI    | nl_langinfo  | nl_langinfo
+  locale_fs   | ANSI    | UTF-8        | nl_langinfo
+  console_in  | OEM     | nl_langinfo  | nl_langinfo
+  console_out | OEM     | nl_langinfo  | nl_langinfo</code></pre>
+
+<h2 id="Windows">Windows</h2>
+
+<p>Windows has basically 2 sets of APIs. A wide API (based on passing UTF-16 strings) and a byte based API based a character set called ANSI. The regular Perl interfaces to the OS currently only uses the ANSI APIs. Unfortunately ANSI is not a single character set.</p>
+
+<p>The encoding that corresponds to ANSI varies between different editions of Windows. For many western editions of Windows ANSI corresponds to CP-1252 which is a character set similar to ISO-8859-1. Conceptually the ANSI character set is a similar concept to the POSIX locale CODESET so this module figures out what the ANSI code page is and make this available as $ENCODING_LOCALE and the &quot;locale&quot; Encoding alias.</p>
+
+<p>Windows systems also operate with another byte based character set. It&#39;s called the OEM code page. This is the encoding that the Console takes as input and output. It&#39;s common for the OEM code page to differ from the ANSI code page.</p>
+
+<h2 id="Mac-OS-X">Mac OS X</h2>
+
+<p>On Mac OS X the file system encoding is always UTF-8 while the locale can otherwise be set up as normal for POSIX systems.</p>
+
+<p>File names on Mac OS X will at the OS-level be converted to NFD-form. A file created by passing a NFC-filename will come in NFD-form from readdir(). See <a href="/cperl/lib/Unicode/Normalize.html">Unicode::Normalize</a> for details of NFD/NFC.</p>
+
+<p>Actually, Apple does not follow the Unicode NFD standard since not all character ranges are decomposed. The claim is that this avoids problems with round trip conversions from old Mac text encodings. See <a>Encode::UTF8Mac</a> for details.</p>
+
+<h2 id="POSIX-Linux-and-other-Unixes">POSIX (Linux and other Unixes)</h2>
+
+<p>File systems might vary in what encoding is to be used for filenames. Since this module has no way to actually figure out what the is correct it goes with the best guess which is to assume filenames are encoding according to the current locale. Users are advised to always specify UTF-8 as the locale charset.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/I18N/Langinfo.html">I18N::Langinfo</a>, <a href="/cperl/lib/Encode.html">Encode</a>, <a>Term::Encoding</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Copyright 2010 Gisle Aas &lt;gisle@aas.no&gt;.</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

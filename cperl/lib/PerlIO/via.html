@@ -1,0 +1,246 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#EXPECTED-METHODS">EXPECTED METHODS</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a>
+    <ul>
+      <li><a href="#Example---a-Hexadecimal-Handle">Example - a Hexadecimal Handle</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>PerlIO::via - Helper class for PerlIO layers implemented in perl</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>   use PerlIO::via::Layer;
+   open($fh,&quot;&lt;:via(Layer)&quot;,...);
+
+   use Some::Other::Package;
+   open($fh,&quot;&gt;:via(Some::Other::Package)&quot;,...);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The PerlIO::via module allows you to develop PerlIO layers in Perl, without having to go into the nitty gritty of programming C with XS as the interface to Perl.</p>
+
+<p>One example module, <a href="/cperl/lib/PerlIO/via/QuotedPrint.html">PerlIO::via::QuotedPrint</a>, is included with Perl 5.8.0, and more example modules are available from CPAN, such as <a>PerlIO::via::StripHTML</a> and <a>PerlIO::via::Base64</a>. The PerlIO::via::StripHTML module for instance, allows you to say:</p>
+
+<pre><code>        use PerlIO::via::StripHTML;
+        open( my $fh, &quot;&lt;:via(StripHTML)&quot;, &quot;index.html&quot; );
+        my @line = &lt;$fh&gt;;</code></pre>
+
+<p>to obtain the text of an HTML-file in an array with all the HTML-tags automagically removed.</p>
+
+<p>Please note that if the layer is created in the PerlIO::via:: namespace, it does <b>not</b> have to be fully qualified. The PerlIO::via module will prefix the PerlIO::via:: namespace if the specified modulename does not exist as a fully qualified module name.</p>
+
+<h1 id="EXPECTED-METHODS">EXPECTED METHODS</h1>
+
+<p>To create a Perl module that implements a PerlIO layer in Perl (as opposed to in C using XS as the interface to Perl), you need to supply some of the following subroutines. It is recommended to create these Perl modules in the PerlIO::via:: namespace, so that they can easily be located on CPAN and use the default namespace feature of the PerlIO::via module itself.</p>
+
+<p>Please note that this is an area of recent development in Perl and that the interface described here is therefore still subject to change (and hopefully will have better documentation and more examples).</p>
+
+<p>In the method descriptions below <i>$fh</i> will be a reference to a glob which can be treated as a perl file handle. It refers to the layer below. <i>$fh</i> is not passed if the layer is at the bottom of the stack, for this reason and to maintain some level of &quot;compatibility&quot; with TIEHANDLE classes it is passed last.</p>
+
+<dl>
+
+<dt id="class-PUSHED-mode-fh">$class-&gt;PUSHED([$mode,[$fh]])</dt>
+<dd>
+
+<p>Should return an object or the class, or -1 on failure. (Compare TIEHANDLE.) The arguments are an optional mode string (&quot;r&quot;, &quot;w&quot;, &quot;w+&quot;, ...) and a filehandle for the PerlIO layer below. Mandatory.</p>
+
+<p>When the layer is pushed as part of an <code>open</code> call, <code>PUSHED</code> will be called <i>before</i> the actual open occurs, whether that be via <code>OPEN</code>, <code>SYSOPEN</code>, <code>FDOPEN</code> or by letting a lower layer do the open.</p>
+
+</dd>
+<dt id="obj-POPPED-fh">$obj-&gt;POPPED([$fh])</dt>
+<dd>
+
+<p>Optional - called when the layer is about to be removed.</p>
+
+</dd>
+<dt id="obj-UTF8-belowFlag-fh">$obj-&gt;UTF8($belowFlag,[$fh])</dt>
+<dd>
+
+<p>Optional - if present it will be called immediately after PUSHED has returned. It should return a true value if the layer expects data to be UTF-8 encoded. If it returns true, the result is as if the caller had done</p>
+
+<pre><code>   &quot;:via(YourClass):utf8&quot;</code></pre>
+
+<p>If not present or if it returns false, then the stream is left with the UTF-8 flag clear. The <i>$belowFlag</i> argument will be true if there is a layer below and that layer was expecting UTF-8.</p>
+
+</dd>
+<dt id="obj-OPEN-path-mode-fh">$obj-&gt;OPEN($path,$mode,[$fh])</dt>
+<dd>
+
+<p>Optional - if not present a lower layer does the open. If present, called for normal opens after the layer is pushed. This function is subject to change as there is no easy way to get a lower layer to do the open and then regain control.</p>
+
+</dd>
+<dt id="obj-BINMODE-fh">$obj-&gt;BINMODE([$fh])</dt>
+<dd>
+
+<p>Optional - if not present the layer is popped on binmode($fh) or when <code>:raw</code> is pushed. If present it should return 0 on success, -1 on error, or undef to pop the layer.</p>
+
+</dd>
+<dt id="obj-FDOPEN-fd-fh">$obj-&gt;FDOPEN($fd,[$fh])</dt>
+<dd>
+
+<p>Optional - if not present a lower layer does the open. If present, called after the layer is pushed for opens which pass a numeric file descriptor. This function is subject to change as there is no easy way to get a lower layer to do the open and then regain control.</p>
+
+</dd>
+<dt id="obj-SYSOPEN-path-imode-perm-fh">$obj-&gt;SYSOPEN($path,$imode,$perm,[$fh])</dt>
+<dd>
+
+<p>Optional - if not present a lower layer does the open. If present, called after the layer is pushed for sysopen style opens which pass a numeric mode and permissions. This function is subject to change as there is no easy way to get a lower layer to do the open and then regain control.</p>
+
+</dd>
+<dt id="obj-FILENO-fh">$obj-&gt;FILENO($fh)</dt>
+<dd>
+
+<p>Returns a numeric value for a Unix-like file descriptor. Returns -1 if there isn&#39;t one. Optional. Default is fileno($fh).</p>
+
+</dd>
+<dt id="obj-READ-buffer-len-fh">$obj-&gt;READ($buffer,$len,$fh)</dt>
+<dd>
+
+<p>Returns the number of octets placed in $buffer (must be less than or equal to $len). Optional. Default is to use FILL instead.</p>
+
+</dd>
+<dt id="obj-WRITE-buffer-fh">$obj-&gt;WRITE($buffer,$fh)</dt>
+<dd>
+
+<p>Returns the number of octets from $buffer that have been successfully written.</p>
+
+</dd>
+<dt id="obj-FILL-fh">$obj-&gt;FILL($fh)</dt>
+<dd>
+
+<p>Should return a string to be placed in the buffer. Optional. If not provided, must provide READ or reject handles open for reading in PUSHED.</p>
+
+</dd>
+<dt id="obj-CLOSE-fh">$obj-&gt;CLOSE($fh)</dt>
+<dd>
+
+<p>Should return 0 on success, -1 on error. Optional.</p>
+
+</dd>
+<dt id="obj-SEEK-posn-whence-fh">$obj-&gt;SEEK($posn,$whence,$fh)</dt>
+<dd>
+
+<p>Should return 0 on success, -1 on error. Optional. Default is to fail, but that is likely to be changed in future.</p>
+
+</dd>
+<dt id="obj-TELL-fh">$obj-&gt;TELL($fh)</dt>
+<dd>
+
+<p>Returns file position. Optional. Default to be determined.</p>
+
+</dd>
+<dt id="obj-UNREAD-buffer-fh">$obj-&gt;UNREAD($buffer,$fh)</dt>
+<dd>
+
+<p>Returns the number of octets from $buffer that have been successfully saved to be returned on future FILL/READ calls. Optional. Default is to push data into a temporary layer above this one.</p>
+
+</dd>
+<dt id="obj-FLUSH-fh">$obj-&gt;FLUSH($fh)</dt>
+<dd>
+
+<p>Flush any buffered write data. May possibly be called on readable handles too. Should return 0 on success, -1 on error.</p>
+
+</dd>
+<dt id="obj-SETLINEBUF-fh">$obj-&gt;SETLINEBUF($fh)</dt>
+<dd>
+
+<p>Optional. No return.</p>
+
+</dd>
+<dt id="obj-CLEARERR-fh">$obj-&gt;CLEARERR($fh)</dt>
+<dd>
+
+<p>Optional. No return.</p>
+
+</dd>
+<dt id="obj-ERROR-fh">$obj-&gt;ERROR($fh)</dt>
+<dd>
+
+<p>Optional. Returns error state. Default is no error until a mechanism to signal error (die?) is worked out.</p>
+
+</dd>
+<dt id="obj-EOF-fh">$obj-&gt;EOF($fh)</dt>
+<dd>
+
+<p>Optional. Returns end-of-file state. Default is a function of the return value of FILL or READ.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Check the PerlIO::via:: namespace on CPAN for examples of PerlIO layers implemented in Perl. To give you an idea how simple the implementation of a PerlIO layer can look, a simple example is included here.</p>
+
+<h2 id="Example---a-Hexadecimal-Handle">Example - a Hexadecimal Handle</h2>
+
+<p>Given the following module, PerlIO::via::Hex :</p>
+
+<pre><code>    package PerlIO::via::Hex;
+
+    sub PUSHED
+    {
+     my ($class,$mode,$fh) = @_;
+     # When writing we buffer the data
+     my $buf = &#39;&#39;;
+     return bless \$buf,$class;
+    }
+
+    sub FILL
+    {
+     my ($obj,$fh) = @_;
+     my $line = &lt;$fh&gt;;
+     return (defined $line) ? pack(&quot;H*&quot;, $line) : undef;
+    }
+
+    sub WRITE
+    {
+     my ($obj,$buf,$fh) = @_;
+     $$obj .= unpack(&quot;H*&quot;, $buf);
+     return length($buf);
+    }
+
+    sub FLUSH
+    {
+     my ($obj,$fh) = @_;
+     print $fh $$obj or return -1;
+     $$obj = &#39;&#39;;
+     return 0;
+    }
+
+    1;</code></pre>
+
+<p>The following code opens up an output handle that will convert any output to a hexadecimal dump of the output bytes: for example &quot;A&quot; will be converted to &quot;41&quot; (on ASCII-based machines, on EBCDIC platforms the &quot;A&quot; will become &quot;c1&quot;)</p>
+
+<pre><code>    use PerlIO::via::Hex;
+    open(my $fh, &quot;&gt;:via(Hex)&quot;, &quot;foo.hex&quot;);</code></pre>
+
+<p>and the following code will read the hexdump in and convert it on the fly back into bytes:</p>
+
+<pre><code>    open(my $fh, &quot;&lt;:via(Hex)&quot;, &quot;foo.hex&quot;);</code></pre>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,489 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CLASS-METHODS">CLASS METHODS</a>
+    <ul>
+      <li><a href="#ipc_run_version-IPC::Cmd-can_use_ipc_run-VERBOSE">$ipc_run_version = IPC::Cmd-&gt;can_use_ipc_run( [VERBOSE] )</a></li>
+      <li><a href="#ipc_open3_version-IPC::Cmd-can_use_ipc_open3-VERBOSE">$ipc_open3_version = IPC::Cmd-&gt;can_use_ipc_open3( [VERBOSE] )</a></li>
+      <li><a href="#bool-IPC::Cmd-can_capture_buffer">$bool = IPC::Cmd-&gt;can_capture_buffer</a></li>
+      <li><a href="#bool-IPC::Cmd-can_use_run_forked">$bool = IPC::Cmd-&gt;can_use_run_forked</a></li>
+    </ul>
+  </li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a>
+    <ul>
+      <li><a href="#path-can_run-PROGRAM">$path = can_run( PROGRAM );</a></li>
+      <li><a href="#ok-ok-err-full_buf-stdout_buff-stderr_buff-run-command-COMMAND-verbose-BOOL-buffer-SCALAR-timeout-DIGIT">$ok | ($ok, $err, $full_buf, $stdout_buff, $stderr_buff) = run( command =&gt; COMMAND, [verbose =&gt; BOOL, buffer =&gt; \$SCALAR, timeout =&gt; DIGIT] );</a></li>
+      <li><a href="#hashref-run_forked-COMMAND-child_stdin-SCALAR-timeout-DIGIT-stdout_handler-CODEREF-stderr_handler-CODEREF">$hashref = run_forked( COMMAND, { child_stdin =&gt; SCALAR, timeout =&gt; DIGIT, stdout_handler =&gt; CODEREF, stderr_handler =&gt; CODEREF} );</a></li>
+      <li><a href="#q-QUOTE">$q = QUOTE</a></li>
+    </ul>
+  </li>
+  <li><a href="#HOW-IT-WORKS">HOW IT WORKS</a></li>
+  <li><a href="#Global-Variables">Global Variables</a>
+    <ul>
+      <li><a href="#IPC::Cmd::VERBOSE">$IPC::Cmd::VERBOSE</a></li>
+      <li><a href="#IPC::Cmd::USE_IPC_RUN">$IPC::Cmd::USE_IPC_RUN</a></li>
+      <li><a href="#IPC::Cmd::USE_IPC_OPEN3">$IPC::Cmd::USE_IPC_OPEN3</a></li>
+      <li><a href="#IPC::Cmd::WARN">$IPC::Cmd::WARN</a></li>
+      <li><a href="#IPC::Cmd::INSTANCES">$IPC::Cmd::INSTANCES</a></li>
+      <li><a href="#IPC::Cmd::ALLOW_NULL_ARGS">$IPC::Cmd::ALLOW_NULL_ARGS</a></li>
+    </ul>
+  </li>
+  <li><a href="#Caveats">Caveats</a></li>
+  <li><a href="#See-Also">See Also</a></li>
+  <li><a href="#ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</a></li>
+  <li><a href="#BUG-REPORTS">BUG REPORTS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>IPC::Cmd - finding and running system commands made easy</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use IPC::Cmd qw[can_run run run_forked];
+
+    my $full_path = can_run(&#39;wget&#39;) or warn &#39;wget is not installed!&#39;;
+
+    ### commands can be arrayrefs or strings ###
+    my $cmd = &quot;$full_path -b theregister.co.uk&quot;;
+    my $cmd = [$full_path, &#39;-b&#39;, &#39;theregister.co.uk&#39;];
+
+    ### in scalar context ###
+    my $buffer;
+    if( scalar run( command =&gt; $cmd,
+                    verbose =&gt; 0,
+                    buffer  =&gt; \$buffer,
+                    timeout =&gt; 20 )
+    ) {
+        print &quot;fetched webpage successfully: $buffer\n&quot;;
+    }
+
+
+    ### in list context ###
+    my( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
+            run( command =&gt; $cmd, verbose =&gt; 0 );
+
+    if( $success ) {
+        print &quot;this is what the command printed:\n&quot;;
+        print join &quot;&quot;, @$full_buf;
+    }
+
+    ### run_forked example ###
+    my $result = run_forked(&quot;$full_path -q -O - theregister.co.uk&quot;, {&#39;timeout&#39; =&gt; 20});
+    if ($result-&gt;{&#39;exit_code&#39;} eq 0 &amp;&amp; !$result-&gt;{&#39;timeout&#39;}) {
+        print &quot;this is what wget returned:\n&quot;;
+        print $result-&gt;{&#39;stdout&#39;};
+    }
+
+    ### check for features
+    print &quot;IPC::Open3 available: &quot;  . IPC::Cmd-&gt;can_use_ipc_open3;
+    print &quot;IPC::Run available: &quot;    . IPC::Cmd-&gt;can_use_ipc_run;
+    print &quot;Can capture buffer: &quot;    . IPC::Cmd-&gt;can_capture_buffer;
+
+    ### don&#39;t have IPC::Cmd be verbose, ie don&#39;t print to stdout or
+    ### stderr when running commands -- default is &#39;0&#39;
+    $IPC::Cmd::VERBOSE = 0;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>IPC::Cmd allows you to run commands platform independently, interactively if desired, but have them still work.</p>
+
+<p>The <code>can_run</code> function can tell you if a certain binary is installed and if so where, whereas the <code>run</code> function can actually execute any of the commands you give it and give you a clear return value, as well as adhere to your verbosity settings.</p>
+
+<h1 id="CLASS-METHODS">CLASS METHODS</h1>
+
+<h2 id="ipc_run_version-IPC::Cmd-can_use_ipc_run-VERBOSE">$ipc_run_version = IPC::Cmd-&gt;can_use_ipc_run( [VERBOSE] )</h2>
+
+<p>Utility function that tells you if <code>IPC::Run</code> is available. If the <code>verbose</code> flag is passed, it will print diagnostic messages if <a>IPC::Run</a> can not be found or loaded.</p>
+
+<h2 id="ipc_open3_version-IPC::Cmd-can_use_ipc_open3-VERBOSE">$ipc_open3_version = IPC::Cmd-&gt;can_use_ipc_open3( [VERBOSE] )</h2>
+
+<p>Utility function that tells you if <code>IPC::Open3</code> is available. If the verbose flag is passed, it will print diagnostic messages if <code>IPC::Open3</code> can not be found or loaded.</p>
+
+<h2 id="bool-IPC::Cmd-can_capture_buffer">$bool = IPC::Cmd-&gt;can_capture_buffer</h2>
+
+<p>Utility function that tells you if <code>IPC::Cmd</code> is capable of capturing buffers in it&#39;s current configuration.</p>
+
+<h2 id="bool-IPC::Cmd-can_use_run_forked">$bool = IPC::Cmd-&gt;can_use_run_forked</h2>
+
+<p>Utility function that tells you if <code>IPC::Cmd</code> is capable of providing <code>run_forked</code> on the current platform.</p>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<h2 id="path-can_run-PROGRAM">$path = can_run( PROGRAM );</h2>
+
+<p><code>can_run</code> takes only one argument: the name of a binary you wish to locate. <code>can_run</code> works much like the unix binary <code>which</code> or the bash command <code>type</code>, which scans through your path, looking for the requested binary.</p>
+
+<p>Unlike <code>which</code> and <code>type</code>, this function is platform independent and will also work on, for example, Win32.</p>
+
+<p>If called in a scalar context it will return the full path to the binary you asked for if it was found, or <code>undef</code> if it was not.</p>
+
+<p>If called in a list context and the global variable <code>$INSTANCES</code> is a true value, it will return a list of the full paths to instances of the binary where found in <code>PATH</code>, or an empty list if it was not found.</p>
+
+<h2 id="ok-ok-err-full_buf-stdout_buff-stderr_buff-run-command-COMMAND-verbose-BOOL-buffer-SCALAR-timeout-DIGIT">$ok | ($ok, $err, $full_buf, $stdout_buff, $stderr_buff) = run( command =&gt; COMMAND, [verbose =&gt; BOOL, buffer =&gt; \$SCALAR, timeout =&gt; DIGIT] );</h2>
+
+<p><code>run</code> takes 4 arguments:</p>
+
+<dl>
+
+<dt id="command">command</dt>
+<dd>
+
+<p>This is the command to execute. It may be either a string or an array reference. This is a required argument.</p>
+
+<p>See <a href="#Caveats">&quot;Caveats&quot;</a> for remarks on how commands are parsed and their limitations.</p>
+
+</dd>
+<dt id="verbose">verbose</dt>
+<dd>
+
+<p>This controls whether all output of a command should also be printed to STDOUT/STDERR or should only be trapped in buffers (NOTE: buffers require <a>IPC::Run</a> to be installed, or your system able to work with <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a>).</p>
+
+<p>It will default to the global setting of <code>$IPC::Cmd::VERBOSE</code>, which by default is 0.</p>
+
+</dd>
+<dt id="buffer">buffer</dt>
+<dd>
+
+<p>This will hold all the output of a command. It needs to be a reference to a scalar. Note that this will hold both the STDOUT and STDERR messages, and you have no way of telling which is which. If you require this distinction, run the <code>run</code> command in list context and inspect the individual buffers.</p>
+
+<p>Of course, this requires that the underlying call supports buffers. See the note on buffers above.</p>
+
+</dd>
+<dt id="timeout">timeout</dt>
+<dd>
+
+<p>Sets the maximum time the command is allowed to run before aborting, using the built-in <code>alarm()</code> call. If the timeout is triggered, the <code>errorcode</code> in the return value will be set to an object of the <code>IPC::Cmd::TimeOut</code> class. See the <a href="#error-message">&quot;error message&quot;</a> section below for details.</p>
+
+<p>Defaults to <code>0</code>, meaning no timeout is set.</p>
+
+</dd>
+</dl>
+
+<p><code>run</code> will return a simple <code>true</code> or <code>false</code> when called in scalar context. In list context, you will be returned a list of the following items:</p>
+
+<dl>
+
+<dt id="success">success</dt>
+<dd>
+
+<p>A simple boolean indicating if the command executed without errors or not.</p>
+
+</dd>
+<dt id="error-message">error message</dt>
+<dd>
+
+<p>If the first element of the return value (<code>success</code>) was 0, then some error occurred. This second element is the error message the command you requested exited with, if available. This is generally a pretty printed value of <code>$?</code> or <code>$@</code>. See <code>perldoc perlvar</code> for details on what they can contain. If the error was a timeout, the <code>error message</code> will be prefixed with the string <code>IPC::Cmd::TimeOut</code>, the timeout class.</p>
+
+</dd>
+<dt id="full_buffer">full_buffer</dt>
+<dd>
+
+<p>This is an array reference containing all the output the command generated. Note that buffers are only available if you have <a>IPC::Run</a> installed, or if your system is able to work with <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a> -- see below). Otherwise, this element will be <code>undef</code>.</p>
+
+</dd>
+<dt id="out_buffer">out_buffer</dt>
+<dd>
+
+<p>This is an array reference containing all the output sent to STDOUT the command generated. The notes from <a href="#full_buffer">&quot;full_buffer&quot;</a> apply.</p>
+
+</dd>
+<dt id="error_buffer">error_buffer</dt>
+<dd>
+
+<p>This is an arrayreference containing all the output sent to STDERR the command generated. The notes from <a href="#full_buffer">&quot;full_buffer&quot;</a> apply.</p>
+
+</dd>
+</dl>
+
+<p>See the <a href="#HOW-IT-WORKS">&quot;HOW IT WORKS&quot;</a> section below to see how <code>IPC::Cmd</code> decides what modules or function calls to use when issuing a command.</p>
+
+<h2 id="hashref-run_forked-COMMAND-child_stdin-SCALAR-timeout-DIGIT-stdout_handler-CODEREF-stderr_handler-CODEREF">$hashref = run_forked( COMMAND, { child_stdin =&gt; SCALAR, timeout =&gt; DIGIT, stdout_handler =&gt; CODEREF, stderr_handler =&gt; CODEREF} );</h2>
+
+<p><code>run_forked</code> is used to execute some program or a coderef, optionally feed it with some input, get its return code and output (both stdout and stderr into separate buffers). In addition, it allows to terminate the program if it takes too long to finish.</p>
+
+<p>The important and distinguishing feature of run_forked is execution timeout which at first seems to be quite a simple task but if you think that the program which you&#39;re spawning might spawn some children itself (which in their turn could do the same and so on) it turns out to be not a simple issue.</p>
+
+<p><code>run_forked</code> is designed to survive and successfully terminate almost any long running task, even a fork bomb in case your system has the resources to survive during given timeout.</p>
+
+<p>This is achieved by creating separate watchdog process which spawns the specified program in a separate process session and supervises it: optionally feeds it with input, stores its exit code, stdout and stderr, terminates it in case it runs longer than specified.</p>
+
+<p>Invocation requires the command to be executed or a coderef and optionally a hashref of options:</p>
+
+<dl>
+
+<dt id="timeout1"><code>timeout</code></dt>
+<dd>
+
+<p>Specify in seconds how long to run the command before it is killed with SIG_KILL (9), which effectively terminates it and all of its children (direct or indirect).</p>
+
+</dd>
+<dt id="child_stdin"><code>child_stdin</code></dt>
+<dd>
+
+<p>Specify some text that will be passed into the <code>STDIN</code> of the executed program.</p>
+
+</dd>
+<dt id="stdout_handler"><code>stdout_handler</code></dt>
+<dd>
+
+<p>Coderef of a subroutine to call when a portion of data is received on STDOUT from the executing program.</p>
+
+</dd>
+<dt id="stderr_handler"><code>stderr_handler</code></dt>
+<dd>
+
+<p>Coderef of a subroutine to call when a portion of data is received on STDERR from the executing program.</p>
+
+</dd>
+<dt id="wait_loop_callback"><code>wait_loop_callback</code></dt>
+<dd>
+
+<p>Coderef of a subroutine to call inside of the main waiting loop (while <code>run_forked</code> waits for the external to finish or fail). It is useful to stop running external process before it ends by itself, e.g.</p>
+
+<pre><code>  my $r = run_forked(&quot;some external command&quot;, {
+          &#39;wait_loop_callback&#39; =&gt; sub {
+          if (condition) {
+              kill(1, $$);
+          }
+          },
+          &#39;terminate_on_signal&#39; =&gt; &#39;HUP&#39;,
+          });</code></pre>
+
+<p>Combined with <code>stdout_handler</code> and <code>stderr_handler</code> allows terminating external command based on its output. Could also be used as a timer without engaging with <a>alarm</a> (signals).</p>
+
+<p>Remember that this code could be called every millisecond (depending on the output which external command generates), so try to make it as lightweight as possible.</p>
+
+</dd>
+<dt id="discard_output"><code>discard_output</code></dt>
+<dd>
+
+<p>Discards the buffering of the standard output and standard errors for return by run_forked(). With this option you have to use the std*_handlers to read what the command outputs. Useful for commands that send a lot of output.</p>
+
+</dd>
+<dt id="terminate_on_parent_sudden_death"><code>terminate_on_parent_sudden_death</code></dt>
+<dd>
+
+<p>Enable this option if you wish all spawned processes to be killed if the initially spawned process (the parent) is killed or dies without waiting for child processes.</p>
+
+</dd>
+</dl>
+
+<p><code>run_forked</code> will return a HASHREF with the following keys:</p>
+
+<dl>
+
+<dt id="exit_code"><code>exit_code</code></dt>
+<dd>
+
+<p>The exit code of the executed program.</p>
+
+</dd>
+<dt id="timeout2"><code>timeout</code></dt>
+<dd>
+
+<p>The number of seconds the program ran for before being terminated, or 0 if no timeout occurred.</p>
+
+</dd>
+<dt id="stdout"><code>stdout</code></dt>
+<dd>
+
+<p>Holds the standard output of the executed command (or empty string if there was no STDOUT output or if <code>discard_output</code> was used; it&#39;s always defined!)</p>
+
+</dd>
+<dt id="stderr"><code>stderr</code></dt>
+<dd>
+
+<p>Holds the standard error of the executed command (or empty string if there was no STDERR output or if <code>discard_output</code> was used; it&#39;s always defined!)</p>
+
+</dd>
+<dt id="merged"><code>merged</code></dt>
+<dd>
+
+<p>Holds the standard output and error of the executed command merged into one stream (or empty string if there was no output at all or if <code>discard_output</code> was used; it&#39;s always defined!)</p>
+
+</dd>
+<dt id="err_msg"><code>err_msg</code></dt>
+<dd>
+
+<p>Holds some explanation in the case of an error.</p>
+
+</dd>
+</dl>
+
+<h2 id="q-QUOTE">$q = QUOTE</h2>
+
+<p>Returns the character used for quoting strings on this platform. This is usually a <code>&#39;</code> (single quote) on most systems, but some systems use different quotes. For example, <code>Win32</code> uses <code>&quot;</code> (double quote).</p>
+
+<p>You can use it as follows:</p>
+
+<pre><code>  use IPC::Cmd qw[run QUOTE];
+  my $cmd = q[echo ] . QUOTE . q[foo bar] . QUOTE;</code></pre>
+
+<p>This makes sure that <code>foo bar</code> is treated as a string, rather than two separate arguments to the <code>echo</code> function.</p>
+
+<h1 id="HOW-IT-WORKS">HOW IT WORKS</h1>
+
+<p><code>run</code> will try to execute your command using the following logic:</p>
+
+<ul>
+
+<li><p>If you have <code>IPC::Run</code> installed, and the variable <code>$IPC::Cmd::USE_IPC_RUN</code> is set to true (See the <a href="#Global-Variables">&quot;Global Variables&quot;</a> section) use that to execute the command. You will have the full output available in buffers, interactive commands are sure to work and you are guaranteed to have your verbosity settings honored cleanly.</p>
+
+</li>
+<li><p>Otherwise, if the variable <code>$IPC::Cmd::USE_IPC_OPEN3</code> is set to true (See the <a href="#Global-Variables">&quot;Global Variables&quot;</a> section), try to execute the command using <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a>. Buffers will be available on all platforms, interactive commands will still execute cleanly, and also your verbosity settings will be adhered to nicely;</p>
+
+</li>
+<li><p>Otherwise, if you have the <code>verbose</code> argument set to true, we fall back to a simple <code>system()</code> call. We cannot capture any buffers, but interactive commands will still work.</p>
+
+</li>
+<li><p>Otherwise we will try and temporarily redirect STDERR and STDOUT, do a <code>system()</code> call with your command and then re-open STDERR and STDOUT. This is the method of last resort and will still allow you to execute your commands cleanly. However, no buffers will be available.</p>
+
+</li>
+</ul>
+
+<h1 id="Global-Variables">Global Variables</h1>
+
+<p>The behaviour of IPC::Cmd can be altered by changing the following global variables:</p>
+
+<h2 id="IPC::Cmd::VERBOSE">$IPC::Cmd::VERBOSE</h2>
+
+<p>This controls whether IPC::Cmd will print any output from the commands to the screen or not. The default is 0.</p>
+
+<h2 id="IPC::Cmd::USE_IPC_RUN">$IPC::Cmd::USE_IPC_RUN</h2>
+
+<p>This variable controls whether IPC::Cmd will try to use <a>IPC::Run</a> when available and suitable.</p>
+
+<h2 id="IPC::Cmd::USE_IPC_OPEN3">$IPC::Cmd::USE_IPC_OPEN3</h2>
+
+<p>This variable controls whether IPC::Cmd will try to use <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a> when available and suitable. Defaults to true.</p>
+
+<h2 id="IPC::Cmd::WARN">$IPC::Cmd::WARN</h2>
+
+<p>This variable controls whether run-time warnings should be issued, like the failure to load an <code>IPC::*</code> module you explicitly requested.</p>
+
+<p>Defaults to true. Turn this off at your own risk.</p>
+
+<h2 id="IPC::Cmd::INSTANCES">$IPC::Cmd::INSTANCES</h2>
+
+<p>This variable controls whether <code>can_run</code> will return all instances of the binary it finds in the <code>PATH</code> when called in a list context.</p>
+
+<p>Defaults to false, set to true to enable the described behaviour.</p>
+
+<h2 id="IPC::Cmd::ALLOW_NULL_ARGS">$IPC::Cmd::ALLOW_NULL_ARGS</h2>
+
+<p>This variable controls whether <code>run</code> will remove any empty/null arguments it finds in command arguments.</p>
+
+<p>Defaults to false, so it will remove null arguments. Set to true to allow them.</p>
+
+<h1 id="Caveats">Caveats</h1>
+
+<dl>
+
+<dt id="Whitespace-and-IPC::Open3-system">Whitespace and IPC::Open3 / system()</dt>
+<dd>
+
+<p>When using <code>IPC::Open3</code> or <code>system</code>, if you provide a string as the <code>command</code> argument, it is assumed to be appropriately escaped. You can use the <code>QUOTE</code> constant to use as a portable quote character (see above). However, if you provide an array reference, special rules apply:</p>
+
+<p>If your command contains <b>special characters</b> (&lt; &gt; | &amp;), it will be internally stringified before executing the command, to avoid that these special characters are escaped and passed as arguments instead of retaining their special meaning.</p>
+
+<p>However, if the command contained arguments that contained whitespace, stringifying the command would lose the significance of the whitespace. Therefore, <code>IPC::Cmd</code> will quote any arguments containing whitespace in your command if the command is passed as an arrayref and contains special characters.</p>
+
+</dd>
+<dt id="Whitespace-and-IPC::Run">Whitespace and IPC::Run</dt>
+<dd>
+
+<p>When using <code>IPC::Run</code>, if you provide a string as the <code>command</code> argument, the string will be split on whitespace to determine the individual elements of your command. Although this will usually just Do What You Mean, it may break if you have files or commands with whitespace in them.</p>
+
+<p>If you do not wish this to happen, you should provide an array reference, where all parts of your command are already separated out. Note however, if there are extra or spurious whitespaces in these parts, the parser or underlying code may not interpret it correctly, and cause an error.</p>
+
+<p>Example: The following code</p>
+
+<pre><code>    gzip -cdf foo.tar.gz | tar -xf -</code></pre>
+
+<p>should either be passed as</p>
+
+<pre><code>    &quot;gzip -cdf foo.tar.gz | tar -xf -&quot;</code></pre>
+
+<p>or as</p>
+
+<pre><code>    [&#39;gzip&#39;, &#39;-cdf&#39;, &#39;foo.tar.gz&#39;, &#39;|&#39;, &#39;tar&#39;, &#39;-xf&#39;, &#39;-&#39;]</code></pre>
+
+<p>But take care not to pass it as, for example</p>
+
+<pre><code>    [&#39;gzip -cdf foo.tar.gz&#39;, &#39;|&#39;, &#39;tar -xf -&#39;]</code></pre>
+
+<p>Since this will lead to issues as described above.</p>
+
+</dd>
+<dt id="IO-Redirect">IO Redirect</dt>
+<dd>
+
+<p>Currently it is too complicated to parse your command for IO redirections. For capturing STDOUT or STDERR there is a work around however, since you can just inspect your buffers for the contents.</p>
+
+</dd>
+<dt id="Interleaving-STDOUT-STDERR">Interleaving STDOUT/STDERR</dt>
+<dd>
+
+<p>Neither IPC::Run nor IPC::Open3 can interleave STDOUT and STDERR. For short bursts of output from a program, e.g. this sample,</p>
+
+<pre><code>    for ( 1..4 ) {
+        $_ % 2 ? print STDOUT $_ : print STDERR $_;
+    }</code></pre>
+
+<p>IPC::[Run|Open3] will first read all of STDOUT, then all of STDERR, meaning the output looks like &#39;13&#39; on STDOUT and &#39;24&#39; on STDERR, instead of</p>
+
+<pre><code>    1
+    2
+    3
+    4</code></pre>
+
+<p>This has been recorded in <a>rt.cpan.org</a> as bug #37532: Unable to interleave STDOUT and STDERR.</p>
+
+</dd>
+</dl>
+
+<h1 id="See-Also">See Also</h1>
+
+<p><a>IPC::Run</a>, <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a></p>
+
+<h1 id="ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</h1>
+
+<p>Thanks to James Mastros and Martijn van der Streek for their help in getting <a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a> to behave nicely.</p>
+
+<p>Thanks to Petya Kohts for the <code>run_forked</code> code.</p>
+
+<h1 id="BUG-REPORTS">BUG REPORTS</h1>
+
+<p>Please report bugs or other issues to &lt;bug-ipc-cmd@rt.cpan.org&gt;.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Original author: Jos Boumans &lt;kane@cpan.org&gt;. Current maintainer: Chris Williams &lt;bingos@cpan.org&gt;.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>This library is free software; you may redistribute and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

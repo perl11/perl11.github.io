@@ -1,0 +1,123 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#bits">%bits</a></li>
+      <li><a href="#defines">%defines</a></li>
+      <li><a href="#labels">%labels</a></li>
+      <li><a href="#ops_using">%ops_using</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>B::Op_private - OP op_private flag definitions</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use B::Op_private;
+
+    # flag details for bit 7 of OP_AELEM&#39;s op_private:
+    my $name  = $B::Op_private::bits{aelem}{7}; # OPpLVAL_INTRO
+    my $value = $B::Op_private::defines{$name}; # 128
+    my $label = $B::Op_private::labels{$name};  # LVINTRO
+
+    # the bit field at bits 5..6 of OP_AELEM&#39;s op_private:
+    my $bf  = $B::Op_private::bits{aelem}{6};
+    my $mask = $bf-&gt;{bitmask}; # etc</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides four global hashes:</p>
+
+<pre><code>    %B::Op_private::bits
+    %B::Op_private::defines
+    %B::Op_private::labels
+    %B::Op_private::ops_using</code></pre>
+
+<p>which contain information about the per-op meanings of the bits in the op_private field.</p>
+
+<h2 id="bits"><code>%bits</code></h2>
+
+<p>This is indexed by op name and then bit number (0..7). For single bit flags, it returns the name of the define (if any) for that bit:</p>
+
+<pre><code>   $B::Op_private::bits{aelem}{7} eq &#39;OPpLVAL_INTRO&#39;;</code></pre>
+
+<p>For bit fields, it returns a hash ref containing details about the field. The same reference will be returned for all bit positions that make up the bit field; so for example these both return the same hash ref:</p>
+
+<pre><code>    $bitfield = $B::Op_private::bits{aelem}{5};
+    $bitfield = $B::Op_private::bits{aelem}{6};</code></pre>
+
+<p>The general format of this hash ref is</p>
+
+<pre><code>    {
+        # The bit range and mask; these are always present.
+        bitmin        =&gt; 5,
+        bitmax        =&gt; 6,
+        bitmask       =&gt; 0x60,
+
+        # (The remaining keys are optional)
+
+        # The names of any defines that were requested:
+        mask_def      =&gt; &#39;OPpFOO_MASK&#39;,
+        baseshift_def =&gt; &#39;OPpFOO_SHIFT&#39;,
+        bitcount_def  =&gt; &#39;OPpFOO_BITS&#39;,
+
+        # If present, Concise etc will display the value with a &#39;FOO=&#39;
+        # prefix. If it equals &#39;-&#39;, then Concise will treat the bit
+        # field as raw bits and not try to interpret it.
+        label         =&gt; &#39;FOO&#39;,
+
+        # If present, specifies the names of some defines and the
+        # display labels that are used to assign meaning to particu-
+        # lar integer values within the bit field; e.g. 3 is dis-
+        # played as &#39;C&#39;.
+        enum          =&gt; [ qw(
+                             1   OPpFOO_A  A
+                             2   OPpFOO_B  B
+                             3   OPpFOO_C  C
+                         )],
+
+    };</code></pre>
+
+<h2 id="defines"><code>%defines</code></h2>
+
+<p>This gives the value of every <code>OPp</code> define, e.g.</p>
+
+<pre><code>    $B::Op_private::defines{OPpLVAL_INTRO} == 128;</code></pre>
+
+<h2 id="labels"><code>%labels</code></h2>
+
+<p>This gives the short display label for each define, as used by <code>B::Concise</code> and <code>perl -Dx</code>, e.g.</p>
+
+<pre><code>    $B::Op_private::labels{OPpLVAL_INTRO} eq &#39;LVINTRO&#39;;</code></pre>
+
+<p>If the label equals &#39;-&#39;, then Concise will treat the bit as a raw bit and not try to display it symbolically.</p>
+
+<h2 id="ops_using"><code>%ops_using</code></h2>
+
+<p>For each define, this gives a reference to an array of op names that use the flag.</p>
+
+<pre><code>    @ops_using_lvintro = @{ $B::Op_private::ops_using{OPp_LVAL_INTRO} };</code></pre>
+
+
+</body>
+
+</html>
+
+

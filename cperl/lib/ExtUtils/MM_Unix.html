@@ -1,0 +1,708 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Methods">Methods</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::MM_Unix - methods used by ExtUtils::MakeMaker</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><code>require ExtUtils::MM_Unix;</code></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The methods provided by this package are designed to be used in conjunction with ExtUtils::MakeMaker. When MakeMaker writes a Makefile, it creates one or more objects that inherit their methods from a package <code>MM</code>. MM itself doesn&#39;t provide any methods, but it ISA ExtUtils::MM_Unix class. The inheritance tree of MM lets operating specific packages take the responsibility for all the methods provided by MM_Unix. We are trying to reduce the number of the necessary overrides by defining rather primitive operations within ExtUtils::MM_Unix.</p>
+
+<p>If you are going to write a platform specific MM package, please try to limit the necessary overrides to primitive methods, and if it is not possible to do so, let&#39;s work out how to achieve that gain.</p>
+
+<p>If you are overriding any of these methods in your Makefile.PL (in the MY class), please report that to the makemaker mailing list. We are trying to minimize the necessary method overrides and switch to data driven Makefile.PLs wherever possible. In the long run less methods will be overridable via the MY class.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<p>The following description of methods is still under development. Please refer to the code for not suitably documented sections and complain loudly to the makemaker@perl.org mailing list. Better yet, provide a patch.</p>
+
+<p>Not all of the methods below are overridable in a Makefile.PL. Overridable methods are marked as (o). All methods are overridable by a platform specific MM_*.pm file.</p>
+
+<p>Cross-platform methods are being moved into MM_Any. If you can&#39;t find something that used to be in here, look in MM_Any.</p>
+
+<h2 id="Methods">Methods</h2>
+
+<dl>
+
+<dt id="os_flavor">os_flavor</dt>
+<dd>
+
+<p>Simply says that we&#39;re Unix.</p>
+
+</dd>
+<dt id="c_o-o">c_o (o)</dt>
+<dd>
+
+<p>Defines the suffix rules to compile different flavors of C files to object files.</p>
+
+</dd>
+<dt id="cflags-o">cflags (o)</dt>
+<dd>
+
+<p>Does very much the same as the cflags script in the perl distribution. It doesn&#39;t return the whole compiler command line, but initializes all of its parts. The const_cccmd method then actually returns the definition of the CCCMD macro which uses these parts.</p>
+
+</dd>
+<dt id="const_cccmd-o">const_cccmd (o)</dt>
+<dd>
+
+<p>Returns the full compiler call for C programs and stores the definition in CONST_CCCMD.</p>
+
+</dd>
+<dt id="const_config-o">const_config (o)</dt>
+<dd>
+
+<p>Sets SHELL if needed, then defines a couple of constants in the Makefile that are imported from %Config.</p>
+
+</dd>
+<dt id="const_loadlibs-o">const_loadlibs (o)</dt>
+<dd>
+
+<p>Defines EXTRALIBS, LDLOADLIBS, BSLOADLIBS, LD_RUN_PATH. See <a href="/cperl/lib/ExtUtils/Liblist.html">ExtUtils::Liblist</a> for details.</p>
+
+</dd>
+<dt id="constants-o">constants (o)</dt>
+<dd>
+
+<pre><code>  my $make_frag = $mm-&gt;constants;</code></pre>
+
+<p>Prints out macros for lots of constants.</p>
+
+</dd>
+<dt id="depend-o">depend (o)</dt>
+<dd>
+
+<p>Same as macro for the depend attribute.</p>
+
+</dd>
+<dt id="init_DEST">init_DEST</dt>
+<dd>
+
+<pre><code>  $mm-&gt;init_DEST</code></pre>
+
+<p>Defines the DESTDIR and DEST* variables paralleling the INSTALL*.</p>
+
+</dd>
+<dt id="init_dist">init_dist</dt>
+<dd>
+
+<pre><code>  $mm-&gt;init_dist;</code></pre>
+
+<p>Defines a lot of macros for distribution support.</p>
+
+<pre><code>  macro         description                     default
+
+  TAR           tar command to use              tar
+  TARFLAGS      flags to pass to TAR            cvf
+
+  ZIP           zip command to use              zip
+  ZIPFLAGS      flags to pass to ZIP            -r
+
+  COMPRESS      compression command to          gzip --best
+                use for tarfiles
+  SUFFIX        suffix to put on                .gz
+                compressed files
+
+  SHAR          shar command to use             shar
+
+  PREOP         extra commands to run before
+                making the archive
+  POSTOP        extra commands to run after
+                making the archive
+
+  TO_UNIX       a command to convert linefeeds
+                to Unix style in your archive
+
+  CI            command to checkin your         ci -u
+                sources to version control
+  RCS_LABEL     command to label your sources   rcs -Nv$(VERSION_SYM): -q
+                just after CI is run
+
+  DIST_CP       $how argument to manicopy()     best
+                when the distdir is created
+
+  DIST_DEFAULT  default target to use to        tardist
+                create a distribution
+
+  DISTVNAME     name of the resulting archive   $(DISTNAME)-$(VERSION)
+                (minus suffixes)</code></pre>
+
+</dd>
+<dt id="dist-o">dist (o)</dt>
+<dd>
+
+<pre><code>  my $dist_macros = $mm-&gt;dist(%overrides);</code></pre>
+
+<p>Generates a make fragment defining all the macros initialized in init_dist.</p>
+
+<p>%overrides can be used to override any of the above.</p>
+
+</dd>
+<dt id="dist_basics-o">dist_basics (o)</dt>
+<dd>
+
+<p>Defines the targets distclean, distcheck, skipcheck, manifest, veryclean.</p>
+
+</dd>
+<dt id="dist_ci-o">dist_ci (o)</dt>
+<dd>
+
+<p>Defines a check in target for RCS.</p>
+
+</dd>
+<dt id="dist_core-o">dist_core (o)</dt>
+<dd>
+
+<pre><code>  my $dist_make_fragment = $MM-&gt;dist_core;</code></pre>
+
+<p>Puts the targets necessary for &#39;make dist&#39; together into one make fragment.</p>
+
+</dd>
+<dt id="dist_target"><b>dist_target</b></dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;dist_target;</code></pre>
+
+<p>Returns the &#39;dist&#39; target to make an archive for distribution. This target simply checks to make sure the Makefile is up-to-date and depends on $(DIST_DEFAULT).</p>
+
+</dd>
+<dt id="tardist_target"><b>tardist_target</b></dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;tardist_target;</code></pre>
+
+<p>Returns the &#39;tardist&#39; target which is simply so &#39;make tardist&#39; works. The real work is done by the dynamically named tardistfile_target() method, tardist should have that as a dependency.</p>
+
+</dd>
+<dt id="zipdist_target"><b>zipdist_target</b></dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;zipdist_target;</code></pre>
+
+<p>Returns the &#39;zipdist&#39; target which is simply so &#39;make zipdist&#39; works. The real work is done by the dynamically named zipdistfile_target() method, zipdist should have that as a dependency.</p>
+
+</dd>
+<dt id="tarfile_target"><b>tarfile_target</b></dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;tarfile_target;</code></pre>
+
+<p>The name of this target is the name of the tarball generated by tardist. This target does the actual work of turning the distdir into a tarball.</p>
+
+</dd>
+<dt id="zipfile_target">zipfile_target</dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;zipfile_target;</code></pre>
+
+<p>The name of this target is the name of the zip file generated by zipdist. This target does the actual work of turning the distdir into a zip file.</p>
+
+</dd>
+<dt id="uutardist_target">uutardist_target</dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;uutardist_target;</code></pre>
+
+<p>Converts the tarfile into a uuencoded file</p>
+
+</dd>
+<dt id="shdist_target">shdist_target</dt>
+<dd>
+
+<pre><code>  my $make_frag = $MM-&gt;shdist_target;</code></pre>
+
+<p>Converts the distdir into a shell archive.</p>
+
+</dd>
+<dt id="dlsyms-o">dlsyms (o)</dt>
+<dd>
+
+<p>Used by some OS&#39; to define DL_FUNCS and DL_VARS and write the *.exp files.</p>
+
+<p>Normally just returns an empty string.</p>
+
+</dd>
+<dt id="dynamic_bs-o">dynamic_bs (o)</dt>
+<dd>
+
+<p>Defines targets for bootstrap files.</p>
+
+</dd>
+<dt id="dynamic_lib-o">dynamic_lib (o)</dt>
+<dd>
+
+<p>Defines how to produce the *.so (or equivalent) files.</p>
+
+</dd>
+<dt id="exescan">exescan</dt>
+<dd>
+
+<p>Deprecated method. Use libscan instead.</p>
+
+</dd>
+<dt id="extliblist">extliblist</dt>
+<dd>
+
+<p>Called by init_others, and calls ext ExtUtils::Liblist. See <a href="/cperl/lib/ExtUtils/Liblist.html">ExtUtils::Liblist</a> for details.</p>
+
+</dd>
+<dt id="find_perl">find_perl</dt>
+<dd>
+
+<p>Finds the executables PERL and FULLPERL</p>
+
+</dd>
+<dt id="fixin">fixin</dt>
+<dd>
+
+<pre><code>  $mm-&gt;fixin(@files);</code></pre>
+
+<p>Inserts the sharpbang or equivalent magic number to a set of @files.</p>
+
+</dd>
+<dt id="force-o">force (o)</dt>
+<dd>
+
+<p>Writes an empty FORCE: target.</p>
+
+</dd>
+<dt id="guess_name">guess_name</dt>
+<dd>
+
+<p>Guess the name of this package by examining the working directory&#39;s name. MakeMaker calls this only if the developer has not supplied a NAME attribute.</p>
+
+</dd>
+<dt id="has_link_code">has_link_code</dt>
+<dd>
+
+<p>Returns true if C, XS, MYEXTLIB or similar objects exist within this object that need a compiler. Does not descend into subdirectories as needs_linking() does.</p>
+
+</dd>
+<dt id="init_dirscan">init_dirscan</dt>
+<dd>
+
+<p>Scans the directory structure and initializes DIR, XS, XS_FILES, C, C_FILES, O_FILES, H, H_FILES, PL_FILES, EXE_FILES.</p>
+
+<p>Called by init_main.</p>
+
+</dd>
+<dt id="init_MANPODS">init_MANPODS</dt>
+<dd>
+
+<p>Determines if man pages should be generated and initializes MAN1PODS and MAN3PODS as appropriate.</p>
+
+</dd>
+<dt id="init_MAN1PODS">init_MAN1PODS</dt>
+<dd>
+
+<p>Initializes MAN1PODS from the list of EXE_FILES.</p>
+
+</dd>
+<dt id="init_MAN3PODS">init_MAN3PODS</dt>
+<dd>
+
+<p>Initializes MAN3PODS from the list of PM files.</p>
+
+</dd>
+<dt id="init_PM">init_PM</dt>
+<dd>
+
+<p>Initializes PMLIBDIRS and PM from PMLIBDIRS.</p>
+
+</dd>
+<dt id="init_DIRFILESEP">init_DIRFILESEP</dt>
+<dd>
+
+<p>Using / for Unix. Called by init_main.</p>
+
+</dd>
+<dt id="init_main">init_main</dt>
+<dd>
+
+<p>Initializes AR, AR_STATIC_ARGS, BASEEXT, CONFIG, DISTNAME, DLBASE, EXE_EXT, FULLEXT, FULLPERL, FULLPERLRUN, FULLPERLRUNINST, INST_*, INSTALL*, INSTALLDIRS, LIB_EXT, LIBPERL_A, MAP_TARGET, NAME, OBJ_EXT, PARENT_NAME, PERL, PERL_ARCHLIB, PERL_INC, PERL_LIB, PERL_SRC, PERLRUN, PERLRUNINST, PREFIX, VERSION, VERSION_SYM, XS_VERSION.</p>
+
+</dd>
+<dt id="init_tools">init_tools</dt>
+<dd>
+
+<p>Initializes tools to use their common (and faster) Unix commands.</p>
+
+</dd>
+<dt id="init_linker">init_linker</dt>
+<dd>
+
+<p>Unix has no need of special linker flags.</p>
+
+</dd>
+<dt id="init_PERL">init_PERL</dt>
+<dd>
+
+<pre><code>    $mm-&gt;init_PERL;</code></pre>
+
+<p>Called by init_main. Sets up ABSPERL, PERL, FULLPERL and all the *PERLRUN* permutations.</p>
+
+<pre><code>    PERL is allowed to be miniperl
+    FULLPERL must be a complete perl
+
+    ABSPERL is PERL converted to an absolute path
+
+    *PERLRUN contains everything necessary to run perl, find it&#39;s
+         libraries, etc...
+
+    *PERLRUNINST is *PERLRUN + everything necessary to find the
+         modules being built.</code></pre>
+
+</dd>
+<dt id="init_platform">init_platform</dt>
+<dd>
+
+</dd>
+<dt id="platform_constants">platform_constants</dt>
+<dd>
+
+<p>Add MM_Unix_VERSION.</p>
+
+</dd>
+<dt id="init_PERM">init_PERM</dt>
+<dd>
+
+<pre><code>  $mm-&gt;init_PERM</code></pre>
+
+<p>Called by init_main. Initializes PERL_*</p>
+
+</dd>
+<dt id="init_xs">init_xs</dt>
+<dd>
+
+<pre><code>    $mm-&gt;init_xs</code></pre>
+
+<p>Sets up macros having to do with XS code. Currently just INST_STATIC, INST_DYNAMIC and INST_BOOT.</p>
+
+</dd>
+<dt id="install-o">install (o)</dt>
+<dd>
+
+<p>Defines the install target.</p>
+
+</dd>
+<dt id="installbin-o">installbin (o)</dt>
+<dd>
+
+<p>Defines targets to make and to install EXE_FILES.</p>
+
+</dd>
+<dt id="linkext-o">linkext (o)</dt>
+<dd>
+
+<p>Defines the linkext target which in turn defines the LINKTYPE.</p>
+
+</dd>
+<dt id="lsdir">lsdir</dt>
+<dd>
+
+<p>Takes as arguments a directory name and a regular expression. Returns all entries in the directory that match the regular expression.</p>
+
+</dd>
+<dt id="macro-o">macro (o)</dt>
+<dd>
+
+<p>Simple subroutine to insert the macros defined by the macro attribute into the Makefile.</p>
+
+</dd>
+<dt id="makeaperl-o">makeaperl (o)</dt>
+<dd>
+
+<p>Called by staticmake. Defines how to write the Makefile to produce a static new perl.</p>
+
+<p>By default the Makefile produced includes all the static extensions in the perl library. (Purified versions of library files, e.g., DynaLoader_pure_p1_c0_032.a are automatically ignored to avoid link errors.)</p>
+
+</dd>
+<dt id="makefile-o">makefile (o)</dt>
+<dd>
+
+<p>Defines how to rewrite the Makefile.</p>
+
+</dd>
+<dt id="maybe_command">maybe_command</dt>
+<dd>
+
+<p>Returns true, if the argument is likely to be a command.</p>
+
+</dd>
+<dt id="needs_linking-o">needs_linking (o)</dt>
+<dd>
+
+<p>Does this module need linking? Looks into subdirectory objects (see also has_link_code())</p>
+
+</dd>
+<dt id="parse_abstract">parse_abstract</dt>
+<dd>
+
+<p>parse a file and return what you think is the ABSTRACT</p>
+
+</dd>
+<dt id="parse_version">parse_version</dt>
+<dd>
+
+<pre><code>    my $version = MM-&gt;parse_version($file);</code></pre>
+
+<p>Parse a $file and return what $VERSION is set to by the first assignment. It will return the string &quot;undef&quot; if it can&#39;t figure out what $VERSION is. $VERSION should be for all to see, so <code>our $VERSION</code> or plain $VERSION are okay, but <code>my $VERSION</code> is not.</p>
+
+<p><code>&lt;package Foo VERSION</code>&gt; is also checked for. The first version declaration found is used, but this may change as it differs from how Perl does it.</p>
+
+<p>parse_version() will try to <code>use version</code> before checking for <code>$VERSION</code> so the following will work.</p>
+
+<pre><code>    $VERSION = qv(1.2.3);</code></pre>
+
+</dd>
+<dt id="pasthru-o">pasthru (o)</dt>
+<dd>
+
+<p>Defines the string that is passed to recursive make calls in subdirectories.</p>
+
+</dd>
+<dt id="perl_script">perl_script</dt>
+<dd>
+
+<p>Takes one argument, a file name, and returns the file name, if the argument is likely to be a perl script. On MM_Unix this is true for any ordinary, readable file.</p>
+
+</dd>
+<dt id="perldepend-o">perldepend (o)</dt>
+<dd>
+
+<p>Defines the dependency from all *.h files that come with the perl distribution.</p>
+
+</dd>
+<dt id="pm_to_blib">pm_to_blib</dt>
+<dd>
+
+<p>Defines target that copies all files in the hash PM to their destination and autosplits them. See <a href="/cperl/lib/ExtUtils/Install.html#DESCRIPTION">&quot;DESCRIPTION&quot; in ExtUtils::Install</a></p>
+
+</dd>
+<dt id="post_constants-o">post_constants (o)</dt>
+<dd>
+
+<p>Returns an empty string per default. Dedicated to overrides from within Makefile.PL after all constants have been defined.</p>
+
+</dd>
+<dt id="post_initialize-o">post_initialize (o)</dt>
+<dd>
+
+<p>Returns an empty string per default. Used in Makefile.PLs to add some chunk of text to the Makefile after the object is initialized.</p>
+
+</dd>
+<dt id="postamble-o">postamble (o)</dt>
+<dd>
+
+<p>Returns an empty string. Can be used in Makefile.PLs to write some text to the Makefile at the end.</p>
+
+</dd>
+<dt id="ppd">ppd</dt>
+<dd>
+
+<p>Defines target that creates a PPD (Perl Package Description) file for a binary distribution.</p>
+
+</dd>
+<dt id="prefixify">prefixify</dt>
+<dd>
+
+<pre><code>  $MM-&gt;prefixify($var, $prefix, $new_prefix, $default);</code></pre>
+
+<p>Using either $MM-&gt;{uc $var} || $Config{lc $var}, it will attempt to replace it&#39;s $prefix with a $new_prefix.</p>
+
+<p>Should the $prefix fail to match <i>AND</i> a PREFIX was given as an argument to WriteMakefile() it will set it to the $new_prefix + $default. This is for systems whose file layouts don&#39;t neatly fit into our ideas of prefixes.</p>
+
+<p>This is for heuristics which attempt to create directory structures that mirror those of the installed perl.</p>
+
+<p>For example:</p>
+
+<pre><code>    $MM-&gt;prefixify(&#39;installman1dir&#39;, &#39;/usr&#39;, &#39;/home/foo&#39;, &#39;man/man1&#39;);</code></pre>
+
+<p>this will attempt to remove &#39;/usr&#39; from the front of the $MM-&gt;{INSTALLMAN1DIR} path (initializing it to $Config{installman1dir} if necessary) and replace it with &#39;/home/foo&#39;. If this fails it will simply use &#39;/home/foo/man/man1&#39;.</p>
+
+</dd>
+<dt id="processPL-o">processPL (o)</dt>
+<dd>
+
+<p>Defines targets to run *.PL files.</p>
+
+</dd>
+<dt id="specify_shell">specify_shell</dt>
+<dd>
+
+<p>Specify SHELL if needed - not done on Unix.</p>
+
+</dd>
+<dt id="quote_paren">quote_paren</dt>
+<dd>
+
+<p>Backslashes parentheses <code>()</code> in command line arguments. Doesn&#39;t handle recursive Makefile <code>$(...)</code> constructs, but handles simple ones.</p>
+
+</dd>
+<dt id="replace_manpage_separator">replace_manpage_separator</dt>
+<dd>
+
+<pre><code>  my $man_name = $MM-&gt;replace_manpage_separator($file_path);</code></pre>
+
+<p>Takes the name of a package, which may be a nested package, in the form &#39;Foo/Bar.pm&#39; and replaces the slash with <code>::</code> or something else safe for a man page file name. Returns the replacement.</p>
+
+</dd>
+<dt id="cd">cd</dt>
+<dd>
+
+</dd>
+<dt id="oneliner">oneliner</dt>
+<dd>
+
+</dd>
+<dt id="quote_literal">quote_literal</dt>
+<dd>
+
+<p>Quotes macro literal value suitable for being used on a command line so that when expanded by make, will be received by command as given to this method:</p>
+
+<pre><code>  my $quoted = $mm-&gt;quote_literal(q{it isn&#39;t});
+  # returns:
+  #   &#39;it isn&#39;\&#39;&#39;t&#39;
+  print MAKEFILE &quot;target:\n\techo $quoted\n&quot;;
+  # when run &quot;make target&quot;, will output:
+  #   it isn&#39;t</code></pre>
+
+</dd>
+<dt id="escape_newlines">escape_newlines</dt>
+<dd>
+
+</dd>
+<dt id="max_exec_len">max_exec_len</dt>
+<dd>
+
+<p>Using POSIX::ARG_MAX. Otherwise falling back to 4096.</p>
+
+</dd>
+<dt id="static-o">static (o)</dt>
+<dd>
+
+<p>Defines the static target.</p>
+
+</dd>
+<dt id="static_lib-o">static_lib (o)</dt>
+<dd>
+
+<p>Defines how to produce the *.a (or equivalent) files.</p>
+
+</dd>
+<dt id="staticmake-o">staticmake (o)</dt>
+<dd>
+
+<p>Calls makeaperl.</p>
+
+</dd>
+<dt id="subdir_x-o">subdir_x (o)</dt>
+<dd>
+
+<p>Helper subroutine for subdirs</p>
+
+</dd>
+<dt id="subdirs-o">subdirs (o)</dt>
+<dd>
+
+<p>Defines targets to process subdirectories.</p>
+
+</dd>
+<dt id="test-o">test (o)</dt>
+<dd>
+
+<p>Defines the test targets.</p>
+
+</dd>
+<dt id="test_via_harness-override">test_via_harness (override)</dt>
+<dd>
+
+<p>For some reason which I forget, Unix machines like to have PERL_DL_NONLAZY set for tests. PERL_USE_UNSAFE_INC=1 is set to re-add the unsafe . to @INC</p>
+
+</dd>
+<dt id="test_via_script-override">test_via_script (override)</dt>
+<dd>
+
+<p>Again, the PERL_DL_NONLAZY and PERL_USE_UNSAFE_INC thing.</p>
+
+</dd>
+<dt id="tool_xsubpp-o">tool_xsubpp (o)</dt>
+<dd>
+
+<p>Determines typemaps, xsubpp version, prototype behaviour.</p>
+
+</dd>
+<dt id="all_target">all_target</dt>
+<dd>
+
+<p>Build man pages, too</p>
+
+</dd>
+<dt id="top_targets-o">top_targets (o)</dt>
+<dd>
+
+<p>Defines the targets all, subdirs, config, and O_FILES</p>
+
+</dd>
+<dt id="writedoc">writedoc</dt>
+<dd>
+
+<p>Obsolete, deprecated method. Not used since Version 5.21.</p>
+
+</dd>
+<dt id="xs_c-o">xs_c (o)</dt>
+<dd>
+
+<p>Defines the suffix rules to compile XS files to C.</p>
+
+</dd>
+<dt id="xs_cpp-o">xs_cpp (o)</dt>
+<dd>
+
+<p>Defines the suffix rules to compile XS files to C++.</p>
+
+</dd>
+<dt id="xs_o-o">xs_o (o)</dt>
+<dd>
+
+<p>Defines suffix rules to go from XS to object files directly. This is only intended for broken make implementations.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a></p>
+
+
+</body>
+
+</html>
+
+

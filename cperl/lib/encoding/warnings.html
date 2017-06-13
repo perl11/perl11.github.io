@@ -1,0 +1,165 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Overview-of-the-problem">Overview of the problem</a></li>
+      <li><a href="#Detecting-the-problem">Detecting the problem</a></li>
+      <li><a href="#Solving-the-problem">Solving the problem</a></li>
+    </ul>
+  </li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>encoding::warnings - Warn on implicit encoding conversions</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>This document describes version 0.11 of encoding::warnings, released June 5, 2007.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use encoding::warnings; # or &#39;FATAL&#39; to raise fatal exceptions
+
+    utf8::encode($a = chr(20000));  # a byte-string (raw bytes)
+    $b = chr(20000);                # a unicode-string (wide characters)
+
+    # &quot;Bytes implicitly upgraded into wide characters as iso-8859-1&quot;
+    $c = $a . $b;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h2 id="Overview-of-the-problem">Overview of the problem</h2>
+
+<p>By default, there is a fundamental asymmetry in Perl&#39;s unicode model: implicit upgrading from byte-strings to unicode-strings assumes that they were encoded in <i>ISO 8859-1 (Latin-1)</i>, but unicode-strings are downgraded with UTF-8 encoding. This happens because the first 256 codepoints in Unicode happens to agree with Latin-1.</p>
+
+<p>However, this silent upgrading can easily cause problems, if you happen to mix unicode strings with non-Latin1 data -- i.e. byte-strings encoded in UTF-8 or other encodings. The error will not manifest until the combined string is written to output, at which time it would be impossible to see where did the silent upgrading occur.</p>
+
+<h2 id="Detecting-the-problem">Detecting the problem</h2>
+
+<p>This module simplifies the process of diagnosing such problems. Just put this line on top of your main program:</p>
+
+<pre><code>    use encoding::warnings;</code></pre>
+
+<p>Afterwards, implicit upgrading of high-bit bytes will raise a warning. Ex.: <code>Bytes implicitly upgraded into wide characters as iso-8859-1 at - line 7</code>.</p>
+
+<p>However, strings composed purely of ASCII code points (<code>0x00</code>..<code>0x7F</code>) will <i>not</i> trigger this warning.</p>
+
+<p>You can also make the warnings fatal by importing this module as:</p>
+
+<pre><code>    use encoding::warnings &#39;FATAL&#39;;</code></pre>
+
+<h2 id="Solving-the-problem">Solving the problem</h2>
+
+<p>Most of the time, this warning occurs when a byte-string is concatenated with a unicode-string. There are a number of ways to solve it:</p>
+
+<ul>
+
+<li><p>Upgrade both sides to unicode-strings</p>
+
+<p>If your program does not need compatibility for Perl 5.6 and earlier, the recommended approach is to apply appropriate IO disciplines, so all data in your program become unicode-strings. See <a href="/cperl/lib/encoding.html">encoding</a>, <a href="/cperl/lib/open.html">open</a> and <a href="/cperl/perlfunc.html#binmode">&quot;binmode&quot; in perlfunc</a> for how.</p>
+
+</li>
+<li><p>Downgrade both sides to byte-strings</p>
+
+<p>The other way works too, especially if you are sure that all your data are under the same encoding, or if compatibility with older versions of Perl is desired.</p>
+
+<p>You may downgrade strings with <code>Encode::encode</code> and <code>utf8::encode</code>. See <a href="/cperl/lib/Encode.html">Encode</a> and <a href="/cperl/lib/utf8.html">utf8</a> for details.</p>
+
+</li>
+<li><p>Specify the encoding for implicit byte-string upgrading</p>
+
+<p>If you are confident that all byte-strings will be in a specific encoding like UTF-8, <i>and</i> need not support older versions of Perl, use the <code>encoding</code> pragma:</p>
+
+<pre><code>    use encoding &#39;utf8&#39;;</code></pre>
+
+<p>Similarly, this will silence warnings from this module, and preserve the default behaviour:</p>
+
+<pre><code>    use encoding &#39;iso-8859-1&#39;;</code></pre>
+
+<p>However, note that <code>use encoding</code> actually had three distinct effects:</p>
+
+<ul>
+
+<li><p>PerlIO layers for <b>STDIN</b> and <b>STDOUT</b></p>
+
+<p>This is similar to what <a href="/cperl/lib/open.html">open</a> pragma does.</p>
+
+</li>
+<li><p>Literal conversions</p>
+
+<p>This turns <i>all</i> literal string in your program into unicode-strings (equivalent to a <code>use utf8</code>), by decoding them using the specified encoding.</p>
+
+</li>
+<li><p>Implicit upgrading for byte-strings</p>
+
+<p>This will silence warnings from this module, as shown above.</p>
+
+</li>
+</ul>
+
+<p>Because literal conversions also work on empty strings, it may surprise some people:</p>
+
+<pre><code>    use encoding &#39;big5&#39;;
+
+    my $byte_string = pack(&quot;C*&quot;, 0xA4, 0x40);
+    print length $a;    # 2 here.
+    $a .= &quot;&quot;;           # concatenating with a unicode string...
+    print length $a;    # 1 here!</code></pre>
+
+<p>In other words, do not <code>use encoding</code> unless you are certain that the program will not deal with any raw, 8-bit binary data at all.</p>
+
+<p>However, the <code>Filter =&gt; 1</code> flavor of <code>use encoding</code> will <i>not</i> affect implicit upgrading for byte-strings, and is thus incapable of silencing warnings from this module. See <a href="/cperl/lib/encoding.html">encoding</a> for more details.</p>
+
+</li>
+</ul>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>For Perl 5.9.4 or later, this module&#39;s effect is lexical.</p>
+
+<p>For Perl versions prior to 5.9.4, this module affects the whole script, instead of inside its lexical block.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/perluniintro.html">perluniintro</a></p>
+
+<p><a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/utf8.html">utf8</a>, <a href="/cperl/lib/encoding.html">encoding</a>, <a href="/cperl/lib/Encode.html">Encode</a></p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Audrey Tang</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright 2004, 2005, 2006, 2007 by Audrey Tang &lt;cpan@audreyt.org&gt;.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>See <a href="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</a></p>
+
+
+</body>
+
+</html>
+
+

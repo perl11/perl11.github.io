@@ -452,7 +452,7 @@
 <p>A good resource on the predefined macros for various operating systems, compilers, and so forth is <a href="http://sourceforge.net/p/predef/wiki/Home/">http://sourceforge.net/p/predef/wiki/Home/</a></p>
 
 </li>
-<li><p>Assuming the contents of static memory pointed to by the return values of Perl wrappers for C library functions doesn&#39;t change. Many C library functions return pointers to static storage that can be overwritten by subsequent calls to the same or related functions. Perl has light-weight wrappers for some of these functions, and which don&#39;t make copies of the static memory. A good example is the interface to the environment variables that are in effect for the program. Perl has <code>PerlEnv_getenv</code> to get values from the environment. But the return is a pointer to static memory in the C library. If you are using the value to immediately test for something, that&#39;s fine, but if you save the value and expect it to be unchanged by later processing, you would be wrong, but perhaps you wouldn&#39;t know it because different C library implementations behave differently, and the one on the platform you&#39;re testing on might work for your situation. But on some platforms, a subsequent call to <code>PerlEnv_getenv</code> or related function WILL overwrite the memory that your first call points to. This has led to some hard-to-debug problems. Do a <a>&quot;savepv&quot; in perlapi</a> to make a copy, thus avoiding these problems. You will have to free the copy when you&#39;re done to avoid memory leaks. If you don&#39;t have control over when it gets freed, you&#39;ll need to make the copy in a mortal scalar, like so:</p>
+<li><p>Assuming the contents of static memory pointed to by the return values of Perl wrappers for C library functions doesn&#39;t change. Many C library functions return pointers to static storage that can be overwritten by subsequent calls to the same or related functions. Perl has light-weight wrappers for some of these functions, and which don&#39;t make copies of the static memory. A good example is the interface to the environment variables that are in effect for the program. Perl has <code>PerlEnv_getenv</code> to get values from the environment. But the return is a pointer to static memory in the C library. If you are using the value to immediately test for something, that&#39;s fine, but if you save the value and expect it to be unchanged by later processing, you would be wrong, but perhaps you wouldn&#39;t know it because different C library implementations behave differently, and the one on the platform you&#39;re testing on might work for your situation. But on some platforms, a subsequent call to <code>PerlEnv_getenv</code> or related function WILL overwrite the memory that your first call points to. This has led to some hard-to-debug problems. Do a <a href="/cperl/perlapi.html#savepv">&quot;savepv&quot; in perlapi</a> to make a copy, thus avoiding these problems. You will have to free the copy when you&#39;re done to avoid memory leaks. If you don&#39;t have control over when it gets freed, you&#39;ll need to make the copy in a mortal scalar, like so:</p>
 
 <pre><code> if ((s = PerlEnv_getenv(&quot;foo&quot;) == NULL) {
     ... /* handle NULL case */
@@ -501,7 +501,7 @@
 </li>
 <li><p>Do not use sprintf() or vsprintf()</p>
 
-<p>If you really want just plain byte strings, use my_snprintf() and my_vsnprintf() instead, which will try to use snprintf() and vsnprintf() if those safer APIs are available. If you want something fancier than a plain byte string, use <a><code>Perl_form</code>()</a> or SVs and <a><code>Perl_sv_catpvf()</code></a>.</p>
+<p>If you really want just plain byte strings, use my_snprintf() and my_vsnprintf() instead, which will try to use snprintf() and vsnprintf() if those safer APIs are available. If you want something fancier than a plain byte string, use <a href="/cperl/perlapi.html#form"><code>Perl_form</code>()</a> or SVs and <a href="/cperl/perlapi.html#sv_catpvf"><code>Perl_sv_catpvf()</code></a>.</p>
 
 <p>Note that glibc <code>printf()</code>, <code>sprintf()</code>, etc. are buggy before glibc version 2.17. They won&#39;t allow a <code>%.s</code> format with a precision to create a string that isn&#39;t valid UTF-8 if the current underlying locale of the program is UTF-8. What happens is that the <code>%s</code> and its operand are simply skipped without any notice. <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=6530">https://sourceware.org/bugzilla/show_bug.cgi?id=6530</a>.</p>
 
@@ -661,7 +661,7 @@
 
 <h2 id="Dumping-Perl-Data-Structures">Dumping Perl Data Structures</h2>
 
-<p>One way to get around this macro hell is to use the dumping functions in <i>dump.c</i>; these work a little like an internal <a>Devel::Peek</a>, but they also cover OPs and other structures that you can&#39;t get at from Perl. Let&#39;s take an example. We&#39;ll use the <code>$a = $b + $c</code> we used before, but give it a bit of context: <code>$b = &quot;6XXXX&quot;; $c = 2.3;</code>. Where&#39;s a good place to stop and poke around?</p>
+<p>One way to get around this macro hell is to use the dumping functions in <i>dump.c</i>; these work a little like an internal <a href="/cperl/lib/Devel/Peek.html">Devel::Peek</a>, but they also cover OPs and other structures that you can&#39;t get at from Perl. Let&#39;s take an example. We&#39;ll use the <code>$a = $b + $c</code> we used before, but give it a bit of context: <code>$b = &quot;6XXXX&quot;; $c = 2.3;</code>. Where&#39;s a good place to stop and poke around?</p>
 
 <p>What about <code>pp_add</code>, the function we examined earlier to implement the <code>+</code> operator:</p>
 
@@ -713,7 +713,7 @@
     0x462669 in Perl_pp_add () at pp_hot.c:311
     311           dPOPTOPnnrl_ul;</code></pre>
 
-<p>We can also dump out this op: the current op is always stored in <code>PL_op</code>, and we can dump it with <code>Perl_op_dump</code>. This&#39;ll give us similar output to <a>B::Debug</a>.</p>
+<p>We can also dump out this op: the current op is always stored in <code>PL_op</code>, and we can dump it with <code>Perl_op_dump</code>. This&#39;ll give us similar output to <a href="/cperl/lib/B/Debug.html">B::Debug</a>.</p>
 
 <pre><code>    (gdb) print Perl_op_dump(PL_op)
     {
@@ -856,7 +856,7 @@
 
 <p><b>NOTE 3</b>: There are known memory leaks when there are compile-time errors within eval or require, seeing <code>S_doeval</code> in the call stack is a good sign of these. Fixing these leaks is non-trivial, unfortunately, but they must be fixed eventually.</p>
 
-<p><b>NOTE 4</b>: <a>DynaLoader</a> will not clean up after itself completely unless Perl is built with the Configure option <code>-Accflags=-DDL_UNLOAD_ALL_AT_EXIT</code>.</p>
+<p><b>NOTE 4</b>: <a href="/cperl/lib/DynaLoader.html">DynaLoader</a> will not clean up after itself completely unless Perl is built with the Configure option <code>-Accflags=-DDL_UNLOAD_ALL_AT_EXIT</code>.</p>
 
 <h2 id="valgrind">valgrind</h2>
 

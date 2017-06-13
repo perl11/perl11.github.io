@@ -1,0 +1,232 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DEPRECATED">DEPRECATED</a></li>
+  <li><a href="#HISTORY">HISTORY</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#DEFUNCT">DEFUNCT</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Thread - Manipulate threads in Perl (for old code only)</p>
+
+<h1 id="DEPRECATED">DEPRECATED</h1>
+
+<p>The <code>Thread</code> module served as the frontend to the old-style thread model, called <i>5005threads</i>, that was introduced in release 5.005. That model was deprecated, and has been removed in version 5.10.</p>
+
+<p>For old code and interim backwards compatibility, the <code>Thread</code> module has been reworked to function as a frontend for the new interpreter threads (<i>ithreads</i>) model. However, some previous functionality is not available. Further, the data sharing models between the two thread models are completely different, and anything to do with data sharing has to be thought differently. With <i>ithreads</i>, you must explicitly <code>share()</code> variables between the threads.</p>
+
+<p>You are strongly encouraged to migrate any existing threaded code to the new model (i.e., use the <code>threads</code> and <code>threads::shared</code> modules) as soon as possible.</p>
+
+<h1 id="HISTORY">HISTORY</h1>
+
+<p>In Perl 5.005, the thread model was that all data is implicitly shared, and shared access to data has to be explicitly synchronized. This model is called <i>5005threads</i>.</p>
+
+<p>In Perl 5.6, a new model was introduced in which all is was thread local and shared access to data has to be explicitly declared. This model is called <i>ithreads</i>, for &quot;interpreter threads&quot;.</p>
+
+<p>In Perl 5.6, the <i>ithreads</i> model was not available as a public API; only as an internal API that was available for extension writers, and to implement fork() emulation on Win32 platforms.</p>
+
+<p>In Perl 5.8, the <i>ithreads</i> model became available through the <code>threads</code> module, and the <i>5005threads</i> model was deprecated.</p>
+
+<p>In Perl 5.10, the <i>5005threads</i> model was removed from the Perl interpreter.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Thread qw(:DEFAULT async yield);
+
+    my $t = Thread-&gt;new(\&amp;start_sub, @start_args);
+
+    $result = $t-&gt;join;
+    $t-&gt;detach;
+
+    if ($t-&gt;done) {
+        $t-&gt;join;
+    }
+
+    if($t-&gt;equal($another_thread)) {
+        # ...
+    }
+
+    yield();
+
+    my $tid = Thread-&gt;self-&gt;tid;
+
+    lock($scalar);
+    lock(@array);
+    lock(%hash);
+
+    my @list = Thread-&gt;list;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <code>Thread</code> module provides multithreading support for Perl.</p>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<dl>
+
+<dt id="thread-Thread-new-start_sub">$thread = Thread-&gt;new(\&amp;start_sub)</dt>
+<dd>
+
+</dd>
+<dt id="thread-Thread-new-start_sub-LIST">$thread = Thread-&gt;new(\&amp;start_sub, LIST)</dt>
+<dd>
+
+<p><code>new</code> starts a new thread of execution in the referenced subroutine. The optional list is passed as parameters to the subroutine. Execution continues in both the subroutine and the code after the <code>new</code> call.</p>
+
+<p><code>Thread-&amp;gt;new</code> returns a thread object representing the newly created thread.</p>
+
+</dd>
+<dt id="lock-VARIABLE">lock VARIABLE</dt>
+<dd>
+
+<p><code>lock</code> places a lock on a variable until the lock goes out of scope.</p>
+
+<p>If the variable is locked by another thread, the <code>lock</code> call will block until it&#39;s available. <code>lock</code> is recursive, so multiple calls to <code>lock</code> are safe--the variable will remain locked until the outermost lock on the variable goes out of scope.</p>
+
+<p>Locks on variables only affect <code>lock</code> calls--they do <i>not</i> affect normal access to a variable. (Locks on subs are different, and covered in a bit.) If you really, <i>really</i> want locks to block access, then go ahead and tie them to something and manage this yourself. This is done on purpose. While managing access to variables is a good thing, Perl doesn&#39;t force you out of its living room...</p>
+
+<p>If a container object, such as a hash or array, is locked, all the elements of that container are not locked. For example, if a thread does a <code>lock @a</code>, any other thread doing a <code>lock($a[12])</code> won&#39;t block.</p>
+
+<p>Finally, <code>lock</code> will traverse up references exactly <i>one</i> level. <code>lock(\$a)</code> is equivalent to <code>lock($a)</code>, while <code>lock(\\$a)</code> is not.</p>
+
+</dd>
+<dt id="async-BLOCK">async BLOCK;</dt>
+<dd>
+
+<p><code>async</code> creates a thread to execute the block immediately following it. This block is treated as an anonymous sub, and so must have a semi-colon after the closing brace. Like <code>Thread-&amp;gt;new</code>, <code>async</code> returns a thread object.</p>
+
+</dd>
+<dt id="Thread-self">Thread-&gt;self</dt>
+<dd>
+
+<p>The <code>Thread-&gt;self</code> function returns a thread object that represents the thread making the <code>Thread-&gt;self</code> call.</p>
+
+</dd>
+<dt id="Thread-list">Thread-&gt;list</dt>
+<dd>
+
+<p>Returns a list of all non-joined, non-detached Thread objects.</p>
+
+</dd>
+<dt id="cond_wait-VARIABLE">cond_wait VARIABLE</dt>
+<dd>
+
+<p>The <code>cond_wait</code> function takes a <b>locked</b> variable as a parameter, unlocks the variable, and blocks until another thread does a <code>cond_signal</code> or <code>cond_broadcast</code> for that same locked variable. The variable that <code>cond_wait</code> blocked on is relocked after the <code>cond_wait</code> is satisfied. If there are multiple threads <code>cond_wait</code>ing on the same variable, all but one will reblock waiting to re-acquire the lock on the variable. (So if you&#39;re only using <code>cond_wait</code> for synchronization, give up the lock as soon as possible.)</p>
+
+</dd>
+<dt id="cond_signal-VARIABLE">cond_signal VARIABLE</dt>
+<dd>
+
+<p>The <code>cond_signal</code> function takes a locked variable as a parameter and unblocks one thread that&#39;s <code>cond_wait</code>ing on that variable. If more than one thread is blocked in a <code>cond_wait</code> on that variable, only one (and which one is indeterminate) will be unblocked.</p>
+
+<p>If there are no threads blocked in a <code>cond_wait</code> on the variable, the signal is discarded.</p>
+
+</dd>
+<dt id="cond_broadcast-VARIABLE">cond_broadcast VARIABLE</dt>
+<dd>
+
+<p>The <code>cond_broadcast</code> function works similarly to <code>cond_signal</code>. <code>cond_broadcast</code>, though, will unblock <b>all</b> the threads that are blocked in a <code>cond_wait</code> on the locked variable, rather than only one.</p>
+
+</dd>
+<dt id="yield">yield</dt>
+<dd>
+
+<p>The <code>yield</code> function allows another thread to take control of the CPU. The exact results are implementation-dependent.</p>
+
+</dd>
+</dl>
+
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="join">join</dt>
+<dd>
+
+<p><code>join</code> waits for a thread to end and returns any values the thread exited with. <code>join</code> will block until the thread has ended, though it won&#39;t block if the thread has already terminated.</p>
+
+<p>If the thread being <code>join</code>ed <code>die</code>d, the error it died with will be returned at this time. If you don&#39;t want the thread performing the <code>join</code> to die as well, you should either wrap the <code>join</code> in an <code>eval</code> or use the <code>eval</code> thread method instead of <code>join</code>.</p>
+
+</dd>
+<dt id="detach">detach</dt>
+<dd>
+
+<p><code>detach</code> tells a thread that it is never going to be joined i.e. that all traces of its existence can be removed once it stops running. Errors in detached threads will not be visible anywhere - if you want to catch them, you should use $SIG{__DIE__} or something like that.</p>
+
+</dd>
+<dt id="equal">equal</dt>
+<dd>
+
+<p><code>equal</code> tests whether two thread objects represent the same thread and returns true if they do.</p>
+
+</dd>
+<dt id="tid">tid</dt>
+<dd>
+
+<p>The <code>tid</code> method returns the tid of a thread. The tid is a monotonically increasing integer assigned when a thread is created. The main thread of a program will have a tid of zero, while subsequent threads will have tids assigned starting with one.</p>
+
+</dd>
+<dt id="done">done</dt>
+<dd>
+
+<p>The <code>done</code> method returns true if the thread you&#39;re checking has finished, and false otherwise.</p>
+
+</dd>
+</dl>
+
+<h1 id="DEFUNCT">DEFUNCT</h1>
+
+<p>The following were implemented with <i>5005threads</i>, but are no longer available with <i>ithreads</i>.</p>
+
+<dl>
+
+<dt id="lock-sub">lock(\&amp;sub)</dt>
+<dd>
+
+<p>With 5005threads, you could also <code>lock</code> a sub such that any calls to that sub from another thread would block until the lock was released.</p>
+
+<p>Also, subroutines could be declared with the <code>:locked</code> attribute which would serialize access to the subroutine, but allowed different threads non-simultaneous access.</p>
+
+</dd>
+<dt id="eval">eval</dt>
+<dd>
+
+<p>The <code>eval</code> method wrapped an <code>eval</code> around a <code>join</code>, and so waited for a thread to exit, passing along any values the thread might have returned and placing any errors into <code>$@</code>.</p>
+
+</dd>
+<dt id="flags">flags</dt>
+<dd>
+
+<p>The <code>flags</code> method returned the flags for the thread - an integer value corresponding to the internal flags for the thread.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/threads.html">threads</a>, <a href="/cperl/lib/threads/shared.html">threads::shared</a>, <a href="/cperl/lib/Thread/Queue.html">Thread::Queue</a>, <a href="/cperl/lib/Thread/Semaphore.html">Thread::Semaphore</a></p>
+
+
+</body>
+
+</html>
+
+

@@ -22,7 +22,9 @@
   <li><a href="#CV-reference-counts-and-CvOUTSIDE">CV reference counts and CvOUTSIDE</a></li>
   <li><a href="#Debugging-Utilities">Debugging Utilities</a></li>
   <li><a href="#Embedding-Functions">Embedding Functions</a></li>
+  <li><a href="#Functions-in-file-inline.h">Functions in file inline.h</a></li>
   <li><a href="#Functions-in-file-op.c">Functions in file op.c</a></li>
+  <li><a href="#Functions-in-file-pp.c">Functions in file pp.c</a></li>
   <li><a href="#GV-Functions">GV Functions</a></li>
   <li><a href="#Hash-Manipulation-Functions">Hash Manipulation Functions</a></li>
   <li><a href="#Hook-manipulation">Hook manipulation</a></li>
@@ -137,7 +139,7 @@
 
 <p>CHECK callback for aassign (t2 L L &quot;(:List,:List):List&quot;)</p>
 
-<p>Only checks types.</p>
+<p>Checks types and adds <code>OPpMAP_PAIR</code> to <code>%hash = map</code>.</p>
 
 <pre><code>        OP *    ck_aassign(OP *o)</code></pre>
 
@@ -740,8 +742,10 @@
 <dd>
 
 </dd>
-<dt id="report_redefined_cv-void-report_redefined_cv-const-SV-name-const-CV-old_cv-SV-const-new_const_svp">report_redefined_cv  void report_redefined_cv(const SV *name, const CV *old_cv, SV * const *new_const_svp)</dt>
+<dt id="report_redefined_cv">report_redefined_cv </dt>
 <dd>
+
+<p>If a CV is overwritten, warn by whom when use warnings &#39;redefine&#39; is in effect. void report_redefined_cv(const SV *name, const CV *old_cv, SV * const *new_const_svp)</p>
 
 </dd>
 </dl>
@@ -808,7 +812,7 @@
 
 <p>Returns a PerlIO* object when the perl module could be opened for reading. Includes optional compiled module .pmc handling.</p>
 
-<pre><code>        PerlIO * doopen_pm(SV *name, bool pmc)</code></pre>
+<pre><code>        PerlIO * doopen_pm(SV *name, bool do_pmc)</code></pre>
 
 </dd>
 <dt id="path_is_searchable">path_is_searchable </dt>
@@ -1134,6 +1138,23 @@
 </dd>
 </dl>
 
+<h1 id="Functions-in-file-inline.h">Functions in file inline.h</h1>
+
+<dl>
+
+<dt id="strip_spaces">strip_spaces </dt>
+<dd>
+
+<p>CvPROTO returns the prototype as stored, which is not necessarily what the interpreter should be using. Specifically, the interpreter assumes that spaces have been stripped, which has been the case if the prototype was added by toke.c, but is generally not the case if it was added elsewhere.</p>
+
+<p>Since we can&#39;t enforce the spacelessness at assignment time, this routine provides a temporary copy of the string at parse time with spaces removed. <i>orig</i> is the start of the original string, <i>len</i> is the length of the string and will be updated when this returns.</p>
+
+<pre><code>        char*   strip_spaces(const char * orig,
+                             STRLEN * const len)</code></pre>
+
+</dd>
+</dl>
+
 <h1 id="Functions-in-file-op.c">Functions in file op.c</h1>
 
 <dl>
@@ -1226,6 +1247,25 @@
 <p>Returns the sanitized typename of the stash of the padname type, without main:: prefix.</p>
 
 <pre><code>                typename;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Functions-in-file-pp.c">Functions in file pp.c</h1>
+
+<dl>
+
+<dt id="softref2xv">softref2xv </dt>
+<dd>
+
+<p>Helper function for pp_rv2sv and pp_rv2av. Interns the string to a symbol.</p>
+
+<p>Optionally also consumes the local stackptr pointing to the sv (*spp[0] == sv) to use a subsequent LVAL NULL kid in the calling rv2sv.</p>
+
+<p>Note: sv might change. Get it with GvSV of the result afterwards.</p>
+
+<pre><code>        GV*     softref2xv(SV *sv, const char *const what,
+                           const svtype type, SV ***spp)</code></pre>
 
 </dd>
 </dl>
@@ -1384,9 +1424,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                                 /* @{^CAPTURE} %{^CAPTURE} */
                 if (memEQs(name, len, &quot;\003APTURE&quot;)) {
                     AV* const av = GvAVn(gv);
-                    UV uv= *name;
+                    UV uv = *name;
 
-                    sv_magic(MUTABLE_SV(av), (SV*)uv, PERL_MAGIC_regdata, NULL, 0);
+                    sv_magic(MUTABLE_SV(av), INT2PTR(SV*,uv), PERL_MAGIC_regdata, NULL, 0);
                     SvREADONLY_on(av);
 
                     if (sv_type == SVt_PVHV || sv_type == SVt_PVGV)
@@ -1557,7 +1597,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                 AV* const av = GvAVn(gv);
                 const UV uv = (UV)*name;
 
-                sv_magic(MUTABLE_SV(av), (SV*)uv, PERL_MAGIC_regdata, NULL, 0);
+                sv_magic(MUTABLE_SV(av), INT2PTR(SV*,uv), PERL_MAGIC_regdata, NULL, 0);
                 SvREADONLY_on(av);
             }
             break;
@@ -2455,9 +2495,25 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="op_clear_gv">op_clear_gv </dt>
 <dd>
 
-<p>free a GV attached to an OP</p>
+<p>Free a GV attached to an OP</p>
 
 <pre><code>        void    op_clear_gv(OP* o, PADOFFSET *ixp)</code></pre>
+
+</dd>
+<dt id="op_const_sv">op_const_sv </dt>
+<dd>
+
+<p>op_const_sv: examine an optree to determine whether it&#39;s in-lineable. Can be called in 2 ways:</p>
+
+<p>!allow_lex look for a single OP_CONST with attached value: return the value</p>
+
+<p>allow_lex &amp;&amp; !CvCONST(cv);</p>
+
+<pre><code>        examine the clone prototype, and if contains only a single
+        OP_CONST, return the value; or if it contains a single PADSV ref-
+        erencing an outer lexical, turn on CvCONST to indicate the CV is
+        a candidate for &quot;constizing&quot; at clone time, and return NULL.
+                op_const_sv;</code></pre>
 
 </dd>
 <dt id="op_relocate_sv">op_relocate_sv </dt>
@@ -2503,7 +2559,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="postprocess_optree">postprocess_optree </dt>
 <dd>
 
-<p>do the post-compilation processing of an op_tree with specified root and start (startp may be updated):</p>
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Do the post-compilation processing of an op_tree with specified root and start (startp may be updated):</p>
 
 <pre><code>  * attach it to cv (if non-null)
   * set refcnt
@@ -4259,10 +4317,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="re_op_compile">re_op_compile </dt>
-<dd>
-
-</dd>
 <dt id="re_printf">re_printf </dt>
 <dd>
 
@@ -4352,10 +4406,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="sighandler">sighandler </dt>
-<dd>
-
-</dd>
-<dt id="softref2xv">softref2xv </dt>
 <dd>
 
 </dd>
@@ -4535,7 +4585,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-2194">Around line 2194:</dt>
+<dt id="Around-line-2251">Around line 2251:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>

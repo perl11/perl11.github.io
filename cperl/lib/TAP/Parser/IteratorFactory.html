@@ -1,0 +1,183 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#new">new</a></li>
+          <li><a href="#register_handler">register_handler</a></li>
+          <li><a href="#handlers">handlers</a></li>
+        </ul>
+      </li>
+      <li><a href="#Instance-Methods">Instance Methods</a>
+        <ul>
+          <li><a href="#config">config</a></li>
+          <li><a href="#load_handlers">load_handlers</a></li>
+          <li><a href="#make_iterator">make_iterator</a></li>
+          <li><a href="#detect_source">detect_source</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#SUBCLASSING">SUBCLASSING</a>
+    <ul>
+      <li><a href="#Example">Example</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#ATTRIBUTION">ATTRIBUTION</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Parser::IteratorFactory - Figures out which SourceHandler objects to use for a given Source</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use TAP::Parser::IteratorFactory;
+  my $factory = TAP::Parser::IteratorFactory-&gt;new({ %config });
+  my $iterator  = $factory-&gt;make_iterator( $filename );</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This is a factory class that takes a <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a> and runs it through all the registered <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>s to see which one should handle the source.</p>
+
+<p>If you&#39;re a plugin author, you&#39;ll be interested in how to <a href="#register_handler">&quot;register_handler&quot;</a>s, how <a href="#detect_source">&quot;detect_source&quot;</a> works.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="new"><code>new</code></h3>
+
+<p>Creates a new factory class:</p>
+
+<pre><code>  my $sf = TAP::Parser::IteratorFactory-&gt;new( $config );</code></pre>
+
+<p><code>$config</code> is optional. If given, sets <a href="#config">&quot;config&quot;</a> and calls <a href="#load_handlers">&quot;load_handlers&quot;</a>.</p>
+
+<h3 id="register_handler"><code>register_handler</code></h3>
+
+<p>Registers a new <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a> with this factory.</p>
+
+<pre><code>  __PACKAGE__-&gt;register_handler( $handler_class );</code></pre>
+
+<h3 id="handlers"><code>handlers</code></h3>
+
+<p>List of handlers that have been registered.</p>
+
+<h2 id="Instance-Methods">Instance Methods</h2>
+
+<h3 id="config"><code>config</code></h3>
+
+<pre><code> my $cfg = $sf-&gt;config;
+ $sf-&gt;config({ Perl =&gt; { %config } });</code></pre>
+
+<p>Chaining getter/setter for the configuration of the available source handlers. This is a hashref keyed on handler class whose values contain config to be passed onto the handlers during detection &amp; creation. Class names may be fully qualified or abbreviated, eg:</p>
+
+<pre><code>  # these are equivalent
+  $sf-&gt;config({ &#39;TAP::Parser::SourceHandler::Perl&#39; =&gt; { %config } });
+  $sf-&gt;config({ &#39;Perl&#39; =&gt; { %config } });</code></pre>
+
+<h3 id="load_handlers"><code>load_handlers</code></h3>
+
+<pre><code> $sf-&gt;load_handlers;</code></pre>
+
+<p>Loads the handler classes defined in <a href="#config">&quot;config&quot;</a>. For example, given a config:</p>
+
+<pre><code>  $sf-&gt;config({
+    MySourceHandler =&gt; { some =&gt; &#39;config&#39; },
+  });</code></pre>
+
+<p><code>load_handlers</code> will attempt to load the <code>MySourceHandler</code> class by looking in <code>@INC</code> for it in this order:</p>
+
+<pre><code>  TAP::Parser::SourceHandler::MySourceHandler
+  MySourceHandler</code></pre>
+
+<p><code>croak</code>s on error.</p>
+
+<h3 id="make_iterator"><code>make_iterator</code></h3>
+
+<pre><code>  my $iterator = $src_factory-&gt;make_iterator( $source );</code></pre>
+
+<p>Given a <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>, finds the most suitable <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a> to use to create a <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a> (see <a href="#detect_source">&quot;detect_source&quot;</a>). Dies on error.</p>
+
+<h3 id="detect_source"><code>detect_source</code></h3>
+
+<p>Given a <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>, detects what kind of source it is and returns <i>one</i> <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a> (the most confident one). Dies on error.</p>
+
+<p>The detection algorithm works something like this:</p>
+
+<pre><code>  for (@registered_handlers) {
+    # ask them how confident they are about handling this source
+    $confidence{$handler} = $handler-&gt;can_handle( $source )
+  }
+  # choose the most confident handler</code></pre>
+
+<p>Ties are handled by choosing the first handler.</p>
+
+<h1 id="SUBCLASSING">SUBCLASSING</h1>
+
+<p>Please see <a href="/cperl/lib/TAP/Parser.html#SUBCLASSING">&quot;SUBCLASSING&quot; in TAP::Parser</a> for a subclassing overview.</p>
+
+<h2 id="Example">Example</h2>
+
+<p>If we&#39;ve done things right, you&#39;ll probably want to write a new source, rather than sub-classing this (see <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a> for that).</p>
+
+<p>But in case you find the need to...</p>
+
+<pre><code>  package MyIteratorFactory;
+
+  use strict;
+
+  use base &#39;TAP::Parser::IteratorFactory&#39;;
+
+  # override source detection algorithm
+  sub detect_source {
+    my ($self, $raw_source_ref, $meta) = @_;
+    # do detective work, using $meta and whatever else...
+  }
+
+  1;</code></pre>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Steve Purkis</p>
+
+<h1 id="ATTRIBUTION">ATTRIBUTION</h1>
+
+<p>Originally ripped off from <a href="/cperl/lib/Test/Harness.html">Test::Harness</a>.</p>
+
+<p>Moved out of <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> &amp; converted to a factory class to support extensible TAP source detective work by Steve Purkis.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/TAP/Object.html">TAP::Object</a>, <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/File.html">TAP::Parser::SourceHandler::File</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Perl.html">TAP::Parser::SourceHandler::Perl</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/RawTAP.html">TAP::Parser::SourceHandler::RawTAP</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Handle.html">TAP::Parser::SourceHandler::Handle</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Executable.html">TAP::Parser::SourceHandler::Executable</a></p>
+
+
+</body>
+
+</html>
+
+

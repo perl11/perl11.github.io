@@ -1,0 +1,262 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Methods">Methods</a>
+    <ul>
+      <li><a href="#href-check_install-module-NAME-version-VERSION-verbose-BOOL">$href = check_install( module =&gt; NAME [, version =&gt; VERSION, verbose =&gt; BOOL ] );</a></li>
+      <li><a href="#bool-can_load-modules-NAME-VERSION-NAME-VERSION-verbose-BOOL-nocache-BOOL-autoload-BOOL">$bool = can_load( modules =&gt; { NAME =&gt; VERSION [,NAME =&gt; VERSION] }, [verbose =&gt; BOOL, nocache =&gt; BOOL, autoload =&gt; BOOL] )</a></li>
+      <li><a href="#list-requires-MODULE">@list = requires( MODULE );</a></li>
+    </ul>
+  </li>
+  <li><a href="#Global-Variables">Global Variables</a>
+    <ul>
+      <li><a href="#Module::Load::Conditional::VERBOSE">$Module::Load::Conditional::VERBOSE</a></li>
+      <li><a href="#Module::Load::Conditional::FIND_VERSION">$Module::Load::Conditional::FIND_VERSION</a></li>
+      <li><a href="#Module::Load::Conditional::CHECK_INC_HASH">$Module::Load::Conditional::CHECK_INC_HASH</a></li>
+      <li><a href="#Module::Load::Conditional::FORCE_SAFE_INC">$Module::Load::Conditional::FORCE_SAFE_INC</a></li>
+      <li><a href="#Module::Load::Conditional::CACHE">$Module::Load::Conditional::CACHE</a></li>
+      <li><a href="#Module::Load::Conditional::ERROR">$Module::Load::Conditional::ERROR</a></li>
+      <li><a href="#Module::Load::Conditional::DEPRECATED">$Module::Load::Conditional::DEPRECATED</a></li>
+    </ul>
+  </li>
+  <li><a href="#See-Also">See Also</a></li>
+  <li><a href="#BUG-REPORTS">BUG REPORTS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Module::Load::Conditional - Looking up module information / loading at runtime</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Module::Load::Conditional qw[can_load check_install requires];
+
+
+    my $use_list = {
+            CPANPLUS        =&gt; 0.05,
+            LWP             =&gt; 5.60,
+            &#39;Test::More&#39;    =&gt; undef,
+    };
+
+    print can_load( modules =&gt; $use_list )
+            ? &#39;all modules loaded successfully&#39;
+            : &#39;failed to load required modules&#39;;
+
+
+    my $rv = check_install( module =&gt; &#39;LWP&#39;, version =&gt; 5.60 )
+                or print &#39;LWP is not installed!&#39;;
+
+    print &#39;LWP up to date&#39; if $rv-&gt;{uptodate};
+    print &quot;LWP version is $rv-&gt;{version}\n&quot;;
+    print &quot;LWP is installed as file $rv-&gt;{file}\n&quot;;
+
+
+    print &quot;LWP requires the following modules to be installed:\n&quot;;
+    print join &quot;\n&quot;, requires(&#39;LWP&#39;);
+
+    ### allow M::L::C to peek in your %INC rather than just
+    ### scanning @INC
+    $Module::Load::Conditional::CHECK_INC_HASH = 1;
+
+    ### reset the &#39;can_load&#39; cache
+    undef $Module::Load::Conditional::CACHE;
+
+    ### don&#39;t have Module::Load::Conditional issue warnings --
+    ### default is &#39;1&#39;
+    $Module::Load::Conditional::VERBOSE = 0;
+
+    ### The last error that happened during a call to &#39;can_load&#39;
+    my $err = $Module::Load::Conditional::ERROR;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Module::Load::Conditional provides simple ways to query and possibly load any of the modules you have installed on your system during runtime.</p>
+
+<p>It is able to load multiple modules at once or none at all if one of them was not able to load. It also takes care of any error checking and so forth.</p>
+
+<h1 id="Methods">Methods</h1>
+
+<h2 id="href-check_install-module-NAME-version-VERSION-verbose-BOOL">$href = check_install( module =&gt; NAME [, version =&gt; VERSION, verbose =&gt; BOOL ] );</h2>
+
+<p><code>check_install</code> allows you to verify if a certain module is installed or not. You may call it with the following arguments:</p>
+
+<dl>
+
+<dt id="module">module</dt>
+<dd>
+
+<p>The name of the module you wish to verify -- this is a required key</p>
+
+</dd>
+<dt id="version">version</dt>
+<dd>
+
+<p>The version this module needs to be -- this is optional</p>
+
+</dd>
+<dt id="verbose">verbose</dt>
+<dd>
+
+<p>Whether or not to be verbose about what it is doing -- it will default to $Module::Load::Conditional::VERBOSE</p>
+
+</dd>
+</dl>
+
+<p>It will return undef if it was not able to find where the module was installed, or a hash reference with the following keys if it was able to find the file:</p>
+
+<dl>
+
+<dt id="file">file</dt>
+<dd>
+
+<p>Full path to the file that contains the module</p>
+
+</dd>
+<dt id="dir">dir</dt>
+<dd>
+
+<p>Directory, or more exact the <code>@INC</code> entry, where the module was loaded from.</p>
+
+</dd>
+<dt id="version1">version</dt>
+<dd>
+
+<p>The version number of the installed module - this will be <code>undef</code> if the module had no (or unparsable) version number, or if the variable <code>$Module::Load::Conditional::FIND_VERSION</code> was set to true. (See the <code>GLOBAL VARIABLES</code> section below for details)</p>
+
+</dd>
+<dt id="uptodate">uptodate</dt>
+<dd>
+
+<p>A boolean value indicating whether or not the module was found to be at least the version you specified. If you did not specify a version, uptodate will always be true if the module was found. If no parsable version was found in the module, uptodate will also be true, since <code>check_install</code> had no way to verify clearly.</p>
+
+<p>See also <code>$Module::Load::Conditional::DEPRECATED</code>, which affects the outcome of this value.</p>
+
+</dd>
+</dl>
+
+<h2 id="bool-can_load-modules-NAME-VERSION-NAME-VERSION-verbose-BOOL-nocache-BOOL-autoload-BOOL">$bool = can_load( modules =&gt; { NAME =&gt; VERSION [,NAME =&gt; VERSION] }, [verbose =&gt; BOOL, nocache =&gt; BOOL, autoload =&gt; BOOL] )</h2>
+
+<p><code>can_load</code> will take a list of modules, optionally with version numbers and determine if it is able to load them. If it can load *ALL* of them, it will. If one or more are unloadable, none will be loaded.</p>
+
+<p>This is particularly useful if you have More Than One Way (tm) to solve a problem in a program, and only wish to continue down a path if all modules could be loaded, and not load them if they couldn&#39;t.</p>
+
+<p>This function uses the <code>load</code> function or the <code>autoload_remote</code> function from Module::Load under the hood.</p>
+
+<p><code>can_load</code> takes the following arguments:</p>
+
+<dl>
+
+<dt id="modules">modules</dt>
+<dd>
+
+<p>This is a hashref of module/version pairs. The version indicates the minimum version to load. If no version is provided, any version is assumed to be good enough.</p>
+
+</dd>
+<dt id="verbose1">verbose</dt>
+<dd>
+
+<p>This controls whether warnings should be printed if a module failed to load. The default is to use the value of $Module::Load::Conditional::VERBOSE.</p>
+
+</dd>
+<dt id="nocache">nocache</dt>
+<dd>
+
+<p><code>can_load</code> keeps its results in a cache, so it will not load the same module twice, nor will it attempt to load a module that has already failed to load before. By default, <code>can_load</code> will check its cache, but you can override that by setting <code>nocache</code> to true.</p>
+
+</dd>
+<dt id="autoload">autoload</dt>
+<dd>
+
+<p>This controls whether imports the functions of a loaded modules to the caller package. The default is no importing any functions.</p>
+
+<p>See the <code>autoload</code> function and the <code>autoload_remote</code> function from <a href="/cperl/lib/Module/Load.html">Module::Load</a> for details.</p>
+
+</dd>
+</dl>
+
+<h2 id="list-requires-MODULE">@list = requires( MODULE );</h2>
+
+<p><code>requires</code> can tell you what other modules a particular module requires. This is particularly useful when you&#39;re intending to write a module for public release and are listing its prerequisites.</p>
+
+<p><code>requires</code> takes but one argument: the name of a module. It will then first check if it can actually load this module, and return undef if it can&#39;t. Otherwise, it will return a list of modules and pragmas that would have been loaded on the module&#39;s behalf.</p>
+
+<p>Note: The list <code>require</code> returns has originated from your current perl and your current install.</p>
+
+<h1 id="Global-Variables">Global Variables</h1>
+
+<p>The behaviour of Module::Load::Conditional can be altered by changing the following global variables:</p>
+
+<h2 id="Module::Load::Conditional::VERBOSE">$Module::Load::Conditional::VERBOSE</h2>
+
+<p>This controls whether Module::Load::Conditional will issue warnings and explanations as to why certain things may have failed. If you set it to 0, Module::Load::Conditional will not output any warnings. The default is 0;</p>
+
+<h2 id="Module::Load::Conditional::FIND_VERSION">$Module::Load::Conditional::FIND_VERSION</h2>
+
+<p>This controls whether Module::Load::Conditional will try to parse (and eval) the version from the module you&#39;re trying to load.</p>
+
+<p>If you don&#39;t wish to do this, set this variable to <code>false</code>. Understand then that version comparisons are not possible, and Module::Load::Conditional can not tell you what module version you have installed. This may be desirable from a security or performance point of view. Note that <code>$FIND_VERSION</code> code runs safely under <code>taint mode</code>.</p>
+
+<p>The default is 1;</p>
+
+<h2 id="Module::Load::Conditional::CHECK_INC_HASH">$Module::Load::Conditional::CHECK_INC_HASH</h2>
+
+<p>This controls whether <code>Module::Load::Conditional</code> checks your <code>%INC</code> hash to see if a module is available. By default, only <code>@INC</code> is scanned to see if a module is physically on your filesystem, or available via an <code>@INC-hook</code>. Setting this variable to <code>true</code> will trust any entries in <code>%INC</code> and return them for you.</p>
+
+<p>The default is 0;</p>
+
+<h2 id="Module::Load::Conditional::FORCE_SAFE_INC">$Module::Load::Conditional::FORCE_SAFE_INC</h2>
+
+<p>This controls whether <code>Module::Load::Conditional</code> sanitises <code>@INC</code> by removing &quot;<code>.</code>&quot;. The current default setting is <code>0</code>, but this may change in a future release.</p>
+
+<h2 id="Module::Load::Conditional::CACHE">$Module::Load::Conditional::CACHE</h2>
+
+<p>This holds the cache of the <code>can_load</code> function. If you explicitly want to remove the current cache, you can set this variable to <code>undef</code></p>
+
+<h2 id="Module::Load::Conditional::ERROR">$Module::Load::Conditional::ERROR</h2>
+
+<p>This holds a string of the last error that happened during a call to <code>can_load</code>. It is useful to inspect this when <code>can_load</code> returns <code>undef</code>.</p>
+
+<h2 id="Module::Load::Conditional::DEPRECATED">$Module::Load::Conditional::DEPRECATED</h2>
+
+<p>This controls whether <code>Module::Load::Conditional</code> checks if a dual-life core module has been deprecated. If this is set to true <code>check_install</code> will return false to <code>uptodate</code>, if a dual-life module is found to be loaded from <code>$Config{privlibexp}</code></p>
+
+<p>The default is 0;</p>
+
+<h1 id="See-Also">See Also</h1>
+
+<p><code>Module::Load</code></p>
+
+<h1 id="BUG-REPORTS">BUG REPORTS</h1>
+
+<p>Please report bugs or other issues to &lt;bug-module-load-conditional@rt.cpan.org&gt;.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>This module by Jos Boumans &lt;kane@cpan.org&gt;.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>This library is free software; you may redistribute and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,168 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CONSTRUCTOR">CONSTRUCTOR</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#EXAMPLE">EXAMPLE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>IO::Select - OO interface to the select system call</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use IO::Select;
+
+    $s = IO::Select-&gt;new();
+
+    $s-&gt;add(\*STDIN);
+    $s-&gt;add($some_handle);
+
+    @ready = $s-&gt;can_read($timeout);
+
+    @ready = IO::Select-&gt;new(@handles)-&gt;can_read(0);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <code>IO::Select</code> package implements an object approach to the system <code>select</code> function call. It allows the user to see what IO handles, see <a href="/cperl/lib/IO/Handle.html">IO::Handle</a>, are ready for reading, writing or have an exception pending.</p>
+
+<h1 id="CONSTRUCTOR">CONSTRUCTOR</h1>
+
+<dl>
+
+<dt id="new-HANDLES">new ( [ HANDLES ] )</dt>
+<dd>
+
+<p>The constructor creates a new object and optionally initialises it with a set of handles.</p>
+
+</dd>
+</dl>
+
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="add-HANDLES">add ( HANDLES )</dt>
+<dd>
+
+<p>Add the list of handles to the <code>IO::Select</code> object. It is these values that will be returned when an event occurs. <code>IO::Select</code> keeps these values in a cache which is indexed by the <code>fileno</code> of the handle, so if more than one handle with the same <code>fileno</code> is specified then only the last one is cached.</p>
+
+<p>Each handle can be an <code>IO::Handle</code> object, an integer or an array reference where the first element is an <code>IO::Handle</code> or an integer.</p>
+
+</dd>
+<dt id="remove-HANDLES">remove ( HANDLES )</dt>
+<dd>
+
+<p>Remove all the given handles from the object. This method also works by the <code>fileno</code> of the handles. So the exact handles that were added need not be passed, just handles that have an equivalent <code>fileno</code></p>
+
+</dd>
+<dt id="exists-HANDLE">exists ( HANDLE )</dt>
+<dd>
+
+<p>Returns a true value (actually the handle itself) if it is present. Returns undef otherwise.</p>
+
+</dd>
+<dt id="handles">handles</dt>
+<dd>
+
+<p>Return an array of all registered handles.</p>
+
+</dd>
+<dt id="can_read-TIMEOUT">can_read ( [ TIMEOUT ] )</dt>
+<dd>
+
+<p>Return an array of handles that are ready for reading. <code>TIMEOUT</code> is the maximum amount of time to wait before returning an empty list, in seconds, possibly fractional. If <code>TIMEOUT</code> is not given and any handles are registered then the call will block.</p>
+
+</dd>
+<dt id="can_write-TIMEOUT">can_write ( [ TIMEOUT ] )</dt>
+<dd>
+
+<p>Same as <code>can_read</code> except check for handles that can be written to.</p>
+
+</dd>
+<dt id="has_exception-TIMEOUT">has_exception ( [ TIMEOUT ] )</dt>
+<dd>
+
+<p>Same as <code>can_read</code> except check for handles that have an exception condition, for example pending out-of-band data.</p>
+
+</dd>
+<dt id="count">count ()</dt>
+<dd>
+
+<p>Returns the number of handles that the object will check for when one of the <code>can_</code> methods is called or the object is passed to the <code>select</code> static method.</p>
+
+</dd>
+<dt id="bits">bits()</dt>
+<dd>
+
+<p>Return the bit string suitable as argument to the core select() call.</p>
+
+</dd>
+<dt id="select-READ-WRITE-EXCEPTION-TIMEOUT">select ( READ, WRITE, EXCEPTION [, TIMEOUT ] )</dt>
+<dd>
+
+<p><code>select</code> is a static method, that is you call it with the package name like <code>new</code>. <code>READ</code>, <code>WRITE</code> and <code>EXCEPTION</code> are either <code>undef</code> or <code>IO::Select</code> objects. <code>TIMEOUT</code> is optional and has the same effect as for the core select call.</p>
+
+<p>The result will be an array of 3 elements, each a reference to an array which will hold the handles that are ready for reading, writing and have exceptions respectively. Upon error an empty list is returned.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLE">EXAMPLE</h1>
+
+<p>Here is a short example which shows how <code>IO::Select</code> could be used to write a server which communicates with several sockets while also listening for more connections on a listen socket</p>
+
+<pre><code>    use IO::Select;
+    use IO::Socket;
+
+    $lsn = IO::Socket::INET-&gt;new(Listen =&gt; 1, LocalPort =&gt; 8080);
+    $sel = IO::Select-&gt;new( $lsn );
+
+    while(@ready = $sel-&gt;can_read) {
+        foreach $fh (@ready) {
+            if($fh == $lsn) {
+                # Create a new socket
+                $new = $lsn-&gt;accept;
+                $sel-&gt;add($new);
+            }
+            else {
+                # Process socket
+
+                # Maybe we have finished with the socket
+                $sel-&gt;remove($fh);
+                $fh-&gt;close;
+            }
+        }
+    }</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Graham Barr. Currently maintained by the Perl Porters. Please report all bugs to &lt;perlbug@perl.org&gt;.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright (c) 1997-8 Graham Barr &lt;gbarr@pobox.com&gt;. All rights reserved. This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

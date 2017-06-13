@@ -1,0 +1,133 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#can_handle">can_handle</a></li>
+          <li><a href="#make_iterator">make_iterator</a></li>
+          <li><a href="#iterator_class">iterator_class</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#SUBCLASSING">SUBCLASSING</a>
+    <ul>
+      <li><a href="#Example">Example</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Parser::SourceHandler::Executable - Stream output from an executable TAP source</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use TAP::Parser::Source;
+  use TAP::Parser::SourceHandler::Executable;
+
+  my $source = TAP::Parser::Source-&gt;new-&gt;raw([&#39;/usr/bin/ruby&#39;, &#39;mytest.rb&#39;]);
+  $source-&gt;assemble_meta;
+
+  my $class = &#39;TAP::Parser::SourceHandler::Executable&#39;;
+  my $vote  = $class-&gt;can_handle( $source );
+  my $iter  = $class-&gt;make_iterator( $source );</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This is an <i>executable</i> <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a> - it has 2 jobs:</p>
+
+<p>1. Figure out if the <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a> it&#39;s given is an executable command (<a href="#can_handle">&quot;can_handle&quot;</a>).</p>
+
+<p>2. Creates an iterator for executable commands (<a href="#make_iterator">&quot;make_iterator&quot;</a>).</p>
+
+<p>Unless you&#39;re writing a plugin or subclassing <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, you probably won&#39;t need to use this module directly.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="can_handle"><code>can_handle</code></h3>
+
+<pre><code>  my $vote = $class-&gt;can_handle( $source );</code></pre>
+
+<p>Only votes if $source looks like an executable file. Casts the following votes:</p>
+
+<pre><code>  0.9  if it&#39;s a hash with an &#39;exec&#39; key
+  0.8  if it&#39;s a .bat file
+  0.75 if it&#39;s got an execute bit set</code></pre>
+
+<h3 id="make_iterator"><code>make_iterator</code></h3>
+
+<pre><code>  my $iterator = $class-&gt;make_iterator( $source );</code></pre>
+
+<p>Returns a new <a href="/cperl/lib/TAP/Parser/Iterator/Process.html">TAP::Parser::Iterator::Process</a> for the source. <code>$source-&gt;raw</code> must be in one of the following forms:</p>
+
+<pre><code>  { exec =&gt; [ @exec ] }
+
+  [ @exec ]
+
+  $file</code></pre>
+
+<p><code>croak</code>s on error.</p>
+
+<h3 id="iterator_class"><code>iterator_class</code></h3>
+
+<p>The class of iterator to use, override if you&#39;re sub-classing. Defaults to <a href="/cperl/lib/TAP/Parser/Iterator/Process.html">TAP::Parser::Iterator::Process</a>.</p>
+
+<h1 id="SUBCLASSING">SUBCLASSING</h1>
+
+<p>Please see <a href="/cperl/lib/TAP/Parser.html#SUBCLASSING">&quot;SUBCLASSING&quot; in TAP::Parser</a> for a subclassing overview.</p>
+
+<h2 id="Example">Example</h2>
+
+<pre><code>  package MyRubySourceHandler;
+
+  use strict;
+
+  use Carp qw( croak );
+  use TAP::Parser::SourceHandler::Executable;
+
+  use base &#39;TAP::Parser::SourceHandler::Executable&#39;;
+
+  # expect $handler-&gt;([&#39;mytest.rb&#39;, &#39;cmdline&#39;, &#39;args&#39;]);
+  sub make_iterator {
+    my ($self, $source) = @_;
+    my @test_args = @{ $source-&gt;test_args };
+    my $rb_file   = $test_args[0];
+    croak(&quot;error: Ruby file &#39;$rb_file&#39; not found!&quot;) unless (-f $rb_file);
+    return $self-&gt;SUPER::raw_source([&#39;/usr/bin/ruby&#39;, @test_args]);
+  }</code></pre>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/TAP/Object.html">TAP::Object</a>, <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, <a href="/cperl/lib/TAP/Parser/IteratorFactory.html">TAP::Parser::IteratorFactory</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Perl.html">TAP::Parser::SourceHandler::Perl</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/File.html">TAP::Parser::SourceHandler::File</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Handle.html">TAP::Parser::SourceHandler::Handle</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/RawTAP.html">TAP::Parser::SourceHandler::RawTAP</a></p>
+
+
+</body>
+
+</html>
+
+

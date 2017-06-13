@@ -1,0 +1,170 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#can_handle">can_handle</a></li>
+          <li><a href="#make_iterator">make_iterator</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#SUBCLASSING">SUBCLASSING</a>
+    <ul>
+      <li><a href="#Example">Example</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Parser::SourceHandler - Base class for different TAP source handlers</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  # abstract class - don&#39;t use directly!
+  # see TAP::Parser::IteratorFactory for general usage
+
+  # must be sub-classed for use
+  package MySourceHandler;
+  use base &#39;TAP::Parser::SourceHandler&#39;;
+  sub can_handle    { return $confidence_level }
+  sub make_iterator { return $iterator }
+
+  # see example below for more details</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This is an abstract base class for <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a> handlers / handlers.</p>
+
+<p>A <code>TAP::Parser::SourceHandler</code> does whatever is necessary to produce &amp; capture a stream of TAP from the <i>raw</i> source, and package it up in a <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a> for the parser to consume.</p>
+
+<p><code>SourceHandlers</code> must implement the <i>source detection &amp; handling</i> interface used by <a href="/cperl/lib/TAP/Parser/IteratorFactory.html">TAP::Parser::IteratorFactory</a>. At 2 methods, the interface is pretty simple: <a href="#can_handle">&quot;can_handle&quot;</a> and <a href="#make_source">&quot;make_source&quot;</a>.</p>
+
+<p>Unless you&#39;re writing a new <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>, a plugin, or subclassing <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, you probably won&#39;t need to use this module directly.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="can_handle"><code>can_handle</code></h3>
+
+<p><i>Abstract method</i>.</p>
+
+<pre><code>  my $vote = $class-&gt;can_handle( $source );</code></pre>
+
+<p><code>$source</code> is a <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>.</p>
+
+<p>Returns a number between <code>0</code> &amp; <code>1</code> reflecting how confidently the raw source can be handled. For example, <code>0</code> means the source cannot handle it, <code>0.5</code> means it may be able to, and <code>1</code> means it definitely can. See <a href="/cperl/lib/TAP/Parser/IteratorFactory.html#detect_source">&quot;detect_source&quot; in TAP::Parser::IteratorFactory</a> for details on how this is used.</p>
+
+<h3 id="make_iterator"><code>make_iterator</code></h3>
+
+<p><i>Abstract method</i>.</p>
+
+<pre><code>  my $iterator = $class-&gt;make_iterator( $source );</code></pre>
+
+<p><code>$source</code> is a <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>.</p>
+
+<p>Returns a new <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a> object for use by the <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>. <code>croak</code>s on error.</p>
+
+<h1 id="SUBCLASSING">SUBCLASSING</h1>
+
+<p>Please see <a href="/cperl/lib/TAP/Parser.html#SUBCLASSING">&quot;SUBCLASSING&quot; in TAP::Parser</a> for a subclassing overview, and any of the subclasses that ship with this module as an example. What follows is a quick overview.</p>
+
+<p>Start by familiarizing yourself with <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a> and <a href="/cperl/lib/TAP/Parser/IteratorFactory.html">TAP::Parser::IteratorFactory</a>. <a href="/cperl/lib/TAP/Parser/SourceHandler/RawTAP.html">TAP::Parser::SourceHandler::RawTAP</a> is the easiest sub-class to use as an example.</p>
+
+<p>It&#39;s important to point out that if you want your subclass to be automatically used by <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> you&#39;ll have to and make sure it gets loaded somehow. If you&#39;re using <a>prove</a> you can write an <a href="/cperl/lib/App/Prove.html">App::Prove</a> plugin. If you&#39;re using <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> or <a href="/cperl/lib/TAP/Harness.html">TAP::Harness</a> directly (e.g. through a custom script, <a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a>, or <a>Module::Build</a>) you can use the <code>config</code> option which will cause <a href="/cperl/lib/TAP/Parser/IteratorFactory.html#load_sources">&quot;load_sources&quot; in TAP::Parser::IteratorFactory</a> to load your subclass).</p>
+
+<p>Don&#39;t forget to register your class with <a href="/cperl/lib/TAP/Parser/IteratorFactory.html#register_handler">&quot;register_handler&quot; in TAP::Parser::IteratorFactory</a>.</p>
+
+<h2 id="Example">Example</h2>
+
+<pre><code>  package MySourceHandler;
+
+  use strict;
+
+  use MySourceHandler; # see TAP::Parser::SourceHandler
+  use TAP::Parser::IteratorFactory;
+
+  use base &#39;TAP::Parser::SourceHandler&#39;;
+
+  TAP::Parser::IteratorFactory-&gt;register_handler( __PACKAGE__ );
+
+  sub can_handle {
+      my ( $class, $src ) = @_;
+      my $meta   = $src-&gt;meta;
+      my $config = $src-&gt;config_for( $class );
+
+      if ($config-&gt;{accept_all}) {
+          return 1.0;
+      } elsif (my $file = $meta-&gt;{file}) {
+          return 0.0 unless $file-&gt;{exists};
+          return 1.0 if $file-&gt;{lc_ext} eq &#39;.tap&#39;;
+          return 0.9 if $file-&gt;{shebang} &amp;&amp; $file-&gt;{shebang} =~ /^#!.+tap/;
+          return 0.5 if $file-&gt;{text};
+          return 0.1 if $file-&gt;{binary};
+      } elsif ($meta-&gt;{scalar}) {
+          return 0.8 if $$raw_source_ref =~ /\d\.\.\d/;
+          return 0.6 if $meta-&gt;{has_newlines};
+      } elsif ($meta-&gt;{array}) {
+          return 0.8 if $meta-&gt;{size} &lt; 5;
+          return 0.6 if $raw_source_ref-&gt;[0] =~ /foo/;
+          return 0.5;
+      } elsif ($meta-&gt;{hash}) {
+          return 0.6 if $raw_source_ref-&gt;{foo};
+          return 0.2;
+      }
+
+      return 0;
+  }
+
+  sub make_iterator {
+      my ($class, $source) = @_;
+      # this is where you manipulate the source and
+      # capture the stream of TAP in an iterator
+      # either pick a TAP::Parser::Iterator::* or write your own...
+      my $iterator = TAP::Parser::Iterator::Array-&gt;new([ &#39;foo&#39;, &#39;bar&#39; ]);
+      return $iterator;
+  }
+
+  1;</code></pre>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>TAPx Developers.</p>
+
+<p>Source detection stuff added by Steve Purkis</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/TAP/Object.html">TAP::Object</a>, <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>, <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a>, <a href="/cperl/lib/TAP/Parser/IteratorFactory.html">TAP::Parser::IteratorFactory</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Executable.html">TAP::Parser::SourceHandler::Executable</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Perl.html">TAP::Parser::SourceHandler::Perl</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/File.html">TAP::Parser::SourceHandler::File</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/Handle.html">TAP::Parser::SourceHandler::Handle</a>, <a href="/cperl/lib/TAP/Parser/SourceHandler/RawTAP.html">TAP::Parser::SourceHandler::RawTAP</a></p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,154 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>File::Basename - Parse file paths into directory, filename and suffix.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use File::Basename;
+
+    ($name,$path,$suffix) = fileparse($fullname,@suffixlist);
+    $name = fileparse($fullname,@suffixlist);
+
+    $basename = basename($fullname,@suffixlist);
+    $dirname  = dirname($fullname);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>These routines allow you to parse file paths into their directory, filename and suffix.</p>
+
+<p><b>NOTE</b>: <code>dirname()</code> and <code>basename()</code> emulate the behaviours, and quirks, of the shell and C functions of the same name. See each function&#39;s documentation for details. If your concern is just parsing paths it is safer to use <a href="/cperl/lib/File/Spec.html">File::Spec</a>&#39;s <code>splitpath()</code> and <code>splitdir()</code> methods.</p>
+
+<p>It is guaranteed that</p>
+
+<pre><code>    # Where $path_separator is / for Unix, \ for Windows, etc...
+    dirname($path) . $path_separator . basename($path);</code></pre>
+
+<p>is equivalent to the original path for all systems but VMS.</p>
+
+<dl>
+
+<dt id="fileparse"><code>fileparse</code> </dt>
+<dd>
+
+<pre><code>    my($filename, $dirs, $suffix) = fileparse($path);
+    my($filename, $dirs, $suffix) = fileparse($path, @suffixes);
+    my $filename                  = fileparse($path, @suffixes);</code></pre>
+
+<p>The <code>fileparse()</code> routine divides a file path into its $dirs, $filename and (optionally) the filename $suffix.</p>
+
+<p>$dirs contains everything up to and including the last directory separator in the $path including the volume (if applicable). The remainder of the $path is the $filename.</p>
+
+<pre><code>     # On Unix returns (&quot;baz&quot;, &quot;/foo/bar/&quot;, &quot;&quot;)
+     fileparse(&quot;/foo/bar/baz&quot;);
+
+     # On Windows returns (&quot;baz&quot;, &#39;C:\foo\bar\&#39;, &quot;&quot;)
+     fileparse(&#39;C:\foo\bar\baz&#39;);
+
+     # On Unix returns (&quot;&quot;, &quot;/foo/bar/baz/&quot;, &quot;&quot;)
+     fileparse(&quot;/foo/bar/baz/&quot;);</code></pre>
+
+<p>If @suffixes are given each element is a pattern (either a string or a <code>qr//</code>) matched against the end of the $filename. The matching portion is removed and becomes the $suffix.</p>
+
+<pre><code>     # On Unix returns (&quot;baz&quot;, &quot;/foo/bar/&quot;, &quot;.txt&quot;)
+     fileparse(&quot;/foo/bar/baz.txt&quot;, qr/\.[^.]*/);</code></pre>
+
+<p>If type is non-Unix (see <a href="#fileparse_set_fstype">&quot;fileparse_set_fstype&quot;</a>) then the pattern matching for suffix removal is performed case-insensitively, since those systems are not case-sensitive when opening existing files.</p>
+
+<p>You are guaranteed that <code>$dirs . $filename . $suffix</code> will denote the same location as the original $path.</p>
+
+</dd>
+<dt id="basename"><code>basename</code>  </dt>
+<dd>
+
+<pre><code>    my $filename = basename($path);
+    my $filename = basename($path, @suffixes);</code></pre>
+
+<p>This function is provided for compatibility with the Unix shell command <code>basename(1)</code>. It does <b>NOT</b> always return the file name portion of a path as you might expect. To be safe, if you want the file name portion of a path use <code>fileparse()</code>.</p>
+
+<p><code>basename()</code> returns the last level of a filepath even if the last level is clearly directory. In effect, it is acting like <code>pop()</code> for paths. This differs from <code>fileparse()</code>&#39;s behaviour.</p>
+
+<pre><code>    # Both return &quot;bar&quot;
+    basename(&quot;/foo/bar&quot;);
+    basename(&quot;/foo/bar/&quot;);</code></pre>
+
+<p>@suffixes work as in <code>fileparse()</code> except all regex metacharacters are quoted.</p>
+
+<pre><code>    # These two function calls are equivalent.
+    my $filename = basename(&quot;/foo/bar/baz.txt&quot;,  &quot;.txt&quot;);
+    my $filename = fileparse(&quot;/foo/bar/baz.txt&quot;, qr/\Q.txt\E/);</code></pre>
+
+<p>Also note that in order to be compatible with the shell command, <code>basename()</code> does not strip off a suffix if it is identical to the remaining characters in the filename.</p>
+
+</dd>
+<dt id="dirname"><code>dirname</code> </dt>
+<dd>
+
+<p>This function is provided for compatibility with the Unix shell command <code>dirname(1)</code> and has inherited some of its quirks. In spite of its name it does <b>NOT</b> always return the directory name as you might expect. To be safe, if you want the directory name of a path use <code>fileparse()</code>.</p>
+
+<p>Only on VMS (where there is no ambiguity between the file and directory portions of a path) and AmigaOS (possibly due to an implementation quirk in this module) does <code>dirname()</code> work like <code>fileparse($path)</code>, returning just the $dirs.</p>
+
+<pre><code>    # On VMS and AmigaOS
+    my $dirs = dirname($path);</code></pre>
+
+<p>When using Unix or MSDOS syntax this emulates the <code>dirname(1)</code> shell function which is subtly different from how <code>fileparse()</code> works. It returns all but the last level of a file path even if the last level is clearly a directory. In effect, it is not returning the directory portion but simply the path one level up acting like <code>chop()</code> for file paths.</p>
+
+<p>Also unlike <code>fileparse()</code>, <code>dirname()</code> does not include a trailing slash on its returned path.</p>
+
+<pre><code>    # returns /foo/bar.  fileparse() would return /foo/bar/
+    dirname(&quot;/foo/bar/baz&quot;);
+
+    # also returns /foo/bar despite the fact that baz is clearly a 
+    # directory.  fileparse() would return /foo/bar/baz/
+    dirname(&quot;/foo/bar/baz/&quot;);
+
+    # returns &#39;.&#39;.  fileparse() would return &#39;foo/&#39;
+    dirname(&quot;foo/&quot;);</code></pre>
+
+<p>Under VMS, if there is no directory information in the $path, then the current default device and directory is used.</p>
+
+</dd>
+<dt id="fileparse_set_fstype"><code>fileparse_set_fstype</code> </dt>
+<dd>
+
+<pre><code>  my $type = fileparse_set_fstype();
+  my $previous_type = fileparse_set_fstype($type);</code></pre>
+
+<p>Normally File::Basename will assume a file path type native to your current operating system (ie. /foo/bar style on Unix, \foo\bar on Windows, etc...). With this function you can override that assumption.</p>
+
+<p>Valid $types are &quot;MacOS&quot;, &quot;VMS&quot;, &quot;AmigaOS&quot;, &quot;OS2&quot;, &quot;RISCOS&quot;, &quot;MSWin32&quot;, &quot;DOS&quot; (also &quot;MSDOS&quot; for backwards bug compatibility), &quot;Epoc&quot; and &quot;Unix&quot; (all case-insensitive). If an unrecognized $type is given &quot;Unix&quot; will be assumed.</p>
+
+<p>If you&#39;ve selected VMS syntax, and the file specification you pass to one of these routines contains a &quot;/&quot;, they assume you are using Unix emulation and apply the Unix syntax rules instead, for that function call only.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="http://man.he.net/man1/dirname">dirname(1)</a>, <a href="http://man.he.net/man1/basename">basename(1)</a>, <a href="/cperl/lib/File/Spec.html">File::Spec</a></p>
+
+
+</body>
+
+</html>
+
+

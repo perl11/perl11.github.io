@@ -1,0 +1,291 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CONSTRUCTOR">CONSTRUCTOR</a></li>
+  <li><a href="#ACCESSORS">ACCESSORS</a></li>
+  <li><a href="#MAIN-SEARCH-METHODS">MAIN SEARCH METHODS</a>
+    <ul>
+      <li><a href="#search-survey-directories">$search-&gt;survey( @directories )</a></li>
+      <li><a href="#search-simplify_name-str">$search-&gt;simplify_name( $str )</a></li>
+      <li><a href="#search-find-pod">$search-&gt;find( $pod )</a></li>
+      <li><a href="#search-find-pod-search_dirs">$search-&gt;find( $pod, @search_dirs )</a></li>
+      <li><a href="#self-contains_pod-file">$self-&gt;contains_pod( $file )</a></li>
+    </ul>
+  </li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#COPYRIGHT-AND-DISCLAIMERS">COPYRIGHT AND DISCLAIMERS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Pod::Simple::Search - find POD documents in directory trees</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Pod::Simple::Search;
+  my $name2path = Pod::Simple::Search-&gt;new-&gt;limit_glob(&#39;LWP::*&#39;)-&gt;survey;
+  print &quot;Looky see what I found: &quot;,
+    join(&#39; &#39;, sort keys %$name2path), &quot;\n&quot;;
+
+  print &quot;LWPUA docs = &quot;,
+    Pod::Simple::Search-&gt;new-&gt;find(&#39;LWP::UserAgent&#39;) || &quot;?&quot;,
+    &quot;\n&quot;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>Pod::Simple::Search</b> is a class that you use for running searches for Pod files. An object of this class has several attributes (mostly options for controlling search options), and some methods for searching based on those attributes.</p>
+
+<p>The way to use this class is to make a new object of this class, set any options, and then call one of the search options (probably <code>survey</code> or <code>find</code>). The sections below discuss the syntaxes for doing all that.</p>
+
+<h1 id="CONSTRUCTOR">CONSTRUCTOR</h1>
+
+<p>This class provides the one constructor, called <code>new</code>. It takes no parameters:</p>
+
+<pre><code>  use Pod::Simple::Search;
+  my $search = Pod::Simple::Search-&gt;new;</code></pre>
+
+<h1 id="ACCESSORS">ACCESSORS</h1>
+
+<p>This class defines several methods for setting (and, occasionally, reading) the contents of an object. With two exceptions (discussed at the end of this section), these attributes are just for controlling the way searches are carried out.</p>
+
+<p>Note that each of these return <code>$self</code> when you call them as <code>$self-&gt;<i>whatever(value)</i></code>. That&#39;s so that you can chain together set-attribute calls like this:</p>
+
+<pre><code>  my $name2path =
+    Pod::Simple::Search-&gt;new
+    -&gt; inc(0) -&gt; verbose(1) -&gt; callback(\&amp;blab)
+    -&gt;survey(@there);</code></pre>
+
+<p>...which works exactly as if you&#39;d done this:</p>
+
+<pre><code>  my $search = Pod::Simple::Search-&gt;new;
+  $search-&gt;inc(0);
+  $search-&gt;verbose(1);
+  $search-&gt;callback(\&amp;blab);
+  my $name2path = $search-&gt;survey(@there);</code></pre>
+
+<dl>
+
+<dt id="search-inc-true-or-false">$search-&gt;inc( <i>true-or-false</i> );</dt>
+<dd>
+
+<p>This attribute, if set to a true value, means that searches should implicitly add perl&#39;s <i>@INC</i> paths. This automatically considers paths specified in the <code>PERL5LIB</code> environment as this is prepended to <i>@INC</i> by the Perl interpreter itself. This attribute&#39;s default value is <b>TRUE</b>. If you want to search only specific directories, set $self-&gt;inc(0) before calling $inc-&gt;survey or $inc-&gt;find.</p>
+
+</dd>
+<dt id="search-verbose-nonnegative-number">$search-&gt;verbose( <i>nonnegative-number</i> );</dt>
+<dd>
+
+<p>This attribute, if set to a nonzero positive value, will make searches output (via <code>warn</code>) notes about what they&#39;re doing as they do it. This option may be useful for debugging a pod-related module. This attribute&#39;s default value is zero, meaning that no <code>warn</code> messages are produced. (Setting verbose to 1 turns on some messages, and setting it to 2 turns on even more messages, i.e., makes the following search(es) even more verbose than 1 would make them.)</p>
+
+</dd>
+<dt id="search-limit_glob-some-glob-string">$search-&gt;limit_glob( <i>some-glob-string</i> );</dt>
+<dd>
+
+<p>This option means that you want to limit the results just to items whose podnames match the given glob/wildcard expression. For example, you might limit your search to just &quot;LWP::*&quot;, to search only for modules starting with &quot;LWP::*&quot; (but not including the module &quot;LWP&quot; itself); or you might limit your search to &quot;LW*&quot; to see only modules whose (full) names begin with &quot;LW&quot;; or you might search for &quot;*Find*&quot; to search for all modules with &quot;Find&quot; somewhere in their full name. (You can also use &quot;?&quot; in a glob expression; so &quot;DB?&quot; will match &quot;DBI&quot; and &quot;DBD&quot;.)</p>
+
+</dd>
+<dt id="search-callback-some_routine">$search-&gt;callback( <i>\&amp;some_routine</i> );</dt>
+<dd>
+
+<p>This attribute means that every time this search sees a matching Pod file, it should call this callback routine. The routine is called with two parameters: the current file&#39;s filespec, and its pod name. (For example: <code>(&quot;/etc/perljunk/File/Crunk.pm&quot;, &quot;File::Crunk&quot;)</code> would be in <code>@_</code>.)</p>
+
+<p>The callback routine&#39;s return value is not used for anything.</p>
+
+<p>This attribute&#39;s default value is false, meaning that no callback is called.</p>
+
+</dd>
+<dt id="search-laborious-true-or-false">$search-&gt;laborious( <i>true-or-false</i> );</dt>
+<dd>
+
+<p>Unless you set this attribute to a true value, Pod::Search will apply Perl-specific heuristics to find the correct module PODs quickly. This attribute&#39;s default value is false. You won&#39;t normally need to set this to true.</p>
+
+<p>Specifically: Turning on this option will disable the heuristics for seeing only files with Perl-like extensions, omitting subdirectories that are numeric but do <i>not</i> match the current Perl interpreter&#39;s version ID, suppressing <i>site_perl</i> as a module hierarchy name, etc.</p>
+
+</dd>
+<dt id="search-recurse-true-or-false">$search-&gt;recurse( <i>true-or-false</i> );</dt>
+<dd>
+
+<p>Unless you set this attribute to a false value, Pod::Search will recurse into subdirectories of the search directories.</p>
+
+</dd>
+<dt id="search-shadows-true-or-false">$search-&gt;shadows( <i>true-or-false</i> );</dt>
+<dd>
+
+<p>Unless you set this attribute to a true value, Pod::Simple::Search will consider only the first file of a given modulename as it looks thru the specified directories; that is, with this option off, if Pod::Simple::Search has seen a <code>somepathdir/Foo/Bar.pm</code> already in this search, then it won&#39;t bother looking at a <code>somelaterpathdir/Foo/Bar.pm</code> later on in that search, because that file is merely a &quot;shadow&quot;. But if you turn on <code>$self-&gt;shadows(1)</code>, then these &quot;shadow&quot; files are inspected too, and are noted in the pathname2podname return hash.</p>
+
+<p>This attribute&#39;s default value is false; and normally you won&#39;t need to turn it on.</p>
+
+</dd>
+<dt id="search-limit_re-some-regxp">$search-&gt;limit_re( <i>some-regxp</i> );</dt>
+<dd>
+
+<p>Setting this attribute (to a value that&#39;s a regexp) means that you want to limit the results just to items whose podnames match the given regexp. Normally this option is not needed, and the more efficient <code>limit_glob</code> attribute is used instead.</p>
+
+</dd>
+<dt id="search-dir_prefix-some-string-value">$search-&gt;dir_prefix( <i>some-string-value</i> );</dt>
+<dd>
+
+<p>Setting this attribute to a string value means that the searches should begin in the specified subdirectory name (like &quot;Pod&quot; or &quot;File::Find&quot;, also expressible as &quot;File/Find&quot;). For example, the search option <code>$search-&gt;limit_glob(&quot;File::Find::R*&quot;)</code> is the same as the combination of the search options <code>$search-&gt;limit_re(&quot;^File::Find::R&quot;) -&gt; dir_prefix(&quot;File::Find&quot;)</code>.</p>
+
+<p>Normally you don&#39;t need to know about the <code>dir_prefix</code> option, but I include it in case it might prove useful for someone somewhere.</p>
+
+<p>(Implementationally, searching with limit_glob ends up setting limit_re and usually dir_prefix.)</p>
+
+</dd>
+<dt id="search-progress-some-progress-object">$search-&gt;progress( <i>some-progress-object</i> );</dt>
+<dd>
+
+<p>If you set a value for this attribute, the value is expected to be an object (probably of a class that you define) that has a <code>reach</code> method and a <code>done</code> method. This is meant for reporting progress during the search, if you don&#39;t want to use a simple callback.</p>
+
+<p>Normally you don&#39;t need to know about the <code>progress</code> option, but I include it in case it might prove useful for someone somewhere.</p>
+
+<p>While a search is in progress, the progress object&#39;s <code>reach</code> and <code>done</code> methods are called like this:</p>
+
+<pre><code>  # Every time a file is being scanned for pod:
+  $progress-&gt;reach($count, &quot;Scanning $file&quot;);   ++$count;
+
+  # And then at the end of the search:
+  $progress-&gt;done(&quot;Noted $count Pod files total&quot;);</code></pre>
+
+<p>Internally, we often set this to an object of class Pod::Simple::Progress. That class is probably undocumented, but you may wish to look at its source.</p>
+
+</dd>
+<dt id="name2path-self-name2path">$name2path = $self-&gt;name2path;</dt>
+<dd>
+
+<p>This attribute is not a search parameter, but is used to report the result of <code>survey</code> method, as discussed in the next section.</p>
+
+</dd>
+<dt id="path2name-self-path2name">$path2name = $self-&gt;path2name;</dt>
+<dd>
+
+<p>This attribute is not a search parameter, but is used to report the result of <code>survey</code> method, as discussed in the next section.</p>
+
+</dd>
+</dl>
+
+<h1 id="MAIN-SEARCH-METHODS">MAIN SEARCH METHODS</h1>
+
+<p>Once you&#39;ve actually set any options you want (if any), you can go ahead and use the following methods to search for Pod files in particular ways.</p>
+
+<h2 id="search-survey-directories"><code>$search-&gt;survey( @directories )</code></h2>
+
+<p>The method <code>survey</code> searches for POD documents in a given set of files and/or directories. This runs the search according to the various options set by the accessors above. (For example, if the <code>inc</code> attribute is on, as it is by default, then the perl @INC directories are implicitly added to the list of directories (if any) that you specify.)</p>
+
+<p>The return value of <code>survey</code> is two hashes:</p>
+
+<dl>
+
+<dt id="name2path"><code>name2path</code></dt>
+<dd>
+
+<p>A hash that maps from each pod-name to the filespec (like &quot;Stuff::Thing&quot; =&gt; &quot;/whatever/plib/Stuff/Thing.pm&quot;)</p>
+
+</dd>
+<dt id="path2name"><code>path2name</code></dt>
+<dd>
+
+<p>A hash that maps from each Pod filespec to its pod-name (like &quot;/whatever/plib/Stuff/Thing.pm&quot; =&gt; &quot;Stuff::Thing&quot;)</p>
+
+</dd>
+</dl>
+
+<p>Besides saving these hashes as the hashref attributes <code>name2path</code> and <code>path2name</code>, calling this function also returns these hashrefs. In list context, the return value of <code>$search-&gt;survey</code> is the list <code>(\%name2path, \%path2name)</code>. In scalar context, the return value is <code>\%name2path</code>. Or you can just call this in void context.</p>
+
+<p>Regardless of calling context, calling <code>survey</code> saves its results in its <code>name2path</code> and <code>path2name</code> attributes.</p>
+
+<p>E.g., when searching in <i>$HOME/perl5lib</i>, the file <i>$HOME/perl5lib/MyModule.pm</i> would get the POD name <i>MyModule</i>, whereas <i>$HOME/perl5lib/Myclass/Subclass.pm</i> would be <i>Myclass::Subclass</i>. The name information can be used for POD translators.</p>
+
+<p>Only text files containing at least one valid POD command are found.</p>
+
+<p>In verbose mode, a warning is printed if shadows are found (i.e., more than one POD file with the same POD name is found, e.g. <i>CPAN.pm</i> in different directories). This usually indicates duplicate occurrences of modules in the <i>@INC</i> search path, which is occasionally inadvertent (but is often simply a case of a user&#39;s path dir having a more recent version than the system&#39;s general path dirs in general.)</p>
+
+<p>The options to this argument is a list of either directories that are searched recursively, or files. (Usually you wouldn&#39;t specify files, but just dirs.) Or you can just specify an empty-list, as in $name2path; with the <code>inc</code> option on, as it is by default.</p>
+
+<p>The POD names of files are the plain basenames with any Perl-like extension (.pm, .pl, .pod) stripped, and path separators replaced by <code>::</code>&#39;s.</p>
+
+<p>Calling Pod::Simple::Search-&gt;search(...) is short for Pod::Simple::Search-&gt;new-&gt;search(...). That is, a throwaway object with default attribute values is used.</p>
+
+<h2 id="search-simplify_name-str"><code>$search-&gt;simplify_name( $str )</code></h2>
+
+<p>The method <b>simplify_name</b> is equivalent to <b>basename</b>, but also strips Perl-like extensions (.pm, .pl, .pod) and extensions like <i>.bat</i>, <i>.cmd</i> on Win32 and OS/2, or <i>.com</i> on VMS, respectively.</p>
+
+<h2 id="search-find-pod"><code>$search-&gt;find( $pod )</code></h2>
+
+<h2 id="search-find-pod-search_dirs"><code>$search-&gt;find( $pod, @search_dirs )</code></h2>
+
+<p>Returns the location of a Pod file, given a Pod/module/script name (like &quot;Foo::Bar&quot; or &quot;perlvar&quot; or &quot;perldoc&quot;), and an idea of what files/directories to look in. It searches according to the various options set by the accessors above. (For example, if the <code>inc</code> attribute is on, as it is by default, then the perl @INC directories are implicitly added to the list of directories (if any) that you specify.)</p>
+
+<p>This returns the full path of the first occurrence to the file. Package names (eg &#39;A::B&#39;) are automatically converted to directory names in the selected directory. Additionally, &#39;.pm&#39;, &#39;.pl&#39; and &#39;.pod&#39; are automatically appended to the search as required. (So, for example, under Unix, &quot;A::B&quot; is converted to &quot;somedir/A/B.pm&quot;, &quot;somedir/A/B.pod&quot;, or &quot;somedir/A/B.pl&quot;, as appropriate.)</p>
+
+<p>If no such Pod file is found, this method returns undef.</p>
+
+<p>If any of the given search directories contains a <i>pod/</i> subdirectory, then it is searched. (That&#39;s how we manage to find <i>perlfunc</i>, for example, which is usually in <i>pod/perlfunc</i> in most Perl dists.)</p>
+
+<p>The <code>verbose</code> and <code>inc</code> attributes influence the behavior of this search; notably, <code>inc</code>, if true, adds @INC <i>and also $Config::Config{&#39;scriptdir&#39;}</i> to the list of directories to search.</p>
+
+<p>It is common to simply say <code>$filename = Pod::Simple::Search-&gt; new -&gt;find(&quot;perlvar&quot;)</code> so that just the @INC (well, and scriptdir) directories are searched. (This happens because the <code>inc</code> attribute is true by default.)</p>
+
+<p>Calling Pod::Simple::Search-&gt;find(...) is short for Pod::Simple::Search-&gt;new-&gt;find(...). That is, a throwaway object with default attribute values is used.</p>
+
+<h2 id="self-contains_pod-file"><code>$self-&gt;contains_pod( $file )</code></h2>
+
+<p>Returns true if the supplied filename (not POD module) contains some Pod documentation.</p>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>Questions or discussion about POD and Pod::Simple should be sent to the pod-people@perl.org mail list. Send an empty email to pod-people-subscribe@perl.org to subscribe.</p>
+
+<p>This module is managed in an open GitHub repository, <a href="https://github.com/perl-pod/pod-simple/">https://github.com/perl-pod/pod-simple/</a>. Feel free to fork and contribute, or to clone <a href="git://github.com/perl-pod/pod-simple.git">git://github.com/perl-pod/pod-simple.git</a> and send patches!</p>
+
+<p>Patches against Pod::Simple are welcome. Please send bug reports to &lt;bug-pod-simple@rt.cpan.org&gt;.</p>
+
+<h1 id="COPYRIGHT-AND-DISCLAIMERS">COPYRIGHT AND DISCLAIMERS</h1>
+
+<p>Copyright (c) 2002 Sean M. Burke.</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>This program is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Pod::Simple was created by Sean M. Burke &lt;sburke@cpan.org&gt; with code borrowed from Marek Rouchal&#39;s <a href="/cperl/lib/Pod/Find.html">Pod::Find</a>, which in turn heavily borrowed code from Nick Ing-Simmons&#39; <code>PodToHtml</code>.</p>
+
+<p>But don&#39;t bother him, he&#39;s retired.</p>
+
+<p>Pod::Simple is maintained by:</p>
+
+<ul>
+
+<li><p>Allison Randal <code>allison@perl.org</code></p>
+
+</li>
+<li><p>Hans Dieter Pearcey <code>hdp@cpan.org</code></p>
+
+</li>
+<li><p>David E. Wheeler <code>dwheeler@cpan.org</code></p>
+
+</li>
+</ul>
+
+
+</body>
+
+</html>
+
+

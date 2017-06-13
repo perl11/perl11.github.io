@@ -1,0 +1,244 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#PERL-FUNCTIONS">PERL FUNCTIONS</a>
+    <ul>
+      <li><a href="#DumpArenas">DumpArenas()</a></li>
+    </ul>
+  </li>
+  <li><a href="#C-FUNCTIONS">C FUNCTIONS</a>
+    <ul>
+      <li><a href="#DumpArenas-pTHX">DumpArenas(pTHX)</a></li>
+      <li><a href="#DumpArenasFd-pTHX_-int-fd">DumpArenasFd(pTHX_ int fd)</a></li>
+    </ul>
+  </li>
+  <li><a href="#OUTPUT-FORMAT">OUTPUT FORMAT</a>
+    <ul>
+      <li><a href="#INDIVIDUAL-VALUES">INDIVIDUAL VALUES</a></li>
+      <li><a href="#Arrays">Arrays</a></li>
+      <li><a href="#Hashes">Hashes</a></li>
+      <li><a href="#Pointers">Pointers</a></li>
+      <li><a href="#"></a></li>
+      <li><a href="#ARENA-MAP">ARENA MAP</a></li>
+    </ul>
+  </li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</a></li>
+  <li><a href="#COPYRIGHT-LICENSE">COPYRIGHT &amp; LICENSE</a></li>
+  <li><a href="#SOURCE-AVAILABILITY">SOURCE AVAILABILITY</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Internals::DumpArenas - Dump perl memory</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Dumps all of perl&#39;s regular values. This iterates over all values reachable by the perl&#39;s normal memory management.</p>
+
+<h1 id="PERL-FUNCTIONS">PERL FUNCTIONS</h1>
+
+<h2 id="DumpArenas">DumpArenas()</h2>
+
+<p>Dumps everything to STDERR.</p>
+
+<h1 id="C-FUNCTIONS">C FUNCTIONS</h1>
+
+<h2 id="DumpArenas-pTHX">DumpArenas(pTHX)</h2>
+
+<p>A C-exportable function. This calls DumpArenasFd but defaults to printing to STDERR. Depending on whether your perl interpreter is threaded, accepts the interpreter context.</p>
+
+<p>From gdb:</p>
+
+<pre><code>    set $context = Perl_get_context()
+    if $context
+        call DumpArenas($context)
+    else
+        call DumpArenas()
+    end</code></pre>
+
+<h2 id="DumpArenasFd-pTHX_-int-fd">DumpArenasFd(pTHX_ int fd)</h2>
+
+<p>An exportable function, and the basis for DumpArenas(). The <code>fd</code> parameter is the file descriptor to write to. This lets you choose to write to stdout or something else convenient.</p>
+
+<p>Like the above function, this also accepts the interpreter context as an argument for threaded perl.</p>
+
+<p>From gdb:</p>
+
+<pre><code>    set $context = Perl_get_context()
+    if $context
+        # stdout: 1
+        # stderr: 2
+        call DumpArenasFd($context, 1)
+    else
+        call DumpArenasFd(1)
+    end</code></pre>
+
+<h1 id="OUTPUT-FORMAT">OUTPUT FORMAT</h1>
+
+<h2 id="INDIVIDUAL-VALUES">INDIVIDUAL VALUES</h2>
+
+<p>At a basic level, each and every perl value is printed using the same facility as the core function <a>Devel::Peek::Dump</a>. This is a low-level, verbose way of describing perl values:</p>
+
+<pre><code>  use Devel::Peek;
+  Dump(&quot;Hello world!\n&quot;);
+  Dump(42);</code></pre>
+
+<p>produces the following output. You can see the values &quot;Hello world!\n&quot; and 42 but also other details of perl&#39;s implementation.</p>
+
+<pre><code>  SV = PV(0x9919128) at 0x992a7d8
+    REFCNT = 1
+    FLAGS = (POK,READONLY,pPOK)
+    PV = 0x992f638 &quot;Hello world!\n&quot;\0
+    CUR = 13
+    LEN = 16
+  SV = IV(0x992a7f4) at 0x992a7f8
+    REFCNT = 1
+    FLAGS = (IOK,READONLY,pIOK)
+    IV = 42</code></pre>
+
+<h2 id="Arrays">Arrays</h2>
+
+<p>Array containers also consume space and hold pointers to perl values. The general format is:</p>
+
+<pre><code>  AvARRAY(0x1123e150) = {address,address ...}</code></pre>
+
+<p>Arrays which have more entries allocated than used will show a doubled-up entry with the &quot;extra&quot; part being visible at the end. The general format is:</p>
+
+<pre><code>  AvARRAY(0x1117f3c0) = {{addresses}{addresses}}</code></pre>
+
+<p>and a specific example:</p>
+
+<pre><code>  AvARRAY(0x1117f3c0) = {{0x104a7b98,PL_sv_undef,PL_sv_undef}{PL_sv_undef}}</code></pre>
+
+<h2 id="Hashes">Hashes</h2>
+
+<p>Hash containers also consume space and hold pointers to perl values. The general format is:</p>
+
+<pre><code>  HvARRAY(address)
+    [address &quot;key value&quot;] =&gt; address
+    [address &quot;key value&quot;] =&gt; address
+    ...</code></pre>
+
+<p>A specific example:</p>
+
+<pre><code>  ARRAY(0x1123e1e0)
+    [0x814a7c0 &quot;_percentage&quot;] =&gt; 0x104d5b78
+    [0x814a840 &quot;_description&quot;] =&gt; 0x104d5b90
+    [0x814a780 &quot;_treatment_id&quot;] =&gt; 0x104d5b60</code></pre>
+
+<h2 id="Pointers">Pointers</h2>
+
+<p>Pointers to special addresses are displayed symbolically:</p>
+
+<dl>
+
+<dt id="PL_sv_undef">PL_sv_undef</dt>
+<dd>
+
+</dd>
+<dt id="PL_sv_yes">PL_sv_yes</dt>
+<dd>
+
+</dd>
+<dt id="PL_sv_no">PL_sv_no</dt>
+<dd>
+
+</dd>
+<dt id="PL_sv_placeholder">PL_sv_placeholder</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id=""></h2>
+
+<h2 id="ARENA-MAP">ARENA MAP</h2>
+
+<p>Each arena map is also printed as work is begun and finished.</p>
+
+<pre><code>  START ARENA = (0xfe4f360-0x1004f340)
+  ...
+  END ARENA = (0xfe4f360-0x1004f340)</code></pre>
+
+<p>Empty slots in the arena maps are printed as:</p>
+
+<pre><code>  AVAILABLE(0x10abf758)</code></pre>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please report any bugs or feature requests to <code>bug-Internals-DumpArenas at rt.cpan.org</code>, or through the web interface at <a href="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Internals-DumpArenas">http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Internals-DumpArenas</a>. I will be notified, and then you&#39;ll automatically be notified of progress on your bug as I make changes.</p>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>You can find documentation for this module with the perldoc command.</p>
+
+<pre><code>  perldoc Internals::DumpArenas</code></pre>
+
+<p>You can also look for information at:</p>
+
+<ul>
+
+<li><p>RT: CPAN&#39;s request tracker</p>
+
+<p><a href="http://rt.cpan.org/NoAuth/Bugs.html?Dist=Internals-DumpArenas">http://rt.cpan.org/NoAuth/Bugs.html?Dist=Internals-DumpArenas</a></p>
+
+</li>
+<li><p>AnnoCPAN: Annotated CPAN documentation</p>
+
+<p><a href="http://annocpan.org/dist/Internals-DumpArenas">http://annocpan.org/dist/Internals-DumpArenas</a></p>
+
+</li>
+<li><p>CPAN Ratings</p>
+
+<p><a href="http://cpanratings.perl.org/d/Internals-DumpArenas">http://cpanratings.perl.org/d/Internals-DumpArenas</a></p>
+
+</li>
+<li><p>Search CPAN</p>
+
+<p><a href="http://search.cpan.org/dist/Internals-DumpArenas/">http://search.cpan.org/dist/Internals-DumpArenas/</a></p>
+
+</li>
+</ul>
+
+<h1 id="ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</h1>
+
+<p>Brian Rice, totally.</p>
+
+<p>I was inspired by <a href="http://netjam.org/spoon/viz/">http://netjam.org/spoon/viz/</a> and want to make the same thing for perl.</p>
+
+<h1 id="COPYRIGHT-LICENSE">COPYRIGHT &amp; LICENSE</h1>
+
+<p>Copyright 2009-2011 Josh Jore, all rights reserved. Copyright 2015 cPanel Inc, all rights reserved.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="SOURCE-AVAILABILITY">SOURCE AVAILABILITY</h1>
+
+<p>This source is in Github: <a href="http://github.com/jbenjore/internals-dumparenas.git">http://github.com/jbenjore/internals-dumparenas.git</a> and the most recent version at <a href="http://github.com/rurban/internals-dumparenas.git">http://github.com/rurban/internals-dumparenas.git</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Josh Jore</p>
+
+
+</body>
+
+</html>
+
+

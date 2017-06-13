@@ -1,0 +1,166 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#The-diagnostics-Pragma">The diagnostics Pragma</a></li>
+      <li><a href="#The-splain-Program">The splain Program</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#INTERNALS">INTERNALS</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>diagnostics, splain - produce verbose warning diagnostics</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p>Using the <code>diagnostics</code> pragma:</p>
+
+<pre><code>    use diagnostics;
+    use diagnostics -verbose;
+
+    enable  diagnostics;
+    disable diagnostics;</code></pre>
+
+<p>Using the <code>splain</code> standalone filter program:</p>
+
+<pre><code>    perl program 2&gt;diag.out
+    splain [-v] [-p] diag.out</code></pre>
+
+<p>Using diagnostics to get stack traces from a misbehaving script:</p>
+
+<pre><code>    perl -Mdiagnostics=-traceonly my_script.pl</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h2 id="The-diagnostics-Pragma">The <code>diagnostics</code> Pragma</h2>
+
+<p>This module extends the terse diagnostics normally emitted by both the perl compiler and the perl interpreter (from running perl with a -w switch or <code>use warnings</code>), augmenting them with the more explicative and endearing descriptions found in <a href="/cperl/perldiag.html">perldiag</a>. Like the other pragmata, it affects the compilation phase of your program rather than merely the execution phase.</p>
+
+<p>To use in your program as a pragma, merely invoke</p>
+
+<pre><code>    use diagnostics;</code></pre>
+
+<p>at the start (or near the start) of your program. (Note that this <i>does</i> enable perl&#39;s <b>-w</b> flag.) Your whole compilation will then be subject(ed :-) to the enhanced diagnostics. These still go out <b>STDERR</b>.</p>
+
+<p>Due to the interaction between runtime and compiletime issues, and because it&#39;s probably not a very good idea anyway, you may not use <code>no diagnostics</code> to turn them off at compiletime. However, you may control their behaviour at runtime using the disable() and enable() methods to turn them off and on respectively.</p>
+
+<p>The <b>-verbose</b> flag first prints out the <a href="/cperl/perldiag.html">perldiag</a> introduction before any other diagnostics. The $diagnostics::PRETTY variable can generate nicer escape sequences for pagers.</p>
+
+<p>Warnings dispatched from perl itself (or more accurately, those that match descriptions found in <a href="/cperl/perldiag.html">perldiag</a>) are only displayed once (no duplicate descriptions). User code generated warnings a la warn() are unaffected, allowing duplicate user messages to be displayed.</p>
+
+<p>This module also adds a stack trace to the error message when perl dies. This is useful for pinpointing what caused the death. The <b>-traceonly</b> (or just <b>-t</b>) flag turns off the explanations of warning messages leaving just the stack traces. So if your script is dieing, run it again with</p>
+
+<pre><code>  perl -Mdiagnostics=-traceonly my_bad_script</code></pre>
+
+<p>to see the call stack at the time of death. By supplying the <b>-warntrace</b> (or just <b>-w</b>) flag, any warnings emitted will also come with a stack trace.</p>
+
+<h2 id="The-splain-Program">The <i>splain</i> Program</h2>
+
+<p>While apparently a whole nuther program, <i>splain</i> is actually nothing more than a link to the (executable) <i>diagnostics.pm</i> module, as well as a link to the <i>diagnostics.pod</i> documentation. The <b>-v</b> flag is like the <code>use diagnostics -verbose</code> directive. The <b>-p</b> flag is like the $diagnostics::PRETTY variable. Since you&#39;re post-processing with <i>splain</i>, there&#39;s no sense in being able to enable() or disable() processing.</p>
+
+<p>Output from <i>splain</i> is directed to <b>STDOUT</b>, unlike the pragma.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>The following file is certain to trigger a few errors at both runtime and compiletime:</p>
+
+<pre><code>    use diagnostics;
+    print NOWHERE &quot;nothing\n&quot;;
+    print STDERR &quot;\n\tThis message should be unadorned.\n&quot;;
+    warn &quot;\tThis is a user warning&quot;;
+    print &quot;\nDIAGNOSTIC TESTER: Please enter a &lt;CR&gt; here: &quot;;
+    my $a, $b = scalar &lt;STDIN&gt;;
+    print &quot;\n&quot;;
+    print $x/$y;</code></pre>
+
+<p>If you prefer to run your program first and look at its problem afterwards, do this:</p>
+
+<pre><code>    perl -w test.pl 2&gt;test.out
+    ./splain &lt; test.out</code></pre>
+
+<p>Note that this is not in general possible in shells of more dubious heritage, as the theoretical</p>
+
+<pre><code>    (perl -w test.pl &gt;/dev/tty) &gt;&amp; test.out
+    ./splain &lt; test.out</code></pre>
+
+<p>Because you just moved the existing <b>stdout</b> to somewhere else.</p>
+
+<p>If you don&#39;t want to modify your source code, but still have on-the-fly warnings, do this:</p>
+
+<pre><code>    exec 3&gt;&amp;1; perl -w test.pl 2&gt;&amp;1 1&gt;&amp;3 3&gt;&amp;- | splain 1&gt;&amp;2 3&gt;&amp;- </code></pre>
+
+<p>Nifty, eh?</p>
+
+<p>If you want to control warnings on the fly, do something like this. Make sure you do the <code>use</code> first, or you won&#39;t be able to get at the enable() or disable() methods.</p>
+
+<pre><code>    use diagnostics; # checks entire compilation phase 
+        print &quot;\ntime for 1st bogus diags: SQUAWKINGS\n&quot;;
+        print BOGUS1 &#39;nada&#39;;
+        print &quot;done with 1st bogus\n&quot;;
+
+    disable diagnostics; # only turns off runtime warnings
+        print &quot;\ntime for 2nd bogus: (squelched)\n&quot;;
+        print BOGUS2 &#39;nada&#39;;
+        print &quot;done with 2nd bogus\n&quot;;
+
+    enable diagnostics; # turns back on runtime warnings
+        print &quot;\ntime for 3rd bogus: SQUAWKINGS\n&quot;;
+        print BOGUS3 &#39;nada&#39;;
+        print &quot;done with 3rd bogus\n&quot;;
+
+    disable diagnostics;
+        print &quot;\ntime for 4th bogus: (squelched)\n&quot;;
+        print BOGUS4 &#39;nada&#39;;
+        print &quot;done with 4th bogus\n&quot;;</code></pre>
+
+<h1 id="INTERNALS">INTERNALS</h1>
+
+<p>Diagnostic messages derive from the <i>perldiag.pod</i> file when available at runtime. Otherwise, they may be embedded in the file itself when the splain package is built. See the <i>Makefile</i> for details.</p>
+
+<p>If an extant $SIG{__WARN__} handler is discovered, it will continue to be honored, but only after the diagnostics::splainthis() function (the module&#39;s $SIG{__WARN__} interceptor) has had its way with your warnings.</p>
+
+<p>There is a $diagnostics::DEBUG variable you may set if you&#39;re desperately curious what sorts of things are being intercepted.</p>
+
+<pre><code>    BEGIN { $diagnostics::DEBUG = 1 } </code></pre>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Not being able to say &quot;no diagnostics&quot; is annoying, but may not be insurmountable.</p>
+
+<p>The <code>-pretty</code> directive is called too late to affect matters. You have to do this instead, and <i>before</i> you load the module.</p>
+
+<pre><code>    BEGIN { $diagnostics::PRETTY = 1 } </code></pre>
+
+<p>I could start up faster by delaying compilation until it should be needed, but this gets a &quot;panic: top_level&quot; when using the pragma form in Perl 5.001e.</p>
+
+<p>While it&#39;s true that this documentation is somewhat subserious, if you use a program named <i>splain</i>, you should expect a bit of whimsy.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Tom Christiansen &lt;<i>tchrist@mox.perl.com</i>&gt;, 25 June 1995.</p>
+
+
+</body>
+
+</html>
+
+

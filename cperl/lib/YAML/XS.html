@@ -1,0 +1,276 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CONFIGURATION">CONFIGURATION</a>
+    <ul>
+      <li><a href="#Loader-Options">Loader Options</a></li>
+      <li><a href="#Dumper-Options">Dumper Options</a></li>
+    </ul>
+  </li>
+  <li><a href="#USING-YAML::XS-WITH-UNICODE">USING YAML::XS WITH UNICODE</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>YAML::XS - Perl YAML Serialization using XS and libyaml</p>
+
+
+<a href="https://travis-ci.org/ingydotnet/yaml-libyaml-pm"><img src="https://travis-ci.org/ingydotnet/yaml-libyaml-pm.png" alt="yaml-libyaml-pm"></a>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use YAML::XS;
+
+    my $yaml = Dump [ 1..4 ];
+    my $array = Load $yaml;
+
+    my $yaml = DumpFile (&quot;my.yml&quot;, [ 1..4 ]);
+    my $array = LoadFile &quot;my.yml&quot;;
+
+    { # security, disable custom tags
+      local $YAML::XS::DisableBlessed = 1;
+      my $array = LoadFile(&quot;META.yml&quot;);
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Kirill Siminov&#39;s <code>libyaml</code> is a good YAML library implementation. The C library is written precisely to the YAML 1.1 specification, and offers YAML 1.2 support. It was originally bound to Python and was later bound to Ruby. <code>libsyck</code> is written a bit more elegant, has less bugs, is not as strict as libyaml, but misses some YAML features. It can only do YAML 1.1</p>
+
+<p>This module is a Perl XS binding to libyaml which offers Perl somewhat acceptable YAML support to date.</p>
+
+<p>This module exports the functions <code>Dump</code>, <code>Load</code>, <code>DumpFile</code> and <code>LoadFile</code>. These functions are intended to work exactly like <code>YAML.pm</code>&#39;s corresponding functions.</p>
+
+<p>If you set the option <code>$YAML::XS::IndentlessMap</code> to 0 or undef, <code>YAML::XS</code> will behave like with version &lt; 0.70, which creates yml files which cannot be read by <code>YAML.pm</code>.</p>
+
+<p>However the loader is stricter than <code>YAML</code>, <code>YAML::Syck</code> and <code>CPAN::Meta::YAML</code> i.e. <code>YAML::Tiny</code> as used in core. Set the variable <code>$YAML::XS::NonStrict</code> to allow certain reader errors to pass the <code>CPAN::Meta</code> validation testsuite.</p>
+
+<h1 id="CONFIGURATION">CONFIGURATION</h1>
+
+<h2 id="Loader-Options">Loader Options</h2>
+
+<p>via globals variables only, so far. Affecting Load and LoadFile.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::NonStrict</code></p>
+
+</li>
+</ul>
+
+<p>Permit certain reader errors to loosely match other YAML module semantics. In detail: Allow <code>&quot;control characters are not allowed&quot;</code>. Note that any error is stored and returned, just not immediately.</p>
+
+<p>However the reader error <code>&quot;invalid trailing UTF-8 octet&quot;</code> and all other utf8 strictness violations are still fatal.</p>
+
+<p>And if the structure of the YAML document cannot be parsed, i.e. a required value consists only of invalid control characters, the loader returns an error, unlike with non-strict YAML modules.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::DisableCode</code></p>
+
+</li>
+</ul>
+
+<p>Not yet implemented. Disables support for deparsing and evaling of code blocks while loading.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::DisableBlessed</code></p>
+
+</li>
+</ul>
+
+<p>Disables support for blessing custom tags while loading, but allows pure perl tags, such as array, hash and scalar.</p>
+
+<h2 id="Dumper-Options">Dumper Options</h2>
+
+<p>via globals variables only, so far. Affecting Dump and DumpFile</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::UseCode</code></p>
+
+</li>
+</ul>
+
+<p>If enabled supports Dump of CV code blocks via <code>YAML::XS::coderef2text()</code>.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::DumpCode</code></p>
+
+</li>
+</ul>
+
+<p>If enabled supports Dump of CV code blocks via <code>YAML::XS::coderef2text()</code>.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::QuoteNumericStrings</code></p>
+
+</li>
+</ul>
+
+<p>When true (the default) strings that look like numbers but have not been numified will be quoted when dumping.</p>
+
+<p>This ensures leading that things like leading zeros and other formatting are preserved.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::IndentlessMap</code></p>
+
+</li>
+</ul>
+
+<p>Default 0</p>
+
+<p>Set to 1 or a true value to fallback to the old <code>YAML::XS</code> behavior to omit the indentation of map keys, which arguably violates the YAML spec, is different to all other YAML libraries and causes <code>YAML.pm</code> to fail.</p>
+
+<p>With 0</p>
+
+<pre><code>     authors:
+       - this author</code></pre>
+
+<p>With 1</p>
+
+<pre><code>     authors:
+     - this author</code></pre>
+
+<ul>
+
+<li><p><code>$YAML::XS::Indent</code></p>
+
+</li>
+</ul>
+
+<p>Default 2</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::BestWidth</code></p>
+
+</li>
+</ul>
+
+<p>Default 80</p>
+
+<p>Control text wrapping.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::Canonical</code></p>
+
+</li>
+</ul>
+
+<p>Default 1</p>
+
+<p>Set to undef or 0 to disable sorting map keys.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::Unicode</code></p>
+
+</li>
+</ul>
+
+<p>Default 1</p>
+
+<p>Set to undef or 0 to disallow unescaped non-ASCII characters.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::Encoding</code></p>
+
+</li>
+</ul>
+
+<p>Default utf8</p>
+
+<p>Set to any, utf8, utf16le or utf16be</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::LineBreak</code></p>
+
+</li>
+</ul>
+
+<p>Default ln</p>
+
+<p>Set to any, cr, ln or crln.</p>
+
+<ul>
+
+<li><p><code>$YAML::XS::OpenEnded</code></p>
+
+</li>
+</ul>
+
+<p>Default 0</p>
+
+<p>Set to 1 or a true value to embed the yaml into &quot;...&quot;. If an explicit document end is required.</p>
+
+<h1 id="USING-YAML::XS-WITH-UNICODE">USING YAML::XS WITH UNICODE</h1>
+
+<p>Handling unicode properly in Perl can be a pain. YAML::XS only deals with streams of utf8 octets. Just remember this:</p>
+
+<pre><code>    $perl = Load($utf8_octets);
+    $utf8_octets = Dump($perl);</code></pre>
+
+<p>There are many, many places where things can go wrong with unicode. If you are having problems, use Devel::Peek on all the possible data points.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<ul>
+
+<li><p>YAML.pm</p>
+
+</li>
+<li><p>YAML::Syck</p>
+
+</li>
+<li><p>YAML::Tiny</p>
+
+</li>
+<li><p>CPAN::Meta::YAML</p>
+
+</li>
+</ul>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Ingy d&ouml;t Net &lt;ingy@cpan.org&gt;</p>
+
+<p>Reini Urban &lt;rurban@cpan.org&gt;</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright 2007-2016. Ingy d&ouml;t Net.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>See <a href="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</a></p>
+
+
+</body>
+
+</html>
+
+

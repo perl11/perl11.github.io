@@ -1,0 +1,125 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#ERRORS">ERRORS</a></li>
+  <li><a href="#WARNINGS">WARNINGS</a></li>
+  <li><a href="#NOTE">NOTE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>File::stat - by-name interface to Perl&#39;s built-in stat() functions</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use File::stat;
+ $st = stat($file) or die &quot;No $file: $!&quot;;
+ if ( ($st-&gt;mode &amp; 0111) &amp;&amp; $st-&gt;nlink &gt; 1) ) {
+     print &quot;$file is executable with lotsa links\n&quot;;
+ } 
+
+ if ( -x $st ) {
+     print &quot;$file is executable\n&quot;;
+ }
+
+ use Fcntl &quot;S_IRUSR&quot;;
+ if ( $st-&gt;cando(S_IRUSR, 1) ) {
+     print &quot;My effective uid can read $file\n&quot;;
+ }
+
+ use File::stat qw(:FIELDS);
+ stat($file) or die &quot;No $file: $!&quot;;
+ if ( ($st_mode &amp; 0111) &amp;&amp; ($st_nlink &gt; 1) ) {
+     print &quot;$file is executable with lotsa links\n&quot;;
+ } </code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module&#39;s default exports override the core stat() and lstat() functions, replacing them with versions that return &quot;File::stat&quot; objects. This object has methods that return the similarly named structure field name from the stat(2) function; namely, dev, ino, mode, nlink, uid, gid, rdev, size, atime, mtime, ctime, blksize, and blocks.</p>
+
+<p>As of version 1.02 (provided with perl 5.12) the object provides <code>&quot;-X&quot;</code> overloading, so you can call filetest operators (<code>-f</code>, <code>-x</code>, and so on) on it. It also provides a <code>-&gt;cando</code> method, called like</p>
+
+<pre><code> $st-&gt;cando( ACCESS, EFFECTIVE )</code></pre>
+
+<p>where <i>ACCESS</i> is one of <code>S_IRUSR</code>, <code>S_IWUSR</code> or <code>S_IXUSR</code> from the <a href="/cperl/lib/Fcntl.html">Fcntl</a> module, and <i>EFFECTIVE</i> indicates whether to use effective (true) or real (false) ids. The method interprets the <code>mode</code>, <code>uid</code> and <code>gid</code> fields, and returns whether or not the current process would be allowed the specified access.</p>
+
+<p>If you don&#39;t want to use the objects, you may import the <code>-&gt;cando</code> method into your namespace as a regular function called <code>stat_cando</code>. This takes an arrayref containing the return values of <code>stat</code> or <code>lstat</code> as its first argument, and interprets it for you.</p>
+
+<p>You may also import all the structure fields directly into your namespace as regular variables using the :FIELDS import tag. (Note that this still overrides your stat() and lstat() functions.) Access these fields as variables named with a preceding <code>st_</code> in front their method names. Thus, <code>$stat_obj-&gt;dev()</code> corresponds to $st_dev if you import the fields.</p>
+
+<p>To access this functionality without the core overrides, pass the <code>use</code> an empty import list, and then access function functions with their full qualified names. On the other hand, the built-ins are still available via the <code>CORE::</code> pseudo-package.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>As of Perl 5.8.0 after using this module you cannot use the implicit <code>$_</code> or the special filehandle <code>_</code> with stat() or lstat(), trying to do so leads into strange errors. The workaround is for <code>$_</code> to be explicit</p>
+
+<pre><code>    my $stat_obj = stat $_;</code></pre>
+
+<p>and for <code>_</code> to explicitly populate the object using the unexported and undocumented populate() function with CORE::stat():</p>
+
+<pre><code>    my $stat_obj = File::stat::populate(CORE::stat(_));</code></pre>
+
+<h1 id="ERRORS">ERRORS</h1>
+
+<dl>
+
+<dt id="s-is-not-implemented-on-a-File::stat-object">-%s is not implemented on a File::stat object</dt>
+<dd>
+
+<p>The filetest operators <code>-t</code>, <code>-T</code> and <code>-B</code> are not implemented, as they require more information than just a stat buffer.</p>
+
+</dd>
+</dl>
+
+<h1 id="WARNINGS">WARNINGS</h1>
+
+<p>These can all be disabled with</p>
+
+<pre><code>    no warnings &quot;File::stat&quot;;</code></pre>
+
+<dl>
+
+<dt id="File::stat-ignores-use-filetest-access">File::stat ignores use filetest &#39;access&#39;</dt>
+<dd>
+
+<p>You have tried to use one of the <code>-rwxRWX</code> filetests with <code>use filetest &#39;access&#39;</code> in effect. <code>File::stat</code> will ignore the pragma, and just use the information in the <code>mode</code> member as usual.</p>
+
+</dd>
+<dt id="File::stat-ignores-VMS-ACLs">File::stat ignores VMS ACLs</dt>
+<dd>
+
+<p>VMS systems have a permissions structure that cannot be completely represented in a stat buffer, and unlike on other systems the builtin filetest operators respect this. The <code>File::stat</code> overloads, however, do not, since the information required is not available.</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTE">NOTE</h1>
+
+<p>While this class is currently implemented using the Class::Struct module to build a struct-like class, you shouldn&#39;t rely upon this.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Tom Christiansen</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,583 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#ERROR-HANDLING">ERROR HANDLING</a></li>
+      <li><a href="#NOTES">NOTES</a>
+        <ul>
+          <li><a href="#API-CHANGES">API CHANGES</a></li>
+          <li><a href="#SECURITY-CONSIDERATIONS">SECURITY CONSIDERATIONS</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#DIAGNOSTICS">DIAGNOSTICS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#BUGS-AND-LIMITATIONS">BUGS AND LIMITATIONS</a>
+    <ul>
+      <li><a href="#MULTITHREAD-APPLICATIONS">MULTITHREAD APPLICATIONS</a></li>
+      <li><a href="#NFS-Mount-Points">NFS Mount Points</a></li>
+      <li><a href="#REPORTING-BUGS">REPORTING BUGS</a></li>
+    </ul>
+  </li>
+  <li><a href="#ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#CONTRIBUTORS">CONTRIBUTORS</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>File::Path - Create or remove directory trees</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>This document describes version 2.12 of File::Path.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use File::Path qw(make_path remove_tree);
+
+  @created = make_path(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;);
+  @created = make_path(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;, {
+      verbose =&gt; 1,
+      mode =&gt; 0711,
+  });
+  make_path(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;, {
+      chmod =&gt; 0777,
+  });
+
+  $removed_count = remove_tree(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;);
+  $removed_count = remove_tree(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;, {
+      verbose =&gt; 1,
+      error  =&gt; \my $err_list,
+  });
+
+  # legacy (interface promoted before v2.00)
+  @created = mkpath(&#39;/foo/bar/baz&#39;);
+  @created = mkpath(&#39;/foo/bar/baz&#39;, 1, 0711);
+  @created = mkpath([&#39;/foo/bar/baz&#39;, &#39;blurfl/quux&#39;], 1, 0711);
+  $removed_count = rmtree(&#39;foo/bar/baz&#39;, 1, 1);
+  $removed_count = rmtree([&#39;foo/bar/baz&#39;, &#39;blurfl/quux&#39;], 1, 1);
+
+  # legacy (interface promoted before v2.06)
+  @created = mkpath(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;, { verbose =&gt; 1, mode =&gt; 0711 });
+  $removed_count = rmtree(&#39;foo/bar/baz&#39;, &#39;/zug/zwang&#39;, { verbose =&gt; 1, mode =&gt; 0711 });</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provide a convenient way to create directories of arbitrary depth and to delete an entire directory subtree from the filesystem.</p>
+
+<p>The following functions are provided:</p>
+
+<dl>
+
+<dt id="make_path-dir1-dir2">make_path( $dir1, $dir2, .... )</dt>
+<dd>
+
+</dd>
+<dt id="make_path-dir1-dir2-....-opts">make_path( $dir1, $dir2, ...., \%opts )</dt>
+<dd>
+
+<p>The <code>make_path</code> function creates the given directories if they don&#39;t exists before, much like the Unix command <code>mkdir -p</code>.</p>
+
+<p>The function accepts a list of directories to be created. Its behaviour may be tuned by an optional hashref appearing as the last parameter on the call.</p>
+
+<p>The function returns the list of directories actually created during the call; in scalar context the number of directories created.</p>
+
+<p>The following keys are recognised in the option hash:</p>
+
+<dl>
+
+<dt id="mode-num">mode =&gt; $num</dt>
+<dd>
+
+<p>The numeric permissions mode to apply to each created directory (defaults to 0777), to be modified by the current <code>umask</code>. If the directory already exists (and thus does not need to be created), the permissions will not be modified.</p>
+
+<p><code>mask</code> is recognised as an alias for this parameter.</p>
+
+</dd>
+<dt id="chmod-num">chmod =&gt; $num</dt>
+<dd>
+
+<p>Takes a numeric mode to apply to each created directory (not modified by the current <code>umask</code>). If the directory already exists (and thus does not need to be created), the permissions will not be modified.</p>
+
+</dd>
+<dt id="verbose-bool">verbose =&gt; $bool</dt>
+<dd>
+
+<p>If present, will cause <code>make_path</code> to print the name of each directory as it is created. By default nothing is printed.</p>
+
+</dd>
+<dt id="error-err">error =&gt; \$err</dt>
+<dd>
+
+<p>If present, it should be a reference to a scalar. This scalar will be made to reference an array, which will be used to store any errors that are encountered. See the <a href="#ERROR-HANDLING">&quot;ERROR HANDLING&quot;</a> section for more information.</p>
+
+<p>If this parameter is not used, certain error conditions may raise a fatal error that will cause the program to halt, unless trapped in an <code>eval</code> block.</p>
+
+</dd>
+<dt id="owner-owner">owner =&gt; $owner</dt>
+<dd>
+
+</dd>
+<dt id="user-owner">user =&gt; $owner</dt>
+<dd>
+
+</dd>
+<dt id="uid-owner">uid =&gt; $owner</dt>
+<dd>
+
+<p>If present, will cause any created directory to be owned by <code>$owner</code>. If the value is numeric, it will be interpreted as a uid, otherwise as username is assumed. An error will be issued if the username cannot be mapped to a uid, or the uid does not exist, or the process lacks the privileges to change ownership.</p>
+
+<p>Ownership of directories that already exist will not be changed.</p>
+
+<p><code>user</code> and <code>uid</code> are aliases of <code>owner</code>.</p>
+
+</dd>
+<dt id="group-group">group =&gt; $group</dt>
+<dd>
+
+<p>If present, will cause any created directory to be owned by the group <code>$group</code>. If the value is numeric, it will be interpreted as a gid, otherwise as group name is assumed. An error will be issued if the group name cannot be mapped to a gid, or the gid does not exist, or the process lacks the privileges to change group ownership.</p>
+
+<p>Group ownership of directories that already exist will not be changed.</p>
+
+<pre><code>    make_path &#39;/var/tmp/webcache&#39;, {owner=&gt;&#39;nobody&#39;, group=&gt;&#39;nogroup&#39;};</code></pre>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="mkpath-dir">mkpath( $dir )</dt>
+<dd>
+
+</dd>
+<dt id="mkpath-dir-verbose-mode">mkpath( $dir, $verbose, $mode )</dt>
+<dd>
+
+</dd>
+<dt id="mkpath-dir1-dir2-...-verbose-mode">mkpath( [$dir1, $dir2,...], $verbose, $mode )</dt>
+<dd>
+
+</dd>
+<dt id="mkpath-dir1-dir2-...-opt">mkpath( $dir1, $dir2,..., \%opt )</dt>
+<dd>
+
+<p>The mkpath() function provide the legacy interface of make_path() with a different interpretation of the arguments passed. The behaviour and return value of the function is otherwise identical to make_path().</p>
+
+</dd>
+<dt id="remove_tree-dir1-dir2">remove_tree( $dir1, $dir2, .... )</dt>
+<dd>
+
+</dd>
+<dt id="remove_tree-dir1-dir2-....-opts">remove_tree( $dir1, $dir2, ...., \%opts )</dt>
+<dd>
+
+<p>The <code>remove_tree</code> function deletes the given directories and any files and subdirectories they might contain, much like the Unix command <code>rm -r</code> or the Windows commands <code>rmdir /s</code> and <code>rd /s</code>. The only exception to the function similarity is <code>remove_tree</code> accepts only directories whereas <code>rm -r</code> also accepts files.</p>
+
+<p>The function accepts a list of directories to be removed. Its behaviour may be tuned by an optional hashref appearing as the last parameter on the call. If an empty string is passed to <code>remove_tree</code>, an error will occur.</p>
+
+<p>The functions returns the number of files successfully deleted.</p>
+
+<p>The following keys are recognised in the option hash:</p>
+
+<dl>
+
+<dt id="verbose-bool1">verbose =&gt; $bool</dt>
+<dd>
+
+<p>If present, will cause <code>remove_tree</code> to print the name of each file as it is unlinked. By default nothing is printed.</p>
+
+</dd>
+<dt id="safe-bool">safe =&gt; $bool</dt>
+<dd>
+
+<p>When set to a true value, will cause <code>remove_tree</code> to skip the files for which the process lacks the required privileges needed to delete files, such as delete privileges on VMS. In other words, the code will make no attempt to alter file permissions. Thus, if the process is interrupted, no filesystem object will be left in a more permissive mode.</p>
+
+</dd>
+<dt id="keep_root-bool">keep_root =&gt; $bool</dt>
+<dd>
+
+<p>When set to a true value, will cause all files and subdirectories to be removed, except the initially specified directories. This comes in handy when cleaning out an application&#39;s scratch directory.</p>
+
+<pre><code>  remove_tree( &#39;/tmp&#39;, {keep_root =&gt; 1} );</code></pre>
+
+</dd>
+<dt id="result-res">result =&gt; \$res</dt>
+<dd>
+
+<p>If present, it should be a reference to a scalar. This scalar will be made to reference an array, which will be used to store all files and directories unlinked during the call. If nothing is unlinked, the array will be empty.</p>
+
+<pre><code>  remove_tree( &#39;/tmp&#39;, {result =&gt; \my $list} );
+  print &quot;unlinked $_\n&quot; for @$list;</code></pre>
+
+<p>This is a useful alternative to the <code>verbose</code> key.</p>
+
+</dd>
+<dt id="error-err1">error =&gt; \$err</dt>
+<dd>
+
+<p>If present, it should be a reference to a scalar. This scalar will be made to reference an array, which will be used to store any errors that are encountered. See the <a href="#ERROR-HANDLING">&quot;ERROR HANDLING&quot;</a> section for more information.</p>
+
+<p>Removing things is a much more dangerous proposition than creating things. As such, there are certain conditions that <code>remove_tree</code> may encounter that are so dangerous that the only sane action left is to kill the program.</p>
+
+<p>Use <code>error</code> to trap all that is reasonable (problems with permissions and the like), and let it die if things get out of hand. This is the safest course of action.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="rmtree-dir">rmtree( $dir )</dt>
+<dd>
+
+</dd>
+<dt id="rmtree-dir-verbose-safe">rmtree( $dir, $verbose, $safe )</dt>
+<dd>
+
+</dd>
+<dt id="rmtree-dir1-dir2-...-verbose-safe">rmtree( [$dir1, $dir2,...], $verbose, $safe )</dt>
+<dd>
+
+</dd>
+<dt id="rmtree-dir1-dir2-...-opt">rmtree( $dir1, $dir2,..., \%opt )</dt>
+<dd>
+
+<p>The rmtree() function provide the legacy interface of remove_tree() with a different interpretation of the arguments passed. The behaviour and return value of the function is otherwise identical to remove_tree().</p>
+
+</dd>
+</dl>
+
+<h2 id="ERROR-HANDLING">ERROR HANDLING</h2>
+
+<dl>
+
+<dt id="NOTE"><b>NOTE:</b></dt>
+<dd>
+
+<p>The following error handling mechanism is consistent throughout all code paths EXCEPT in cases where the ROOT node is nonexistent. In version 2.11 the maintainers attempted to rectify this inconsistency but too many downstream modules encountered problems. In such case, if you require root node evaluation or error checking prior to calling <code>make_path</code> or <code>remove_tree</code>, you should take additional precautions.</p>
+
+</dd>
+</dl>
+
+<p>If <code>make_path</code> or <code>remove_tree</code> encounter an error, a diagnostic message will be printed to <code>STDERR</code> via <code>carp</code> (for non-fatal errors), or via <code>croak</code> (for fatal errors).</p>
+
+<p>If this behaviour is not desirable, the <code>error</code> attribute may be used to hold a reference to a variable, which will be used to store the diagnostics. The variable is made a reference to an array of hash references. Each hash contain a single key/value pair where the key is the name of the file, and the value is the error message (including the contents of <code>$!</code> when appropriate). If a general error is encountered the diagnostic key will be empty.</p>
+
+<p>An example usage looks like:</p>
+
+<pre><code>  remove_tree( &#39;foo/bar&#39;, &#39;bar/rat&#39;, {error =&gt; \my $err} );
+  if (@$err) {
+      for my $diag (@$err) {
+          my ($file, $message) = %$diag;
+          if ($file eq &#39;&#39;) {
+              print &quot;general error: $message\n&quot;;
+          }
+          else {
+              print &quot;problem unlinking $file: $message\n&quot;;
+          }
+      }
+  }
+  else {
+      print &quot;No error encountered\n&quot;;
+  }</code></pre>
+
+<p>Note that if no errors are encountered, <code>$err</code> will reference an empty array. This means that <code>$err</code> will always end up TRUE; so you need to test <code>@$err</code> to determine if errors occurred.</p>
+
+<h2 id="NOTES">NOTES</h2>
+
+<p><code>File::Path</code> blindly exports <code>mkpath</code> and <code>rmtree</code> into the current namespace. These days, this is considered bad style, but to change it now would break too much code. Nonetheless, you are invited to specify what it is you are expecting to use:</p>
+
+<pre><code>  use File::Path &#39;rmtree&#39;;</code></pre>
+
+<p>The routines <code>make_path</code> and <code>remove_tree</code> are <b>not</b> exported by default. You must specify which ones you want to use.</p>
+
+<pre><code>  use File::Path &#39;remove_tree&#39;;</code></pre>
+
+<p>Note that a side-effect of the above is that <code>mkpath</code> and <code>rmtree</code> are no longer exported at all. This is due to the way the <code>Exporter</code> module works. If you are migrating a codebase to use the new interface, you will have to list everything explicitly. But that&#39;s just good practice anyway.</p>
+
+<pre><code>  use File::Path qw(remove_tree rmtree);</code></pre>
+
+<h3 id="API-CHANGES">API CHANGES</h3>
+
+<p>The API was changed in the 2.0 branch. For a time, <code>mkpath</code> and <code>rmtree</code> tried, unsuccessfully, to deal with the two different calling mechanisms. This approach was considered a failure.</p>
+
+<p>The new semantics are now only available with <code>make_path</code> and <code>remove_tree</code>. The old semantics are only available through <code>mkpath</code> and <code>rmtree</code>. Users are strongly encouraged to upgrade to at least 2.08 in order to avoid surprises.</p>
+
+<h3 id="SECURITY-CONSIDERATIONS">SECURITY CONSIDERATIONS</h3>
+
+<p>There were race conditions 1.x implementations of File::Path&#39;s <code>rmtree</code> function (although sometimes patched depending on the OS distribution or platform). The 2.0 version contains code to avoid the problem mentioned in CVE-2002-0435.</p>
+
+<p>See the following pages for more information:</p>
+
+<pre><code>  http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=286905
+  http://www.nntp.perl.org/group/perl.perl5.porters/2005/01/msg97623.html
+  http://www.debian.org/security/2005/dsa-696</code></pre>
+
+<p>Additionally, unless the <code>safe</code> parameter is set (or the third parameter in the traditional interface is TRUE), should a <code>remove_tree</code> be interrupted, files that were originally in read-only mode may now have their permissions set to a read-write (or &quot;delete OK&quot;) mode.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>FATAL errors will cause the program to halt (<code>croak</code>), since the problem is so severe that it would be dangerous to continue. (This can always be trapped with <code>eval</code>, but it&#39;s not a good idea. Under the circumstances, dying is the best thing to do).</p>
+
+<p>SEVERE errors may be trapped using the modern interface. If the they are not trapped, or the old interface is used, such an error will cause the program will halt.</p>
+
+<p>All other errors may be trapped using the modern interface, otherwise they will be <code>carp</code>ed about. Program execution will not be halted.</p>
+
+<dl>
+
+<dt id="mkdir-path-:-errmsg-SEVERE">mkdir [path]: [errmsg] (SEVERE)</dt>
+<dd>
+
+<p><code>make_path</code> was unable to create the path. Probably some sort of permissions error at the point of departure, or insufficient resources (such as free inodes on Unix).</p>
+
+</dd>
+<dt id="No-root-path-s-specified">No root path(s) specified</dt>
+<dd>
+
+<p><code>make_path</code> was not given any paths to create. This message is only emitted if the routine is called with the traditional interface. The modern interface will remain silent if given nothing to do.</p>
+
+</dd>
+<dt id="No-such-file-or-directory">No such file or directory</dt>
+<dd>
+
+<p>On Windows, if <code>make_path</code> gives you this warning, it may mean that you have exceeded your filesystem&#39;s maximum path length.</p>
+
+</dd>
+<dt id="cannot-fetch-initial-working-directory:-errmsg">cannot fetch initial working directory: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to determine the initial directory by calling <code>Cwd::getcwd</code>, but the call failed for some reason. No attempt will be made to delete anything.</p>
+
+</dd>
+<dt id="cannot-stat-initial-working-directory:-errmsg">cannot stat initial working directory: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to stat the initial directory (after having successfully obtained its name via <code>getcwd</code>), however, the call failed for some reason. No attempt will be made to delete anything.</p>
+
+</dd>
+<dt id="cannot-chdir-to-dir-:-errmsg">cannot chdir to [dir]: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to set the working directory in order to begin deleting the objects therein, but was unsuccessful. This is usually a permissions issue. The routine will continue to delete other things, but this directory will be left intact.</p>
+
+</dd>
+<dt id="directory-dir-changed-before-chdir-expected-dev-n-ino-n-actual-dev-n-ino-n-aborting.-FATAL">directory [dir] changed before chdir, expected dev=[n] ino=[n], actual dev=[n] ino=[n], aborting. (FATAL)</dt>
+<dd>
+
+<p><code>remove_tree</code> recorded the device and inode of a directory, and then moved into it. It then performed a <code>stat</code> on the current directory and detected that the device and inode were no longer the same. As this is at the heart of the race condition problem, the program will die at this point.</p>
+
+</dd>
+<dt id="cannot-make-directory-dir-read-writeable:-errmsg">cannot make directory [dir] read+writeable: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to change the permissions on the current directory to ensure that subsequent unlinkings would not run into problems, but was unable to do so. The permissions remain as they were, and the program will carry on, doing the best it can.</p>
+
+</dd>
+<dt id="cannot-read-dir-:-errmsg">cannot read [dir]: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> tried to read the contents of the directory in order to acquire the names of the directory entries to be unlinked, but was unsuccessful. This is usually a permissions issue. The program will continue, but the files in this directory will remain after the call.</p>
+
+</dd>
+<dt id="cannot-reset-chmod-dir-:-errmsg">cannot reset chmod [dir]: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code>, after having deleted everything in a directory, attempted to restore its permissions to the original state but failed. The directory may wind up being left behind.</p>
+
+</dd>
+<dt id="cannot-remove-dir-when-cwd-is-dir">cannot remove [dir] when cwd is [dir]</dt>
+<dd>
+
+<p>The current working directory of the program is <i>/some/path/to/here</i> and you are attempting to remove an ancestor, such as <i>/some/path</i>. The directory tree is left untouched.</p>
+
+<p>The solution is to <code>chdir</code> out of the child directory to a place outside the directory tree to be removed.</p>
+
+</dd>
+<dt id="cannot-chdir-to-parent-dir-from-child-dir-:-errmsg-aborting.-FATAL">cannot chdir to [parent-dir] from [child-dir]: [errmsg], aborting. (FATAL)</dt>
+<dd>
+
+<p><code>remove_tree</code>, after having deleted everything and restored the permissions of a directory, was unable to chdir back to the parent. The program halts to avoid a race condition from occurring.</p>
+
+</dd>
+<dt id="cannot-stat-prior-working-directory-dir-:-errmsg-aborting.-FATAL">cannot stat prior working directory [dir]: [errmsg], aborting. (FATAL)</dt>
+<dd>
+
+<p><code>remove_tree</code> was unable to stat the parent directory after have returned from the child. Since there is no way of knowing if we returned to where we think we should be (by comparing device and inode) the only way out is to <code>croak</code>.</p>
+
+</dd>
+<dt id="previous-directory-parent-dir-changed-before-entering-child-dir-expected-dev-n-ino-n-actual-dev-n-ino-n-aborting.-FATAL">previous directory [parent-dir] changed before entering [child-dir], expected dev=[n] ino=[n], actual dev=[n] ino=[n], aborting. (FATAL)</dt>
+<dd>
+
+<p>When <code>remove_tree</code> returned from deleting files in a child directory, a check revealed that the parent directory it returned to wasn&#39;t the one it started out from. This is considered a sign of malicious activity.</p>
+
+</dd>
+<dt id="cannot-make-directory-dir-writeable:-errmsg">cannot make directory [dir] writeable: [errmsg]</dt>
+<dd>
+
+<p>Just before removing a directory (after having successfully removed everything it contained), <code>remove_tree</code> attempted to set the permissions on the directory to ensure it could be removed and failed. Program execution continues, but the directory may possibly not be deleted.</p>
+
+</dd>
+<dt id="cannot-remove-directory-dir-:-errmsg">cannot remove directory [dir]: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to remove a directory, but failed. This may because some objects that were unable to be removed remain in the directory, or a permissions issue. The directory will be left behind.</p>
+
+</dd>
+<dt id="cannot-restore-permissions-of-dir-to-0nnn-:-errmsg">cannot restore permissions of [dir] to [0nnn]: [errmsg]</dt>
+<dd>
+
+<p>After having failed to remove a directory, <code>remove_tree</code> was unable to restore its permissions from a permissive state back to a possibly more restrictive setting. (Permissions given in octal).</p>
+
+</dd>
+<dt id="cannot-make-file-file-writeable:-errmsg">cannot make file [file] writeable: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> attempted to force the permissions of a file to ensure it could be deleted, but failed to do so. It will, however, still attempt to unlink the file.</p>
+
+</dd>
+<dt id="cannot-unlink-file-file-:-errmsg">cannot unlink file [file]: [errmsg]</dt>
+<dd>
+
+<p><code>remove_tree</code> failed to remove a file. Probably a permissions issue.</p>
+
+</dd>
+<dt id="cannot-restore-permissions-of-file-to-0nnn-:-errmsg">cannot restore permissions of [file] to [0nnn]: [errmsg]</dt>
+<dd>
+
+<p>After having failed to remove a file, <code>remove_tree</code> was also unable to restore the permissions on the file to a possibly less permissive setting. (Permissions given in octal).</p>
+
+</dd>
+<dt id="unable-to-map-owner-to-a-uid-ownership-not-changed">unable to map [owner] to a uid, ownership not changed&quot;);</dt>
+<dd>
+
+<p><code>make_path</code> was instructed to give the ownership of created directories to the symbolic name [owner], but <code>getpwnam</code> did not return the corresponding numeric uid. The directory will be created, but ownership will not be changed.</p>
+
+</dd>
+<dt id="unable-to-map-group-to-a-gid-group-ownership-not-changed">unable to map [group] to a gid, group ownership not changed</dt>
+<dd>
+
+<p><code>make_path</code> was instructed to give the group ownership of created directories to the symbolic name [group], but <code>getgrnam</code> did not return the corresponding numeric gid. The directory will be created, but group ownership will not be changed.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<ul>
+
+<li><p><a>File::Remove</a></p>
+
+<p>Allows files and directories to be moved to the Trashcan/Recycle Bin (where they may later be restored if necessary) if the operating system supports such functionality. This feature may one day be made available directly in <code>File::Path</code>.</p>
+
+</li>
+<li><p><a>File::Find::Rule</a></p>
+
+<p>When removing directory trees, if you want to examine each file to decide whether to delete it (and possibly leaving large swathes alone), <i>File::Find::Rule</i> offers a convenient and flexible approach to examining directory trees.</p>
+
+</li>
+</ul>
+
+<h1 id="BUGS-AND-LIMITATIONS">BUGS AND LIMITATIONS</h1>
+
+<p>The following describes <i>File::Path</i> limitations and how to report bugs.</p>
+
+<h2 id="MULTITHREAD-APPLICATIONS">MULTITHREAD APPLICATIONS</h2>
+
+<p><i>File::Path</i> <b>rmtree</b> and <b>remove_tree</b> will not work with multithreaded applications due to its use of <b>chdir</b>. At this time, no warning or error results and you will certainly encounter unexpected results.</p>
+
+<p>The implementation that surfaces this limitation may change in a future release.</p>
+
+<h2 id="NFS-Mount-Points">NFS Mount Points</h2>
+
+<p><i>File::Path</i> is not responsible for triggering the automounts, mirror mounts, and the contents of network mounted filesystems. If your NFS implementation requires an action to be performed on the filesystem in order for <i>File::Path</i> to perform operations, it is strongly suggested you assure filesystem availability by reading the root of the mounted filesystem.</p>
+
+<h2 id="REPORTING-BUGS">REPORTING BUGS</h2>
+
+<p>Please report all bugs on the RT queue, either via the web interface:</p>
+
+<p><a href="http://rt.cpan.org/NoAuth/Bugs.html?Dist=File-Path">http://rt.cpan.org/NoAuth/Bugs.html?Dist=File-Path</a></p>
+
+<p>or by email:</p>
+
+<pre><code>    bug-File-Path@rt.cpan.org</code></pre>
+
+<p>In either case, please <b>attach</b> patches to the bug report rather than including them inline in the web post or the body of the email.</p>
+
+<p>You can also send pull requests to the Github repository:</p>
+
+<p><a href="https://github.com/rpcme/File-Path">https://github.com/rpcme/File-Path</a></p>
+
+<h1 id="ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</h1>
+
+<p>Paul Szabo identified the race condition originally, and Brendan O&#39;Dea wrote an implementation for Debian that addressed the problem. That code was used as a basis for the current code. Their efforts are greatly appreciated.</p>
+
+<p>Gisle Aas made a number of improvements to the documentation for 2.07 and his advice and assistance is also greatly appreciated.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Prior authors and maintainers: Tim Bunce, Charles Bailey, and David Landgren &lt;<i>david@landgren.net</i>&gt;.</p>
+
+<p>Current maintainers are Richard Elberger &lt;<i>riche@cpan.org</i>&gt; and James (Jim) Keenan &lt;<i>jkeenan@cpan.org</i>&gt;.</p>
+
+<h1 id="CONTRIBUTORS">CONTRIBUTORS</h1>
+
+<p>Contributors to File::Path, in alphabetical order.</p>
+
+<dl>
+
+<dt id="bulkdd-cpan.org">&lt;<i>bulkdd@cpan.org</i>&gt;</dt>
+<dd>
+
+</dd>
+<dt id="Craig-A.-Berry-craigberry-mac.com">Craig A. Berry &lt;<i>craigberry@mac.com</i>&gt;</dt>
+<dd>
+
+</dd>
+<dt id="Richard-Elberger-riche-cpan.org">Richard Elberger &lt;<i>riche@cpan.org</i>&gt;</dt>
+<dd>
+
+</dd>
+<dt id="Ryan-Yee-ryee-cpan.org">Ryan Yee &lt;<i>ryee@cpan.org</i>&gt;</dt>
+<dd>
+
+</dd>
+<dt id="Skye-Shaw-shaw-cpan.org">Skye Shaw &lt;<i>shaw@cpan.org</i>&gt;</dt>
+<dd>
+
+</dd>
+<dt id="Tom-Lutz-tommylutz-gmail.com">Tom Lutz &lt;<i>tommylutz@gmail.com</i>&gt;</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>This module is copyright (C) Charles Bailey, Tim Bunce, David Landgren, James Keenan, and Richard Elberger 1995-2015. All rights reserved.</p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,447 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#taint-mode">&#39;taint&#39; mode</a></li>
+      <li><a href="#eval-mode">&#39;eval&#39; mode</a></li>
+      <li><a href="#strict-mode">&#39;strict&#39; mode</a></li>
+      <li><a href="#flags-mode">&#39;/flags&#39; mode</a></li>
+      <li><a href="#debug-mode">&#39;debug&#39; mode</a></li>
+      <li><a href="#Debug-mode">&#39;Debug&#39; mode</a></li>
+      <li><a href="#Exportable-Functions">Exportable Functions</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>re - Perl pragma to alter regular expression behaviour</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use re &#39;taint&#39;;
+    ($x) = ($^X =~ /^(.*)$/s);     # $x is tainted here
+
+    $pat = &#39;(?{ $foo = 1 })&#39;;
+    use re &#39;eval&#39;;
+    /foo${pat}bar/;                # won&#39;t fail (when not under -T
+                                   # switch)
+
+    {
+        no re &#39;taint&#39;;             # the default
+        ($x) = ($^X =~ /^(.*)$/s); # $x is not tainted here
+
+        no re &#39;eval&#39;;              # the default
+        /foo${pat}bar/;            # disallowed (with or without -T
+                                   # switch)
+    }
+
+    use re &#39;strict&#39;;               # Raise warnings for more conditions
+
+    use re &#39;/ix&#39;;
+    &quot;FOO&quot; =~ / foo /; # /ix implied
+    no re &#39;/x&#39;;
+    &quot;FOO&quot; =~ /foo/; # just /i implied
+
+    use re &#39;debug&#39;;                # output debugging info during
+    /^(.*)$/s;                     # compile and run time
+
+
+    use re &#39;debugcolor&#39;;           # same as &#39;debug&#39;, but with colored
+                                   # output
+    ...
+
+    use re qw(Debug All);          # Same as &quot;use re &#39;debug&#39;&quot;, but you
+                                   # can use &quot;Debug&quot; with things other
+                                   # than &#39;All&#39;
+    use re qw(Debug More);         # &#39;All&#39; plus output more details
+    no re qw(Debug ALL);           # Turn on (almost) all re debugging
+                                   # in this scope
+
+    use re qw(is_regexp regexp_pattern); # import utility functions
+    my ($pat,$mods)=regexp_pattern(qr/foo/i);
+    if (is_regexp($obj)) {
+        print &quot;Got regexp: &quot;,
+            scalar regexp_pattern($obj); # just as perl would stringify
+    }                                    # it but no hassle with blessed
+                                         # re&#39;s.</code></pre>
+
+<p>(We use $^X in these examples because it&#39;s tainted by default.)</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h2 id="taint-mode">&#39;taint&#39; mode</h2>
+
+<p>When <code>use re &#39;taint&#39;</code> is in effect, and a tainted string is the target of a regexp, the regexp memories (or values returned by the m// operator in list context) are tainted. This feature is useful when regexp operations on tainted data aren&#39;t meant to extract safe substrings, but to perform other transformations.</p>
+
+<h2 id="eval-mode">&#39;eval&#39; mode</h2>
+
+<p>When <code>use re &#39;eval&#39;</code> is in effect, a regexp is allowed to contain <code>(?{ ... })</code> zero-width assertions and <code>(??{ ... })</code> postponed subexpressions that are derived from variable interpolation, rather than appearing literally within the regexp. That is normally disallowed, since it is a potential security risk. Note that this pragma is ignored when the regular expression is obtained from tainted data, i.e. evaluation is always disallowed with tainted regular expressions. See <a href="/cperl/perlre.html#code">&quot;(?{ code })&quot; in perlre</a> and <a href="/cperl/perlre.html#code">&quot;(??{ code })&quot; in perlre</a>.</p>
+
+<p>For the purpose of this pragma, interpolation of precompiled regular expressions (i.e., the result of <code>qr//</code>) is <i>not</i> considered variable interpolation. Thus:</p>
+
+<pre><code>    /foo${pat}bar/</code></pre>
+
+<p><i>is</i> allowed if $pat is a precompiled regular expression, even if $pat contains <code>(?{ ... })</code> assertions or <code>(??{ ... })</code> subexpressions.</p>
+
+<h2 id="strict-mode">&#39;strict&#39; mode</h2>
+
+<p>Note that this is an experimental feature which may be changed or removed in a future Perl release.</p>
+
+<p>When <code>use re &#39;strict&#39;</code> is in effect, stricter checks are applied than otherwise when compiling regular expressions patterns. These may cause more warnings to be raised than otherwise, and more things to be fatal instead of just warnings. The purpose of this is to find and report at compile time some things, which may be legal, but have a reasonable possibility of not being the programmer&#39;s actual intent. This automatically turns on the <code>&quot;regexp&quot;</code> warnings category (if not already on) within its scope.</p>
+
+<p>As an example of something that is caught under <code>&quot;strict&#39;</code>, but not otherwise, is the pattern</p>
+
+<pre><code> qr/\xABC/</code></pre>
+
+<p>The <code>&quot;\x&quot;</code> construct without curly braces should be followed by exactly two hex digits; this one is followed by three. This currently evaluates as equivalent to</p>
+
+<pre><code> qr/\x{AB}C/</code></pre>
+
+<p>that is, the character whose code point value is <code>0xAB</code>, followed by the letter <code>C</code>. But since <code>C</code> is a a hex digit, there is a reasonable chance that the intent was</p>
+
+<pre><code> qr/\x{ABC}/</code></pre>
+
+<p>that is the single character at <code>0xABC</code>. Under <code>&#39;strict&#39;</code> it is an error to not follow <code>\x</code> with exactly two hex digits. When not under <code>&#39;strict&#39;</code> a warning is generated if there is only one hex digit, and no warning is raised if there are more than two.</p>
+
+<p>It is expected that what exactly <code>&#39;strict&#39;</code> does will evolve over time as we gain experience with it. This means that programs that compile under it in today&#39;s Perl may not compile, or may have more or fewer warnings, in future Perls. There is no backwards compatibility promises with regards to it. Also there are already proposals for an alternate syntax for enabling it. For these reasons, using it will raise a <code>experimental::re_strict</code> class warning, unless that category is turned off.</p>
+
+<p>Note that if a pattern compiled within <code>&#39;strict&#39;</code> is recompiled, say by interpolating into another pattern, outside of <code>&#39;strict&#39;</code>, it is not checked again for strictness. This is because if it works under strict it must work under non-strict.</p>
+
+<h2 id="flags-mode">&#39;/flags&#39; mode</h2>
+
+<p>When <code>use re &#39;/<i>flags</i>&#39;</code> is specified, the given <i>flags</i> are automatically added to every regular expression till the end of the lexical scope. <i>flags</i> can be any combination of <code>&#39;a&#39;</code>, <code>&#39;aa&#39;</code>, <code>&#39;d&#39;</code>, <code>&#39;i&#39;</code>, <code>&#39;l&#39;</code>, <code>&#39;m&#39;</code>, <code>&#39;n&#39;</code>, <code>&#39;p&#39;</code>, <code>&#39;s&#39;</code>, <code>&#39;u&#39;</code>, <code>&#39;x&#39;</code>, and/or <code>&#39;xx&#39;</code>.</p>
+
+<p><code>no re &#39;/<i>flags</i>&#39;</code> will turn off the effect of <code>use re &#39;/<i>flags</i>&#39;</code> for the given flags.</p>
+
+<p>For example, if you want all your regular expressions to have /msxx on by default, simply put</p>
+
+<pre><code>    use re &#39;/msxx&#39;;</code></pre>
+
+<p>at the top of your code.</p>
+
+<p>The character set <code>/adul</code> flags cancel each other out. So, in this example,</p>
+
+<pre><code>    use re &quot;/u&quot;;
+    &quot;ss&quot; =~ /\xdf/;
+    use re &quot;/d&quot;;
+    &quot;ss&quot; =~ /\xdf/;</code></pre>
+
+<p>the second <code>use re</code> does an implicit <code>no re &#39;/u&#39;</code>.</p>
+
+<p>Similarly,</p>
+
+<pre><code>    use re &quot;/xx&quot;;   # Doubled-x
+    ...
+    use re &quot;/x&quot;;    # Single x from here on
+    ...</code></pre>
+
+<p>Turning on one of the character set flags with <code>use re</code> takes precedence over the <code>locale</code> pragma and the &#39;unicode_strings&#39; <code>feature</code>, for regular expressions. Turning off one of these flags when it is active reverts to the behaviour specified by whatever other pragmata are in scope. For example:</p>
+
+<pre><code>    use feature &quot;unicode_strings&quot;;
+    no re &quot;/u&quot;; # does nothing
+    use re &quot;/l&quot;;
+    no re &quot;/l&quot;; # reverts to unicode_strings behaviour</code></pre>
+
+<h2 id="debug-mode">&#39;debug&#39; mode</h2>
+
+<p>When <code>use re &#39;debug&#39;</code> is in effect, perl emits debugging messages when compiling and using regular expressions. The output is the same as that obtained by running a <code>-DDEBUGGING</code>-enabled perl interpreter with the <b>-Dr</b> switch. It may be quite voluminous depending on the complexity of the match. Using <code>debugcolor</code> instead of <code>debug</code> enables a form of output that can be used to get a colorful display on terminals that understand termcap color sequences. Set <code>$ENV{PERL_RE_TC}</code> to a comma-separated list of <code>termcap</code> properties to use for highlighting strings on/off, pre-point part on/off. See <a href="/cperl/perldebug.html#Debugging-Regular-Expressions">&quot;Debugging Regular Expressions&quot; in perldebug</a> for additional info.</p>
+
+<p>As of 5.9.5 the directive <code>use re &#39;debug&#39;</code> and its equivalents are lexically scoped, as the other directives are. However they have both compile-time and run-time effects.</p>
+
+<p>See <a href="/cperl/perlmodlib.html#Pragmatic-Modules">&quot;Pragmatic Modules&quot; in perlmodlib</a>.</p>
+
+<h2 id="Debug-mode">&#39;Debug&#39; mode</h2>
+
+<p>Similarly <code>use re &#39;Debug&#39;</code> produces debugging output, the difference being that it allows the fine tuning of what debugging output will be emitted. Options are divided into three groups, those related to compilation, those related to execution and those related to special purposes. The options are as follows:</p>
+
+<dl>
+
+<dt id="Compile-related-options">Compile related options</dt>
+<dd>
+
+<dl>
+
+<dt id="COMPILE">COMPILE</dt>
+<dd>
+
+<p>Turns on all compile related debug options.</p>
+
+</dd>
+<dt id="PARSE">PARSE</dt>
+<dd>
+
+<p>Turns on debug output related to the process of parsing the pattern.</p>
+
+</dd>
+<dt id="OPTIMISE">OPTIMISE</dt>
+<dd>
+
+<p>Enables output related to the optimisation phase of compilation.</p>
+
+</dd>
+<dt id="TRIEC">TRIEC</dt>
+<dd>
+
+<p>Detailed info about trie compilation.</p>
+
+</dd>
+<dt id="DUMP">DUMP</dt>
+<dd>
+
+<p>Dump the final program out after it is compiled and optimised.</p>
+
+</dd>
+<dt id="FLAGS">FLAGS</dt>
+<dd>
+
+<p>Dump the flags associated with the program</p>
+
+</dd>
+<dt id="TEST">TEST</dt>
+<dd>
+
+<p>Print output intended for testing the internals of the compile process</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="Execute-related-options">Execute related options</dt>
+<dd>
+
+<dl>
+
+<dt id="EXECUTE">EXECUTE</dt>
+<dd>
+
+<p>Turns on all execute related debug options.</p>
+
+</dd>
+<dt id="MATCH">MATCH</dt>
+<dd>
+
+<p>Turns on debugging of the main matching loop.</p>
+
+</dd>
+<dt id="TRIEE">TRIEE</dt>
+<dd>
+
+<p>Extra debugging of how tries execute.</p>
+
+</dd>
+<dt id="INTUIT">INTUIT</dt>
+<dd>
+
+<p>Enable debugging of start-point optimisations.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="Extra-debugging-options">Extra debugging options</dt>
+<dd>
+
+<dl>
+
+<dt id="EXTRA">EXTRA</dt>
+<dd>
+
+<p>Turns on all &quot;extra&quot; debugging options.</p>
+
+</dd>
+<dt id="BUFFERS">BUFFERS</dt>
+<dd>
+
+<p>Enable debugging the capture group storage during match. Warning, this can potentially produce extremely large output.</p>
+
+</dd>
+<dt id="TRIEM">TRIEM</dt>
+<dd>
+
+<p>Enable enhanced TRIE debugging. Enhances both TRIEE and TRIEC.</p>
+
+</dd>
+<dt id="STATE">STATE</dt>
+<dd>
+
+<p>Enable debugging of states in the engine.</p>
+
+</dd>
+<dt id="STACK">STACK</dt>
+<dd>
+
+<p>Enable debugging of the recursion stack in the engine. Enabling or disabling this option automatically does the same for debugging states as well. This output from this can be quite large.</p>
+
+</dd>
+<dt id="GPOS">GPOS</dt>
+<dd>
+
+<p>Enable debugging of the \G modifier.</p>
+
+</dd>
+<dt id="OPTIMISEM">OPTIMISEM</dt>
+<dd>
+
+<p>Enable enhanced optimisation debugging and start-point optimisations. Probably not useful except when debugging the regexp engine itself.</p>
+
+</dd>
+<dt id="OFFSETS">OFFSETS</dt>
+<dd>
+
+<p>Dump offset information. This can be used to see how regops correlate to the pattern. Output format is</p>
+
+<pre><code>   NODENUM:POSITION[LENGTH]</code></pre>
+
+<p>Where 1 is the position of the first char in the string. Note that position can be 0, or larger than the actual length of the pattern, likewise length can be zero.</p>
+
+</dd>
+<dt id="OFFSETSDBG">OFFSETSDBG</dt>
+<dd>
+
+<p>Enable debugging of offsets information. This emits copious amounts of trace information and doesn&#39;t mesh well with other debug options.</p>
+
+<p>Almost definitely only useful to people hacking on the offsets part of the debug engine.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="Other-useful-flags">Other useful flags</dt>
+<dd>
+
+<p>These are useful shortcuts to save on the typing.</p>
+
+<dl>
+
+<dt id="ALL">ALL</dt>
+<dd>
+
+<p>Enable all options at once except OFFSETS, OFFSETSDBG and BUFFERS. (To get every single option without exception, use both ALL and EXTRA.)</p>
+
+</dd>
+<dt id="All">All</dt>
+<dd>
+
+<p>Enable DUMP and all execute options. Equivalent to:</p>
+
+<pre><code>  use re &#39;debug&#39;;</code></pre>
+
+</dd>
+<dt id="MORE">MORE</dt>
+<dd>
+
+</dd>
+<dt id="More">More</dt>
+<dd>
+
+<p>Enable the options enabled by &quot;All&quot;, plus STATE, TRIEC, and TRIEM.</p>
+
+</dd>
+</dl>
+
+</dd>
+</dl>
+
+<p>As of 5.9.5 the directive <code>use re &#39;debug&#39;</code> and its equivalents are lexically scoped, as are the other directives. However they have both compile-time and run-time effects.</p>
+
+<h2 id="Exportable-Functions">Exportable Functions</h2>
+
+<p>As of perl 5.9.5 &#39;re&#39; debug contains a number of utility functions that may be optionally exported into the caller&#39;s namespace. They are listed below.</p>
+
+<dl>
+
+<dt id="is_regexp-ref">is_regexp($ref)</dt>
+<dd>
+
+<p>Returns true if the argument is a compiled regular expression as returned by <code>qr//</code>, false if it is not.</p>
+
+<p>This function will not be confused by overloading or blessing. In internals terms, this extracts the regexp pointer out of the PERL_MAGIC_qr structure so it cannot be fooled.</p>
+
+</dd>
+<dt id="regexp_pattern-ref">regexp_pattern($ref)</dt>
+<dd>
+
+<p>If the argument is a compiled regular expression as returned by <code>qr//</code>, then this function returns the pattern.</p>
+
+<p>In list context it returns a two element list, the first element containing the pattern and the second containing the modifiers used when the pattern was compiled.</p>
+
+<pre><code>  my ($pat, $mods) = regexp_pattern($ref);</code></pre>
+
+<p>In scalar context it returns the same as perl would when stringifying a raw <code>qr//</code> with the same pattern inside. If the argument is not a compiled reference then this routine returns false but defined in scalar context, and the empty list in list context. Thus the following</p>
+
+<pre><code>    if (regexp_pattern($ref) eq &#39;(?^i:foo)&#39;)</code></pre>
+
+<p>will be warning free regardless of what $ref actually is.</p>
+
+<p>Like <code>is_regexp</code> this function will not be confused by overloading or blessing of the object.</p>
+
+</dd>
+<dt id="regmust-ref">regmust($ref)</dt>
+<dd>
+
+<p>If the argument is a compiled regular expression as returned by <code>qr//</code>, then this function returns what the optimiser considers to be the longest anchored fixed string and longest floating fixed string in the pattern.</p>
+
+<p>A <i>fixed string</i> is defined as being a substring that must appear for the pattern to match. An <i>anchored fixed string</i> is a fixed string that must appear at a particular offset from the beginning of the match. A <i>floating fixed string</i> is defined as a fixed string that can appear at any point in a range of positions relative to the start of the match. For example,</p>
+
+<pre><code>    my $qr = qr/here .* there/x;
+    my ($anchored, $floating) = regmust($qr);
+    print &quot;anchored:&#39;$anchored&#39;\nfloating:&#39;$floating&#39;\n&quot;;</code></pre>
+
+<p>results in</p>
+
+<pre><code>    anchored:&#39;here&#39;
+    floating:&#39;there&#39;</code></pre>
+
+<p>Because the <code>here</code> is before the <code>.*</code> in the pattern, its position can be determined exactly. That&#39;s not true, however, for the <code>there</code>; it could appear at any point after where the anchored string appeared. Perl uses both for its optimisations, preferring the longer, or, if they are equal, the floating.</p>
+
+<p><b>NOTE:</b> This may not necessarily be the definitive longest anchored and floating string. This will be what the optimiser of the Perl that you are using thinks is the longest. If you believe that the result is wrong please report it via the <a>perlbug</a> utility.</p>
+
+</dd>
+<dt id="regname-name-all">regname($name,$all)</dt>
+<dd>
+
+<p>Returns the contents of a named buffer of the last successful match. If $all is true, then returns an array ref containing one entry per buffer, otherwise returns the first defined buffer.</p>
+
+</dd>
+<dt id="regnames-all">regnames($all)</dt>
+<dd>
+
+<p>Returns a list of all of the named buffers defined in the last successful match. If $all is true, then it returns all names defined, if not it returns only names which were involved in the match.</p>
+
+</dd>
+<dt id="regnames_count">regnames_count()</dt>
+<dd>
+
+<p>Returns the number of distinct names defined in the pattern used for the last successful match.</p>
+
+<p><b>Note:</b> this result is always the actual number of distinct named buffers defined, it may not actually match that which is returned by <code>regnames()</code> and related routines when those routines have not been called with the $all parameter set.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perlmodlib.html#Pragmatic-Modules">&quot;Pragmatic Modules&quot; in perlmodlib</a>.</p>
+
+
+</body>
+
+</html>
+
+

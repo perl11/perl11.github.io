@@ -1,0 +1,177 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a>
+    <ul>
+      <li><a href="#timelocal-and-timegm">timelocal() and timegm()</a></li>
+      <li><a href="#timelocal_nocheck-and-timegm_nocheck">timelocal_nocheck() and timegm_nocheck()</a></li>
+      <li><a href="#Year-Value-Interpretation">Year Value Interpretation</a></li>
+      <li><a href="#Limits-of-time_t">Limits of time_t</a></li>
+      <li><a href="#Ambiguous-Local-Times-DST">Ambiguous Local Times (DST)</a></li>
+      <li><a href="#Non-Existent-Local-Times-DST">Non-Existent Local Times (DST)</a></li>
+      <li><a href="#Negative-Epoch-Values">Negative Epoch Values</a></li>
+    </ul>
+  </li>
+  <li><a href="#IMPLEMENTATION">IMPLEMENTATION</a></li>
+  <li><a href="#AUTHORS-EMERITUS">AUTHORS EMERITUS</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#CONTRIBUTORS">CONTRIBUTORS</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Time::Local - Efficiently compute time from local and GMT time</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>version 1.25</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Time::Local;
+
+    my $time = timelocal( $sec, $min, $hour, $mday, $mon, $year );
+    my $time = timegm( $sec, $min, $hour, $mday, $mon, $year );</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides functions that are the inverse of built-in perl functions <code>localtime()</code> and <code>gmtime()</code>. They accept a date as a six-element array, and return the corresponding <code>time(2)</code> value in seconds since the system epoch (Midnight, January 1, 1970 GMT on Unix, for example). This value can be positive or negative, though POSIX only requires support for positive values, so dates before the system&#39;s epoch may not work on all operating systems.</p>
+
+<p>It is worth drawing particular attention to the expected ranges for the values provided. The value for the day of the month is the actual day (i.e. 1..31), while the month is the number of months since January (0..11). This is consistent with the values returned from <code>localtime()</code> and <code>gmtime()</code>.</p>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<h2 id="timelocal-and-timegm"><code>timelocal()</code> and <code>timegm()</code></h2>
+
+<p>This module exports two functions by default, <code>timelocal()</code> and <code>timegm()</code>.</p>
+
+<p>The <code>timelocal()</code> and <code>timegm()</code> functions perform range checking on the input $sec, $min, $hour, $mday, and $mon values by default.</p>
+
+<h2 id="timelocal_nocheck-and-timegm_nocheck"><code>timelocal_nocheck()</code> and <code>timegm_nocheck()</code></h2>
+
+<p>If you are working with data you know to be valid, you can speed your code up by using the &quot;nocheck&quot; variants, <code>timelocal_nocheck()</code> and <code>timegm_nocheck()</code>. These variants must be explicitly imported.</p>
+
+<pre><code>    use Time::Local &#39;timelocal_nocheck&#39;;
+
+    # The 365th day of 1999
+    print scalar localtime timelocal_nocheck( 0, 0, 0, 365, 0, 99 );</code></pre>
+
+<p>If you supply data which is not valid (month 27, second 1,000) the results will be unpredictable (so don&#39;t do that).</p>
+
+<h2 id="Year-Value-Interpretation">Year Value Interpretation</h2>
+
+<p>Strictly speaking, the year should be specified in a form consistent with <code>localtime()</code>, i.e. the offset from 1900. In order to make the interpretation of the year easier for humans, however, who are more accustomed to seeing years as two-digit or four-digit values, the following conventions are followed:</p>
+
+<ul>
+
+<li><p>Years greater than 999 are interpreted as being the actual year, rather than the offset from 1900. Thus, 1964 would indicate the year Martin Luther King won the Nobel prize, not the year 3864.</p>
+
+</li>
+<li><p>Years in the range 100..999 are interpreted as offset from 1900, so that 112 indicates 2012. This rule also applies to years less than zero (but see note below regarding date range).</p>
+
+</li>
+<li><p>Years in the range 0..99 are interpreted as shorthand for years in the rolling &quot;current century,&quot; defined as 50 years on either side of the current year. Thus, today, in 1999, 0 would refer to 2000, and 45 to 2045, but 55 would refer to 1955. Twenty years from now, 55 would instead refer to 2055. This is messy, but matches the way people currently think about two digit dates. Whenever possible, use an absolute four digit year instead.</p>
+
+</li>
+</ul>
+
+<p>The scheme above allows interpretation of a wide range of dates, particularly if 4-digit years are used.</p>
+
+<h2 id="Limits-of-time_t">Limits of time_t</h2>
+
+<p>On perl versions older than 5.12.0, the range of dates that can be actually be handled depends on the size of <code>time_t</code> (usually a signed integer) on the given platform. Currently, this is 32 bits for most systems, yielding an approximate range from Dec 1901 to Jan 2038.</p>
+
+<p>Both <code>timelocal()</code> and <code>timegm()</code> croak if given dates outside the supported range.</p>
+
+<p>As of version 5.12.0, perl has stopped using the underlying time library of the operating system it&#39;s running on and has its own implementation of those routines with a safe range of at least +/ 2**52 (about 142 million years).</p>
+
+<h2 id="Ambiguous-Local-Times-DST">Ambiguous Local Times (DST)</h2>
+
+<p>Because of DST changes, there are many time zones where the same local time occurs for two different GMT times on the same day. For example, in the &quot;Europe/Paris&quot; time zone, the local time of 2001-10-28 02:30:00 can represent either 2001-10-28 00:30:00 GMT, <b>or</b> 2001-10-28 01:30:00 GMT.</p>
+
+<p>When given an ambiguous local time, the timelocal() function should always return the epoch for the <i>earlier</i> of the two possible GMT times.</p>
+
+<h2 id="Non-Existent-Local-Times-DST">Non-Existent Local Times (DST)</h2>
+
+<p>When a DST change causes a locale clock to skip one hour forward, there will be an hour&#39;s worth of local times that don&#39;t exist. Again, for the &quot;Europe/Paris&quot; time zone, the local clock jumped from 2001-03-25 01:59:59 to 2001-03-25 03:00:00.</p>
+
+<p>If the <code>timelocal()</code> function is given a non-existent local time, it will simply return an epoch value for the time one hour later.</p>
+
+<h2 id="Negative-Epoch-Values">Negative Epoch Values</h2>
+
+<p>On perl version 5.12.0 and newer, negative epoch values are fully supported.</p>
+
+<p>On older versions of perl, negative epoch (<code>time_t</code>) values, which are not officially supported by the POSIX standards, are known not to work on some systems. These include MacOS (pre-OSX) and Win32.</p>
+
+<p>On systems which do support negative epoch values, this module should be able to cope with dates before the start of the epoch, down the minimum value of time_t for the system.</p>
+
+<h1 id="IMPLEMENTATION">IMPLEMENTATION</h1>
+
+<p>These routines are quite efficient and yet are always guaranteed to agree with <code>localtime()</code> and <code>gmtime()</code>. We manage this by caching the start times of any months we&#39;ve seen before. If we know the start time of the month, we can always calculate any time within the month. The start times are calculated using a mathematical formula. Unlike other algorithms that do multiple calls to <code>gmtime()</code>.</p>
+
+<p>The <code>timelocal()</code> function is implemented using the same cache. We just assume that we&#39;re translating a GMT time, and then fudge it when we&#39;re done for the timezone and daylight savings arguments. Note that the timezone is evaluated for each date because countries occasionally change their official timezones. Assuming that <code>localtime()</code> corrects for these changes, this routine will also be correct.</p>
+
+<h1 id="AUTHORS-EMERITUS">AUTHORS EMERITUS</h1>
+
+<p>This module is based on a Perl 4 library, timelocal.pl, that was included with Perl 4.036, and was most likely written by Tom Christiansen.</p>
+
+<p>The current version was written by Graham Barr.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>The whole scheme for interpreting two-digit years can be considered a bug.</p>
+
+<p>Bugs may be submitted through <a href="https://github.com/houseabsolute/Time-Local/issues">https://github.com/houseabsolute/Time-Local/issues</a>.</p>
+
+<p>There is a mailing list available for users of this distribution, <a href="mailto:datetime@perl.org">mailto:datetime@perl.org</a>.</p>
+
+<p>I am also usually active on IRC as &#39;autarch&#39; on <code>irc://irc.perl.org</code>.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Dave Rolsky &lt;autarch@urth.org&gt;</p>
+
+<h1 id="CONTRIBUTORS">CONTRIBUTORS</h1>
+
+<ul>
+
+<li><p>Florian Ragwitz &lt;rafl@debian.org&gt;</p>
+
+</li>
+<li><p>J. Nick Koston &lt;nick@cpanel.net&gt;</p>
+
+</li>
+<li><p>Unknown &lt;unknown@example.com&gt;</p>
+
+</li>
+</ul>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>This software is copyright (c) 1997 - 2016 by Graham Barr &amp; Dave Rolsky.</p>
+
+<p>This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.</p>
+
+
+</body>
+
+</html>
+
+

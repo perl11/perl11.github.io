@@ -1,0 +1,307 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Global-Variables">Global Variables</a></li>
+      <li><a href="#API-Methods">API Methods</a></li>
+      <li><a href="#Client-Callback-Methods">Client Callback Methods</a></li>
+    </ul>
+  </li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>DB - programmatic interface to the Perl debugging API</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    package CLIENT;
+    use DB;
+    @ISA = qw(DB);
+
+    # these (inherited) methods can be called by the client
+
+    CLIENT-&gt;register()      # register a client package name
+    CLIENT-&gt;done()          # de-register from the debugging API
+    CLIENT-&gt;skippkg(&#39;hide::hide&#39;)  # ask DB not to stop in this package
+    CLIENT-&gt;cont([WHERE])       # run some more (until BREAK or 
+                                # another breakpointt)
+    CLIENT-&gt;step()              # single step
+    CLIENT-&gt;next()              # step over
+    CLIENT-&gt;ret()               # return from current subroutine
+    CLIENT-&gt;backtrace()         # return the call stack description
+    CLIENT-&gt;ready()             # call when client setup is done
+    CLIENT-&gt;trace_toggle()      # toggle subroutine call trace mode
+    CLIENT-&gt;subs([SUBS])        # return subroutine information
+    CLIENT-&gt;files()             # return list of all files known to DB
+    CLIENT-&gt;lines()             # return lines in currently loaded file
+    CLIENT-&gt;loadfile(FILE,LINE) # load a file and let other clients know
+    CLIENT-&gt;lineevents()        # return info on lines with actions
+    CLIENT-&gt;set_break([WHERE],[COND])
+    CLIENT-&gt;set_tbreak([WHERE])
+    CLIENT-&gt;clr_breaks([LIST])
+    CLIENT-&gt;set_action(WHERE,ACTION)
+    CLIENT-&gt;clr_actions([LIST])
+    CLIENT-&gt;evalcode(STRING)  # eval STRING in executing code&#39;s context
+    CLIENT-&gt;prestop([STRING]) # execute in code context before stopping
+    CLIENT-&gt;poststop([STRING])# execute in code context before resuming
+
+    # These methods will be called at the appropriate times.
+    # Stub versions provided do nothing.
+    # None of these can block.
+
+    CLIENT-&gt;init()          # called when debug API inits itself
+    CLIENT-&gt;stop(FILE,LINE) # when execution stops
+    CLIENT-&gt;idle()          # while stopped (can be a client event loop)
+    CLIENT-&gt;cleanup()       # just before exit
+    CLIENT-&gt;output(LIST)    # called to print any output that
+                            # the API must show</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Perl debug information is frequently required not just by debuggers, but also by modules that need some &quot;special&quot; information to do their job properly, like profilers.</p>
+
+<p>This module abstracts and provides all of the hooks into Perl internal debugging functionality, so that various implementations of Perl debuggers (or packages that want to simply get at the &quot;privileged&quot; debugging data) can all benefit from the development of this common code. Currently used by Swat, the perl/Tk GUI debugger.</p>
+
+<p>Note that multiple &quot;front-ends&quot; can latch into this debugging API simultaneously. This is intended to facilitate things like debugging with a command line and GUI at the same time, debugging debuggers etc. [Sounds nice, but this needs some serious support -- GSAR]</p>
+
+<p>In particular, this API does <b>not</b> provide the following functions:</p>
+
+<ul>
+
+<li><p>data display</p>
+
+</li>
+<li><p>command processing</p>
+
+</li>
+<li><p>command alias management</p>
+
+</li>
+<li><p>user interface (tty or graphical)</p>
+
+</li>
+</ul>
+
+<p>These are intended to be services performed by the clients of this API.</p>
+
+<p>This module attempts to be squeaky clean w.r.t <code>use strict;</code> and when warnings are enabled.</p>
+
+<h2 id="Global-Variables">Global Variables</h2>
+
+<p>The following &quot;public&quot; global names can be read by clients of this API. Beware that these should be considered &quot;readonly&quot;.</p>
+
+<dl>
+
+<dt id="DB::sub">$DB::sub</dt>
+<dd>
+
+<p>Name of current executing subroutine.</p>
+
+</dd>
+<dt id="DB::sub1">%DB::sub</dt>
+<dd>
+
+<p>The keys of this hash are the names of all the known subroutines. Each value is an encoded string that has the sprintf(3) format <code>(&quot;%s:%d-%d&quot;, filename, fromline, toline)</code>.</p>
+
+</dd>
+<dt id="DB::single">$DB::single</dt>
+<dd>
+
+<p>Single-step flag. Will be true if the API will stop at the next statement.</p>
+
+</dd>
+<dt id="DB::signal">$DB::signal</dt>
+<dd>
+
+<p>Signal flag. Will be set to a true value if a signal was caught. Clients may check for this flag to abort time-consuming operations.</p>
+
+</dd>
+<dt id="DB::trace">$DB::trace</dt>
+<dd>
+
+<p>This flag is set to true if the API is tracing through subroutine calls.</p>
+
+</dd>
+<dt id="DB::args">@DB::args</dt>
+<dd>
+
+<p>Contains the arguments of current subroutine, or the <code>@ARGV</code> array if in the toplevel context.</p>
+
+</dd>
+<dt id="DB::dbline">@DB::dbline</dt>
+<dd>
+
+<p>List of lines in currently loaded file.</p>
+
+</dd>
+<dt id="DB::dbline1">%DB::dbline</dt>
+<dd>
+
+<p>Actions in current file (keys are line numbers). The values are strings that have the sprintf(3) format <code>(&quot;%s\000%s&quot;, breakcondition, actioncode)</code>.</p>
+
+</dd>
+<dt id="DB::package">$DB::package</dt>
+<dd>
+
+<p>Package namespace of currently executing code.</p>
+
+</dd>
+<dt id="DB::filename">$DB::filename</dt>
+<dd>
+
+<p>Currently loaded filename.</p>
+
+</dd>
+<dt id="DB::subname">$DB::subname</dt>
+<dd>
+
+<p>Fully qualified name of currently executing subroutine.</p>
+
+</dd>
+<dt id="DB::lineno">$DB::lineno</dt>
+<dd>
+
+<p>Line number that will be executed next.</p>
+
+</dd>
+</dl>
+
+<h2 id="API-Methods">API Methods</h2>
+
+<p>The following are methods in the DB base class. A client must access these methods by inheritance (*not* by calling them directly), since the API keeps track of clients through the inheritance mechanism.</p>
+
+<dl>
+
+<dt id="CLIENT-register">CLIENT-&gt;register()</dt>
+<dd>
+
+<p>register a client object/package</p>
+
+</dd>
+<dt id="CLIENT-evalcode-STRING">CLIENT-&gt;evalcode(STRING)</dt>
+<dd>
+
+<p>eval STRING in executing code context</p>
+
+</dd>
+<dt id="CLIENT-skippkg-D::hide">CLIENT-&gt;skippkg(&#39;D::hide&#39;)</dt>
+<dd>
+
+<p>ask DB not to stop in these packages</p>
+
+</dd>
+<dt id="CLIENT-run">CLIENT-&gt;run()</dt>
+<dd>
+
+<p>run some more (until a breakpt is reached)</p>
+
+</dd>
+<dt id="CLIENT-step">CLIENT-&gt;step()</dt>
+<dd>
+
+<p>single step</p>
+
+</dd>
+<dt id="CLIENT-next">CLIENT-&gt;next()</dt>
+<dd>
+
+<p>step over</p>
+
+</dd>
+<dt id="CLIENT-done">CLIENT-&gt;done()</dt>
+<dd>
+
+<p>de-register from the debugging API</p>
+
+</dd>
+</dl>
+
+<h2 id="Client-Callback-Methods">Client Callback Methods</h2>
+
+<p>The following &quot;virtual&quot; methods can be defined by the client. They will be called by the API at appropriate points. Note that unless specified otherwise, the debug API only defines empty, non-functional default versions of these methods.</p>
+
+<dl>
+
+<dt id="CLIENT-init">CLIENT-&gt;init()</dt>
+<dd>
+
+<p>Called after debug API inits itself.</p>
+
+</dd>
+<dt id="CLIENT-prestop-STRING">CLIENT-&gt;prestop([STRING])</dt>
+<dd>
+
+<p>Usually inherited from DB package. If no arguments are passed, returns the prestop action string.</p>
+
+</dd>
+<dt id="CLIENT-stop">CLIENT-&gt;stop()</dt>
+<dd>
+
+<p>Called when execution stops (w/ args file, line).</p>
+
+</dd>
+<dt id="CLIENT-idle">CLIENT-&gt;idle()</dt>
+<dd>
+
+<p>Called while stopped (can be a client event loop).</p>
+
+</dd>
+<dt id="CLIENT-poststop-STRING">CLIENT-&gt;poststop([STRING])</dt>
+<dd>
+
+<p>Usually inherited from DB package. If no arguments are passed, returns the poststop action string.</p>
+
+</dd>
+<dt id="CLIENT-evalcode-STRING1">CLIENT-&gt;evalcode(STRING)</dt>
+<dd>
+
+<p>Usually inherited from DB package. Ask for a STRING to be <code>eval</code>-ed in executing code context.</p>
+
+</dd>
+<dt id="CLIENT-cleanup">CLIENT-&gt;cleanup()</dt>
+<dd>
+
+<p>Called just before exit.</p>
+
+</dd>
+<dt id="CLIENT-output-LIST">CLIENT-&gt;output(LIST)</dt>
+<dd>
+
+<p>Called when API must show a message (warnings, errors etc.).</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>The interface defined by this module is missing some of the later additions to perl&#39;s debugging functionality. As such, this interface should be considered highly experimental and subject to change.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Gurusamy Sarathy gsar@activestate.com</p>
+
+<p>This code heavily adapted from an early version of perl5db.pl attributable to Larry Wall and the Perl Porters.</p>
+
+
+</body>
+
+</html>
+
+

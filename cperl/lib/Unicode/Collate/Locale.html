@@ -1,0 +1,395 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Constructor">Constructor</a></li>
+      <li><a href="#Methods">Methods</a></li>
+      <li><a href="#A-list-of-tailorable-locales">A list of tailorable locales</a></li>
+    </ul>
+  </li>
+  <li><a href="#INSTALL">INSTALL</a></li>
+  <li><a href="#CAVEAT">CAVEAT</a>
+    <ul>
+      <li><a href="#Reference">Reference</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Unicode::Collate::Locale - Linguistic tailoring for DUCET via Unicode::Collate</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Unicode::Collate::Locale;
+
+  #construct
+  $Collator = Unicode::Collate::Locale-&gt;
+      new(locale =&gt; $locale_name, %tailoring);
+
+  #sort
+  @sorted = $Collator-&gt;sort(@not_sorted);
+
+  #compare
+  $result = $Collator-&gt;cmp($a, $b); # returns 1, 0, or -1.</code></pre>
+
+<p><b>Note:</b> Strings in <code>@not_sorted</code>, <code>$a</code> and <code>$b</code> are interpreted according to Perl&#39;s Unicode support. See <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/perluniintro.html">perluniintro</a>, <a href="/cperl/perlunitut.html">perlunitut</a>, <a href="/cperl/perlunifaq.html">perlunifaq</a>, <a href="/cperl/lib/utf8.html">utf8</a>. Otherwise you can use <code>preprocess</code> (cf. <code>Unicode::Collate</code>) or should decode them before.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides linguistic tailoring for it taking advantage of <code>Unicode::Collate</code>.</p>
+
+<h2 id="Constructor">Constructor</h2>
+
+<p>The <code>new</code> method returns a collator object.</p>
+
+<p>A parameter list for the constructor is a hash, which can include a special key <code>locale</code> and its value (case-insensitive) standing for a Unicode base language code (two or three-letter). For example, <code>Unicode::Collate::Locale-&gt;new(locale =&gt; &#39;ES&#39;)</code> returns a collator tailored for Spanish.</p>
+
+<p><code>$locale_name</code> may be suffixed with a Unicode script code (four-letter), a Unicode region (territory) code, a Unicode language variant code. These codes are case-insensitive, and separated with <code>&#39;_&#39;</code> or <code>&#39;-&#39;</code>. E.g. <code>en_US</code> for English in USA, <code>az_Cyrl</code> for Azerbaijani in the Cyrillic script, <code>es_ES_traditional</code> for Spanish in Spain (Traditional).</p>
+
+<p>If <code>$locale_name</code> is not available, fallback is selected in the following order:</p>
+
+<pre><code>    1. language with a variant code
+    2. language with a script code
+    3. language with a region code
+    4. language
+    5. default</code></pre>
+
+<p>Tailoring tags provided by <code>Unicode::Collate</code> are allowed as long as they are not used for <code>locale</code> support. Esp. the <code>table</code> tag is always untailorable, since it is reserved for DUCET.</p>
+
+<p>However <code>entry</code> is allowed, even if it is used for <code>locale</code> support, to add or override mappings.</p>
+
+<p>E.g. a collator for Spanish, which ignores diacritics and case difference (i.e. level 1), with reversed case ordering and no normalization.</p>
+
+<pre><code>    Unicode::Collate::Locale-&gt;new(
+        level =&gt; 1,
+        locale =&gt; &#39;es&#39;,
+        upper_before_lower =&gt; 1,
+        normalization =&gt; undef
+    )</code></pre>
+
+<p>Overriding a behavior already tailored by <code>locale</code> is disallowed if such a tailoring is passed to <code>new()</code>.</p>
+
+<pre><code>    Unicode::Collate::Locale-&gt;new(
+        locale =&gt; &#39;da&#39;,
+        upper_before_lower =&gt; 0, # causes error as reserved by &#39;da&#39;
+    )</code></pre>
+
+<p>However <code>change()</code> inherited from <code>Unicode::Collate</code> allows such a tailoring that is reserved by <code>locale</code>. Examples:</p>
+
+<pre><code>    new(locale =&gt; &#39;fr_ca&#39;)-&gt;change(backwards =&gt; undef)
+    new(locale =&gt; &#39;da&#39;)-&gt;change(upper_before_lower =&gt; 0)
+    new(locale =&gt; &#39;ja&#39;)-&gt;change(overrideCJK =&gt; undef)</code></pre>
+
+<h2 id="Methods">Methods</h2>
+
+<p><code>Unicode::Collate::Locale</code> is a subclass of <code>Unicode::Collate</code> and methods other than <code>new</code> are inherited from <code>Unicode::Collate</code>.</p>
+
+<p>Here is a list of additional methods:</p>
+
+<dl>
+
+<dt id="Collator-getlocale"><code>$Collator-&gt;getlocale</code></dt>
+<dd>
+
+<p>Returns a language code accepted and used actually on collation. If linguistic tailoring is not provided for a language code you passed (intensionally for some languages, or due to the incomplete implementation), this method returns a string <code>&#39;default&#39;</code> meaning no special tailoring.</p>
+
+</dd>
+<dt id="Collator-locale_version"><code>$Collator-&gt;locale_version</code></dt>
+<dd>
+
+<p>(Since Unicode::Collate::Locale 0.87) Returns the version number (perhaps <code>/\d\.\d\d/</code>) of the locale, as that of <i>Locale/*.pl</i>.</p>
+
+<p><b>Note:</b> <i>Locale/*.pl</i> that a collator uses should be identified by a combination of return values from <code>getlocale</code> and <code>locale_version</code>.</p>
+
+</dd>
+</dl>
+
+<h2 id="A-list-of-tailorable-locales">A list of tailorable locales</h2>
+
+<pre><code>      locale name       description
+    --------------------------------------------------------------
+      af                Afrikaans
+      ar                Arabic
+      as                Assamese
+      az                Azerbaijani (Azeri)
+      be                Belarusian
+      bn                Bengali
+      bs                Bosnian (tailored as Croatian)
+      bs_Cyrl           Bosnian in Cyrillic (tailored as Serbian)
+      ca                Catalan
+      cs                Czech
+      cy                Welsh
+      da                Danish
+      de__phonebook     German (umlaut as &#39;ae&#39;, &#39;oe&#39;, &#39;ue&#39;)
+      de_AT_phonebook   Austrian German (umlaut primary greater)
+      ee                Ewe
+      eo                Esperanto
+      es                Spanish
+      es__traditional   Spanish (&#39;ch&#39; and &#39;ll&#39; as a grapheme)
+      et                Estonian
+      fa                Persian
+      fi                Finnish (v and w are primary equal)
+      fi__phonebook     Finnish (v and w as separate characters)
+      fil               Filipino
+      fo                Faroese
+      fr_CA             Canadian French
+      gu                Gujarati
+      ha                Hausa
+      haw               Hawaiian
+      he                Hebrew
+      hi                Hindi
+      hr                Croatian
+      hu                Hungarian
+      hy                Armenian
+      ig                Igbo
+      is                Icelandic
+      ja                Japanese [1]
+      kk                Kazakh
+      kl                Kalaallisut
+      kn                Kannada
+      ko                Korean [2]
+      kok               Konkani
+      ln                Lingala
+      lt                Lithuanian
+      lv                Latvian
+      mk                Macedonian
+      ml                Malayalam
+      mr                Marathi
+      mt                Maltese
+      nb                Norwegian Bokmal
+      nn                Norwegian Nynorsk
+      nso               Northern Sotho
+      om                Oromo
+      or                Oriya
+      pa                Punjabi
+      pl                Polish
+      ro                Romanian
+      sa                Sanskrit
+      se                Northern Sami
+      si                Sinhala
+      si__dictionary    Sinhala (U+0DA5 = U+0DA2,0DCA,0DA4)
+      sk                Slovak
+      sl                Slovenian
+      sq                Albanian
+      sr                Serbian
+      sr_Latn           Serbian in Latin (tailored as Croatian)
+      sv                Swedish (v and w are primary equal)
+      sv__reformed      Swedish (v and w as separate characters)
+      ta                Tamil
+      te                Telugu
+      th                Thai
+      tn                Tswana
+      to                Tonga
+      tr                Turkish
+      ug_Cyrl           Uyghur in Cyrillic
+      uk                Ukrainian
+      ur                Urdu
+      vi                Vietnamese
+      vo                Volapuk
+      wae               Walser
+      wo                Wolof
+      yo                Yoruba
+      zh                Chinese
+      zh__big5han       Chinese (ideographs: big5 order)
+      zh__gb2312han     Chinese (ideographs: GB-2312 order)
+      zh__pinyin        Chinese (ideographs: pinyin order) [3]
+      zh__stroke        Chinese (ideographs: stroke order) [3]
+      zh__zhuyin        Chinese (ideographs: zhuyin order) [3]
+    --------------------------------------------------------------</code></pre>
+
+<p>Locales according to the default UCA rules include am (Amharic) without <code>[reorder Ethi]</code>, bg (Bulgarian) without <code>[reorder Cyrl]</code>, chr (Cherokee) without <code>[reorder Cher]</code>, de (German), en (English), fr (French), ga (Irish), id (Indonesian), it (Italian), ka (Georgian) without <code>[reorder Geor]</code>, mn (Mongolian) without <code>[reorder Cyrl Mong]</code>, ms (Malay), nl (Dutch), pt (Portuguese), ru (Russian) without <code>[reorder Cyrl]</code>, sw (Swahili), zu (Zulu).</p>
+
+<p><b>Note</b></p>
+
+<p>[1] ja: Ideographs are sorted in JIS X 0208 order. Fullwidth and halfwidth forms are identical to their regular form. The difference between hiragana and katakana is at the 4th level, the comparison also requires <code>(variable =&gt; &#39;Non-ignorable&#39;)</code>, and then <code>katakana_before_hiragana</code> has no effect.</p>
+
+<p>[2] ko: Plenty of ideographs are sorted by their reading. Such an ideograph is primary (level 1) equal to, and secondary (level 2) greater than, the corresponding hangul syllable.</p>
+
+<p>[3] zh__pinyin, zh__stroke and zh__zhuyin: implemented alt=&#39;short&#39;, where a smaller number of ideographs are tailored.</p>
+
+<p>Note: &#39;pinyin&#39; is in latin, &#39;zhuyin&#39; is in bopomofo.</p>
+
+<h1 id="INSTALL">INSTALL</h1>
+
+<p>Installation of <code>Unicode::Collate::Locale</code> requires <i>Collate/Locale.pm</i>, <i>Collate/Locale/*.pm</i>, <i>Collate/CJK/*.pm</i> and <i>Collate/allkeys.txt</i>. On building, <code>Unicode::Collate::Locale</code> doesn&#39;t require any of <i>data/*.txt</i>, <i>gendata/*</i>, and <i>mklocale</i>. Tests for <code>Unicode::Collate::Locale</code> are named <i>t/loc_*.t</i>.</p>
+
+<h1 id="CAVEAT">CAVEAT</h1>
+
+<dl>
+
+<dt id="Tailoring-is-not-maximum">Tailoring is not maximum</dt>
+<dd>
+
+<p>Even if a certain letter is tailored, its equivalent would not always tailored as well as it. For example, even though W is tailored, fullwidth W (<code>U+FF37</code>), W with acute (<code>U+1E82</code>), etc. are not tailored. The result may depend on whether source strings are normalized or not, and whether decomposed or composed. Thus <code>(normalization =&gt; undef)</code> is less preferred.</p>
+
+</dd>
+<dt id="Collation-reordering-is-not-supported">Collation reordering is not supported</dt>
+<dd>
+
+<p>The order of any groups including scripts is not changed.</p>
+
+</dd>
+</dl>
+
+<h2 id="Reference">Reference</h2>
+
+<pre><code>      locale            based CLDR or other reference
+    --------------------------------------------------------------------
+      af                30 = 1.8.1
+      ar                22.1 = 1.9.0
+      as                30 = 28 (without [reorder Beng..]) = 23
+      az                30 = 24 (type=&quot;standard&quot; without [reorder Latn Cyrl])
+      be                30 = 28 (without [reorder Cyrl])
+      bn                30 = 28 (type=&quot;standard&quot; wo [reorder Beng..]) = 2.0.1
+      bs                30 = 28 (type=&quot;standard&quot;: [import hr])
+      bs_Cyrl           30 = 28 (type=&quot;standard&quot;: [import sr])
+      ca                30 = 23 (alt=&quot;proposed&quot; type=&quot;standard&quot;)
+      cs                30 = 1.8.1 (type=&quot;standard&quot;)
+      cy                30 = 1.8.1
+      da                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      de__phonebook     30 = 2.0 (type=&quot;phonebook&quot;)
+      de_AT_phonebook   30 = 27 (type=&quot;phonebook&quot;)
+      ee                22.1 = 22
+      eo                30 = 1.8.1
+      es                30 = 1.9.0 (type=&quot;standard&quot;)
+      es__traditional   30 = 1.8.1 (type=&quot;traditional&quot;)
+      et                30 = 26
+      fa                22.1 = 1.8.1
+      fi                22.1 = 1.8.1 (type=&quot;standard&quot; alt=&quot;proposed&quot;)
+      fi__phonebook     22.1 = 1.8.1 (type=&quot;phonebook&quot;)
+      fil               30 = 1.9.0 (type=&quot;standard&quot;) = 1.8.1
+      fo                22.1 = 1.8.1 (alt=&quot;proposed&quot; type=&quot;standard&quot;)
+      fr_CA             30 = 1.9.0
+      gu                30 = 28 (type=&quot;standard&quot; wo [reorder Gujr..]) = 1.9.0
+      ha                30 = 1.9.0
+      haw               30 = 24
+      he                30 = 28 (without [reorder Hebr]) = 23
+      hi                30 = 28 (without [reorder Deva..]) = 1.9.0
+      hr                22.1 = 1.9.0 (type=&quot;standard&quot;)
+      hu                22.1 = 1.8.1 (alt=&quot;proposed&quot; type=&quot;standard&quot;)
+      hy                30 = 28 (without [reorder Armn]) = 1.8.1
+      ig                30 = 1.8.1
+      is                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      ja                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      kk                30 = 28 (without [reorder Cyrl])
+      kl                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      kn                30 = 28 (type=&quot;standard&quot; wo [reorder Knda..]) = 1.9.0
+      ko                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      kok               30 = 28 (without [reorder Deva..]) = 1.8.1
+      ln                30 = 2.0 (type=&quot;standard&quot;) = 1.8.1
+      lt                22.1 = 1.9.0
+      lv                22.1 = 1.9.0 (type=&quot;standard&quot;) = 1.8.1
+      mk                30 = 28 (without [reorder Cyrl])
+      ml                22.1 = 1.9.0
+      mr                30 = 28 (without [reorder Deva..]) = 1.8.1
+      mt                22.1 = 1.9.0
+      nb                22.1 = 2.0   (type=&quot;standard&quot;)
+      nn                22.1 = 2.0   (type=&quot;standard&quot;)
+      nso           [*] 26 = 1.8.1
+      om                22.1 = 1.8.1
+      or                30 = 28 (without [reorder Orya..]) = 1.9.0
+      pa                22.1 = 1.8.1
+      pl                30 = 1.8.1
+      ro                30 = 1.9.0 (type=&quot;standard&quot;)
+      sa            [*] 1.9.1 = 1.8.1 (type=&quot;standard&quot; alt=&quot;proposed&quot;)
+      se                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      si                30 = 28 (type=&quot;standard&quot; wo [reorder Sinh..]) = 1.9.0
+      si__dictionary    30 = 28 (type=&quot;dictionary&quot; wo [reorder Sinh..]) = 1.9.0
+      sk                22.1 = 1.9.0 (type=&quot;standard&quot;)
+      sl                22.1 = 1.8.1 (type=&quot;standard&quot; alt=&quot;proposed&quot;)
+      sq                22.1 = 1.8.1 (alt=&quot;proposed&quot; type=&quot;standard&quot;)
+      sr                30 = 28 (without [reorder Cyrl])
+      sr_Latn           30 = 28 (type=&quot;standard&quot;: [import hr])
+      sv                22.1 = 1.9.0 (type=&quot;standard&quot;)
+      sv__reformed      22.1 = 1.8.1 (type=&quot;reformed&quot;)
+      ta                22.1 = 1.9.0
+      te                30 = 28 (without [reorder Telu..]) = 1.9.0
+      th                22.1 = 22
+      tn            [*] 26 = 1.8.1
+      to                22.1 = 22
+      tr                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      uk                30 = 28 (without [reorder Cyrl])
+      ug_Cyrl           https://en.wikipedia.org/wiki/Uyghur_Cyrillic_alphabet
+      ur                22.1 = 1.9.0
+      vi                22.1 = 1.8.1
+      vo                30 = 25
+      wae               30 = 2.0
+      wo            [*] 1.9.1 = 1.8.1
+      yo                30 = 1.8.1
+      zh                22.1 = 1.8.1 (type=&quot;standard&quot;)
+      zh__big5han       22.1 = 1.8.1 (type=&quot;big5han&quot;)
+      zh__gb2312han     22.1 = 1.8.1 (type=&quot;gb2312han&quot;)
+      zh__pinyin        22.1 = 2.0   (type=&#39;pinyin&#39; alt=&#39;short&#39;)
+      zh__stroke        22.1 = 1.9.1 (type=&#39;stroke&#39; alt=&#39;short&#39;)
+      zh__zhuyin        22.1 = 22    (type=&#39;zhuyin&#39; alt=&#39;short&#39;)
+    --------------------------------------------------------------------</code></pre>
+
+<p>[*] http://www.unicode.org/repos/cldr/tags/latest/seed/collation/</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>The Unicode::Collate::Locale module for perl was written by SADAHIRO Tomoyuki, &lt;SADAHIRO@cpan.org&gt;. This module is Copyright(C) 2004-2016, SADAHIRO Tomoyuki. Japan. All rights reserved.</p>
+
+<p>This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<dl>
+
+<dt id="Unicode-Collation-Algorithm---UTS-10">Unicode Collation Algorithm - UTS #10</dt>
+<dd>
+
+<p><a href="http://www.unicode.org/reports/tr10/">http://www.unicode.org/reports/tr10/</a></p>
+
+</dd>
+<dt id="The-Default-Unicode-Collation-Element-Table-DUCET">The Default Unicode Collation Element Table (DUCET)</dt>
+<dd>
+
+<p><a href="http://www.unicode.org/Public/UCA/latest/allkeys.txt">http://www.unicode.org/Public/UCA/latest/allkeys.txt</a></p>
+
+</dd>
+<dt id="Unicode-Locale-Data-Markup-Language-LDML---UTS-35">Unicode Locale Data Markup Language (LDML) - UTS #35</dt>
+<dd>
+
+<p><a href="http://www.unicode.org/reports/tr35/">http://www.unicode.org/reports/tr35/</a></p>
+
+</dd>
+<dt id="CLDR---Unicode-Common-Locale-Data-Repository">CLDR - Unicode Common Locale Data Repository</dt>
+<dd>
+
+<p><a href="http://cldr.unicode.org/">http://cldr.unicode.org/</a></p>
+
+</dd>
+<dt id="Unicode::Collate"><a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a></dt>
+<dd>
+
+</dd>
+<dt id="Unicode::Normalize"><a href="/cperl/lib/Unicode/Normalize.html">Unicode::Normalize</a></dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</body>
+
+</html>
+
+

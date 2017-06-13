@@ -1,0 +1,467 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#What-import-does">What import does</a></li>
+      <li><a href="#Built-in-Attributes">Built-in Attributes</a></li>
+      <li><a href="#Available-Subroutines">Available Subroutines</a></li>
+      <li><a href="#Package-specific-Attribute-Handling">Package-specific Attribute Handling</a></li>
+      <li><a href="#Syntax-of-Attribute-Lists">Syntax of Attribute Lists</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXPORTS">EXPORTS</a>
+    <ul>
+      <li><a href="#Default-exports">Default exports</a></li>
+      <li><a href="#Available-exports">Available exports</a></li>
+      <li><a href="#Export-tags-defined">Export tags defined</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#MORE-EXAMPLES">MORE EXAMPLES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>attributes - get/set subroutine or variable attributes</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  sub foo : method ;
+  my ($x,@y,%z) : Bent = 1;
+  my $s = sub : method { ... };
+
+  use attributes ();    # optional, to get subroutine declarations
+  my @attrlist = attributes::get(\&amp;foo);
+
+  use attributes &#39;get&#39;; # import the attributes::get subroutine
+  my @attrlist = get \&amp;foo;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Subroutine declarations and definitions may optionally have attribute lists associated with them. (Variable <code>my</code> declarations also may, but see the warning below.) Perl handles these declarations by passing some information about the call site and the thing being declared along with the attribute list to this module. In particular, the first example above is equivalent to the following:</p>
+
+<pre><code>    use attributes __PACKAGE__, \&amp;foo, &#39;method&#39;;</code></pre>
+
+<p>The second example in the synopsis does something equivalent to this:</p>
+
+<pre><code>    use attributes ();
+    my ($x,@y,%z);
+    attributes::-&gt;import(__PACKAGE__, \$x, &#39;Bent&#39;);
+    attributes::-&gt;import(__PACKAGE__, \@y, &#39;Bent&#39;);
+    attributes::-&gt;import(__PACKAGE__, \%z, &#39;Bent&#39;);
+    ($x,@y,%z) = 1;</code></pre>
+
+<p>Yes, that&#39;s a lot of expansion.</p>
+
+<p><b>WARNING</b>: attribute declarations for variables are still evolving. The semantics and interfaces of such declarations could change in future versions. They are present for purposes of experimentation with what the semantics ought to be. Do not rely on the current implementation of this feature.</p>
+
+<p>There are only a few attributes currently handled by Perl itself (or directly by this module, depending on how you look at it.) However, package-specific attributes are allowed by an extension mechanism. (See <a href="#Package-specific-Attribute-Handling">&quot;Package-specific Attribute Handling&quot;</a> below.)</p>
+
+<p>The setting of subroutine attributes happens at compile time. Variable attributes in <code>our</code> declarations are also applied at compile time. However, <code>my</code> variables get their attributes applied at run-time. This means that you have to <i>reach</i> the run-time component of the <code>my</code> before those attributes will get applied. For example:</p>
+
+<pre><code>    my $x : Bent = 42 if 0;</code></pre>
+
+<p>will neither assign 42 to $x <i>nor</i> will it apply the <code>Bent</code> attribute to the variable.</p>
+
+<p>An attempt to set an unrecognized attribute is a fatal error. (The error is trappable, but it still stops the compilation within that <code>eval</code>.) Setting an attribute with a name that&#39;s all lowercase letters that&#39;s not a built-in attribute (such as &quot;foo&quot;) will result in a warning with <b>-w</b> or <code>use warnings &#39;reserved&#39;</code>.</p>
+
+<h2 id="What-import-does">What <code>import</code> does</h2>
+
+<p>In the description it is mentioned that</p>
+
+<pre><code>  sub foo : method;</code></pre>
+
+<p>is equivalent to</p>
+
+<pre><code>  use attributes __PACKAGE__, \&amp;foo, &#39;method&#39;;</code></pre>
+
+<p>As you might know this calls the <code>import</code> function of <code>attributes</code> at compile time with these parameters: &#39;attributes&#39;, the caller&#39;s package name, the reference to the code and &#39;method&#39;.</p>
+
+<pre><code>  attributes-&gt;import( __PACKAGE__, \&amp;foo, &#39;method&#39; );</code></pre>
+
+<p>So you want to know what <code>import</code> actually does?</p>
+
+<p>First of all <code>import</code> gets the type of the third parameter (&#39;CODE&#39; in this case). <code>attributes.pm</code> checks if there is a subroutine called <code>MODIFY_&lt;reftype&gt;_ATTRIBUTES</code> in the caller&#39;s namespace (here: &#39;main&#39;). In this case a subroutine <code>MODIFY_CODE_ATTRIBUTES</code> is required. Then this method is called to check if you have used a &quot;bad attribute&quot;. The subroutine call in this example would look like</p>
+
+<pre><code>  MODIFY_CODE_ATTRIBUTES( &#39;main&#39;, \&amp;foo, &#39;method&#39; );</code></pre>
+
+<p><code>MODIFY_&lt;reftype&gt;_ATTRIBUTES</code> has to return a list of all &quot;bad attributes&quot;. If there are any bad attributes <code>import</code> croaks.</p>
+
+<p>(See <a href="#Package-specific-Attribute-Handling">&quot;Package-specific Attribute Handling&quot;</a> below.)</p>
+
+<h2 id="Built-in-Attributes">Built-in Attributes</h2>
+
+<p>The following are the built-in attributes for subroutines:</p>
+
+<dl>
+
+<dt id="lvalue">lvalue</dt>
+<dd>
+
+<p>Indicates that the referenced subroutine is a valid lvalue and can be assigned to. The subroutine must return a modifiable value such as a scalar variable, as described in <a href="/cperl/perlsub.html">perlsub</a>.</p>
+
+<p>This module allows one to set this attribute on a subroutine that is already defined. For Perl subroutines (XSUBs are fine), it may or may not do what you want, depending on the code inside the subroutine, with details subject to change in future Perl versions. You may run into problems with lvalue context not being propagated properly into the subroutine, or maybe even assertion failures. For this reason, a warning is emitted if warnings are enabled. In other words, you should only do this if you really know what you are doing. You have been warned.</p>
+
+</dd>
+<dt id="method">method</dt>
+<dd>
+
+<p>Indicates that the referenced subroutine is a method. A subroutine so marked will not trigger the &quot;Ambiguous call resolved as CORE::%s&quot; warning.</p>
+
+</dd>
+<dt id="prototype">prototype(..)</dt>
+<dd>
+
+<p>The &quot;prototype&quot; attribute is an alternate means of specifying a prototype on a sub. The desired prototype is within the parens.</p>
+
+<p>The prototype from the attribute is assigned to the sub immediately after the prototype from the sub, which means that if both are declared at the same time, the traditionally defined prototype is ignored. In other words, <code>sub foo($$) : prototype(@) {}</code> is indistinguishable from <code>sub foo(@){}</code>.</p>
+
+<p>If illegalproto warnings are enabled, the prototype declared inside this attribute will be sanity checked at compile time.</p>
+
+</dd>
+<dt id="locked">locked</dt>
+<dd>
+
+<p>The &quot;locked&quot; attribute is deprecated, and has no effect in 5.10.0 and later. It was used as part of the now-removed &quot;Perl 5.005 threads&quot;. It will disappear in Perl 5.28, after which its use will be fatal.</p>
+
+</dd>
+<dt id="const">const</dt>
+<dd>
+
+<p>This experimental attribute was introduced in Perl 5.22.</p>
+
+<p>With the cperl variant it works for all data values, without only for anonymous subroutines. For subroutines it causes compile-time evaluation. The return value is captured and turned into a constant subroutine. For other data it sets the READONLY flag and enables compile-time optimizations.</p>
+
+</dd>
+<dt id="Int-Uint-Num-Str-int-uint-num-str">Int, Uint, Num, Str, int, uint, num, str</dt>
+<dd>
+
+<p>The cperl variant uses coretypes which declares these types. For subroutines these types declare the strict return type for the subroutine.</p>
+
+</dd>
+<dt id="native-item-native-STRING-item-native-STRING-INT-or-STRING">native =item native(STRING) =item native(STRING, INT or STRING)</dt>
+<dd>
+
+<p>Mark a subroutine as extern (<i>ffi</i>) and optionally define a shared library name for it. The lib prefix and the extension suffix may be omitted. So :native(&quot;mysqlclient&quot;) will search for &quot;libmysqlclient.so&quot; on linux. See <a href="/cperl/lib/DynaLoader.html">DynaLoader</a> for the rules. cperl-only.</p>
+
+<p>The optional 2nd argument specifies the minimal soname version. It defaults to 0, which is being ignored when searching for matching filenames. Note that perl6 uses a &#39;v&#39; prefixed version, and can thereby handle triples, like <code>v1.2.0 =</code> libfoo.so.1.2.0&gt; We use the version not as number but merely as search hint string for the name of the shared library. <code>:native(&quot;mysqlclient&quot;, 18)</code> will find <i>libmysqlclient.so.18</i> on ELF platforms, <i>cygmysqlclient-18.dll</i> on cygwin, <i>libmysqlclient.18.dylib</i> on darwin, <i>mysqlclient.dll</i> but not <i>libmysql.dll</i> on windows.</p>
+
+<p>Note that <code>:native</code> may and <a href="#symbol-STRING"><code>:symbol</code></a> must take an argument list which is expanded at run-time, e.g. <code>:native($libname)</code>. A bareword is used as constant, a function call is prefixed with <code>&amp;</code> (NYI). I.e.</p>
+
+<pre><code>    sub x :native(libname);
+     =&gt; CvFFILIB(\&amp;x) = DynaLoader::dl_load_file(&quot;libname&quot;);
+    sub x :native(&amp;libname(&quot;arg&quot;));
+     =&gt; CvFFILIB(\&amp;x) = DynaLoader::dl_load_file(libname(arg));</code></pre>
+
+<p>Note: perl5 and perl6 cannot handle variables in attribute/trait arguments, only compile-time values. That&#39;s a severe limitation, as you cannot run-time DynaLoad specific shared libraries, which is problematic as the names for shared libraries don&#39;t follow a proper naming scheme on some platforms.</p>
+
+<p>The <code>CvFFILIB</code> field is later re-used for the libffi <code>ffi_cif* struct</code>, holding the signature: the arity and argument and return types.</p>
+
+</dd>
+<dt id="symbol-STRING">symbol(STRING)</dt>
+<dd>
+
+<p>Only valid for <a href="#native"><code>:native</code></a> extern subroutines, to define a non-default C symbol name. The <code>_</code> prefix rule for the C ABI is used from DynaLoader, so it can be omitted. cperl-only.</p>
+
+<p>The mandatory argument is expanded. It is used as argument to <code>DynaLoader::dl_find_symbol()</code> to resolve the ffi function symbol in the shared library. I.e. <code>sub x :native :symbol(&quot;X&quot;);</code> =&gt; <code>CvXSUB(\&amp;x) = DynaLoader::dl_find_symbol(CvFFILIB(\&amp;x), &quot;X&quot;);</code></p>
+
+</dd>
+<dt id="encoded-STRING">encoded(STRING)</dt>
+<dd>
+
+<p>Specifies an encoding translation layer for strings passed to or from native calls. The argument must be a valid <a href="/cperl/lib/Encode/Alias.html">Encode::Alias</a>.</p>
+
+<p>E.g.</p>
+
+<pre><code>  extern sub message_box(Str :encoded(&#39;utf8&#39;));
+  extern sub input_box() :Str :encoded(&#39;utf8&#39;);</code></pre>
+
+</dd>
+<dt id="nativeconv-STRING">nativeconv(STRING)</dt>
+<dd>
+
+<p>Specifies a different native calling convention, the ABI, than the platform and libffi default. Only valid in a <code>:native</code> or <code>extern sub</code> declaration.</p>
+
+<p>It defaults to the <code>&quot;DEFAULT&quot;</code> ABI, matching FFI_DEFAULT_ABI. Valid ABI&#39;s are libffi and platform-specific. Platforms with multiple ABI&#39;s are (see <i>libffi/src/*/ffitarget.h</i>):</p>
+
+<pre><code>    arm (not aarch64): VFP, SYSV
+    mips: O32, N32, N64, O32_SOFT_FLOAT, N32_SOFT_FLOAT, N64_SOFT_FLOAT
+    powerpc: AIX, DARWIN
+    powerpc (not aix, not darwin): SYSV, COMPAT_SYSV, COMPAT_GCC_SYSV,
+             COMPAT_LINUX64, COMPAT_LINUX, COMPAT_LINUX_SOFT_FLOAT
+      or powerpc64: LINUX
+    x86_64: UNIX64, WIN64
+    x86: SYSV, STDCALL, THISCALL, FASTCALL, MS_CDECL, PASCAL, REGISTER</code></pre>
+
+<p>Note the the names differ from perl6. perl6 uses the <i>dyncall</i> library with different ABI support and names. The only tested perl6 <code>nativeconv</code> is &quot;thisgnu&quot;, i.e. cdecl or SYSV. cperl uses <i>libffi</i>.</p>
+
+</dd>
+<dt id="Any-other-name">Any other name</dt>
+<dd>
+
+<p>cperl lets you declare function return types. Any other name is the strict return type for the subroutine. If the type does not exist an error is thrown.</p>
+
+</dd>
+</dl>
+
+<p>The following are the built-in attributes for variables:</p>
+
+<dl>
+
+<dt id="shared">shared</dt>
+<dd>
+
+<p>Indicates that the referenced variable can be shared across different threads when used in conjunction with the <a href="/cperl/lib/threads.html">threads</a> and <a href="/cperl/lib/threads/shared.html">threads::shared</a> modules.</p>
+
+</dd>
+<dt id="unique">unique</dt>
+<dd>
+
+<p>The &quot;unique&quot; attribute is deprecated, and has no effect in 5.10.0 and later. It used to indicate that a single copy of an <code>our</code> variable was to be used by all interpreters should the program happen to be running in a multi-interpreter environment. It will disappear in 5.28, after which its use will be fatal.</p>
+
+</dd>
+<dt id="const1">const</dt>
+<dd>
+
+<p>With the cperl variant :const declares a lexical variable as compile-time constant, it sets the READONLY flag.</p>
+
+</dd>
+<dt id="Int-Uint-Num-Str-int-uint-num-str1">Int, Uint, Num, Str, int, uint, num, str</dt>
+<dd>
+
+<p>The cperl variant uses coretypes which declares these types. These types attributes declare the strict type for the variable.</p>
+
+</dd>
+</dl>
+
+<h2 id="Available-Subroutines">Available Subroutines</h2>
+
+<p>The following subroutines are available for general use once this module has been loaded:</p>
+
+<dl>
+
+<dt id="get">get</dt>
+<dd>
+
+<p>This routine expects a single parameter--a reference to a subroutine or variable. It returns a list of attributes, which may be empty. If passed invalid arguments, it uses die() (via <a href="/cperl/lib/Carp.html">Carp::croak</a>) to raise a fatal exception. If it can find an appropriate package name for a class method lookup, it will include the results from a <code>FETCH_<i>type</i>_ATTRIBUTES</code> call in its return list, as described in <a href="#Package-specific-Attribute-Handling">&quot;Package-specific Attribute Handling&quot;</a> below. Otherwise, only <a href="#Built-in-Attributes">built-in attributes</a> will be returned.</p>
+
+</dd>
+<dt id="reftype">reftype</dt>
+<dd>
+
+<p>This routine expects a single parameter--a reference to a subroutine or variable. It returns the built-in type of the referenced variable, ignoring any package into which it might have been blessed. This can be useful for determining the <i>type</i> value which forms part of the method names described in <a href="#Package-specific-Attribute-Handling">&quot;Package-specific Attribute Handling&quot;</a> below.</p>
+
+</dd>
+</dl>
+
+<p>Note that these routines are <i>not</i> exported by default.</p>
+
+<h2 id="Package-specific-Attribute-Handling">Package-specific Attribute Handling</h2>
+
+<p><b>WARNING</b>: the mechanisms described here are still experimental. Do not rely on the current implementation. In particular, there is no provision for applying package attributes to &#39;cloned&#39; copies of subroutines used as closures. (See <a href="/cperl/perlref.html#Making-References">&quot;Making References&quot; in perlref</a> for information on closures.) Package-specific attribute handling may change incompatibly in a future release.</p>
+
+<p>When an attribute list is present in a declaration, a check is made to see whether an attribute MODIFY_<i>type</i>_ATTRIBUTES &#39;modify&#39; handler is present in the appropriate package (or its @ISA inheritance tree). Similarly, when <code>attributes::get</code> is called on a valid reference, a check is made for an appropriate attribute FETCH_<i>type</i>_ATTRIBUTES &#39;fetch&#39; handler. See <a href="#EXAMPLES">&quot;EXAMPLES&quot;</a> to see how the &quot;appropriate package&quot; determination works.</p>
+
+<p>The handler names are based on the underlying type of the variable being declared or of the reference passed. Because these attributes are associated with subroutine or variable declarations, this deliberately ignores any possibility of being blessed into some package. Thus, a subroutine declaration uses &quot;CODE&quot; as its <i>type</i>, and even a blessed hash reference uses &quot;HASH&quot; as its <i>type</i>.</p>
+
+<p>The class methods invoked for modifying and fetching are these:</p>
+
+<dl>
+
+<dt id="CHECK_type_ATTRIBUTES">CHECK_<i>type</i>_ATTRIBUTES</dt>
+<dd>
+
+<p>This method is called with two fixed arguments, followed by the list of attributes from the relevant declaration. The two fixed arguments are the relevant package name and a reference to the declared subroutine or variable. The expected return value is a list of attributes which were not recognized by this handler. Note that this allows for a derived class to delegate a call to its base class, and then only examine the attributes which the base class didn&#39;t already handle for it.</p>
+
+<p>The call to this method is made at compile-time, at the CHECK phase, which guarantees the processing of the declaration. In particular, this means that a subroutine reference will probably be for an undefined subroutine, even if this declaration is actually part of the definition.</p>
+
+</dd>
+<dt id="FETCH_type_ATTRIBUTES">FETCH_<i>type</i>_ATTRIBUTES</dt>
+<dd>
+
+<p>This method is called with two arguments: the relevant package name, and a reference to a variable or subroutine for which package-defined attributes are desired. The expected return value is a list of associated attributes. This list may be empty.</p>
+
+</dd>
+<dt id="MODIFY_type_ATTRIBUTES">MODIFY_<i>type</i>_ATTRIBUTES</dt>
+<dd>
+
+<p>This method is called with two fixed arguments, followed by the list of attributes from the relevant declaration. The two fixed arguments are the relevant package name and a reference to the declared subroutine or variable. The expected return value is a list of attributes which were not recognized by this handler. Note that this allows for a derived class to delegate a call to its base class, and then only examine the attributes which the base class didn&#39;t already handle for it.</p>
+
+<p>The call to this method is currently made <i>during</i> the processing of the declaration. In particular, this means that a subroutine reference will probably be for an undefined subroutine, even if this declaration is actually part of the definition.</p>
+
+</dd>
+</dl>
+
+<p>Calling <code>attributes::get()</code> from within the scope of a null package declaration <code>package ;</code> for an unblessed variable reference will not provide any starting package name for the &#39;fetch&#39; method lookup. Thus, this circumstance will not result in a method call for package-defined attributes. A named subroutine knows to which symbol table entry it belongs (or originally belonged), and it will use the corresponding package. An anonymous subroutine knows the package name into which it was compiled (unless it was also compiled with a null package declaration), and so it will use that package name.</p>
+
+<h2 id="Syntax-of-Attribute-Lists">Syntax of Attribute Lists</h2>
+
+<p>An attribute list is a sequence of attribute specifications, separated by whitespace or a colon (with optional whitespace). Each attribute specification is a simple name, optionally followed by a parenthesised parameter list. If such a parameter list is present, it is scanned past as for the rules for the <code>q()</code> operator. (See <a href="/cperl/perlop.html#Quote-and-Quote-like-Operators">&quot;Quote and Quote-like Operators&quot; in perlop</a>.) The parameter list is passed as it was found, however, and not as per <code>q()</code>.</p>
+
+<p>Some examples of syntactically valid attribute lists:</p>
+
+<pre><code>    switch(10,foo(7,3))  :  expensive
+    Ugly(&#39;\(&quot;) :Bad
+    _5x5
+    lvalue method</code></pre>
+
+<p>Some examples of syntactically invalid attribute lists (with annotation):</p>
+
+<pre><code>    switch(10,foo()             # ()-string not balanced
+    Ugly(&#39;(&#39;)                   # ()-string not balanced
+    5x5                         # &quot;5x5&quot; not a valid identifier
+    Y2::north                   # &quot;Y2::north&quot; not a simple identifier
+    foo + bar                   # &quot;+&quot; neither a colon nor whitespace</code></pre>
+
+<h1 id="EXPORTS">EXPORTS</h1>
+
+<h2 id="Default-exports">Default exports</h2>
+
+<p>None.</p>
+
+<h2 id="Available-exports">Available exports</h2>
+
+<p>The routines <code>get</code> and <code>reftype</code> are exportable.</p>
+
+<h2 id="Export-tags-defined">Export tags defined</h2>
+
+<p>The <code>:ALL</code> tag will get all of the above exports.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Here are some samples of syntactically valid declarations, with annotation as to how they resolve internally into <code>use attributes</code> invocations by perl. These examples are primarily useful to see how the &quot;appropriate package&quot; is found for the possible method lookups for package-defined attributes.</p>
+
+<ol>
+
+<li><p>Code:</p>
+
+<pre><code>    package Canine;
+    package Dog;
+    my Canine $spot : Watchful ;</code></pre>
+
+<p>Effect:</p>
+
+<pre><code>    use attributes ();
+    attributes::-&gt;import(Canine =&gt; \$spot, &quot;Watchful&quot;);</code></pre>
+
+</li>
+<li><p>Code:</p>
+
+<pre><code>    package Felis;
+    my $cat : Nervous;</code></pre>
+
+<p>Effect:</p>
+
+<pre><code>    use attributes ();
+    attributes::-&gt;import(Felis =&gt; \$cat, &quot;Nervous&quot;);</code></pre>
+
+</li>
+<li><p>Code:</p>
+
+<pre><code>    package X;
+    sub foo : lvalue ;</code></pre>
+
+<p>Effect:</p>
+
+<pre><code>    use attributes X =&gt; \&amp;foo, &quot;lvalue&quot;;</code></pre>
+
+</li>
+<li><p>Code:</p>
+
+<pre><code>    package X;
+    sub Y::x : lvalue { 1 }</code></pre>
+
+<p>Effect:</p>
+
+<pre><code>    use attributes Y =&gt; \&amp;Y::x, &quot;lvalue&quot;;</code></pre>
+
+</li>
+<li><p>Code:</p>
+
+<pre><code>    package X;
+    sub foo { 1 }
+
+    package Y;
+    BEGIN { *bar = \&amp;X::foo; }
+
+    package Z;
+    sub Y::bar : lvalue ;</code></pre>
+
+<p>Effect:</p>
+
+<pre><code>    use attributes X =&gt; \&amp;X::foo, &quot;lvalue&quot;;</code></pre>
+
+</li>
+</ol>
+
+<p>This last example is purely for purposes of completeness. You should not be trying to mess with the attributes of something in a package that&#39;s not your own.</p>
+
+<h1 id="MORE-EXAMPLES">MORE EXAMPLES</h1>
+
+<ol>
+
+<li><p></p>
+
+<pre><code>    sub CHECK_CODE_ATTRIBUTES {
+       my ($class,$code,@attrs) = @_;
+
+       my $allowed = &#39;MyAttribute&#39;;
+       my @bad = grep { $_ ne $allowed } @attrs;
+
+       return @bad;
+    }
+
+    sub foo : MyAttribute {
+       print &quot;foo\n&quot;;
+    }</code></pre>
+
+<p>This example runs. At compile time <code>CHECK_CODE_ATTRIBUTES</code> is called. In that subroutine, we check if any attribute is disallowed and we return a list of these &quot;bad attributes&quot;.</p>
+
+<p>As we return an empty list, everything is fine.</p>
+
+</li>
+<li><p></p>
+
+<pre><code>  sub CHECK_CODE_ATTRIBUTES {
+     my ($class,$code,@attrs) = @_;
+
+     my $allowed = &#39;MyAttribute&#39;;
+     my @bad = grep{ $_ ne $allowed } @attrs;
+
+     return @bad;
+  }
+
+  sub foo : MyAttribute Test {
+     print &quot;foo\n&quot;;
+  }</code></pre>
+
+<p>This example is aborted at compile time as we use the attribute &quot;Test&quot; which isn&#39;t allowed. <code>CHECK_CODE_ATTRIBUTES</code> returns a list that contains a single element (&#39;Test&#39;).</p>
+
+</li>
+</ol>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perlsub.html#Private-Variables-via-my">&quot;Private Variables via my()&quot; in perlsub</a> and <a href="/cperl/perlsub.html#Subroutine-Attributes">&quot;Subroutine Attributes&quot; in perlsub</a> for details on the basic declarations; <a href="/cperl/perlfunc.html#use">&quot;use&quot; in perlfunc</a> for details on the normal invocation mechanism.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,269 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CONSTRUCTOR">CONSTRUCTOR</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#NOTES">NOTES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Net::POP3 - Post Office Protocol 3 Client class (RFC1939)</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Net::POP3;
+
+    # Constructors
+    $pop = Net::POP3-&gt;new(&#39;pop3host&#39;);
+    $pop = Net::POP3-&gt;new(&#39;pop3host&#39;, Timeout =&gt; 60);
+    $pop = Net::POP3-&gt;new(&#39;pop3host&#39;, SSL =&gt; 1, Timeout =&gt; 60);
+
+    if ($pop-&gt;login($username, $password) &gt; 0) {
+      my $msgnums = $pop-&gt;list; # hashref of msgnum =&gt; size
+      foreach my $msgnum (keys %$msgnums) {
+        my $msg = $pop-&gt;get($msgnum);
+        print @$msg;
+        $pop-&gt;delete($msgnum);
+      }
+    }
+
+    $pop-&gt;quit;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module implements a client interface to the POP3 protocol, enabling a perl5 application to talk to POP3 servers. This documentation assumes that you are familiar with the POP3 protocol described in RFC1939. With <a>IO::Socket::SSL</a> installed it also provides support for implicit and explicit TLS encryption, i.e. POP3S or POP3+STARTTLS.</p>
+
+<p>A new Net::POP3 object must be created with the <i>new</i> method. Once this has been done, all POP3 commands are accessed via method calls on the object.</p>
+
+<p>The Net::POP3 class is a subclass of Net::Cmd and (depending on avaibility) of IO::Socket::IP, IO::Socket::INET6 or IO::Socket::INET.</p>
+
+<h1 id="CONSTRUCTOR">CONSTRUCTOR</h1>
+
+<dl>
+
+<dt id="new-HOST-OPTIONS">new ( [ HOST ] [, OPTIONS ] )</dt>
+<dd>
+
+<p>This is the constructor for a new Net::POP3 object. <code>HOST</code> is the name of the remote host to which an POP3 connection is required.</p>
+
+<p><code>HOST</code> is optional. If <code>HOST</code> is not given then it may instead be passed as the <code>Host</code> option described below. If neither is given then the <code>POP3_Hosts</code> specified in <code>Net::Config</code> will be used.</p>
+
+<p><code>OPTIONS</code> are passed in a hash like fashion, using key and value pairs. Possible options are:</p>
+
+<p><b>Host</b> - POP3 host to connect to. It may be a single scalar, as defined for the <code>PeerAddr</code> option in <a href="/cperl/lib/IO/Socket/INET.html">IO::Socket::INET</a>, or a reference to an array with hosts to try in turn. The <a href="#host">&quot;host&quot;</a> method will return the value which was used to connect to the host.</p>
+
+<p><b>Port</b> - port to connect to. Default - 110 for plain POP3 and 995 for POP3s (direct SSL).</p>
+
+<p><b>SSL</b> - If the connection should be done from start with SSL, contrary to later upgrade with <code>starttls</code>. You can use SSL arguments as documented in <a>IO::Socket::SSL</a>, but it will usually use the right arguments already.</p>
+
+<p><b>LocalAddr</b> and <b>LocalPort</b> - These parameters are passed directly to IO::Socket to allow binding the socket to a specific local address and port. For compatibility with older versions <b>ResvPort</b> can be used instead of <b>LocalPort</b>.</p>
+
+<p><b>Domain</b> - This parameter is passed directly to IO::Socket and makes it possible to enforce IPv4 connections even if <a href="/cperl/lib/IO/Socket/IP.html">IO::Socket::IP</a> is used as super class. Alternatively <b>Family</b> can be used.</p>
+
+<p><b>Timeout</b> - Maximum time, in seconds, to wait for a response from the POP3 server (default: 120)</p>
+
+<p><b>Debug</b> - Enable debugging information</p>
+
+</dd>
+</dl>
+
+<h1 id="METHODS">METHODS</h1>
+
+<p>Unless otherwise stated all methods return either a <i>true</i> or <i>false</i> value, with <i>true</i> meaning that the operation was a success. When a method states that it returns a value, failure will be returned as <i>undef</i> or an empty list.</p>
+
+<p><code>Net::POP3</code> inherits from <code>Net::Cmd</code> so methods defined in <code>Net::Cmd</code> may be used to send commands to the remote POP3 server in addition to the methods documented here.</p>
+
+<dl>
+
+<dt id="host">host ()</dt>
+<dd>
+
+<p>Returns the value used by the constructor, and passed to IO::Socket::INET, to connect to the host.</p>
+
+</dd>
+<dt id="auth-USERNAME-PASSWORD">auth ( USERNAME, PASSWORD )</dt>
+<dd>
+
+<p>Attempt SASL authentication.</p>
+
+</dd>
+<dt id="user-USER">user ( USER )</dt>
+<dd>
+
+<p>Send the USER command.</p>
+
+</dd>
+<dt id="pass-PASS">pass ( PASS )</dt>
+<dd>
+
+<p>Send the PASS command. Returns the number of messages in the mailbox.</p>
+
+</dd>
+<dt id="login-USER-PASS">login ( [ USER [, PASS ]] )</dt>
+<dd>
+
+<p>Send both the USER and PASS commands. If <code>PASS</code> is not given the <code>Net::POP3</code> uses <code>Net::Netrc</code> to lookup the password using the host and username. If the username is not specified then the current user name will be used.</p>
+
+<p>Returns the number of messages in the mailbox. However if there are no messages on the server the string <code>&quot;0E0&quot;</code> will be returned. This is will give a true value in a boolean context, but zero in a numeric context.</p>
+
+<p>If there was an error authenticating the user then <i>undef</i> will be returned.</p>
+
+</dd>
+<dt id="starttls-SSLARGS">starttls ( SSLARGS )</dt>
+<dd>
+
+<p>Upgrade existing plain connection to SSL. You can use SSL arguments as documented in <a>IO::Socket::SSL</a>, but it will usually use the right arguments already.</p>
+
+</dd>
+<dt id="apop-USER-PASS">apop ( [ USER [, PASS ]] )</dt>
+<dd>
+
+<p>Authenticate with the server identifying as <code>USER</code> with password <code>PASS</code>. Similar to <a href="#login">&quot;login&quot;</a>, but the password is not sent in clear text.</p>
+
+<p>To use this method you must have the Digest::MD5 or the MD5 module installed, otherwise this method will return <i>undef</i>.</p>
+
+</dd>
+<dt id="banner">banner ()</dt>
+<dd>
+
+<p>Return the sever&#39;s connection banner</p>
+
+</dd>
+<dt id="capa">capa ()</dt>
+<dd>
+
+<p>Return a reference to a hash of the capabilities of the server. APOP is added as a pseudo capability. Note that I&#39;ve been unable to find a list of the standard capability values, and some appear to be multi-word and some are not. We make an attempt at intelligently parsing them, but it may not be correct.</p>
+
+</dd>
+<dt id="capabilities">capabilities ()</dt>
+<dd>
+
+<p>Just like capa, but only uses a cache from the last time we asked the server, so as to avoid asking more than once.</p>
+
+</dd>
+<dt id="top-MSGNUM-NUMLINES">top ( MSGNUM [, NUMLINES ] )</dt>
+<dd>
+
+<p>Get the header and the first <code>NUMLINES</code> of the body for the message <code>MSGNUM</code>. Returns a reference to an array which contains the lines of text read from the server.</p>
+
+</dd>
+<dt id="list-MSGNUM">list ( [ MSGNUM ] )</dt>
+<dd>
+
+<p>If called with an argument the <code>list</code> returns the size of the message in octets.</p>
+
+<p>If called without arguments a reference to a hash is returned. The keys will be the <code>MSGNUM</code>&#39;s of all undeleted messages and the values will be their size in octets.</p>
+
+</dd>
+<dt id="get-MSGNUM-FH">get ( MSGNUM [, FH ] )</dt>
+<dd>
+
+<p>Get the message <code>MSGNUM</code> from the remote mailbox. If <code>FH</code> is not given then get returns a reference to an array which contains the lines of text read from the server. If <code>FH</code> is given then the lines returned from the server are printed to the filehandle <code>FH</code>.</p>
+
+</dd>
+<dt id="getfh-MSGNUM">getfh ( MSGNUM )</dt>
+<dd>
+
+<p>As per get(), but returns a tied filehandle. Reading from this filehandle returns the requested message. The filehandle will return EOF at the end of the message and should not be reused.</p>
+
+</dd>
+<dt id="last">last ()</dt>
+<dd>
+
+<p>Returns the highest <code>MSGNUM</code> of all the messages accessed.</p>
+
+</dd>
+<dt id="popstat">popstat ()</dt>
+<dd>
+
+<p>Returns a list of two elements. These are the number of undeleted elements and the size of the mbox in octets.</p>
+
+</dd>
+<dt id="ping-USER">ping ( USER )</dt>
+<dd>
+
+<p>Returns a list of two elements. These are the number of new messages and the total number of messages for <code>USER</code>.</p>
+
+</dd>
+<dt id="uidl-MSGNUM">uidl ( [ MSGNUM ] )</dt>
+<dd>
+
+<p>Returns a unique identifier for <code>MSGNUM</code> if given. If <code>MSGNUM</code> is not given <code>uidl</code> returns a reference to a hash where the keys are the message numbers and the values are the unique identifiers.</p>
+
+</dd>
+<dt id="delete-MSGNUM">delete ( MSGNUM )</dt>
+<dd>
+
+<p>Mark message <code>MSGNUM</code> to be deleted from the remote mailbox. All messages that are marked to be deleted will be removed from the remote mailbox when the server connection closed.</p>
+
+</dd>
+<dt id="reset">reset ()</dt>
+<dd>
+
+<p>Reset the status of the remote POP3 server. This includes resetting the status of all messages to not be deleted.</p>
+
+</dd>
+<dt id="quit">quit ()</dt>
+<dd>
+
+<p>Quit and close the connection to the remote POP3 server. Any messages marked as deleted will be deleted from the remote mailbox.</p>
+
+</dd>
+<dt id="can_inet6">can_inet6 ()</dt>
+<dd>
+
+<p>Returns whether we can use IPv6.</p>
+
+</dd>
+<dt id="can_ssl">can_ssl ()</dt>
+<dd>
+
+<p>Returns whether we can use SSL.</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTES">NOTES</h1>
+
+<p>If a <code>Net::POP3</code> object goes out of scope before <code>quit</code> method is called then the <code>reset</code> method will called before the connection is closed. This means that any messages marked to be deleted will not be.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Net/Netrc.html">Net::Netrc</a>, <a href="/cperl/lib/Net/Cmd.html">Net::Cmd</a>, <a>IO::Socket::SSL</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Graham Barr &lt;<i>gbarr@pobox.com</i>&gt;</p>
+
+<p>Steve Hay &lt;<i>shay@cpan.org</i>&gt; is now maintaining libnet as of version 1.22_02</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Versions up to 2.29 Copyright (c) 1995-2004 Graham Barr. All rights reserved. Changes in Version 2.29_01 onwards Copyright (C) 2013-2015 Steve Hay. All rights reserved.</p>
+
+<p>This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself, i.e. under the terms of either the GNU General Public License or the Artistic License, as specified in the <i>LICENCE</i> file.</p>
+
+
+</body>
+
+</html>
+
+

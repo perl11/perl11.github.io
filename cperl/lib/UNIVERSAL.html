@@ -1,0 +1,186 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#WARNINGS">WARNINGS</a></li>
+  <li><a href="#EXPORTS">EXPORTS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>UNIVERSAL - base class for ALL classes (blessed references)</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    $is_io    = $fd-&gt;isa(&quot;IO::Handle&quot;);
+    $is_io    = Class-&gt;isa(&quot;IO::Handle&quot;);
+
+    $does_log = $obj-&gt;DOES(&quot;Logger&quot;);
+    $does_log = Class-&gt;DOES(&quot;Logger&quot;);
+
+    $sub      = $obj-&gt;can(&quot;print&quot;);
+    $sub      = Class-&gt;can(&quot;print&quot;);
+
+    $sub      = eval { $ref-&gt;can(&quot;fandango&quot;) };
+    $ver      = $obj-&gt;VERSION;
+
+    # but never do this!
+    $is_io    = UNIVERSAL::isa($fd, &quot;IO::Handle&quot;);
+    $sub      = UNIVERSAL::can($obj, &quot;print&quot;);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>UNIVERSAL</code> is the base class from which all blessed references inherit. See <a href="/cperl/perlobj.html">perlobj</a>.</p>
+
+<p><code>UNIVERSAL</code> provides the following methods:</p>
+
+<dl>
+
+<dt id="obj-isa-TYPE"><code>$obj-&gt;isa( TYPE )</code></dt>
+<dd>
+
+</dd>
+<dt id="CLASS-isa-TYPE"><code>CLASS-&gt;isa( TYPE )</code></dt>
+<dd>
+
+</dd>
+<dt id="eval-VAL-isa-TYPE"><code>eval { VAL-&gt;isa( TYPE ) }</code></dt>
+<dd>
+
+<p>Where</p>
+
+<dl>
+
+<dt id="TYPE"><code>TYPE</code></dt>
+<dd>
+
+<p>is a package name</p>
+
+</dd>
+<dt id="obj"><code>$obj</code></dt>
+<dd>
+
+<p>is a blessed reference or a package name</p>
+
+</dd>
+<dt id="CLASS"><code>CLASS</code></dt>
+<dd>
+
+<p>is a package name</p>
+
+</dd>
+<dt id="VAL"><code>VAL</code></dt>
+<dd>
+
+<p>is any of the above or an unblessed reference</p>
+
+</dd>
+</dl>
+
+<p>When used as an instance or class method (<code>$obj-&gt;isa( TYPE )</code>), <code>isa</code> returns <i>true</i> if $obj is blessed into package <code>TYPE</code> or inherits from package <code>TYPE</code>.</p>
+
+<p>When used as a class method (<code>CLASS-&gt;isa( TYPE )</code>, sometimes referred to as a static method), <code>isa</code> returns <i>true</i> if <code>CLASS</code> inherits from (or is itself) the name of the package <code>TYPE</code> or inherits from package <code>TYPE</code>.</p>
+
+<p>If you&#39;re not sure what you have (the <code>VAL</code> case), wrap the method call in an <code>eval</code> block to catch the exception if <code>VAL</code> is undefined.</p>
+
+<p>If you want to be sure that you&#39;re calling <code>isa</code> as a method, not a class, check the invocand with <code>blessed</code> from <a href="/cperl/lib/Scalar/Util.html">Scalar::Util</a> first:</p>
+
+<pre><code>  use Scalar::Util &#39;blessed&#39;;
+
+  if ( blessed( $obj ) &amp;&amp; $obj-&gt;isa(&quot;Some::Class&quot;) ) {
+      ...
+  }</code></pre>
+
+</dd>
+<dt id="obj-DOES-ROLE"><code>$obj-&gt;DOES( ROLE )</code></dt>
+<dd>
+
+</dd>
+<dt id="CLASS-DOES-ROLE"><code>CLASS-&gt;DOES( ROLE )</code></dt>
+<dd>
+
+<p><code>DOES</code> checks if the object or class performs the role <code>ROLE</code>. A role is a named group of specific behavior (often methods of particular names and signatures), similar to a class, but not necessarily a complete class by itself. For example, logging or serialization may be roles.</p>
+
+<p><code>DOES</code> and <code>isa</code> are similar, in that if either is true, you know that the object or class on which you call the method can perform specific behavior. However, <code>DOES</code> is different from <code>isa</code> in that it does not care <i>how</i> the invocand performs the operations, merely that it does. (<code>isa</code> of course mandates an inheritance relationship. Other relationships include aggregation, delegation, and mocking.)</p>
+
+<p>By default, classes in Perl only perform the <code>UNIVERSAL</code> role, as well as the role of all classes in their inheritance. In other words, by default <code>DOES</code> responds identically to <code>isa</code>.</p>
+
+<p>There is a relationship between roles and classes, as each class implies the existence of a role of the same name. There is also a relationship between inheritance and roles, in that a subclass that inherits from an ancestor class implicitly performs any roles its parent performs. Thus you can use <code>DOES</code> in place of <code>isa</code> safely, as it will return true in all places where <code>isa</code> will return true (provided that any overridden <code>DOES</code> <i>and</i> <code>isa</code> methods behave appropriately).</p>
+
+</dd>
+<dt id="obj-can-METHOD"><code>$obj-&gt;can( METHOD )</code></dt>
+<dd>
+
+</dd>
+<dt id="CLASS-can-METHOD"><code>CLASS-&gt;can( METHOD )</code></dt>
+<dd>
+
+</dd>
+<dt id="eval-VAL-can-METHOD"><code>eval { VAL-&gt;can( METHOD ) }</code></dt>
+<dd>
+
+<p><code>can</code> checks if the object or class has a method called <code>METHOD</code>. If it does, then it returns a reference to the sub. If it does not, then it returns <i>undef</i>. This includes methods inherited or imported by <code>$obj</code>, <code>CLASS</code>, or <code>VAL</code>.</p>
+
+<p><code>can</code> cannot know whether an object will be able to provide a method through AUTOLOAD (unless the object&#39;s class has overridden <code>can</code> appropriately), so a return value of <i>undef</i> does not necessarily mean the object will not be able to handle the method call. To get around this some module authors use a forward declaration (see <a href="/cperl/perlsub.html">perlsub</a>) for methods they will handle via AUTOLOAD. For such &#39;dummy&#39; subs, <code>can</code> will still return a code reference, which, when called, will fall through to the AUTOLOAD. If no suitable AUTOLOAD is provided, calling the coderef will cause an error.</p>
+
+<p>You may call <code>can</code> as a class (static) method or an object method.</p>
+
+<p>Again, the same rule about having a valid invocand applies -- use an <code>eval</code> block or <code>blessed</code> if you need to be extra paranoid.</p>
+
+</dd>
+<dt id="VERSION-REQUIRE"><code>VERSION ( [ REQUIRE ] )</code></dt>
+<dd>
+
+<p><code>VERSION</code> will return the value of the variable <code>$VERSION</code> in the package the object is blessed into. If <code>REQUIRE</code> is given then it will do a comparison and die if the package version is not greater than or equal to <code>REQUIRE</code>, or if either <code>$VERSION</code> or <code>REQUIRE</code> is not a &quot;lax&quot; version number (as defined by the <a href="/cperl/lib/version.html">version</a> module).</p>
+
+<p>The return from <code>VERSION</code> will actually be the stringified version object using the package <code>$VERSION</code> scalar, which is guaranteed to be equivalent but may not be precisely the contents of the <code>$VERSION</code> scalar. If you want the actual contents of <code>$VERSION</code>, use <code>$CLASS::VERSION</code> instead.</p>
+
+<p><code>VERSION</code> can be called as either a class (static) method or an object method.</p>
+
+</dd>
+</dl>
+
+<h1 id="WARNINGS">WARNINGS</h1>
+
+<p><b>NOTE:</b> <code>can</code> directly uses Perl&#39;s internal code for method lookup, and <code>isa</code> uses a very similar method and cache-ing strategy. This may cause strange effects if the Perl code dynamically changes @ISA in any package.</p>
+
+<p>You may add other methods to the UNIVERSAL class via Perl or XS code. You do not need to <code>use UNIVERSAL</code> to make these methods available to your program (and you should not do so).</p>
+
+<h1 id="EXPORTS">EXPORTS</h1>
+
+<p>None.</p>
+
+<p>Previous versions of this documentation suggested using <code>isa</code> as a function to determine the type of a reference:</p>
+
+<pre><code>  $yes = UNIVERSAL::isa($h, &quot;HASH&quot;);
+  $yes = UNIVERSAL::isa(&quot;Foo&quot;, &quot;Bar&quot;);</code></pre>
+
+<p>The problem is that this code would <i>never</i> call an overridden <code>isa</code> method in any class. Instead, use <code>reftype</code> from <a href="/cperl/lib/Scalar/Util.html">Scalar::Util</a> for the first case:</p>
+
+<pre><code>  use Scalar::Util &#39;reftype&#39;;
+
+  $yes = reftype( $h ) eq &quot;HASH&quot;;</code></pre>
+
+<p>and the method form of <code>isa</code> for the second:</p>
+
+<pre><code>  $yes = Foo-&gt;isa(&quot;Bar&quot;);</code></pre>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,135 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#BEST-PRACTICE">BEST PRACTICE</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#DIAGNOSTICS">DIAGNOSTICS</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Fatal - Replace functions with equivalents which succeed or die</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Fatal qw(open close);
+
+    open(my $fh, &quot;&lt;&quot;, $filename);  # No need to check errors!
+
+    use File::Copy qw(move);
+    use Fatal qw(move);
+
+    move($file1, $file2); # No need to check errors!
+
+    sub juggle { . . . }
+    Fatal-&gt;import(&#39;juggle&#39;);</code></pre>
+
+<h1 id="BEST-PRACTICE">BEST PRACTICE</h1>
+
+<p><b>Fatal has been obsoleted by the new <a href="/cperl/lib/autodie.html">autodie</a> pragma.</b> Please use <a href="/cperl/lib/autodie.html">autodie</a> in preference to <code>Fatal</code>. <a href="/cperl/lib/autodie.html">autodie</a> supports lexical scoping, throws real exception objects, and provides much nicer error messages.</p>
+
+<p>The use of <code>:void</code> with Fatal is discouraged.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>Fatal</code> provides a way to conveniently replace functions which normally return a false value when they fail with equivalents which raise exceptions if they are not successful. This lets you use these functions without having to test their return values explicitly on each call. Exceptions can be caught using <code>eval{}</code>. See <a href="/cperl/perlfunc.html">perlfunc</a> and <a href="/cperl/perlvar.html">perlvar</a> for details.</p>
+
+<p>The do-or-die equivalents are set up simply by calling Fatal&#39;s <code>import</code> routine, passing it the names of the functions to be replaced. You may wrap both user-defined functions and overridable CORE operators (except <code>exec</code>, <code>system</code>, <code>print</code>, or any other built-in that cannot be expressed via prototypes) in this way.</p>
+
+<p>If the symbol <code>:void</code> appears in the import list, then functions named later in that import list raise an exception only when these are called in void context--that is, when their return values are ignored. For example</p>
+
+<pre><code>    use Fatal qw/:void open close/;
+
+    # properly checked, so no exception raised on error
+    if (not open(my $fh, &#39;&lt;&#39;, &#39;/bogotic&#39;) {
+        warn &quot;Can&#39;t open /bogotic: $!&quot;;
+    }
+
+    # not checked, so error raises an exception
+    close FH;</code></pre>
+
+<p>The use of <code>:void</code> is discouraged, as it can result in exceptions not being thrown if you <i>accidentally</i> call a method without void context. Use <a href="/cperl/lib/autodie.html">autodie</a> instead if you need to be able to disable autodying/Fatal behaviour for a small block of code.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="Bad-subroutine-name-for-Fatal:-s">Bad subroutine name for Fatal: %s</dt>
+<dd>
+
+<p>You&#39;ve called <code>Fatal</code> with an argument that doesn&#39;t look like a subroutine name, nor a switch that this version of Fatal understands.</p>
+
+</dd>
+<dt id="s-is-not-a-Perl-subroutine">%s is not a Perl subroutine</dt>
+<dd>
+
+<p>You&#39;ve asked <code>Fatal</code> to try and replace a subroutine which does not exist, or has not yet been defined.</p>
+
+</dd>
+<dt id="s-is-neither-a-builtin-nor-a-Perl-subroutine">%s is neither a builtin, nor a Perl subroutine</dt>
+<dd>
+
+<p>You&#39;ve asked <code>Fatal</code> to replace a subroutine, but it&#39;s not a Perl built-in, and <code>Fatal</code> couldn&#39;t find it as a regular subroutine. It either doesn&#39;t exist or has not yet been defined.</p>
+
+</dd>
+<dt id="Cannot-make-the-non-overridable-s-fatal">Cannot make the non-overridable %s fatal</dt>
+<dd>
+
+<p>You&#39;ve tried to use <code>Fatal</code> on a Perl built-in that can&#39;t be overridden, such as <code>print</code> or <code>system</code>, which means that <code>Fatal</code> can&#39;t help you, although some other modules might. See the <a href="#SEE-ALSO">&quot;SEE ALSO&quot;</a> section of this documentation.</p>
+
+</dd>
+<dt id="Internal-error:-s">Internal error: %s</dt>
+<dd>
+
+<p>You&#39;ve found a bug in <code>Fatal</code>. Please report it using the <code>perlbug</code> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p><code>Fatal</code> clobbers the context in which a function is called and always makes it a scalar context, except when the <code>:void</code> tag is used. This problem does not exist in <a href="/cperl/lib/autodie.html">autodie</a>.</p>
+
+<p>&quot;Used only once&quot; warnings can be generated when <code>autodie</code> or <code>Fatal</code> is used with package filehandles (eg, <code>FILE</code>). It&#39;s strongly recommended you use scalar filehandles instead.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Original module by Lionel Cons (CERN).</p>
+
+<p>Prototype updates by Ilya Zakharevich &lt;ilya@math.ohio-state.edu&gt;.</p>
+
+<p><a href="/cperl/lib/autodie.html">autodie</a> support, bugfixes, extended diagnostics, <code>system</code> support, and major overhauling by Paul Fenwick &lt;pjf@perltraining.com.au&gt;</p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This module is free software, you may distribute it under the same terms as Perl itself.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/autodie.html">autodie</a> for a nicer way to use lexical Fatal.</p>
+
+<p><a>IPC::System::Simple</a> for a similar idea for calls to <code>system()</code> and backticks.</p>
+
+
+</body>
+
+</html>
+
+

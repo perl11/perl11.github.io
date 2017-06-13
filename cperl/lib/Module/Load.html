@@ -1,0 +1,232 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Difference-between-load-and-autoload">Difference between load and autoload</a></li>
+    </ul>
+  </li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a></li>
+  <li><a href="#Rules">Rules</a></li>
+  <li><a href="#IMPORTS-THE-FUNCTIONS">IMPORTS THE FUNCTIONS</a></li>
+  <li><a href="#Caveats">Caveats</a></li>
+  <li><a href="#ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</a></li>
+  <li><a href="#BUG-REPORTS">BUG REPORTS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Module::Load - runtime require of both modules and files</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Module::Load;
+
+  my $module = &#39;Data::Dumper&#39;;
+
+  load Data::Dumper;     # loads that module, but not import any functions
+                         # -&gt; cannot use &#39;Dumper&#39; function
+
+  load &#39;Data::Dumper&#39;;   # ditto
+  load $module           # tritto
+
+  autoload Data::Dumper; # loads that module and imports the default functions
+                         # -&gt; can use &#39;Dumper&#39; function
+
+  my $script = &#39;some/script.pl&#39;
+  load $script;
+  load &#39;some/script.pl&#39;;  # use quotes because of punctuations
+
+  load thing;             # try &#39;thing&#39; first, then &#39;thing.pm&#39;
+
+  load CGI, &#39;:all&#39;;       # like &#39;use CGI qw[:standard]&#39;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>Module::Load</code> eliminates the need to know whether you are trying to require either a file or a module.</p>
+
+<p>If you consult <code>perldoc -f require</code> you will see that <code>require</code> will behave differently when given a bareword or a string.</p>
+
+<p>In the case of a string, <code>require</code> assumes you are wanting to load a file. But in the case of a bareword, it assumes you mean a module.</p>
+
+<p>This gives nasty overhead when you are trying to dynamically require modules at runtime, since you will need to change the module notation (<code>Acme::Comment</code>) to a file notation fitting the particular platform you are on.</p>
+
+<p><code>Module::Load</code> eliminates the need for this overhead and will just DWYM.</p>
+
+<h2 id="Difference-between-load-and-autoload">Difference between <code>load</code> and <code>autoload</code></h2>
+
+<p><code>Module::Load</code> imports the two functions - <code>load</code> and <code>autoload</code></p>
+
+<p><code>autoload</code> imports the default functions automatically, but <code>load</code> do not import any functions.</p>
+
+<p><code>autoload</code> is usable under <code>BEGIN{};</code>.</p>
+
+<p>Both the functions can import the functions that are specified.</p>
+
+<p>Following codes are same.</p>
+
+<pre><code>  load File::Spec::Functions, qw/splitpath/;
+
+  autoload File::Spec::Functions, qw/splitpath/;</code></pre>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<dl>
+
+<dt id="load">load</dt>
+<dd>
+
+<p>Loads a specified module.</p>
+
+<p>See <a href="#Rules">&quot;Rules&quot;</a> for detailed loading rule.</p>
+
+</dd>
+<dt id="autoload">autoload</dt>
+<dd>
+
+<p>Loads a specified module and imports the default functions.</p>
+
+<p>Except importing the functions, &#39;autoload&#39; is same as &#39;load&#39;.</p>
+
+</dd>
+<dt id="load_remote">load_remote</dt>
+<dd>
+
+<p>Loads a specified module to the specified package.</p>
+
+<pre><code>  use Module::Load &#39;load_remote&#39;;
+
+  my $pkg = &#39;Other::Package&#39;;
+
+  load_remote $pkg, &#39;Data::Dumper&#39;; # load a module to &#39;Other::Package&#39;
+                                    # but do not import &#39;Dumper&#39; function</code></pre>
+
+<p>A module for loading must be quoted.</p>
+
+<p>Except specifing the package and quoting module name, &#39;load_remote&#39; is same as &#39;load&#39;.</p>
+
+</dd>
+<dt id="autoload_remote">autoload_remote</dt>
+<dd>
+
+<p>Loads a specified module and imports the default functions to the specified package.</p>
+
+<pre><code>  use Module::Load &#39;autoload_remote&#39;;
+
+  my $pkg = &#39;Other::Package&#39;;
+
+  autoload_remote $pkg, &#39;Data::Dumper&#39;; # load a module to &#39;Other::Package&#39;
+                                        # and imports &#39;Dumper&#39; function</code></pre>
+
+<p>A module for loading must be quoted.</p>
+
+<p>Except specifing the package and quoting module name, &#39;autoload_remote&#39; is same as &#39;load_remote&#39;.</p>
+
+</dd>
+</dl>
+
+<h1 id="Rules">Rules</h1>
+
+<p>All functions have the following rules to decide what it thinks you want:</p>
+
+<ul>
+
+<li><p>If the argument has any characters in it other than those matching <code>\w</code>, <code>:</code> or <code>&#39;</code>, it must be a file</p>
+
+</li>
+<li><p>If the argument matches only <code>[\w:&#39;]</code>, it must be a module</p>
+
+</li>
+<li><p>If the argument matches only <code>\w</code>, it could either be a module or a file. We will try to find <code>file.pm</code> first in <code>@INC</code> and if that fails, we will try to find <code>file</code> in @INC. If both fail, we die with the respective error messages.</p>
+
+</li>
+</ul>
+
+<h1 id="IMPORTS-THE-FUNCTIONS">IMPORTS THE FUNCTIONS</h1>
+
+<p>&#39;load&#39; and &#39;autoload&#39; are imported by default, but &#39;load_remote&#39; and &#39;autoload_remote&#39; are not imported.</p>
+
+<p>To use &#39;load_remote&#39; or &#39;autoload_remote&#39;, specify at &#39;use&#39;.</p>
+
+<dl>
+
+<dt id="load-autoload-load_remote-autoload_remote">&quot;load&quot;,&quot;autoload&quot;,&quot;load_remote&quot;,&quot;autoload_remote&quot;</dt>
+<dd>
+
+<p>Imports the selected functions.</p>
+
+<pre><code>  # imports &#39;load&#39; and &#39;autoload&#39; (default)
+  use Module::Load;
+
+  # imports &#39;autoload&#39; only
+  use Module::Load &#39;autoload&#39;;
+
+  # imports &#39;autoload&#39; and &#39;autoload_remote&#39;, but don&#39;t import &#39;load&#39;;
+  use Module::Load qw/autoload autoload_remote/;</code></pre>
+
+</dd>
+<dt id="all">&#39;all&#39;</dt>
+<dd>
+
+<p>Imports all the functions.</p>
+
+<pre><code>  use Module::Load &#39;all&#39;; # imports load, autoload, load_remote, autoload_remote</code></pre>
+
+</dd>
+<dt id="none-undef">&#39;&#39;,&#39;none&#39;,undef</dt>
+<dd>
+
+<p>Not import any functions (<code>load</code> and <code>autoload</code> are not imported).</p>
+
+<pre><code>  use Module::Load &#39;&#39;;
+
+  use Module::Load &#39;none&#39;;
+
+  use Module::Load undef;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Caveats">Caveats</h1>
+
+<p>Because of a bug in perl (#19213), at least in version 5.6.1, we have to hardcode the path separator for a require on Win32 to be <code>/</code>, like on Unix rather than the Win32 <code>\</code>. Otherwise perl will not read its own %INC accurately double load files if they are required again, or in the worst case, core dump.</p>
+
+<p><code>Module::Load</code> cannot do implicit imports, only explicit imports. (in other words, you always have to specify explicitly what you wish to import from a module, even if the functions are in that modules&#39; <code>@EXPORT</code>)</p>
+
+<h1 id="ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</h1>
+
+<p>Thanks to Jonas B. Nielsen for making explicit imports work.</p>
+
+<h1 id="BUG-REPORTS">BUG REPORTS</h1>
+
+<p>Please report bugs or other issues to &lt;bug-module-load@rt.cpan.org&lt;gt&gt;.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>This module by Jos Boumans &lt;kane@cpan.org&gt;.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>This library is free software; you may redistribute and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

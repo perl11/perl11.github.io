@@ -1,0 +1,140 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#USAGE">USAGE</a></li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a></li>
+  <li><a href="#EXAMPLE">EXAMPLE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::Packlist - manage .packlist files</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>   use ExtUtils::Packlist;
+   my ($pl) = ExtUtils::Packlist-&gt;new(&#39;.packlist&#39;);
+   $pl-&gt;read(&#39;/an/old/.packlist&#39;);
+   my @missing_files = $pl-&gt;validate();
+   $pl-&gt;write(&#39;/a/new/.packlist&#39;);
+
+   $pl-&gt;{&#39;/some/file/name&#39;}++;
+      or
+   $pl-&gt;{&#39;/some/other/file/name&#39;} = { type =&gt; &#39;file&#39;,
+                                      from =&gt; &#39;/some/file&#39; };</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ExtUtils::Packlist provides a standard way to manage .packlist files. Functions are provided to read and write .packlist files. The original .packlist format is a simple list of absolute pathnames, one per line. In addition, this package supports an extended format, where as well as a filename each line may contain a list of attributes in the form of a space separated list of key=value pairs. This is used by the installperl script to differentiate between files and links, for example.</p>
+
+<h1 id="USAGE">USAGE</h1>
+
+<p>The hash reference returned by the new() function can be used to examine and modify the contents of the .packlist. Items may be added/deleted from the .packlist by modifying the hash. If the value associated with a hash key is a scalar, the entry written to the .packlist by any subsequent write() will be a simple filename. If the value is a hash, the entry written will be the filename followed by the key=value pairs from the hash. Reading back the .packlist will recreate the original entries.</p>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<dl>
+
+<dt id="new">new()</dt>
+<dd>
+
+<p>This takes an optional parameter, the name of a .packlist. If the file exists, it will be opened and the contents of the file will be read. The new() method returns a reference to a hash. This hash holds an entry for each line in the .packlist. In the case of old-style .packlists, the value associated with each key is undef. In the case of new-style .packlists, the value associated with each key is a hash containing the key=value pairs following the filename in the .packlist.</p>
+
+</dd>
+<dt id="read">read()</dt>
+<dd>
+
+<p>This takes an optional parameter, the name of the .packlist to be read. If no file is specified, the .packlist specified to new() will be read. If the .packlist does not exist, Carp::croak will be called.</p>
+
+</dd>
+<dt id="write">write()</dt>
+<dd>
+
+<p>This takes an optional parameter, the name of the .packlist to be written. If no file is specified, the .packlist specified to new() will be overwritten.</p>
+
+</dd>
+<dt id="validate">validate()</dt>
+<dd>
+
+<p>This checks that every file listed in the .packlist actually exists. If an argument which evaluates to true is given, any missing files will be removed from the internal hash. The return value is a list of the missing files, which will be empty if they all exist.</p>
+
+</dd>
+<dt id="packlist_file">packlist_file()</dt>
+<dd>
+
+<p>This returns the name of the associated .packlist file</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLE">EXAMPLE</h1>
+
+<p>Here&#39;s <code>modrm</code>, a little utility to cleanly remove an installed module.</p>
+
+<pre><code>    #!/usr/local/bin/perl -w
+
+    use strict;
+    use IO::Dir;
+    use ExtUtils::Packlist;
+    use ExtUtils::Installed;
+
+    sub emptydir($) {
+        my ($dir) = @_;
+        my $dh = IO::Dir-&gt;new($dir) || return(0);
+        my @count = $dh-&gt;read();
+        $dh-&gt;close();
+        return(@count == 2 ? 1 : 0);
+    }
+
+    # Find all the installed packages
+    print(&quot;Finding all installed modules...\n&quot;);
+    my $installed = ExtUtils::Installed-&gt;new();
+
+    foreach my $module (grep(!/^Perl$/, $installed-&gt;modules())) {
+       my $version = $installed-&gt;version($module) || &quot;???&quot;;
+       print(&quot;Found module $module Version $version\n&quot;);
+       print(&quot;Do you want to delete $module? [n] &quot;);
+       my $r = &lt;STDIN&gt;; chomp($r);
+       if ($r &amp;&amp; $r =~ /^y/i) {
+          # Remove all the files
+          foreach my $file (sort($installed-&gt;files($module))) {
+             print(&quot;rm $file\n&quot;);
+             unlink($file);
+          }
+          my $pf = $installed-&gt;packlist($module)-&gt;packlist_file();
+          print(&quot;rm $pf\n&quot;);
+          unlink($pf);
+          foreach my $dir (sort($installed-&gt;directory_tree($module))) {
+             if (emptydir($dir)) {
+                print(&quot;rmdir $dir\n&quot;);
+                rmdir($dir);
+             }
+          }
+       }
+    }</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Alan Burlison &lt;Alan.Burlison@uk.sun.com&gt;</p>
+
+
+</body>
+
+</html>
+
+

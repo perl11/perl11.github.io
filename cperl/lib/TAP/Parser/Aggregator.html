@@ -1,0 +1,236 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#new">new</a></li>
+        </ul>
+      </li>
+      <li><a href="#Instance-Methods">Instance Methods</a>
+        <ul>
+          <li><a href="#add">add</a></li>
+          <li><a href="#parsers">parsers</a></li>
+          <li><a href="#descriptions">descriptions</a></li>
+          <li><a href="#start">start</a></li>
+          <li><a href="#stop">stop</a></li>
+          <li><a href="#elapsed">elapsed</a></li>
+          <li><a href="#elapsed_timestr">elapsed_timestr</a></li>
+          <li><a href="#all_passed">all_passed</a></li>
+          <li><a href="#get_status">get_status</a></li>
+        </ul>
+      </li>
+      <li><a href="#Summary-methods">Summary methods</a>
+        <ul>
+          <li><a href="#total">total</a></li>
+          <li><a href="#has_problems">has_problems</a></li>
+          <li><a href="#has_errors">has_errors</a></li>
+          <li><a href="#todo_failed">todo_failed</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#See-Also">See Also</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Parser::Aggregator - Aggregate TAP::Parser results</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use TAP::Parser::Aggregator;
+
+    my $aggregate = TAP::Parser::Aggregator-&gt;new;
+    $aggregate-&gt;add( &#39;t/00-load.t&#39;, $load_parser );
+    $aggregate-&gt;add( &#39;t/10-lex.t&#39;,  $lex_parser  );
+
+    my $summary = &lt;&lt;&#39;END_SUMMARY&#39;;
+    Passed:  %s
+    Failed:  %s
+    Unexpectedly succeeded: %s
+    END_SUMMARY
+    printf $summary,
+           scalar $aggregate-&gt;passed,
+           scalar $aggregate-&gt;failed,
+           scalar $aggregate-&gt;todo_passed;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>TAP::Parser::Aggregator</code> collects parser objects and allows reporting/querying their aggregate results.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="new"><code>new</code></h3>
+
+<pre><code> my $aggregate = TAP::Parser::Aggregator-&gt;new;</code></pre>
+
+<p>Returns a new <code>TAP::Parser::Aggregator</code> object.</p>
+
+<h2 id="Instance-Methods">Instance Methods</h2>
+
+<h3 id="add"><code>add</code></h3>
+
+<pre><code>  $aggregate-&gt;add( $description =&gt; $parser );</code></pre>
+
+<p>The <code>$description</code> is usually a test file name (but only by convention.) It is used as a unique identifier (see e.g. <a href="#parsers">&quot;parsers&quot;</a>.) Reusing a description is a fatal error.</p>
+
+<p>The <code>$parser</code> is a <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> object.</p>
+
+<h3 id="parsers"><code>parsers</code></h3>
+
+<pre><code>  my $count   = $aggregate-&gt;parsers;
+  my @parsers = $aggregate-&gt;parsers;
+  my @parsers = $aggregate-&gt;parsers(@descriptions);</code></pre>
+
+<p>In scalar context without arguments, this method returns the number of parsers aggregated. In list context without arguments, returns the parsers in the order they were added.</p>
+
+<p>If <code>@descriptions</code> is given, these correspond to the keys used in each call to the add() method. Returns an array of the requested parsers (in the requested order) in list context or an array reference in scalar context.</p>
+
+<p>Requesting an unknown identifier is a fatal error.</p>
+
+<h3 id="descriptions"><code>descriptions</code></h3>
+
+<p>Get an array of descriptions in the order in which they were added to the aggregator.</p>
+
+<h3 id="start"><code>start</code></h3>
+
+<p>Call <code>start</code> immediately before adding any results to the aggregator. Among other times it records the start time for the test run.</p>
+
+<h3 id="stop"><code>stop</code></h3>
+
+<p>Call <code>stop</code> immediately after adding all test results to the aggregator.</p>
+
+<h3 id="elapsed"><code>elapsed</code></h3>
+
+<p>Elapsed returns a <a href="/cperl/lib/Benchmark.html">Benchmark</a> object that represents the running time of the aggregated tests. In order for <code>elapsed</code> to be valid you must call <code>start</code> before running the tests and <code>stop</code> immediately afterwards.</p>
+
+<h3 id="elapsed_timestr"><code>elapsed_timestr</code></h3>
+
+<p>Returns a formatted string representing the runtime returned by <code>elapsed()</code>. This lets the caller not worry about Benchmark.</p>
+
+<h3 id="all_passed"><code>all_passed</code></h3>
+
+<p>Return true if all the tests passed and no parse errors were detected.</p>
+
+<h3 id="get_status"><code>get_status</code></h3>
+
+<p>Get a single word describing the status of the aggregated tests. Depending on the outcome of the tests returns &#39;PASS&#39;, &#39;FAIL&#39; or &#39;NOTESTS&#39;. This token is understood by <a>CPAN::Reporter</a>.</p>
+
+<h2 id="Summary-methods">Summary methods</h2>
+
+<p>Each of the following methods will return the total number of corresponding tests if called in scalar context. If called in list context, returns the descriptions of the parsers which contain the corresponding tests (see <code>add</code> for an explanation of description.</p>
+
+<ul>
+
+<li><p>failed</p>
+
+</li>
+<li><p>parse_errors</p>
+
+</li>
+<li><p>passed</p>
+
+</li>
+<li><p>planned</p>
+
+</li>
+<li><p>skipped</p>
+
+</li>
+<li><p>todo</p>
+
+</li>
+<li><p>todo_passed</p>
+
+</li>
+<li><p>wait</p>
+
+</li>
+<li><p>exit</p>
+
+</li>
+</ul>
+
+<p>For example, to find out how many tests unexpectedly succeeded (TODO tests which passed when they shouldn&#39;t):</p>
+
+<pre><code> my $count        = $aggregate-&gt;todo_passed;
+ my @descriptions = $aggregate-&gt;todo_passed;</code></pre>
+
+<p>Note that <code>wait</code> and <code>exit</code> are the totals of the wait and exit statuses of each of the tests. These values are totalled only to provide a true value if any of them are non-zero.</p>
+
+<h3 id="total"><code>total</code></h3>
+
+<pre><code>  my $tests_run = $aggregate-&gt;total;</code></pre>
+
+<p>Returns the total number of tests run.</p>
+
+<h3 id="has_problems"><code>has_problems</code></h3>
+
+<pre><code>  if ( $parser-&gt;has_problems ) {
+      ...
+  }</code></pre>
+
+<p>Identical to <code>has_errors</code>, but also returns true if any TODO tests unexpectedly succeeded. This is more akin to &quot;warnings&quot;.</p>
+
+<h3 id="has_errors"><code>has_errors</code></h3>
+
+<pre><code>  if ( $parser-&gt;has_errors ) {
+      ...
+  }</code></pre>
+
+<p>Returns true if <i>any</i> of the parsers failed. This includes:</p>
+
+<ul>
+
+<li><p>Failed tests</p>
+
+</li>
+<li><p>Parse errors</p>
+
+</li>
+<li><p>Bad exit or wait status</p>
+
+</li>
+</ul>
+
+<h3 id="todo_failed"><code>todo_failed</code></h3>
+
+<pre><code>  # deprecated in favor of &#39;todo_passed&#39;.  This method was horribly misnamed.</code></pre>
+
+<p>This was a badly misnamed method. It indicates which TODO tests unexpectedly succeeded. Will now issue a warning and call <code>todo_passed</code>.</p>
+
+<h1 id="See-Also">See Also</h1>
+
+<p><a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a></p>
+
+<p><a href="/cperl/lib/TAP/Harness.html">TAP::Harness</a></p>
+
+
+</body>
+
+</html>
+
+

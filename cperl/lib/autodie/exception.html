@@ -1,0 +1,243 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Common-Methods">Common Methods</a>
+        <ul>
+          <li><a href="#args">args</a></li>
+          <li><a href="#function">function</a></li>
+          <li><a href="#file">file</a></li>
+          <li><a href="#package">package</a></li>
+          <li><a href="#caller">caller</a></li>
+          <li><a href="#line">line</a></li>
+          <li><a href="#context">context</a></li>
+          <li><a href="#return">return</a></li>
+          <li><a href="#errno">errno</a></li>
+          <li><a href="#eval_error">eval_error</a></li>
+          <li><a href="#matches">matches</a></li>
+        </ul>
+      </li>
+      <li><a href="#Advanced-methods">Advanced methods</a>
+        <ul>
+          <li><a href="#register">register</a></li>
+          <li><a href="#add_file_and_line">add_file_and_line</a></li>
+          <li><a href="#stringify">stringify</a></li>
+          <li><a href="#format_default">format_default</a></li>
+          <li><a href="#new">new</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>autodie::exception - Exceptions from autodying functions.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    eval {
+        use autodie;
+
+        open(my $fh, &#39;&lt;&#39;, &#39;some_file.txt&#39;);
+
+        ...
+    };
+
+    if (my $E = $@) {
+        say &quot;Ooops!  &quot;,$E-&gt;caller,&quot; had problems: $@&quot;;
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>When an <a href="/cperl/lib/autodie.html">autodie</a> enabled function fails, it generates an <code>autodie::exception</code> object. This can be interrogated to determine further information about the error that occurred.</p>
+
+<p>This document is broken into two sections; those methods that are most useful to the end-developer, and those methods for anyone wishing to subclass or get very familiar with <code>autodie::exception</code>.</p>
+
+<h2 id="Common-Methods">Common Methods</h2>
+
+<p>These methods are intended to be used in the everyday dealing of exceptions.</p>
+
+<p>The following assume that the error has been copied into a separate scalar:</p>
+
+<pre><code>    if ($E = $@) {
+        ...
+    }</code></pre>
+
+<p>This is not required, but is recommended in case any code is called which may reset or alter <code>$@</code>.</p>
+
+<h3 id="args">args</h3>
+
+<pre><code>    my $array_ref = $E-&gt;args;</code></pre>
+
+<p>Provides a reference to the arguments passed to the subroutine that died.</p>
+
+<h3 id="function">function</h3>
+
+<pre><code>    my $sub = $E-&gt;function;</code></pre>
+
+<p>The subroutine (including package) that threw the exception.</p>
+
+<h3 id="file">file</h3>
+
+<pre><code>    my $file = $E-&gt;file;</code></pre>
+
+<p>The file in which the error occurred (eg, <code>myscript.pl</code> or <code>MyTest.pm</code>).</p>
+
+<h3 id="package">package</h3>
+
+<pre><code>    my $package = $E-&gt;package;</code></pre>
+
+<p>The package from which the exceptional subroutine was called.</p>
+
+<h3 id="caller">caller</h3>
+
+<pre><code>    my $caller = $E-&gt;caller;</code></pre>
+
+<p>The subroutine that <i>called</i> the exceptional code.</p>
+
+<h3 id="line">line</h3>
+
+<pre><code>    my $line = $E-&gt;line;</code></pre>
+
+<p>The line in <code>$E-&gt;file</code> where the exceptional code was called.</p>
+
+<h3 id="context">context</h3>
+
+<pre><code>    my $context = $E-&gt;context;</code></pre>
+
+<p>The context in which the subroutine was called by autodie; usually the same as the context in which you called the autodying subroutine. This can be &#39;list&#39;, &#39;scalar&#39;, or undefined (unknown). It will never be &#39;void&#39;, as <code>autodie</code> always captures the return value in one way or another.</p>
+
+<p>For some core functions that always return a scalar value regardless of their context (eg, <code>chown</code>), this may be &#39;scalar&#39;, even if you used a list context.</p>
+
+<h3 id="return">return</h3>
+
+<pre><code>    my $return_value = $E-&gt;return;</code></pre>
+
+<p>The value(s) returned by the failed subroutine. When the subroutine was called in a list context, this will always be a reference to an array containing the results. When the subroutine was called in a scalar context, this will be the actual scalar returned.</p>
+
+<h3 id="errno">errno</h3>
+
+<pre><code>    my $errno = $E-&gt;errno;</code></pre>
+
+<p>The value of <code>$!</code> at the time when the exception occurred.</p>
+
+<p><b>NOTE</b>: This method will leave the main <code>autodie::exception</code> class and become part of a role in the future. You should only call <code>errno</code> for exceptions where <code>$!</code> would reasonably have been set on failure.</p>
+
+<h3 id="eval_error">eval_error</h3>
+
+<pre><code>    my $old_eval_error = $E-&gt;eval_error;</code></pre>
+
+<p>The contents of <code>$@</code> immediately after autodie triggered an exception. This may be useful when dealing with modules such as <a href="/cperl/lib/Text/Balanced.html">Text::Balanced</a> that set (but do not throw) <code>$@</code> on error.</p>
+
+<h3 id="matches">matches</h3>
+
+<pre><code>    if ( $e-&gt;matches(&#39;open&#39;) ) { ... }
+
+    if ( $e ~~ &#39;open&#39; ) { ... }</code></pre>
+
+<p><code>matches</code> is used to determine whether a given exception matches a particular role. On Perl 5.10, using smart-match (<code>~~</code>) with an <code>autodie::exception</code> object will use <code>matches</code> underneath.</p>
+
+<p>An exception is considered to match a string if:</p>
+
+<ul>
+
+<li><p>For a string not starting with a colon, the string exactly matches the package and subroutine that threw the exception. For example, <code>MyModule::log</code>. If the string does not contain a package name, <code>CORE::</code> is assumed.</p>
+
+</li>
+<li><p>For a string that does start with a colon, if the subroutine throwing the exception <i>does</i> that behaviour. For example, the <code>CORE::open</code> subroutine does <code>:file</code>, <code>:io</code> and <code>:all</code>.</p>
+
+<p>See <a href="/cperl/lib/autodie.html#CATEGORIES">&quot;CATEGORIES&quot; in autodie</a> for further information.</p>
+
+</li>
+</ul>
+
+<h2 id="Advanced-methods">Advanced methods</h2>
+
+<p>The following methods, while usable from anywhere, are primarily intended for developers wishing to subclass <code>autodie::exception</code>, write code that registers custom error messages, or otherwise work closely with the <code>autodie::exception</code> model.</p>
+
+<h3 id="register">register</h3>
+
+<pre><code>    autodie::exception-&gt;register( &#39;CORE::open&#39; =&gt; \&amp;mysub );</code></pre>
+
+<p>The <code>register</code> method allows for the registration of a message handler for a given subroutine. The full subroutine name including the package should be used.</p>
+
+<p>Registered message handlers will receive the <code>autodie::exception</code> object as the first parameter.</p>
+
+<h3 id="add_file_and_line">add_file_and_line</h3>
+
+<pre><code>    say &quot;Problem occurred&quot;,$@-&gt;add_file_and_line;</code></pre>
+
+<p>Returns the string <code> at %s line %d</code>, where <code>%s</code> is replaced with the filename, and <code>%d</code> is replaced with the line number.</p>
+
+<p>Primarily intended for use by format handlers.</p>
+
+<h3 id="stringify">stringify</h3>
+
+<pre><code>    say &quot;The error was: &quot;,$@-&gt;stringify;</code></pre>
+
+<p>Formats the error as a human readable string. Usually there&#39;s no reason to call this directly, as it is used automatically if an <code>autodie::exception</code> object is ever used as a string.</p>
+
+<p>Child classes can override this method to change how they&#39;re stringified.</p>
+
+<h3 id="format_default">format_default</h3>
+
+<pre><code>    my $error_string = $E-&gt;format_default;</code></pre>
+
+<p>This produces the default error string for the given exception, <i>without using any registered message handlers</i>. It is primarily intended to be called from a message handler when they have been passed an exception they don&#39;t want to format.</p>
+
+<p>Child classes can override this method to change how default messages are formatted.</p>
+
+<h3 id="new">new</h3>
+
+<pre><code>    my $error = autodie::exception-&gt;new(
+        args =&gt; \@_,
+        function =&gt; &quot;CORE::open&quot;,
+        errno =&gt; $!,
+        context =&gt; &#39;scalar&#39;,
+        return =&gt; undef,
+    );</code></pre>
+
+<p>Creates a new <code>autodie::exception</code> object. Normally called directly from an autodying function. The <code>function</code> argument is required, its the function we were trying to call that generated the exception. The <code>args</code> parameter is optional.</p>
+
+<p>The <code>errno</code> value is optional. In versions of <code>autodie::exception</code> 1.99 and earlier the code would try to automatically use the current value of <code>$!</code>, but this was unreliable and is no longer supported.</p>
+
+<p>Atrributes such as package, file, and caller are determined automatically, and cannot be specified.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/autodie.html">autodie</a>, <a href="/cperl/lib/autodie/exception/system.html">autodie::exception::system</a></p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>Copyright (C)2008 Paul Fenwick</p>
+
+<p>This is free software. You may modify and/or redistribute this code under the same terms as Perl 5.10 itself, or, at your option, any later version of Perl 5.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Paul Fenwick &lt;pjf@perltraining.com.au&gt;</p>
+
+
+</body>
+
+</html>
+
+

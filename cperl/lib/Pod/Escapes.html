@@ -1,0 +1,147 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#GOODIES">GOODIES</a></li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#REPOSITORY">REPOSITORY</a></li>
+  <li><a href="#COPYRIGHT-AND-DISCLAIMERS">COPYRIGHT AND DISCLAIMERS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Pod::Escapes - for resolving Pod E&lt;...&gt; sequences</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Pod::Escapes qw(e2char);
+  ...la la la, parsing POD, la la la...
+  $text = e2char($e_node-&gt;label);
+  unless(defined $text) {
+    print &quot;Unknown E sequence \&quot;&quot;, $e_node-&gt;label, &quot;\&quot;!&quot;;
+  }
+  ...else print/interpolate $text...</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides things that are useful in decoding Pod E&lt;...&gt; sequences. Presumably, it should be used only by Pod parsers and/or formatters.</p>
+
+<p>By default, Pod::Escapes exports none of its symbols. But you can request any of them to be exported. Either request them individually, as with <code>use Pod::Escapes qw(symbolname symbolname2...);</code>, or you can do <code>use Pod::Escapes qw(:ALL);</code> to get all exportable symbols.</p>
+
+<h1 id="GOODIES">GOODIES</h1>
+
+<dl>
+
+<dt id="e2char-e_content">e2char($e_content)</dt>
+<dd>
+
+<p>Given a name or number that could appear in a <code>E&lt;name_or_num&gt;</code> sequence, this returns the string that it stands for. For example, <code>e2char(&#39;sol&#39;)</code>, <code>e2char(&#39;47&#39;)</code>, <code>e2char(&#39;0x2F&#39;)</code>, and <code>e2char(&#39;057&#39;)</code> all return &quot;/&quot;, because <code>E&lt;sol&gt;</code>, <code>E&lt;47&gt;</code>, <code>E&lt;0x2f&gt;</code>, and <code>E&lt;057&gt;</code>, all mean &quot;/&quot;. If the name has no known value (as with a name of &quot;qacute&quot;) or is syntactically invalid (as with a name of &quot;1/4&quot;), this returns undef.</p>
+
+</dd>
+<dt id="e2charnum-e_content">e2charnum($e_content)</dt>
+<dd>
+
+<p>Given a name or number that could appear in a <code>E&lt;name_or_num&gt;</code> sequence, this returns the number of the Unicode character that this stands for. For example, <code>e2char(&#39;sol&#39;)</code>, <code>e2char(&#39;47&#39;)</code>, <code>e2char(&#39;0x2F&#39;)</code>, and <code>e2char(&#39;057&#39;)</code> all return 47, because <code>E&lt;sol&gt;</code>, <code>E&lt;47&gt;</code>, <code>E&lt;0x2f&gt;</code>, and <code>E&lt;057&gt;</code>, all mean &quot;/&quot;, whose Unicode number is 47. If the name has no known value (as with a name of &quot;qacute&quot;) or is syntactically invalid (as with a name of &quot;1/4&quot;), this returns undef.</p>
+
+</dd>
+<dt id="Name2character-name">$Name2character{<i>name</i>}</dt>
+<dd>
+
+<p>Maps from names (as in <code>E&lt;<i>name</i>&gt;</code>) like &quot;eacute&quot; or &quot;sol&quot; to the string that each stands for. Note that this does not include numerics (like &quot;64&quot; or &quot;x981c&quot;). Under old Perl versions (before 5.7) you get a &quot;?&quot; in place of characters whose Unicode value is over 255.</p>
+
+</dd>
+<dt id="Name2character_number-name">$Name2character_number{<i>name</i>}</dt>
+<dd>
+
+<p>Maps from names (as in <code>E&lt;<i>name</i>&gt;</code>) like &quot;eacute&quot; or &quot;sol&quot; to the Unicode value that each stands for. For example, <code>$Name2character_number{&#39;eacute&#39;}</code> is 201, and <code>$Name2character_number{&#39;eacute&#39;}</code> is 8364. You get the correct Unicode value, regardless of the version of Perl you&#39;re using -- which differs from <code>%Name2character</code>&#39;s behavior under pre-5.7 Perls.</p>
+
+<p>Note that this hash does not include numerics (like &quot;64&quot; or &quot;x981c&quot;).</p>
+
+</dd>
+<dt id="Latin1Code_to_fallback-integer">$Latin1Code_to_fallback{<i>integer</i>}</dt>
+<dd>
+
+<p>For numbers in the range 160 (0x00A0) to 255 (0x00FF), this maps from the character code for a Latin-1 character (like 233 for lowercase e-acute) to the US-ASCII character that best aproximates it (like &quot;e&quot;). You may find this useful if you are rendering POD in a format that you think deals well only with US-ASCII characters.</p>
+
+</dd>
+<dt id="Latin1Char_to_fallback-character">$Latin1Char_to_fallback{<i>character</i>}</dt>
+<dd>
+
+<p>Just as above, but maps from characters (like &quot;\xE9&quot;, lowercase e-acute) to characters (like &quot;e&quot;).</p>
+
+</dd>
+<dt id="Code2USASCII-integer">$Code2USASCII{<i>integer</i>}</dt>
+<dd>
+
+<p>This maps from US-ASCII codes (like 32) to the corresponding character (like space, for 32). Only characters 32 to 126 are defined. This is meant for use by <code>e2char($x)</code> when it senses that it&#39;s running on a non-ASCII platform (where chr(32) doesn&#39;t get you a space -- but $Code2USASCII{32} will). It&#39;s documented here just in case you might find it useful.</p>
+
+</dd>
+</dl>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>On Perl versions before 5.7, Unicode characters with a value over 255 (like lambda or emdash) can&#39;t be conveyed. This module does work under such early Perl versions, but in the place of each such character, you get a &quot;?&quot;. Latin-1 characters (characters 160-255) are unaffected.</p>
+
+<p>Under EBCDIC platforms, <code>e2char($n)</code> may not always be the same as <code>chr(e2charnum($n))</code>, and ditto for <code>$Name2character{$name}</code> and <code>chr($Name2character_number{$name})</code>, because the strings are returned as native, and the numbers are returned as Unicode. However, for Perls starting with v5.8, <code>e2char($n)</code> is the same as <code>chr(utf8::unicode_to_native(e2charnum($n)))</code>, and ditto for <code>$Name2character{$name}</code> and <code>chr(utf8::unicode_to_native($Name2character_number{$name}))</code>.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a>Pod::Browser</a> - a pod web server based on <a>Catalyst</a>.</p>
+
+<p><a href="/cperl/lib/Pod/Checker.html">Pod::Checker</a> - check pod documents for syntax errors.</p>
+
+<p><a>Pod::Coverage</a> - check if the documentation for a module is comprehensive.</p>
+
+<p><a href="/cperl/perlpod.html">perlpod</a> - description of pod format (for people documenting with pod).</p>
+
+<p><a href="/cperl/perlpodspec.html">perlpodspec</a> - specification of pod format (for people processing it).</p>
+
+<p><a>Text::Unidecode</a> - ASCII transliteration of Unicode text.</p>
+
+<h1 id="REPOSITORY">REPOSITORY</h1>
+
+<p><a href="https://github.com/neilbowers/Pod-Escapes">https://github.com/neilbowers/Pod-Escapes</a></p>
+
+<h1 id="COPYRIGHT-AND-DISCLAIMERS">COPYRIGHT AND DISCLAIMERS</h1>
+
+<p>Copyright (c) 2001-2004 Sean M. Burke. All rights reserved.</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>This program is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose.</p>
+
+<p>Portions of the data tables in this module are derived from the entity declarations in the W3C XHTML specification.</p>
+
+<p>Currently (October 2001), that&#39;s these three:</p>
+
+<pre><code> http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent
+ http://www.w3.org/TR/xhtml1/DTD/xhtml-special.ent
+ http://www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Sean M. Burke <code>sburke@cpan.org</code></p>
+
+<p>Now being maintained by Neil Bowers &lt;neilb@cpan.org&gt;</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,399 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Modules-Used">Modules Used</a></li>
+      <li><a href="#Math-Library">Math Library</a></li>
+      <li><a href="#Sign">Sign</a></li>
+      <li><a href="#Methods">Methods</a></li>
+      <li><a href="#MATH-LIBRARY">MATH LIBRARY</a></li>
+      <li><a href="#Caveat">Caveat</a></li>
+      <li><a href="#Options">Options</a></li>
+    </ul>
+  </li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>bigrat - Transparent BigNumber/BigRational support for Perl</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use bigrat;
+
+  print 2 + 4.5,&quot;\n&quot;;                   # BigFloat 6.5
+  print 1/3 + 1/4,&quot;\n&quot;;                 # produces 7/12
+
+  {
+    no bigrat;
+    print 1/3,&quot;\n&quot;;                     # 0.33333...
+  }
+
+  # Import into current package:
+  use bigrat qw/hex oct/;
+  print hex(&quot;0x1234567890123490&quot;),&quot;\n&quot;;
+  print oct(&quot;01234567890123490&quot;),&quot;\n&quot;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>All operators (including basic math operations) are overloaded. Integer and floating-point constants are created as proper BigInts or BigFloats, respectively.</p>
+
+<p>Other than <a href="/cperl/lib/bignum.html">bignum</a>, this module upgrades to Math::BigRat, meaning that instead of 2.5 you will get 2+1/2 as output.</p>
+
+<h2 id="Modules-Used">Modules Used</h2>
+
+<p><code>bigrat</code> is just a thin wrapper around various modules of the Math::BigInt family. Think of it as the head of the family, who runs the shop, and orders the others to do the work.</p>
+
+<p>The following modules are currently used by bignum:</p>
+
+<pre><code>        Math::BigInt::Lite      (for speed, and only if it is loadable)
+        Math::BigInt
+        Math::BigFloat
+        Math::BigRat</code></pre>
+
+<h2 id="Math-Library">Math Library</h2>
+
+<p>Math with the numbers is done (by default) by a module called Math::BigInt::Calc. This is equivalent to saying:</p>
+
+<pre><code>        use bigrat lib =&gt; &#39;Calc&#39;;</code></pre>
+
+<p>You can change this by using:</p>
+
+<pre><code>        use bignum lib =&gt; &#39;GMP&#39;;</code></pre>
+
+<p>The following would first try to find Math::BigInt::Foo, then Math::BigInt::Bar, and when this also fails, revert to Math::BigInt::Calc:</p>
+
+<pre><code>        use bigrat lib =&gt; &#39;Foo,Math::BigInt::Bar&#39;;</code></pre>
+
+<p>Using <code>lib</code> warns if none of the specified libraries can be found and <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> did fall back to one of the default libraries. To suppress this warning, use <code>try</code> instead:</p>
+
+<pre><code>        use bignum try =&gt; &#39;GMP&#39;;</code></pre>
+
+<p>If you want the code to die instead of falling back, use <code>only</code> instead:</p>
+
+<pre><code>        use bignum only =&gt; &#39;GMP&#39;;</code></pre>
+
+<p>Please see respective module documentation for further details.</p>
+
+<h2 id="Sign">Sign</h2>
+
+<p>The sign is either &#39;+&#39;, &#39;-&#39;, &#39;NaN&#39;, &#39;+inf&#39; or &#39;-inf&#39;.</p>
+
+<p>A sign of &#39;NaN&#39; is used to represent the result when input arguments are not numbers or as a result of 0/0. &#39;+inf&#39; and &#39;-inf&#39; represent plus respectively minus infinity. You will get &#39;+inf&#39; when dividing a positive number by 0, and &#39;-inf&#39; when dividing any negative number by 0.</p>
+
+<h2 id="Methods">Methods</h2>
+
+<p>Since all numbers are not objects, you can use all functions that are part of the BigInt or BigFloat API. It is wise to use only the bxxx() notation, and not the fxxx() notation, though. This makes you independent on the fact that the underlying object might morph into a different class than BigFloat.</p>
+
+<dl>
+
+<dt id="inf">inf()</dt>
+<dd>
+
+<p>A shortcut to return Math::BigInt-&gt;binf(). Useful because Perl does not always handle bareword <code>inf</code> properly.</p>
+
+</dd>
+<dt id="NaN">NaN()</dt>
+<dd>
+
+<p>A shortcut to return Math::BigInt-&gt;bnan(). Useful because Perl does not always handle bareword <code>NaN</code> properly.</p>
+
+</dd>
+<dt id="e">e</dt>
+<dd>
+
+<pre><code>        # perl -Mbigrat=e -wle &#39;print e&#39;</code></pre>
+
+<p>Returns Euler&#39;s number <code>e</code>, aka exp(1).</p>
+
+</dd>
+<dt id="PI">PI</dt>
+<dd>
+
+<pre><code>        # perl -Mbigrat=PI -wle &#39;print PI&#39;</code></pre>
+
+<p>Returns PI.</p>
+
+</dd>
+<dt id="bexp">bexp()</dt>
+<dd>
+
+<pre><code>        bexp($power,$accuracy);</code></pre>
+
+<p>Returns Euler&#39;s number <code>e</code> raised to the appropriate power, to the wanted accuracy.</p>
+
+<p>Example:</p>
+
+<pre><code>        # perl -Mbigrat=bexp -wle &#39;print bexp(1,80)&#39;</code></pre>
+
+</dd>
+<dt id="bpi">bpi()</dt>
+<dd>
+
+<pre><code>        bpi($accuracy);</code></pre>
+
+<p>Returns PI to the wanted accuracy.</p>
+
+<p>Example:</p>
+
+<pre><code>        # perl -Mbigrat=bpi -wle &#39;print bpi(80)&#39;</code></pre>
+
+</dd>
+<dt id="upgrade">upgrade()</dt>
+<dd>
+
+<p>Return the class that numbers are upgraded to, is in fact returning <code>$Math::BigInt::upgrade</code>.</p>
+
+</dd>
+<dt id="in_effect">in_effect()</dt>
+<dd>
+
+<pre><code>        use bigrat;
+
+        print &quot;in effect\n&quot; if bigrat::in_effect;       # true
+        {
+          no bigrat;
+          print &quot;in effect\n&quot; if bigrat::in_effect;     # false
+        }</code></pre>
+
+<p>Returns true or false if <code>bigrat</code> is in effect in the current scope.</p>
+
+<p>This method only works on Perl v5.9.4 or later.</p>
+
+</dd>
+</dl>
+
+<h2 id="MATH-LIBRARY">MATH LIBRARY</h2>
+
+<p>Math with the numbers is done (by default) by a module called</p>
+
+<h2 id="Caveat">Caveat</h2>
+
+<p>But a warning is in order. When using the following to make a copy of a number, only a shallow copy will be made.</p>
+
+<pre><code>        $x = 9; $y = $x;
+        $x = $y = 7;</code></pre>
+
+<p>If you want to make a real copy, use the following:</p>
+
+<pre><code>        $y = $x-&gt;copy();</code></pre>
+
+<p>Using the copy or the original with overloaded math is okay, e.g. the following work:</p>
+
+<pre><code>        $x = 9; $y = $x;
+        print $x + 1, &quot; &quot;, $y,&quot;\n&quot;;     # prints 10 9</code></pre>
+
+<p>but calling any method that modifies the number directly will result in <b>both</b> the original and the copy being destroyed:</p>
+
+<pre><code>        $x = 9; $y = $x;
+        print $x-&gt;badd(1), &quot; &quot;, $y,&quot;\n&quot;;        # prints 10 10
+
+        $x = 9; $y = $x;
+        print $x-&gt;binc(1), &quot; &quot;, $y,&quot;\n&quot;;        # prints 10 10
+
+        $x = 9; $y = $x;
+        print $x-&gt;bmul(2), &quot; &quot;, $y,&quot;\n&quot;;        # prints 18 18</code></pre>
+
+<p>Using methods that do not modify, but testthe contents works:</p>
+
+<pre><code>        $x = 9; $y = $x;
+        $z = 9 if $x-&gt;is_zero();                # works fine</code></pre>
+
+<p>See the documentation about the copy constructor and <code>=</code> in overload, as well as the documentation in BigInt for further details.</p>
+
+<h2 id="Options">Options</h2>
+
+<p>bignum recognizes some options that can be passed while loading it via use. The options can (currently) be either a single letter form, or the long form. The following options exist:</p>
+
+<dl>
+
+<dt id="a-or-accuracy">a or accuracy</dt>
+<dd>
+
+<p>This sets the accuracy for all math operations. The argument must be greater than or equal to zero. See Math::BigInt&#39;s bround() function for details.</p>
+
+<pre><code>        perl -Mbigrat=a,50 -le &#39;print sqrt(20)&#39;</code></pre>
+
+<p>Note that setting precision and accuracy at the same time is not possible.</p>
+
+</dd>
+<dt id="p-or-precision">p or precision</dt>
+<dd>
+
+<p>This sets the precision for all math operations. The argument can be any integer. Negative values mean a fixed number of digits after the dot, while a positive value rounds to this digit left from the dot. 0 or 1 mean round to integer. See Math::BigInt&#39;s bfround() function for details.</p>
+
+<pre><code>        perl -Mbigrat=p,-50 -le &#39;print sqrt(20)&#39;</code></pre>
+
+<p>Note that setting precision and accuracy at the same time is not possible.</p>
+
+</dd>
+<dt id="t-or-trace">t or trace</dt>
+<dd>
+
+<p>This enables a trace mode and is primarily for debugging bignum or Math::BigInt/Math::BigFloat.</p>
+
+</dd>
+<dt id="l-or-lib">l or lib</dt>
+<dd>
+
+<p>Load a different math lib, see <a href="#MATH-LIBRARY">&quot;MATH LIBRARY&quot;</a>.</p>
+
+<pre><code>        perl -Mbigrat=l,GMP -e &#39;print 2 ** 512&#39;</code></pre>
+
+<p>Currently there is no way to specify more than one library on the command line. This means the following does not work:</p>
+
+<pre><code>        perl -Mbignum=l,GMP,Pari -e &#39;print 2 ** 512&#39;</code></pre>
+
+<p>This will be hopefully fixed soon ;)</p>
+
+</dd>
+<dt id="hex">hex</dt>
+<dd>
+
+<p>Override the built-in hex() method with a version that can handle big numbers. This overrides it by exporting it to the current package. Under Perl v5.10.0 and higher, this is not so necessary, as hex() is lexically overridden in the current scope whenever the bigrat pragma is active.</p>
+
+</dd>
+<dt id="oct">oct</dt>
+<dd>
+
+<p>Override the built-in oct() method with a version that can handle big numbers. This overrides it by exporting it to the current package. Under Perl v5.10.0 and higher, this is not so necessary, as oct() is lexically overridden in the current scope whenever the bigrat pragma is active.</p>
+
+</dd>
+<dt id="v-or-version">v or version</dt>
+<dd>
+
+<p>This prints out the name and version of all modules used and then exits.</p>
+
+<pre><code>        perl -Mbigrat=v</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<dl>
+
+<dt id="Operator-vs-literal-overloading">Operator vs literal overloading</dt>
+<dd>
+
+<p><code>bigrat</code> works by overloading handling of integer and floating point literals, converting them to <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> or <a href="/cperl/lib/Math/BigRat.html">Math::BigRat</a> objects.</p>
+
+<p>This means that arithmetic involving only string values or string literals will be performed using Perl&#39;s built-in operators.</p>
+
+<p>For example:</p>
+
+<pre><code>    use bigrat;
+    my $x = &quot;900000000000000009&quot;;
+    my $y = &quot;900000000000000007&quot;;
+    print $x - $y;</code></pre>
+
+<p>will output <code>0</code> on default 32-bit builds, since <code>bigrat</code> never sees the string literals. To ensure the expression is all treated as <code>Math::BigInt</code> or <code>Math::BigRat</code> objects, use a literal number in the expression:</p>
+
+<pre><code>    print +(0+$x) - $y;</code></pre>
+
+</dd>
+<dt id="in_effect1">in_effect()</dt>
+<dd>
+
+<p>This method only works on Perl v5.9.4 or later.</p>
+
+</dd>
+<dt id="hex-oct">hex()/oct()</dt>
+<dd>
+
+<p><code>bigint</code> overrides these routines with versions that can also handle big integer values. Under Perl prior to version v5.9.4, however, this will not happen unless you specifically ask for it with the two import tags &quot;hex&quot; and &quot;oct&quot; - and then it will be global and cannot be disabled inside a scope with &quot;no bigint&quot;:</p>
+
+<pre><code>        use bigint qw/hex oct/;
+
+        print hex(&quot;0x1234567890123456&quot;);
+        {
+                no bigint;
+                print hex(&quot;0x1234567890123456&quot;);
+        }</code></pre>
+
+<p>The second call to hex() will warn about a non-portable constant.</p>
+
+<p>Compare this to:</p>
+
+<pre><code>        use bigint;
+
+        # will warn only under Perl older than v5.9.4
+        print hex(&quot;0x1234567890123456&quot;);</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<pre><code>        perl -Mbigrat -le &#39;print sqrt(33)&#39;
+        perl -Mbigrat -le &#39;print 2*255&#39;
+        perl -Mbigrat -le &#39;print 4.5+2*255&#39;
+        perl -Mbigrat -le &#39;print 3/7 + 5/7 + 8/3&#39;
+        perl -Mbigrat -le &#39;print 12-&gt;is_odd()&#39;;
+        perl -Mbignum=l,GMP -le &#39;print 7 ** 7777&#39;</code></pre>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>For information about bugs and how to report them, see the BUGS section in the documentation available with the perldoc command.</p>
+
+<pre><code>    perldoc bignum</code></pre>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>You can find documentation for this module with the perldoc command.</p>
+
+<pre><code>    perldoc bigrat</code></pre>
+
+<p>For more information, see the SUPPORT section in the documentation available with the perldoc command.</p>
+
+<pre><code>    perldoc bignum</code></pre>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you may redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/bignum.html">bignum</a> and <a href="/cperl/lib/bigint.html">bigint</a>.</p>
+
+<p><a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a>, <a href="/cperl/lib/Math/BigFloat.html">Math::BigFloat</a>, <a href="/cperl/lib/Math/BigRat.html">Math::BigRat</a> and <a>Math::Big</a> as well as <a href="/cperl/lib/Math/BigInt/FastCalc.html">Math::BigInt::FastCalc</a>, <a>Math::BigInt::Pari</a> and <a>Math::BigInt::GMP</a>.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<ul>
+
+<li><p>(C) by Tels <a href="http://bloodgate.com/">http://bloodgate.com/</a> in early 2002 - 2007.</p>
+
+</li>
+<li><p>Peter John Acklam &lt;pjacklam@gmail.com&lt;gt&gt;, 2014-.</p>
+
+</li>
+</ul>
+
+
+</body>
+
+</html>
+
+

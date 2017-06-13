@@ -1,0 +1,1738 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#How-To-Write-A-Makefile.PL">How To Write A Makefile.PL</a></li>
+      <li><a href="#Default-Makefile-Behaviour">Default Makefile Behaviour</a></li>
+      <li><a href="#make-test">make test</a></li>
+      <li><a href="#make-testdb">make testdb</a></li>
+      <li><a href="#make-install">make install</a></li>
+      <li><a href="#INSTALL_BASE">INSTALL_BASE</a></li>
+      <li><a href="#PREFIX-and-LIB-attribute">PREFIX and LIB attribute</a></li>
+      <li><a href="#AFS-users">AFS users</a></li>
+      <li><a href="#Static-Linking-of-a-new-Perl-Binary">Static Linking of a new Perl Binary</a></li>
+      <li><a href="#Determination-of-Perl-Library-and-Installation-Locations">Determination of Perl Library and Installation Locations</a></li>
+      <li><a href="#Which-architecture-dependent-directory">Which architecture dependent directory?</a></li>
+      <li><a href="#Using-Attributes-and-Parameters">Using Attributes and Parameters</a></li>
+      <li><a href="#Additional-lowercase-attributes">Additional lowercase attributes</a></li>
+      <li><a href="#Overriding-MakeMaker-Methods">Overriding MakeMaker Methods</a></li>
+      <li><a href="#The-End-Of-Cargo-Cult-Programming">The End Of Cargo Cult Programming</a></li>
+      <li><a href="#Hintsfile-support">Hintsfile support</a></li>
+      <li><a href="#Distribution-Support">Distribution Support</a></li>
+      <li><a href="#Module-Meta-Data-META-and-MYMETA">Module Meta-Data (META and MYMETA)</a></li>
+      <li><a href="#Disabling-an-extension">Disabling an extension</a></li>
+      <li><a href="#Other-Handy-Functions">Other Handy Functions</a></li>
+      <li><a href="#Supported-versions-of-Perl">Supported versions of Perl</a></li>
+    </ul>
+  </li>
+  <li><a href="#ENVIRONMENT">ENVIRONMENT</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#LICENSE1">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::MakeMaker - Create a module Makefile</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use ExtUtils::MakeMaker;
+
+  WriteMakefile(
+      NAME              =&gt; &quot;Foo::Bar&quot;,
+      VERSION_FROM      =&gt; &quot;lib/Foo/Bar.pm&quot;,
+  );</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This utility is designed to write a Makefile for an extension module from a Makefile.PL. It is based on the Makefile.SH model provided by Andy Dougherty and the perl5-porters.</p>
+
+<p>It splits the task of generating the Makefile into several subroutines that can be individually overridden. Each subroutine returns the text it wishes to have written to the Makefile.</p>
+
+<p>As there are various Make programs with incompatible syntax, which use operating system shells, again with incompatible syntax, it is important for users of this module to know which flavour of Make a Makefile has been written for so they&#39;ll use the correct one and won&#39;t have to face the possibly bewildering errors resulting from using the wrong one.</p>
+
+<p>On POSIX systems, that program will likely be GNU Make; on Microsoft Windows, it will be either Microsoft NMake, DMake or GNU Make. See the section on the <a href="#MAKE">&quot;MAKE&quot;</a> parameter for details.</p>
+
+<p>ExtUtils::MakeMaker (EUMM) is object oriented. Each directory below the current directory that contains a Makefile.PL is treated as a separate object. This makes it possible to write an unlimited number of Makefiles with a single invocation of WriteMakefile().</p>
+
+<p>All inputs to WriteMakefile are Unicode characters, not just octets. EUMM seeks to handle all of these correctly. It is currently still not possible to portably use Unicode characters in module names, because this requires Perl to handle Unicode filenames, which is not yet the case on Windows.</p>
+
+<h2 id="How-To-Write-A-Makefile.PL">How To Write A Makefile.PL</h2>
+
+<p>See <a href="/cperl/lib/ExtUtils/MakeMaker/Tutorial.html">ExtUtils::MakeMaker::Tutorial</a>.</p>
+
+<p>The long answer is the rest of the manpage :-)</p>
+
+<h2 id="Default-Makefile-Behaviour">Default Makefile Behaviour</h2>
+
+<p>The generated Makefile enables the user of the extension to invoke</p>
+
+<pre><code>  perl Makefile.PL # optionally &quot;perl Makefile.PL verbose&quot;
+  make
+  make test        # optionally set TEST_VERBOSE=1
+  make install     # See below</code></pre>
+
+<p>The Makefile to be produced may be altered by adding arguments of the form <code>KEY=VALUE</code>. E.g.</p>
+
+<pre><code>  perl Makefile.PL INSTALL_BASE=~</code></pre>
+
+<p>Other interesting targets in the generated Makefile are</p>
+
+<pre><code>  make config     # to check if the Makefile is up-to-date
+  make clean      # delete local temp files (Makefile gets renamed)
+  make realclean  # delete derived files (including ./blib)
+  make ci         # check in all the files in the MANIFEST file
+  make dist       # see below the Distribution Support section</code></pre>
+
+<h2 id="make-test">make test</h2>
+
+<p>MakeMaker checks for the existence of a file named <i>test.pl</i> in the current directory, and if it exists it executes the script with the proper set of perl <code>-I</code> options.</p>
+
+<p>MakeMaker also checks for any files matching glob(&quot;t/*.t&quot;). It will execute all matching files in alphabetical order via the <a href="/cperl/lib/Test/Harness.html">Test::Harness</a> module with the <code>-I</code> switches set correctly.</p>
+
+<p>If you&#39;d like to see the raw output of your tests, set the <code>TEST_VERBOSE</code> variable to true.</p>
+
+<pre><code>  make test TEST_VERBOSE=1</code></pre>
+
+<p>If you want to run particular test files, set the <code>TEST_FILES</code> variable. It is possible to use globbing with this mechanism.</p>
+
+<pre><code>  make test TEST_FILES=&#39;t/foobar.t t/dagobah*.t&#39;</code></pre>
+
+<p>Windows users who are using <code>nmake</code> should note that due to a bug in <code>nmake</code>, when specifying <code>TEST_FILES</code> you must use back-slashes instead of forward-slashes.</p>
+
+<pre><code>  nmake test TEST_FILES=&#39;t\foobar.t t\dagobah*.t&#39;</code></pre>
+
+<h2 id="make-testdb">make testdb</h2>
+
+<p>A useful variation of the above is the target <code>testdb</code>. It runs the test under the Perl debugger (see <a href="/cperl/perldebug.html">perldebug</a>). If the file <i>test.pl</i> exists in the current directory, it is used for the test.</p>
+
+<p>If you want to debug some other testfile, set the <code>TEST_FILE</code> variable thusly:</p>
+
+<pre><code>  make testdb TEST_FILE=t/mytest.t</code></pre>
+
+<p>By default the debugger is called using <code>-d</code> option to perl. If you want to specify some other option, set the <code>TESTDB_SW</code> variable:</p>
+
+<pre><code>  make testdb TESTDB_SW=-Dx</code></pre>
+
+<h2 id="make-install">make install</h2>
+
+<p>make alone puts all relevant files into directories that are named by the macros INST_LIB, INST_ARCHLIB, INST_SCRIPT, INST_MAN1DIR and INST_MAN3DIR. All these default to something below ./blib if you are <i>not</i> building below the perl source directory. If you <i>are</i> building below the perl source, INST_LIB and INST_ARCHLIB default to ../../lib, and INST_SCRIPT is not defined.</p>
+
+<p>The <i>install</i> target of the generated Makefile copies the files found below each of the INST_* directories to their INSTALL* counterparts. Which counterparts are chosen depends on the setting of INSTALLDIRS according to the following table:</p>
+
+<pre><code>                                 INSTALLDIRS set to
+                           perl        site          vendor
+
+                 PERLPREFIX      SITEPREFIX          VENDORPREFIX
+  INST_ARCHLIB   INSTALLARCHLIB  INSTALLSITEARCH     INSTALLVENDORARCH
+  INST_LIB       INSTALLPRIVLIB  INSTALLSITELIB      INSTALLVENDORLIB
+  INST_BIN       INSTALLBIN      INSTALLSITEBIN      INSTALLVENDORBIN
+  INST_SCRIPT    INSTALLSCRIPT   INSTALLSITESCRIPT   INSTALLVENDORSCRIPT
+  INST_MAN1DIR   INSTALLMAN1DIR  INSTALLSITEMAN1DIR  INSTALLVENDORMAN1DIR
+  INST_MAN3DIR   INSTALLMAN3DIR  INSTALLSITEMAN3DIR  INSTALLVENDORMAN3DIR</code></pre>
+
+<p>The INSTALL... macros in turn default to their %Config ($Config{installprivlib}, $Config{installarchlib}, etc.) counterparts.</p>
+
+<p>You can check the values of these variables on your system with</p>
+
+<pre><code>    perl &#39;-V:install.*&#39;</code></pre>
+
+<p>And to check the sequence in which the library directories are searched by perl, run</p>
+
+<pre><code>    perl -le &#39;print join $/, @INC&#39;</code></pre>
+
+<p>Sometimes older versions of the module you&#39;re installing live in other directories in @INC. Because Perl loads the first version of a module it finds, not the newest, you might accidentally get one of these older versions even after installing a brand new version. To delete <i>all other versions of the module you&#39;re installing</i> (not simply older ones) set the <code>UNINST</code> variable.</p>
+
+<pre><code>    make install UNINST=1</code></pre>
+
+<h2 id="INSTALL_BASE">INSTALL_BASE</h2>
+
+<p>INSTALL_BASE can be passed into Makefile.PL to change where your module will be installed. INSTALL_BASE is more like what everyone else calls &quot;prefix&quot; than PREFIX is.</p>
+
+<p>To have everything installed in your home directory, do the following.</p>
+
+<pre><code>    # Unix users, INSTALL_BASE=~ works fine
+    perl Makefile.PL INSTALL_BASE=/path/to/your/home/dir</code></pre>
+
+<p>Like PREFIX, it sets several INSTALL* attributes at once. Unlike PREFIX it is easy to predict where the module will end up. The installation pattern looks like this:</p>
+
+<pre><code>    INSTALLARCHLIB     INSTALL_BASE/lib/perl5/$Config{archname}
+    INSTALLPRIVLIB     INSTALL_BASE/lib/perl5
+    INSTALLBIN         INSTALL_BASE/bin
+    INSTALLSCRIPT      INSTALL_BASE/bin
+    INSTALLMAN1DIR     INSTALL_BASE/man/man1
+    INSTALLMAN3DIR     INSTALL_BASE/man/man3</code></pre>
+
+<p>INSTALL_BASE in MakeMaker and <code>--install_base</code> in Module::Build (as of 0.28) install to the same location. If you want MakeMaker and Module::Build to install to the same location simply set INSTALL_BASE and <code>--install_base</code> to the same location.</p>
+
+<p>INSTALL_BASE was added in 6.31.</p>
+
+<h2 id="PREFIX-and-LIB-attribute">PREFIX and LIB attribute</h2>
+
+<p>PREFIX and LIB can be used to set several INSTALL* attributes in one go. Here&#39;s an example for installing into your home directory.</p>
+
+<pre><code>    # Unix users, PREFIX=~ works fine
+    perl Makefile.PL PREFIX=/path/to/your/home/dir</code></pre>
+
+<p>This will install all files in the module under your home directory, with man pages and libraries going into an appropriate place (usually ~/man and ~/lib). How the exact location is determined is complicated and depends on how your Perl was configured. INSTALL_BASE works more like what other build systems call &quot;prefix&quot; than PREFIX and we recommend you use that instead.</p>
+
+<p>Another way to specify many INSTALL directories with a single parameter is LIB.</p>
+
+<pre><code>    perl Makefile.PL LIB=~/lib</code></pre>
+
+<p>This will install the module&#39;s architecture-independent files into ~/lib, the architecture-dependent files into ~/lib/$archname.</p>
+
+<p>Note, that in both cases the tilde expansion is done by MakeMaker, not by perl by default, nor by make.</p>
+
+<p>Conflicts between parameters LIB, PREFIX and the various INSTALL* arguments are resolved so that:</p>
+
+<ul>
+
+<li><p>setting LIB overrides any setting of INSTALLPRIVLIB, INSTALLARCHLIB, INSTALLSITELIB, INSTALLSITEARCH (and they are not affected by PREFIX);</p>
+
+</li>
+<li><p>without LIB, setting PREFIX replaces the initial <code>$Config{prefix}</code> part of those INSTALL* arguments, even if the latter are explicitly set (but are set to still start with <code>$Config{prefix}</code>).</p>
+
+</li>
+</ul>
+
+<p>If the user has superuser privileges, and is not working on AFS or relatives, then the defaults for INSTALLPRIVLIB, INSTALLARCHLIB, INSTALLSCRIPT, etc. will be appropriate, and this incantation will be the best:</p>
+
+<pre><code>    perl Makefile.PL;
+    make;
+    make test
+    make install</code></pre>
+
+<p>make install by default writes some documentation of what has been done into the file <code>$(INSTALLARCHLIB)/perllocal.pod</code>. This feature can be bypassed by calling make pure_install.</p>
+
+<h2 id="AFS-users">AFS users</h2>
+
+<p>will have to specify the installation directories as these most probably have changed since perl itself has been installed. They will have to do this by calling</p>
+
+<pre><code>    perl Makefile.PL INSTALLSITELIB=/afs/here/today \
+        INSTALLSCRIPT=/afs/there/now INSTALLMAN3DIR=/afs/for/manpages
+    make</code></pre>
+
+<p>Be careful to repeat this procedure every time you recompile an extension, unless you are sure the AFS installation directories are still valid.</p>
+
+<h2 id="Static-Linking-of-a-new-Perl-Binary">Static Linking of a new Perl Binary</h2>
+
+<p>An extension that is built with the above steps is ready to use on systems supporting dynamic loading. On systems that do not support dynamic loading, any newly created extension has to be linked together with the available resources. MakeMaker supports the linking process by creating appropriate targets in the Makefile whenever an extension is built. You can invoke the corresponding section of the makefile with</p>
+
+<pre><code>    make perl</code></pre>
+
+<p>That produces a new perl binary in the current directory with all extensions linked in that can be found in INST_ARCHLIB, SITELIBEXP, and PERL_ARCHLIB. To do that, MakeMaker writes a new Makefile, on UNIX, this is called <i>Makefile.aperl</i> (may be system dependent). If you want to force the creation of a new perl, it is recommended that you delete this <i>Makefile.aperl</i>, so the directories are searched through for linkable libraries again.</p>
+
+<p>The binary can be installed into the directory where perl normally resides on your machine with</p>
+
+<pre><code>    make inst_perl</code></pre>
+
+<p>To produce a perl binary with a different name than <code>perl</code>, either say</p>
+
+<pre><code>    perl Makefile.PL MAP_TARGET=myperl
+    make myperl
+    make inst_perl</code></pre>
+
+<p>or say</p>
+
+<pre><code>    perl Makefile.PL
+    make myperl MAP_TARGET=myperl
+    make inst_perl MAP_TARGET=myperl</code></pre>
+
+<p>In any case you will be prompted with the correct invocation of the <code>inst_perl</code> target that installs the new binary into INSTALLBIN.</p>
+
+<p>make inst_perl by default writes some documentation of what has been done into the file <code>$(INSTALLARCHLIB)/perllocal.pod</code>. This can be bypassed by calling make pure_inst_perl.</p>
+
+<p>Warning: the inst_perl: target will most probably overwrite your existing perl binary. Use with care!</p>
+
+<p>Sometimes you might want to build a statically linked perl although your system supports dynamic loading. In this case you may explicitly set the linktype with the invocation of the Makefile.PL or make:</p>
+
+<pre><code>    perl Makefile.PL LINKTYPE=static    # recommended</code></pre>
+
+<p>or</p>
+
+<pre><code>    make LINKTYPE=static                # works on most systems</code></pre>
+
+<h2 id="Determination-of-Perl-Library-and-Installation-Locations">Determination of Perl Library and Installation Locations</h2>
+
+<p>MakeMaker needs to know, or to guess, where certain things are located. Especially INST_LIB and INST_ARCHLIB (where to put the files during the make(1) run), PERL_LIB and PERL_ARCHLIB (where to read existing modules from), and PERL_INC (header files and <code>libperl*.*</code>).</p>
+
+<p>Extensions may be built either using the contents of the perl source directory tree or from the installed perl library. The recommended way is to build extensions after you have run &#39;make install&#39; on perl itself. You can do that in any directory on your hard disk that is not below the perl source tree. The support for extensions below the ext directory of the perl distribution is only good for the standard extensions that come with perl.</p>
+
+<p>If an extension is being built below the <code>ext/</code> <code>cpan/</code> or <code>dist/</code> directory of the perl source and PERL_CORE=1 is defined then MakeMaker will set PERL_SRC automatically (e.g., <code>../..</code>). If PERL_SRC is defined and the extension is recognized as a standard extension, then other variables default to the following:</p>
+
+<pre><code>  PERL_INC     = PERL_SRC
+  PERL_LIB     = PERL_SRC/lib
+  PERL_ARCHLIB = PERL_SRC/lib
+  INST_LIB     = PERL_LIB
+  INST_ARCHLIB = PERL_ARCHLIB</code></pre>
+
+<p>If an extension is being built away from the perl source then MakeMaker will leave PERL_SRC undefined and default to using the installed copy of the perl library. The other variables default to the following:</p>
+
+<pre><code>  PERL_INC     = $archlibexp/CORE
+  PERL_LIB     = $privlibexp
+  PERL_ARCHLIB = $archlibexp
+  INST_LIB     = ./blib/lib
+  INST_ARCHLIB = ./blib/arch</code></pre>
+
+<p>If perl has not yet been installed then PERL_SRC can be defined on the command line as shown in the previous section.</p>
+
+<h2 id="Which-architecture-dependent-directory">Which architecture dependent directory?</h2>
+
+<p>If you don&#39;t want to keep the defaults for the INSTALL* macros, MakeMaker helps you to minimize the typing needed: the usual relationship between INSTALLPRIVLIB and INSTALLARCHLIB is determined by Configure at perl compilation time. MakeMaker supports the user who sets INSTALLPRIVLIB. If INSTALLPRIVLIB is set, but INSTALLARCHLIB not, then MakeMaker defaults the latter to be the same subdirectory of INSTALLPRIVLIB as Configure decided for the counterparts in %Config, otherwise it defaults to INSTALLPRIVLIB. The same relationship holds for INSTALLSITELIB and INSTALLSITEARCH.</p>
+
+<p>MakeMaker gives you much more freedom than needed to configure internal variables and get different results. It is worth mentioning that make(1) also lets you configure most of the variables that are used in the Makefile. But in the majority of situations this will not be necessary, and should only be done if the author of a package recommends it (or you know what you&#39;re doing).</p>
+
+<h2 id="Using-Attributes-and-Parameters">Using Attributes and Parameters</h2>
+
+<p>The following attributes may be specified as arguments to WriteMakefile() or as NAME=VALUE pairs on the command line. Attributes that became available with later versions of MakeMaker are indicated.</p>
+
+<p>In order to maintain portability of attributes with older versions of MakeMaker you may want to use <a>App::EUMM::Upgrade</a> with your <code>Makefile.PL</code>.</p>
+
+<dl>
+
+<dt id="ABSTRACT">ABSTRACT</dt>
+<dd>
+
+<p>One line description of the module. Will be included in PPD file.</p>
+
+</dd>
+<dt id="ABSTRACT_FROM">ABSTRACT_FROM</dt>
+<dd>
+
+<p>Name of the file that contains the package description. MakeMaker looks for a line in the POD matching /^($package\s-\s)(.*)/. This is typically the first line in the &quot;=head1 NAME&quot; section. $2 becomes the abstract.</p>
+
+</dd>
+<dt id="AUTHOR">AUTHOR</dt>
+<dd>
+
+<p>Array of strings containing name (and email address) of package author(s). Is used in CPAN Meta files (META.yml or META.json) and PPD (Perl Package Description) files for PPM (Perl Package Manager).</p>
+
+</dd>
+<dt id="BINARY_LOCATION">BINARY_LOCATION</dt>
+<dd>
+
+<p>Used when creating PPD files for binary packages. It can be set to a full or relative path or URL to the binary archive for a particular architecture. For example:</p>
+
+<pre><code>        perl Makefile.PL BINARY_LOCATION=x86/Agent.tar.gz</code></pre>
+
+<p>builds a PPD package that references a binary of the <code>Agent</code> package, located in the <code>x86</code> directory relative to the PPD itself.</p>
+
+</dd>
+<dt id="BUILD_REQUIRES">BUILD_REQUIRES</dt>
+<dd>
+
+<p>Available in version 6.5503 and above.</p>
+
+<p>A hash of modules that are needed to build your module but not run it.</p>
+
+<p>This will go into the <code>build_requires</code> field of your <i>META.yml</i> and the <code>build</code> of the <code>prereqs</code> field of your <i>META.json</i>.</p>
+
+<p>Defaults to <code>{ &quot;ExtUtils::MakeMaker&quot; =&gt; 0 }</code> if this attribute is not specified.</p>
+
+<p>The format is the same as PREREQ_PM.</p>
+
+</dd>
+<dt id="C">C</dt>
+<dd>
+
+<p>Ref to array of *.c file names. Initialised from a directory scan and the values portion of the XS attribute hash. This is not currently used by MakeMaker but may be handy in Makefile.PLs.</p>
+
+</dd>
+<dt id="CCFLAGS">CCFLAGS</dt>
+<dd>
+
+<p>String that will be included in the compiler call command line between the arguments INC and OPTIMIZE.</p>
+
+</dd>
+<dt id="CONFIG">CONFIG</dt>
+<dd>
+
+<p>Arrayref. E.g. [qw(archname manext)] defines ARCHNAME &amp; MANEXT from config.sh. MakeMaker will add to CONFIG the following values anyway: ar cc cccdlflags ccdlflags dlext dlsrc ld lddlflags ldflags libc lib_ext obj_ext ranlib sitelibexp sitearchexp so</p>
+
+</dd>
+<dt id="CONFIGURE">CONFIGURE</dt>
+<dd>
+
+<p>CODE reference. The subroutine should return a hash reference. The hash may contain further attributes, e.g. {LIBS =&gt; ...}, that have to be determined by some evaluation method.</p>
+
+</dd>
+<dt id="CONFIGURE_REQUIRES">CONFIGURE_REQUIRES</dt>
+<dd>
+
+<p>Available in version 6.52 and above.</p>
+
+<p>A hash of modules that are required to run Makefile.PL itself, but not to run your distribution.</p>
+
+<p>This will go into the <code>configure_requires</code> field of your <i>META.yml</i> and the <code>configure</code> of the <code>prereqs</code> field of your <i>META.json</i>.</p>
+
+<p>Defaults to <code>{ &quot;ExtUtils::MakeMaker&quot; =&gt; 0 }</code> if this attribute is not specified.</p>
+
+<p>The format is the same as PREREQ_PM.</p>
+
+</dd>
+<dt id="DEFINE">DEFINE</dt>
+<dd>
+
+<p>Something like <code>&quot;-DHAVE_UNISTD_H&quot;</code></p>
+
+</dd>
+<dt id="DESTDIR">DESTDIR</dt>
+<dd>
+
+<p>This is the root directory into which the code will be installed. It <i>prepends itself to the normal prefix</i>. For example, if your code would normally go into <i>/usr/local/lib/perl</i> you could set DESTDIR=~/tmp/ and installation would go into <i>~/tmp/usr/local/lib/perl</i>.</p>
+
+<p>This is primarily of use for people who repackage Perl modules.</p>
+
+<p>NOTE: Due to the nature of make, it is important that you put the trailing slash on your DESTDIR. <i>~/tmp/</i> not <i>~/tmp</i>.</p>
+
+</dd>
+<dt id="DIR">DIR</dt>
+<dd>
+
+<p>Ref to array of subdirectories containing Makefile.PLs e.g. [&#39;sdbm&#39;] in ext/SDBM_File</p>
+
+</dd>
+<dt id="DISTNAME">DISTNAME</dt>
+<dd>
+
+<p>A safe filename for the package.</p>
+
+<p>Defaults to NAME below but with :: replaced with -.</p>
+
+<p>For example, Foo::Bar becomes Foo-Bar.</p>
+
+</dd>
+<dt id="DISTVNAME">DISTVNAME</dt>
+<dd>
+
+<p>Your name for distributing the package with the version number included. This is used by &#39;make dist&#39; to name the resulting archive file.</p>
+
+<p>Defaults to DISTNAME-VERSION.</p>
+
+<p>For example, version 1.04 of Foo::Bar becomes Foo-Bar-1.04.</p>
+
+<p>On some OS&#39;s where . has special meaning VERSION_SYM may be used in place of VERSION.</p>
+
+</dd>
+<dt id="DLEXT">DLEXT</dt>
+<dd>
+
+<p>Specifies the extension of the module&#39;s loadable object. For example:</p>
+
+<pre><code>  DLEXT =&gt; &#39;unusual_ext&#39;, # Default value is $Config{so}</code></pre>
+
+<p>NOTE: When using this option to alter the extension of a module&#39;s loadable object, it is also necessary that the module&#39;s pm file specifies the same change:</p>
+
+<pre><code>  local $DynaLoader::dl_dlext = &#39;unusual_ext&#39;;</code></pre>
+
+</dd>
+<dt id="DL_FUNCS">DL_FUNCS</dt>
+<dd>
+
+<p>Hashref of symbol names for routines to be made available as universal symbols. Each key/value pair consists of the package name and an array of routine names in that package. Used only under AIX, OS/2, VMS and Win32 at present. The routine names supplied will be expanded in the same way as XSUB names are expanded by the XS() macro. Defaults to</p>
+
+<pre><code>  {&quot;$(NAME)&quot; =&gt; [&quot;boot_$(NAME)&quot; ] }</code></pre>
+
+<p>e.g.</p>
+
+<pre><code>  {&quot;RPC&quot; =&gt; [qw( boot_rpcb rpcb_gettime getnetconfigent )],
+   &quot;NetconfigPtr&quot; =&gt; [ &#39;DESTROY&#39;] }</code></pre>
+
+<p>Please see the <a href="/cperl/lib/ExtUtils/Mksymlists.html">ExtUtils::Mksymlists</a> documentation for more information about the DL_FUNCS, DL_VARS and FUNCLIST attributes.</p>
+
+</dd>
+<dt id="DL_VARS">DL_VARS</dt>
+<dd>
+
+<p>Array of symbol names for variables to be made available as universal symbols. Used only under AIX, OS/2, VMS and Win32 at present. Defaults to []. (e.g. [ qw(Foo_version Foo_numstreams Foo_tree ) ])</p>
+
+</dd>
+<dt id="EXCLUDE_EXT">EXCLUDE_EXT</dt>
+<dd>
+
+<p>Array of extension names to exclude when doing a static build. This is ignored if INCLUDE_EXT is present. Consult INCLUDE_EXT for more details. (e.g. [ qw( Socket POSIX ) ] )</p>
+
+<p>This attribute may be most useful when specified as a string on the command line: perl Makefile.PL EXCLUDE_EXT=&#39;Socket Safe&#39;</p>
+
+</dd>
+<dt id="EXE_FILES">EXE_FILES</dt>
+<dd>
+
+<p>Ref to array of executable files. The files will be copied to the INST_SCRIPT directory. Make realclean will delete them from there again.</p>
+
+<p>If your executables start with something like #!perl or #!/usr/bin/perl MakeMaker will change this to the path of the perl &#39;Makefile.PL&#39; was invoked with so the programs will be sure to run properly even if perl is not in /usr/bin/perl.</p>
+
+</dd>
+<dt id="FIRST_MAKEFILE">FIRST_MAKEFILE</dt>
+<dd>
+
+<p>The name of the Makefile to be produced. This is used for the second Makefile that will be produced for the MAP_TARGET.</p>
+
+<p>Defaults to &#39;Makefile&#39; or &#39;Descrip.MMS&#39; on VMS.</p>
+
+<p>(Note: we couldn&#39;t use MAKEFILE because dmake uses this for something else).</p>
+
+</dd>
+<dt id="FULLPERL">FULLPERL</dt>
+<dd>
+
+<p>Perl binary able to run this extension, load XS modules, etc...</p>
+
+</dd>
+<dt id="FULLPERLRUN">FULLPERLRUN</dt>
+<dd>
+
+<p>Like PERLRUN, except it uses FULLPERL.</p>
+
+</dd>
+<dt id="FULLPERLRUNINST">FULLPERLRUNINST</dt>
+<dd>
+
+<p>Like PERLRUNINST, except it uses FULLPERL.</p>
+
+</dd>
+<dt id="FUNCLIST">FUNCLIST</dt>
+<dd>
+
+<p>This provides an alternate means to specify function names to be exported from the extension. Its value is a reference to an array of function names to be exported by the extension. These names are passed through unaltered to the linker options file.</p>
+
+</dd>
+<dt id="H">H</dt>
+<dd>
+
+<p>Ref to array of *.h file names. Similar to C.</p>
+
+</dd>
+<dt id="IMPORTS">IMPORTS</dt>
+<dd>
+
+<p>This attribute is used to specify names to be imported into the extension. Takes a hash ref.</p>
+
+<p>It is only used on OS/2 and Win32.</p>
+
+</dd>
+<dt id="INC">INC</dt>
+<dd>
+
+<p>Include file dirs eg: <code>&quot;-I/usr/5include -I/path/to/inc&quot;</code></p>
+
+</dd>
+<dt id="INCLUDE_EXT">INCLUDE_EXT</dt>
+<dd>
+
+<p>Array of extension names to be included when doing a static build. MakeMaker will normally build with all of the installed extensions when doing a static build, and that is usually the desired behavior. If INCLUDE_EXT is present then MakeMaker will build only with those extensions which are explicitly mentioned. (e.g. [ qw( Socket POSIX ) ])</p>
+
+<p>It is not necessary to mention DynaLoader or the current extension when filling in INCLUDE_EXT. If the INCLUDE_EXT is mentioned but is empty then only DynaLoader and the current extension will be included in the build.</p>
+
+<p>This attribute may be most useful when specified as a string on the command line: perl Makefile.PL INCLUDE_EXT=&#39;POSIX Socket Devel::Peek&#39;</p>
+
+</dd>
+<dt id="INSTALLARCHLIB">INSTALLARCHLIB</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_ARCHLIB to this directory if INSTALLDIRS is set to perl.</p>
+
+</dd>
+<dt id="INSTALLBIN">INSTALLBIN</dt>
+<dd>
+
+<p>Directory to install binary files (e.g. tkperl) into if INSTALLDIRS=perl.</p>
+
+</dd>
+<dt id="INSTALLDIRS">INSTALLDIRS</dt>
+<dd>
+
+<p>Determines which of the sets of installation directories to choose: perl, site or vendor. Defaults to site.</p>
+
+</dd>
+<dt id="INSTALLMAN1DIR">INSTALLMAN1DIR</dt>
+<dd>
+
+</dd>
+<dt id="INSTALLMAN3DIR">INSTALLMAN3DIR</dt>
+<dd>
+
+<p>These directories get the man pages at &#39;make install&#39; time if INSTALLDIRS=perl. Defaults to $Config{installman*dir}.</p>
+
+<p>If set to &#39;none&#39;, no man pages will be installed.</p>
+
+</dd>
+<dt id="INSTALLPRIVLIB">INSTALLPRIVLIB</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_LIB to this directory if INSTALLDIRS is set to perl.</p>
+
+<p>Defaults to $Config{installprivlib}.</p>
+
+</dd>
+<dt id="INSTALLSCRIPT">INSTALLSCRIPT</dt>
+<dd>
+
+<p>Used by &#39;make install&#39; which copies files from INST_SCRIPT to this directory if INSTALLDIRS=perl.</p>
+
+</dd>
+<dt id="INSTALLSITEARCH">INSTALLSITEARCH</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_ARCHLIB to this directory if INSTALLDIRS is set to site (default).</p>
+
+</dd>
+<dt id="INSTALLSITEBIN">INSTALLSITEBIN</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_BIN to this directory if INSTALLDIRS is set to site (default).</p>
+
+</dd>
+<dt id="INSTALLSITELIB">INSTALLSITELIB</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_LIB to this directory if INSTALLDIRS is set to site (default).</p>
+
+</dd>
+<dt id="INSTALLSITEMAN1DIR">INSTALLSITEMAN1DIR</dt>
+<dd>
+
+</dd>
+<dt id="INSTALLSITEMAN3DIR">INSTALLSITEMAN3DIR</dt>
+<dd>
+
+<p>These directories get the man pages at &#39;make install&#39; time if INSTALLDIRS=site (default). Defaults to $(SITEPREFIX)/man/man$(MAN*EXT).</p>
+
+<p>If set to &#39;none&#39;, no man pages will be installed.</p>
+
+</dd>
+<dt id="INSTALLSITESCRIPT">INSTALLSITESCRIPT</dt>
+<dd>
+
+<p>Used by &#39;make install&#39; which copies files from INST_SCRIPT to this directory if INSTALLDIRS is set to site (default).</p>
+
+</dd>
+<dt id="INSTALLVENDORARCH">INSTALLVENDORARCH</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_ARCHLIB to this directory if INSTALLDIRS is set to vendor.</p>
+
+</dd>
+<dt id="INSTALLVENDORBIN">INSTALLVENDORBIN</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_BIN to this directory if INSTALLDIRS is set to vendor.</p>
+
+</dd>
+<dt id="INSTALLVENDORLIB">INSTALLVENDORLIB</dt>
+<dd>
+
+<p>Used by &#39;make install&#39;, which copies files from INST_LIB to this directory if INSTALLDIRS is set to vendor.</p>
+
+</dd>
+<dt id="INSTALLVENDORMAN1DIR">INSTALLVENDORMAN1DIR</dt>
+<dd>
+
+</dd>
+<dt id="INSTALLVENDORMAN3DIR">INSTALLVENDORMAN3DIR</dt>
+<dd>
+
+<p>These directories get the man pages at &#39;make install&#39; time if INSTALLDIRS=vendor. Defaults to $(VENDORPREFIX)/man/man$(MAN*EXT).</p>
+
+<p>If set to &#39;none&#39;, no man pages will be installed.</p>
+
+</dd>
+<dt id="INSTALLVENDORSCRIPT">INSTALLVENDORSCRIPT</dt>
+<dd>
+
+<p>Used by &#39;make install&#39; which copies files from INST_SCRIPT to this directory if INSTALLDIRS is set to vendor.</p>
+
+</dd>
+<dt id="INST_ARCHLIB">INST_ARCHLIB</dt>
+<dd>
+
+<p>Same as INST_LIB for architecture dependent files.</p>
+
+</dd>
+<dt id="INST_BIN">INST_BIN</dt>
+<dd>
+
+<p>Directory to put real binary files during &#39;make&#39;. These will be copied to INSTALLBIN during &#39;make install&#39;</p>
+
+</dd>
+<dt id="INST_LIB">INST_LIB</dt>
+<dd>
+
+<p>Directory where we put library files of this extension while building it.</p>
+
+</dd>
+<dt id="INST_MAN1DIR">INST_MAN1DIR</dt>
+<dd>
+
+<p>Directory to hold the man pages at &#39;make&#39; time</p>
+
+</dd>
+<dt id="INST_MAN3DIR">INST_MAN3DIR</dt>
+<dd>
+
+<p>Directory to hold the man pages at &#39;make&#39; time</p>
+
+</dd>
+<dt id="INST_SCRIPT">INST_SCRIPT</dt>
+<dd>
+
+<p>Directory where executable files should be installed during &#39;make&#39;. Defaults to &quot;./blib/script&quot;, just to have a dummy location during testing. make install will copy the files in INST_SCRIPT to INSTALLSCRIPT.</p>
+
+</dd>
+<dt id="LD">LD</dt>
+<dd>
+
+<p>Program to be used to link libraries for dynamic loading.</p>
+
+<p>Defaults to $Config{ld}.</p>
+
+</dd>
+<dt id="LDDLFLAGS">LDDLFLAGS</dt>
+<dd>
+
+<p>Any special flags that might need to be passed to ld to create a shared library suitable for dynamic loading. It is up to the makefile to use it. (See <a href="/cperl/lib/Config.html#lddlflags">&quot;lddlflags&quot; in Config</a>)</p>
+
+<p>Defaults to $Config{lddlflags}.</p>
+
+</dd>
+<dt id="LDFROM">LDFROM</dt>
+<dd>
+
+<p>Defaults to &quot;$(OBJECT)&quot; and is used in the ld command to specify what files to link/load from (also see dynamic_lib below for how to specify ld flags)</p>
+
+</dd>
+<dt id="LIB">LIB</dt>
+<dd>
+
+<p>LIB should only be set at <code>perl Makefile.PL</code> time but is allowed as a MakeMaker argument. It has the effect of setting both INSTALLPRIVLIB and INSTALLSITELIB to that value regardless any explicit setting of those arguments (or of PREFIX). INSTALLARCHLIB and INSTALLSITEARCH are set to the corresponding architecture subdirectory.</p>
+
+</dd>
+<dt id="LIBPERL_A">LIBPERL_A</dt>
+<dd>
+
+<p>The filename of the perllibrary that will be used together with this extension. Defaults to libperl.a.</p>
+
+</dd>
+<dt id="LIBS">LIBS</dt>
+<dd>
+
+<p>An anonymous array of alternative library specifications to be searched for (in order) until at least one library is found. E.g.</p>
+
+<pre><code>  &#39;LIBS&#39; =&gt; [&quot;-lgdbm&quot;, &quot;-ldbm -lfoo&quot;, &quot;-L/path -ldbm.nfs&quot;]</code></pre>
+
+<p>Mind, that any element of the array contains a complete set of arguments for the ld command. So do not specify</p>
+
+<pre><code>  &#39;LIBS&#39; =&gt; [&quot;-ltcl&quot;, &quot;-ltk&quot;, &quot;-lX11&quot;]</code></pre>
+
+<p>See ODBM_File/Makefile.PL for an example, where an array is needed. If you specify a scalar as in</p>
+
+<pre><code>  &#39;LIBS&#39; =&gt; &quot;-ltcl -ltk -lX11&quot;</code></pre>
+
+<p>MakeMaker will turn it into an array with one element.</p>
+
+</dd>
+<dt id="LICENSE">LICENSE</dt>
+<dd>
+
+<p>Available in version 6.31 and above.</p>
+
+<p>The licensing terms of your distribution. Generally it&#39;s &quot;perl_5&quot; for the same license as Perl itself.</p>
+
+<p>See <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a> for the list of options.</p>
+
+<p>Defaults to &quot;unknown&quot;.</p>
+
+</dd>
+<dt id="LINKTYPE">LINKTYPE</dt>
+<dd>
+
+<p>&#39;static&#39; or &#39;dynamic&#39; (default unless usedl=undef in config.sh). Should only be used to force static linking (also see linkext below).</p>
+
+</dd>
+<dt id="MAGICXS">MAGICXS</dt>
+<dd>
+
+<p>When this is set to <code>1</code>, <code>OBJECT</code> will be automagically derived from <code>O_FILES</code>.</p>
+
+</dd>
+<dt id="MAKE">MAKE</dt>
+<dd>
+
+<p>Variant of make you intend to run the generated Makefile with. This parameter lets Makefile.PL know what make quirks to account for when generating the Makefile.</p>
+
+<p>MakeMaker also honors the MAKE environment variable. This parameter takes precedence.</p>
+
+<p>Currently the only significant values are &#39;dmake&#39; and &#39;nmake&#39; for Windows users, instructing MakeMaker to generate a Makefile in the flavour of DMake (&quot;Dennis Vadura&#39;s Make&quot;) or Microsoft NMake respectively.</p>
+
+<p>Defaults to $Config{make}, which may go looking for a Make program in your environment.</p>
+
+<p>How are you supposed to know what flavour of Make a Makefile has been generated for if you didn&#39;t specify a value explicitly? Search the generated Makefile for the definition of the MAKE variable, which is used to recursively invoke the Make utility. That will tell you what Make you&#39;re supposed to invoke the Makefile with.</p>
+
+</dd>
+<dt id="MAKEAPERL">MAKEAPERL</dt>
+<dd>
+
+<p>Boolean which tells MakeMaker that it should include the rules to make a perl. This is handled automatically as a switch by MakeMaker. The user normally does not need it.</p>
+
+</dd>
+<dt id="MAKEFILE_OLD">MAKEFILE_OLD</dt>
+<dd>
+
+<p>When &#39;make clean&#39; or similar is run, the $(FIRST_MAKEFILE) will be backed up at this location.</p>
+
+<p>Defaults to $(FIRST_MAKEFILE).old or $(FIRST_MAKEFILE)_old on VMS.</p>
+
+</dd>
+<dt id="MAN1PODS">MAN1PODS</dt>
+<dd>
+
+<p>Hashref of pod-containing files. MakeMaker will default this to all EXE_FILES files that include POD directives. The files listed here will be converted to man pages and installed as was requested at Configure time.</p>
+
+<p>This hash should map POD files (or scripts containing POD) to the man file names under the <code>blib/man1/</code> directory, as in the following example:</p>
+
+<pre><code>  MAN1PODS            =&gt; {
+    &#39;doc/command.pod&#39;    =&gt; &#39;blib/man1/command.1&#39;,
+    &#39;scripts/script.pl&#39;  =&gt; &#39;blib/man1/script.1&#39;,
+  }</code></pre>
+
+</dd>
+<dt id="MAN3PODS">MAN3PODS</dt>
+<dd>
+
+<p>Hashref that assigns to *.pm and *.pod files the files into which the manpages are to be written. MakeMaker parses all *.pod and *.pm files for POD directives. Files that contain POD will be the default keys of the MAN3PODS hashref. These will then be converted to man pages during <code>make</code> and will be installed during <code>make install</code>.</p>
+
+<p>Example similar to MAN1PODS.</p>
+
+</dd>
+<dt id="MAP_TARGET">MAP_TARGET</dt>
+<dd>
+
+<p>If it is intended that a new perl binary be produced, this variable may hold a name for that binary. Defaults to perl</p>
+
+</dd>
+<dt id="META_ADD">META_ADD</dt>
+<dd>
+
+</dd>
+<dt id="META_MERGE">META_MERGE</dt>
+<dd>
+
+<p>Available in version 6.46 and above.</p>
+
+<p>A hashref of items to add to the CPAN Meta file (<i>META.yml</i> or <i>META.json</i>).</p>
+
+<p>They differ in how they behave if they have the same key as the default metadata. META_ADD will override the default value with its own. META_MERGE will merge its value with the default.</p>
+
+<p>Unless you want to override the defaults, prefer META_MERGE so as to get the advantage of any future defaults.</p>
+
+<p>Where prereqs are concerned, if META_MERGE is used, prerequisites are merged with their counterpart <code>WriteMakefile()</code> argument (PREREQ_PM is merged into {prereqs}{runtime}{requires}, BUILD_REQUIRES into <code>{prereqs}{build}{requires}</code>, CONFIGURE_REQUIRES into <code>{prereqs}{configure}{requires}</code>, and TEST_REQUIRES into <code>{prereqs}{test}{requires})</code>. When prereqs are specified with META_ADD, the only prerequisites added to the file come from the metadata, not <code>WriteMakefile()</code> arguments.</p>
+
+<p>Note that these configuration options are only used for generating <i>META.yml</i> and <i>META.json</i> -- they are NOT used for <i>MYMETA.yml</i> and <i>MYMETA.json</i>. Therefore data in these fields should NOT be used for dynamic (user-side) configuration.</p>
+
+<p>By default CPAN Meta specification <code>1.4</code> is used. In order to use CPAN Meta specification <code>2.0</code>, indicate with <code>meta-spec</code> the version you want to use.</p>
+
+<pre><code>  META_MERGE        =&gt; {
+
+    &quot;meta-spec&quot; =&gt; { version =&gt; 2 },
+
+    resources =&gt; {
+
+      repository =&gt; {
+          type =&gt; &#39;git&#39;,
+          url =&gt; &#39;git://github.com/Perl-Toolchain-Gang/ExtUtils-MakeMaker.git&#39;,
+          web =&gt; &#39;https://github.com/Perl-Toolchain-Gang/ExtUtils-MakeMaker&#39;,
+      },
+
+    },
+
+  },</code></pre>
+
+</dd>
+<dt id="MIN_PERL_VERSION">MIN_PERL_VERSION</dt>
+<dd>
+
+<p>Available in version 6.48 and above.</p>
+
+<p>The minimum required version of Perl for this distribution.</p>
+
+<p>Either the 5.006001 or the 5.6.1 format is acceptable.</p>
+
+</dd>
+<dt id="MYEXTLIB">MYEXTLIB</dt>
+<dd>
+
+<p>If the extension links to a library that it builds, set this to the name of the library (see SDBM_File)</p>
+
+</dd>
+<dt id="NAME1">NAME</dt>
+<dd>
+
+<p>The package representing the distribution. For example, <code>Test::More</code> or <code>ExtUtils::MakeMaker</code>. It will be used to derive information about the distribution such as the <a href="#DISTNAME">&quot;DISTNAME&quot;</a>, installation locations within the Perl library and where XS files will be looked for by default (see <a href="#XS">&quot;XS&quot;</a>).</p>
+
+<p><code>NAME</code> <i>must</i> be a valid Perl package name and it <i>must</i> have an associated <code>.pm</code> file. For example, <code>Foo::Bar</code> is a valid <code>NAME</code> and there must exist <i>Foo/Bar.pm</i>. Any XS code should be in <i>Bar.xs</i> unless stated otherwise.</p>
+
+<p>Your distribution <b>must</b> have a <code>NAME</code>.</p>
+
+</dd>
+<dt id="NEEDS_LINKING">NEEDS_LINKING</dt>
+<dd>
+
+<p>MakeMaker will figure out if an extension contains linkable code anywhere down the directory tree, and will set this variable accordingly, but you can speed it up a very little bit if you define this boolean variable yourself.</p>
+
+</dd>
+<dt id="NOECHO">NOECHO</dt>
+<dd>
+
+<p>Command so make does not print the literal commands it&#39;s running.</p>
+
+<p>By setting it to an empty string you can generate a Makefile that prints all commands. Mainly used in debugging MakeMaker itself.</p>
+
+<p>Defaults to <code>@</code>.</p>
+
+</dd>
+<dt id="NORECURS">NORECURS</dt>
+<dd>
+
+<p>Boolean. Attribute to inhibit descending into subdirectories.</p>
+
+</dd>
+<dt id="NO_META">NO_META</dt>
+<dd>
+
+<p>When true, suppresses the generation and addition to the MANIFEST of the META.yml and META.json module meta-data files during &#39;make distdir&#39;.</p>
+
+<p>Defaults to false.</p>
+
+</dd>
+<dt id="NO_MYMETA">NO_MYMETA</dt>
+<dd>
+
+<p>When true, suppresses the generation of MYMETA.yml and MYMETA.json module meta-data files during &#39;perl Makefile.PL&#39;.</p>
+
+<p>Defaults to false.</p>
+
+</dd>
+<dt id="NO_PACKLIST">NO_PACKLIST</dt>
+<dd>
+
+<p>When true, suppresses the writing of <code>packlist</code> files for installs.</p>
+
+<p>Defaults to false.</p>
+
+</dd>
+<dt id="NO_PERLLOCAL">NO_PERLLOCAL</dt>
+<dd>
+
+<p>When true, suppresses the appending of installations to <code>perllocal</code>.</p>
+
+<p>Defaults to false.</p>
+
+</dd>
+<dt id="NO_VC">NO_VC</dt>
+<dd>
+
+<p>In general, any generated Makefile checks for the current version of MakeMaker and the version the Makefile was built under. If NO_VC is set, the version check is neglected. Do not write this into your Makefile.PL, use it interactively instead.</p>
+
+</dd>
+<dt id="OBJECT">OBJECT</dt>
+<dd>
+
+<p>List of object files, defaults to &#39;$(BASEEXT)$(OBJ_EXT)&#39;, but can be a long string or an array containing all object files, e.g. &quot;tkpBind.o tkpButton.o tkpCanvas.o&quot; or [&quot;tkpBind.o&quot;, &quot;tkpButton.o&quot;, &quot;tkpCanvas.o&quot;]</p>
+
+<p>(Where BASEEXT is the last component of NAME, and OBJ_EXT is $Config{obj_ext}.)</p>
+
+</dd>
+<dt id="OPTIMIZE">OPTIMIZE</dt>
+<dd>
+
+<p>Defaults to <code>-O</code>. Set it to <code>-g</code> to turn debugging on. The flag is passed to subdirectory makes.</p>
+
+</dd>
+<dt id="PERL">PERL</dt>
+<dd>
+
+<p>Perl binary for tasks that can be done by miniperl.</p>
+
+</dd>
+<dt id="PERL_CORE">PERL_CORE</dt>
+<dd>
+
+<p>Set only when MakeMaker is building the extensions of the Perl core distribution.</p>
+
+</dd>
+<dt id="PERLMAINCC">PERLMAINCC</dt>
+<dd>
+
+<p>The call to the program that is able to compile perlmain.c. Defaults to $(CC).</p>
+
+</dd>
+<dt id="PERL_ARCHLIB">PERL_ARCHLIB</dt>
+<dd>
+
+<p>Same as for PERL_LIB, but for architecture dependent files.</p>
+
+<p>Used only when MakeMaker is building the extensions of the Perl core distribution (because normally $(PERL_ARCHLIB) is automatically in @INC, and adding it would get in the way of PERL5LIB).</p>
+
+</dd>
+<dt id="PERL_LIB">PERL_LIB</dt>
+<dd>
+
+<p>Directory containing the Perl library to use.</p>
+
+<p>Used only when MakeMaker is building the extensions of the Perl core distribution (because normally $(PERL_LIB) is automatically in @INC, and adding it would get in the way of PERL5LIB).</p>
+
+</dd>
+<dt id="PERL_MALLOC_OK">PERL_MALLOC_OK</dt>
+<dd>
+
+<p>defaults to 0. Should be set to TRUE if the extension can work with the memory allocation routines substituted by the Perl malloc() subsystem. This should be applicable to most extensions with exceptions of those</p>
+
+<ul>
+
+<li><p>with bugs in memory allocations which are caught by Perl&#39;s malloc();</p>
+
+</li>
+<li><p>which interact with the memory allocator in other ways than via malloc(), realloc(), free(), calloc(), sbrk() and brk();</p>
+
+</li>
+<li><p>which rely on special alignment which is not provided by Perl&#39;s malloc().</p>
+
+</li>
+</ul>
+
+<p><b>NOTE.</b> Neglecting to set this flag in <i>any one</i> of the loaded extension nullifies many advantages of Perl&#39;s malloc(), such as better usage of system resources, error detection, memory usage reporting, catchable failure of memory allocations, etc.</p>
+
+</dd>
+<dt id="PERLPREFIX">PERLPREFIX</dt>
+<dd>
+
+<p>Directory under which core modules are to be installed.</p>
+
+<p>Defaults to $Config{installprefixexp}, falling back to $Config{installprefix}, $Config{prefixexp} or $Config{prefix} should $Config{installprefixexp} not exist.</p>
+
+<p>Overridden by PREFIX.</p>
+
+</dd>
+<dt id="PERLRUN">PERLRUN</dt>
+<dd>
+
+<p>Use this instead of $(PERL) when you wish to run perl. It will set up extra necessary flags for you.</p>
+
+</dd>
+<dt id="PERLRUNINST">PERLRUNINST</dt>
+<dd>
+
+<p>Use this instead of $(PERL) when you wish to run perl to work with modules. It will add things like -I$(INST_ARCH) and other necessary flags so perl can see the modules you&#39;re about to install.</p>
+
+</dd>
+<dt id="PERL_SRC">PERL_SRC</dt>
+<dd>
+
+<p>Directory containing the Perl source code (use of this should be avoided, it may be undefined)</p>
+
+</dd>
+<dt id="PERM_DIR">PERM_DIR</dt>
+<dd>
+
+<p>Desired permission for directories. Defaults to <code>755</code>.</p>
+
+</dd>
+<dt id="PERM_RW">PERM_RW</dt>
+<dd>
+
+<p>Desired permission for read/writable files. Defaults to <code>644</code>.</p>
+
+</dd>
+<dt id="PERM_RWX">PERM_RWX</dt>
+<dd>
+
+<p>Desired permission for executable files. Defaults to <code>755</code>.</p>
+
+</dd>
+<dt id="PL_FILES">PL_FILES</dt>
+<dd>
+
+<p>MakeMaker can run programs to generate files for you at build time. By default any file named *.PL (except Makefile.PL and Build.PL) in the top level directory will be assumed to be a Perl program and run passing its own basename in as an argument. For example...</p>
+
+<pre><code>    perl foo.PL foo</code></pre>
+
+<p>This behavior can be overridden by supplying your own set of files to search. PL_FILES accepts a hash ref, the key being the file to run and the value is passed in as the first argument when the PL file is run.</p>
+
+<pre><code>    PL_FILES =&gt; {&#39;bin/foobar.PL&#39; =&gt; &#39;bin/foobar&#39;}</code></pre>
+
+<p>Would run bin/foobar.PL like this:</p>
+
+<pre><code>    perl bin/foobar.PL bin/foobar</code></pre>
+
+<p>If multiple files from one program are desired an array ref can be used.</p>
+
+<pre><code>    PL_FILES =&gt; {&#39;bin/foobar.PL&#39; =&gt; [qw(bin/foobar1 bin/foobar2)]}</code></pre>
+
+<p>In this case the program will be run multiple times using each target file.</p>
+
+<pre><code>    perl bin/foobar.PL bin/foobar1
+    perl bin/foobar.PL bin/foobar2</code></pre>
+
+<p>PL files are normally run <b>after</b> pm_to_blib and include INST_LIB and INST_ARCH in their <code>@INC</code>, so the just built modules can be accessed... unless the PL file is making a module (or anything else in PM) in which case it is run <b>before</b> pm_to_blib and does not include INST_LIB and INST_ARCH in its <code>@INC</code>. This apparently odd behavior is there for backwards compatibility (and it&#39;s somewhat DWIM).</p>
+
+</dd>
+<dt id="PM">PM</dt>
+<dd>
+
+<p>Hashref of .pm files and *.pl files to be installed. e.g.</p>
+
+<pre><code>  {&#39;name_of_file.pm&#39; =&gt; &#39;$(INST_LIB)/install_as.pm&#39;}</code></pre>
+
+<p>By default this will include *.pm and *.pl and the files found in the PMLIBDIRS directories. Defining PM in the Makefile.PL will override PMLIBDIRS.</p>
+
+</dd>
+<dt id="PMLIBDIRS">PMLIBDIRS</dt>
+<dd>
+
+<p>Ref to array of subdirectories containing library files. Defaults to [ &#39;lib&#39;, $(BASEEXT) ]. The directories will be scanned and <i>any</i> files they contain will be installed in the corresponding location in the library. A libscan() method can be used to alter the behaviour. Defining PM in the Makefile.PL will override PMLIBDIRS.</p>
+
+<p>(Where BASEEXT is the last component of NAME.)</p>
+
+</dd>
+<dt id="PM_FILTER">PM_FILTER</dt>
+<dd>
+
+<p>A filter program, in the traditional Unix sense (input from stdin, output to stdout) that is passed on each .pm file during the build (in the pm_to_blib() phase). It is empty by default, meaning no filtering is done.</p>
+
+<p>Great care is necessary when defining the command if quoting needs to be done. For instance, you would need to say:</p>
+
+<pre><code>  {&#39;PM_FILTER&#39; =&gt; &#39;grep -v \\&quot;^\\#\\&quot;&#39;}</code></pre>
+
+<p>to remove all the leading comments on the fly during the build. The extra \\ are necessary, unfortunately, because this variable is interpolated within the context of a Perl program built on the command line, and double quotes are what is used with the -e switch to build that command line. The # is escaped for the Makefile, since what is going to be generated will then be:</p>
+
+<pre><code>  PM_FILTER = grep -v \&quot;^\#\&quot;</code></pre>
+
+<p>Without the \\ before the #, we&#39;d have the start of a Makefile comment, and the macro would be incorrectly defined.</p>
+
+</dd>
+<dt id="POLLUTE">POLLUTE</dt>
+<dd>
+
+<p>Release 5.005 grandfathered old global symbol names by providing preprocessor macros for extension source compatibility. As of release 5.6, these preprocessor definitions are not available by default. The POLLUTE flag specifies that the old names should still be defined:</p>
+
+<pre><code>  perl Makefile.PL POLLUTE=1</code></pre>
+
+<p>Please inform the module author if this is necessary to successfully install a module under 5.6 or later.</p>
+
+</dd>
+<dt id="PPM_INSTALL_EXEC">PPM_INSTALL_EXEC</dt>
+<dd>
+
+<p>Name of the executable used to run <code>PPM_INSTALL_SCRIPT</code> below. (e.g. perl)</p>
+
+</dd>
+<dt id="PPM_INSTALL_SCRIPT">PPM_INSTALL_SCRIPT</dt>
+<dd>
+
+<p>Name of the script that gets executed by the Perl Package Manager after the installation of a package.</p>
+
+</dd>
+<dt id="PPM_UNINSTALL_EXEC">PPM_UNINSTALL_EXEC</dt>
+<dd>
+
+<p>Name of the executable used to run <code>PPM_UNINSTALL_SCRIPT</code> below. (e.g. perl)</p>
+
+</dd>
+<dt id="PPM_UNINSTALL_SCRIPT">PPM_UNINSTALL_SCRIPT</dt>
+<dd>
+
+<p>Name of the script that gets executed by the Perl Package Manager before the removal of a package.</p>
+
+</dd>
+<dt id="PREFIX">PREFIX</dt>
+<dd>
+
+<p>This overrides all the default install locations. Man pages, libraries, scripts, etc... MakeMaker will try to make an educated guess about where to place things under the new PREFIX based on your Config defaults. Failing that, it will fall back to a structure which should be sensible for your platform.</p>
+
+<p>If you specify LIB or any INSTALL* variables they will not be affected by the PREFIX.</p>
+
+</dd>
+<dt id="PREREQ_FATAL">PREREQ_FATAL</dt>
+<dd>
+
+<p>Bool. If this parameter is true, failing to have the required modules (or the right versions thereof) will be fatal. <code>perl Makefile.PL</code> will <code>die</code> instead of simply informing the user of the missing dependencies.</p>
+
+<p>It is <i>extremely</i> rare to have to use <code>PREREQ_FATAL</code>. Its use by module authors is <i>strongly discouraged</i> and should never be used lightly.</p>
+
+<p>For dependencies that are required in order to run <code>Makefile.PL</code>, see <code>CONFIGURE_REQUIRES</code>.</p>
+
+<p>Module installation tools have ways of resolving unmet dependencies but to do that they need a <i>Makefile</i>. Using <code>PREREQ_FATAL</code> breaks this. That&#39;s bad.</p>
+
+<p>Assuming you have good test coverage, your tests should fail with missing dependencies informing the user more strongly that something is wrong. You can write a <i>t/00compile.t</i> test which will simply check that your code compiles and stop &quot;make test&quot; prematurely if it doesn&#39;t. See <a href="/cperl/lib/Test/More.html#BAIL_OUT">&quot;BAIL_OUT&quot; in Test::More</a> for more details.</p>
+
+</dd>
+<dt id="PREREQ_PM">PREREQ_PM</dt>
+<dd>
+
+<p>A hash of modules that are needed to run your module. The keys are the module names ie. Test::More, and the minimum version is the value. If the required version number is 0 any version will do.</p>
+
+<p>This will go into the <code>requires</code> field of your <i>META.yml</i> and the <code>runtime</code> of the <code>prereqs</code> field of your <i>META.json</i>.</p>
+
+<pre><code>    PREREQ_PM =&gt; {
+        # Require Test::More at least 0.47
+        &quot;Test::More&quot; =&gt; &quot;0.47&quot;,
+
+        # Require any version of Acme::Buffy
+        &quot;Acme::Buffy&quot; =&gt; 0,
+    }</code></pre>
+
+</dd>
+<dt id="PREREQ_PRINT">PREREQ_PRINT</dt>
+<dd>
+
+<p>Bool. If this parameter is true, the prerequisites will be printed to stdout and MakeMaker will exit. The output format is an evalable hash ref.</p>
+
+<pre><code>  $PREREQ_PM = {
+                 &#39;A::B&#39; =&gt; Vers1,
+                 &#39;C::D&#39; =&gt; Vers2,
+                 ...
+               };</code></pre>
+
+<p>If a distribution defines a minimal required perl version, this is added to the output as an additional line of the form:</p>
+
+<pre><code>  $MIN_PERL_VERSION = &#39;5.008001&#39;;</code></pre>
+
+<p>If BUILD_REQUIRES is not empty, it will be dumped as $BUILD_REQUIRES hashref.</p>
+
+</dd>
+<dt id="PRINT_PREREQ">PRINT_PREREQ</dt>
+<dd>
+
+<p>RedHatism for <code>PREREQ_PRINT</code>. The output format is different, though:</p>
+
+<pre><code>    perl(A::B)&gt;=Vers1 perl(C::D)&gt;=Vers2 ...</code></pre>
+
+<p>A minimal required perl version, if present, will look like this:</p>
+
+<pre><code>    perl(perl)&gt;=5.008001</code></pre>
+
+</dd>
+<dt id="SITEPREFIX">SITEPREFIX</dt>
+<dd>
+
+<p>Like PERLPREFIX, but only for the site install locations.</p>
+
+<p>Defaults to $Config{siteprefixexp}. Perls prior to 5.6.0 didn&#39;t have an explicit siteprefix in the Config. In those cases $Config{installprefix} will be used.</p>
+
+<p>Overridable by PREFIX</p>
+
+</dd>
+<dt id="SIGN">SIGN</dt>
+<dd>
+
+<p>When true, perform the generation and addition to the MANIFEST of the SIGNATURE file in the distdir during &#39;make distdir&#39;, via &#39;cpansign -s&#39;.</p>
+
+<p>Note that you need to install the Module::Signature module to perform this operation.</p>
+
+<p>Defaults to false.</p>
+
+</dd>
+<dt id="SKIP">SKIP</dt>
+<dd>
+
+<p>Arrayref. E.g. [qw(name1 name2)] skip (do not write) sections of the Makefile. Caution! Do not use the SKIP attribute for the negligible speedup. It may seriously damage the resulting Makefile. Only use it if you really need it.</p>
+
+</dd>
+<dt id="TEST_REQUIRES">TEST_REQUIRES</dt>
+<dd>
+
+<p>Available in version 6.64 and above.</p>
+
+<p>A hash of modules that are needed to test your module but not run or build it.</p>
+
+<p>This will go into the <code>build_requires</code> field of your <i>META.yml</i> and the <code>test</code> of the <code>prereqs</code> field of your <i>META.json</i>.</p>
+
+<p>The format is the same as PREREQ_PM.</p>
+
+</dd>
+<dt id="TYPEMAPS">TYPEMAPS</dt>
+<dd>
+
+<p>Ref to array of typemap file names. Use this when the typemaps are in some directory other than the current directory or when they are not named <b>typemap</b>. The last typemap in the list takes precedence. A typemap in the current directory has highest precedence, even if it isn&#39;t listed in TYPEMAPS. The default system typemap has lowest precedence.</p>
+
+</dd>
+<dt id="VENDORPREFIX">VENDORPREFIX</dt>
+<dd>
+
+<p>Like PERLPREFIX, but only for the vendor install locations.</p>
+
+<p>Defaults to $Config{vendorprefixexp}.</p>
+
+<p>Overridable by PREFIX</p>
+
+</dd>
+<dt id="VERBINST">VERBINST</dt>
+<dd>
+
+<p>If true, make install will be verbose</p>
+
+</dd>
+<dt id="VERSION">VERSION</dt>
+<dd>
+
+<p>Your version number for distributing the package. This defaults to 0.1.</p>
+
+</dd>
+<dt id="VERSION_FROM">VERSION_FROM</dt>
+<dd>
+
+<p>Instead of specifying the VERSION in the Makefile.PL you can let MakeMaker parse a file to determine the version number. The parsing routine requires that the file named by VERSION_FROM contains one single line to compute the version number. The first line in the file that contains something like a $VERSION assignment or <code>package Name VERSION</code> will be used. The following lines will be parsed o.k.:</p>
+
+<pre><code>    # Good
+    package Foo::Bar 1.23;                      # 1.23
+    $VERSION   = &#39;1.00&#39;;                        # 1.00
+    *VERSION   = \&#39;1.01&#39;;                       # 1.01
+    ($VERSION) = q$Revision$ =~ /(\d+)/g;       # The digits in $Revision$
+    $FOO::VERSION = &#39;1.10&#39;;                     # 1.10
+    *FOO::VERSION = \&#39;1.11&#39;;                    # 1.11</code></pre>
+
+<p>but these will fail:</p>
+
+<pre><code>    # Bad
+    my $VERSION         = &#39;1.01&#39;;
+    local $VERSION      = &#39;1.02&#39;;
+    local $FOO::VERSION = &#39;1.30&#39;;</code></pre>
+
+<p>(Putting <code>my</code> or <code>local</code> on the preceding line will work o.k.)</p>
+
+<p>&quot;Version strings&quot; are incompatible and should not be used.</p>
+
+<pre><code>    # Bad
+    $VERSION = 1.2.3;
+    $VERSION = v1.2.3;</code></pre>
+
+<p><a href="/cperl/lib/version.html">version</a> objects are fine. As of MakeMaker 6.35 version.pm will be automatically loaded, but you must declare the dependency on version.pm. For compatibility with older MakeMaker you should load on the same line as $VERSION is declared.</p>
+
+<pre><code>    # All on one line
+    use version; our $VERSION = qv(1.2.3);</code></pre>
+
+<p>The file named in VERSION_FROM is not added as a dependency to Makefile. This is not really correct, but it would be a major pain during development to have to rewrite the Makefile for any smallish change in that file. If you want to make sure that the Makefile contains the correct VERSION macro after any change of the file, you would have to do something like</p>
+
+<pre><code>    depend =&gt; { Makefile =&gt; &#39;$(VERSION_FROM)&#39; }</code></pre>
+
+<p>See attribute <code>depend</code> below.</p>
+
+</dd>
+<dt id="VERSION_SYM">VERSION_SYM</dt>
+<dd>
+
+<p>A sanitized VERSION with . replaced by _. For places where . has special meaning (some filesystems, RCS labels, etc...)</p>
+
+</dd>
+<dt id="XS">XS</dt>
+<dd>
+
+<p>Hashref of .xs files. MakeMaker will default this. e.g.</p>
+
+<pre><code>  {&#39;name_of_file.xs&#39; =&gt; &#39;name_of_file.c&#39;}</code></pre>
+
+<p>The .c files will automatically be included in the list of files deleted by a make clean.</p>
+
+</dd>
+<dt id="XSOPT">XSOPT</dt>
+<dd>
+
+<p>String of options to pass to xsubpp. This might include <code>-C++</code> or <code>-extern</code>. Do not include typemaps here; the TYPEMAP parameter exists for that purpose.</p>
+
+</dd>
+<dt id="XSPROTOARG">XSPROTOARG</dt>
+<dd>
+
+<p>May be set to <code>-protoypes</code>, <code>-noprototypes</code> or the empty string. The empty string is equivalent to the xsubpp default, or <code>-noprototypes</code>. See the xsubpp documentation for details. MakeMaker defaults to the empty string.</p>
+
+</dd>
+<dt id="XS_VERSION">XS_VERSION</dt>
+<dd>
+
+<p>Your version number for the .xs file of this package. This defaults to the value of the VERSION attribute.</p>
+
+</dd>
+</dl>
+
+<h2 id="Additional-lowercase-attributes">Additional lowercase attributes</h2>
+
+<p>can be used to pass parameters to the methods which implement that part of the Makefile. Parameters are specified as a hash ref but are passed to the method as a hash.</p>
+
+<dl>
+
+<dt id="clean">clean</dt>
+<dd>
+
+<pre><code>  {FILES =&gt; &quot;*.xyz foo&quot;}</code></pre>
+
+</dd>
+<dt id="depend">depend</dt>
+<dd>
+
+<pre><code>  {ANY_TARGET =&gt; ANY_DEPENDENCY, ...}</code></pre>
+
+<p>(ANY_TARGET must not be given a double-colon rule by MakeMaker.)</p>
+
+</dd>
+<dt id="dist">dist</dt>
+<dd>
+
+<pre><code>  {TARFLAGS =&gt; &#39;cvfF&#39;, COMPRESS =&gt; &#39;gzip&#39;, SUFFIX =&gt; &#39;.gz&#39;,
+  SHAR =&gt; &#39;shar -m&#39;, DIST_CP =&gt; &#39;ln&#39;, ZIP =&gt; &#39;/bin/zip&#39;,
+  ZIPFLAGS =&gt; &#39;-rl&#39;, DIST_DEFAULT =&gt; &#39;private tardist&#39; }</code></pre>
+
+<p>If you specify COMPRESS, then SUFFIX should also be altered, as it is needed to tell make the target file of the compression. Setting DIST_CP to ln can be useful, if you need to preserve the timestamps on your files. DIST_CP can take the values &#39;cp&#39;, which copies the file, &#39;ln&#39;, which links the file, and &#39;best&#39; which copies symbolic links and links the rest. Default is &#39;best&#39;.</p>
+
+</dd>
+<dt id="dynamic_lib">dynamic_lib</dt>
+<dd>
+
+<pre><code>  {ARMAYBE =&gt; &#39;ar&#39;, OTHERLDFLAGS =&gt; &#39;...&#39;, INST_DYNAMIC_DEP =&gt; &#39;...&#39;}</code></pre>
+
+</dd>
+<dt id="linkext">linkext</dt>
+<dd>
+
+<pre><code>  {LINKTYPE =&gt; &#39;static&#39;, &#39;dynamic&#39; or &#39;&#39;}</code></pre>
+
+<p>NB: Extensions that have nothing but *.pm files had to say</p>
+
+<pre><code>  {LINKTYPE =&gt; &#39;&#39;}</code></pre>
+
+<p>with Pre-5.0 MakeMakers. Since version 5.00 of MakeMaker such a line can be deleted safely. MakeMaker recognizes when there&#39;s nothing to be linked.</p>
+
+</dd>
+<dt id="macro">macro</dt>
+<dd>
+
+<pre><code>  {ANY_MACRO =&gt; ANY_VALUE, ...}</code></pre>
+
+</dd>
+<dt id="postamble">postamble</dt>
+<dd>
+
+<p>Anything put here will be passed to MY::postamble() if you have one.</p>
+
+</dd>
+<dt id="realclean">realclean</dt>
+<dd>
+
+<pre><code>  {FILES =&gt; &#39;$(INST_ARCHAUTODIR)/*.xyz&#39;}</code></pre>
+
+</dd>
+<dt id="test">test</dt>
+<dd>
+
+<p>Specify the targets for testing.</p>
+
+<pre><code>  {TESTS =&gt; &#39;t/*.t&#39;}</code></pre>
+
+<p><code>RECURSIVE_TEST_FILES</code> can be used to include all directories recursively under <code>t</code> that contain <code>.t</code> files. It will be ignored if you provide your own <code>TESTS</code> attribute, defaults to false.</p>
+
+<pre><code>  {RECURSIVE_TEST_FILES=&gt;1}</code></pre>
+
+</dd>
+<dt id="tool_autosplit">tool_autosplit</dt>
+<dd>
+
+<pre><code>  {MAXLEN =&gt; 8}</code></pre>
+
+</dd>
+</dl>
+
+<h2 id="Overriding-MakeMaker-Methods">Overriding MakeMaker Methods</h2>
+
+<p>If you cannot achieve the desired Makefile behaviour by specifying attributes you may define private subroutines in the Makefile.PL. Each subroutine returns the text it wishes to have written to the Makefile. To override a section of the Makefile you can either say:</p>
+
+<pre><code>        sub MY::c_o { &quot;new literal text&quot; }</code></pre>
+
+<p>or you can edit the default by saying something like:</p>
+
+<pre><code>        package MY; # so that &quot;SUPER&quot; works right
+        sub c_o {
+            my $inherited = shift-&gt;SUPER::c_o(@_);
+            $inherited =~ s/old text/new text/;
+            $inherited;
+        }</code></pre>
+
+<p>If you are running experiments with embedding perl as a library into other applications, you might find MakeMaker is not sufficient. You&#39;d better have a look at ExtUtils::Embed which is a collection of utilities for embedding.</p>
+
+<p>If you still need a different solution, try to develop another subroutine that fits your needs and submit the diffs to <code>makemaker@perl.org</code></p>
+
+<p>For a complete description of all MakeMaker methods see <a href="/cperl/lib/ExtUtils/MM_Unix.html">ExtUtils::MM_Unix</a>.</p>
+
+<p>Here is a simple example of how to add a new target to the generated Makefile:</p>
+
+<pre><code>    sub MY::postamble {
+        return &lt;&lt;&#39;MAKE_FRAG&#39;;
+    $(MYEXTLIB): sdbm/Makefile
+            cd sdbm &amp;&amp; $(MAKE) all
+
+    MAKE_FRAG
+    }</code></pre>
+
+<h2 id="The-End-Of-Cargo-Cult-Programming">The End Of Cargo Cult Programming</h2>
+
+<p>WriteMakefile() now does some basic sanity checks on its parameters to protect against typos and malformatted values. This means some things which happened to work in the past will now throw warnings and possibly produce internal errors.</p>
+
+<p>Some of the most common mistakes:</p>
+
+<dl>
+
+<dt id="MAN3PODS1"><code>MAN3PODS =&gt; &#39; &#39;</code></dt>
+<dd>
+
+<p>This is commonly used to suppress the creation of man pages. MAN3PODS takes a hash ref not a string, but the above worked by accident in old versions of MakeMaker.</p>
+
+<p>The correct code is <code>MAN3PODS =&gt; { }</code>.</p>
+
+</dd>
+</dl>
+
+<h2 id="Hintsfile-support">Hintsfile support</h2>
+
+<p>MakeMaker.pm uses the architecture-specific information from Config.pm. In addition it evaluates architecture specific hints files in a <code>hints/</code> directory. The hints files are expected to be named like their counterparts in <code>PERL_SRC/hints</code>, but with an <code>.pl</code> file name extension (eg. <code>next_3_2.pl</code>). They are simply <code>eval</code>ed by MakeMaker within the WriteMakefile() subroutine, and can be used to execute commands as well as to include special variables. The rules which hintsfile is chosen are the same as in Configure.</p>
+
+<p>The hintsfile is eval()ed immediately after the arguments given to WriteMakefile are stuffed into a hash reference $self but before this reference becomes blessed. So if you want to do the equivalent to override or create an attribute you would say something like</p>
+
+<pre><code>    $self-&gt;{LIBS} = [&#39;-ldbm -lucb -lc&#39;];</code></pre>
+
+<h2 id="Distribution-Support">Distribution Support</h2>
+
+<p>For authors of extensions MakeMaker provides several Makefile targets. Most of the support comes from the ExtUtils::Manifest module, where additional documentation can be found.</p>
+
+<dl>
+
+<dt id="make-distcheck">make distcheck</dt>
+<dd>
+
+<p>reports which files are below the build directory but not in the MANIFEST file and vice versa. (See ExtUtils::Manifest::fullcheck() for details)</p>
+
+</dd>
+<dt id="make-skipcheck">make skipcheck</dt>
+<dd>
+
+<p>reports which files are skipped due to the entries in the <code>MANIFEST.SKIP</code> file (See ExtUtils::Manifest::skipcheck() for details)</p>
+
+</dd>
+<dt id="make-distclean">make distclean</dt>
+<dd>
+
+<p>does a realclean first and then the distcheck. Note that this is not needed to build a new distribution as long as you are sure that the MANIFEST file is ok.</p>
+
+</dd>
+<dt id="make-veryclean">make veryclean</dt>
+<dd>
+
+<p>does a realclean first and then removes backup files such as <code>*~</code>, <code>*.bak</code>, <code>*.old</code> and <code>*.orig</code></p>
+
+</dd>
+<dt id="make-manifest">make manifest</dt>
+<dd>
+
+<p>rewrites the MANIFEST file, adding all remaining files found (See ExtUtils::Manifest::mkmanifest() for details)</p>
+
+</dd>
+<dt id="make-distdir">make distdir</dt>
+<dd>
+
+<p>Copies all the files that are in the MANIFEST file to a newly created directory with the name <code>$(DISTNAME)-$(VERSION)</code>. If that directory exists, it will be removed first.</p>
+
+<p>Additionally, it will create META.yml and META.json module meta-data file in the distdir and add this to the distdir&#39;s MANIFEST. You can shut this behavior off with the NO_META flag.</p>
+
+</dd>
+<dt id="make-disttest">make disttest</dt>
+<dd>
+
+<p>Makes a distdir first, and runs a <code>perl Makefile.PL</code>, a make, and a make test in that directory.</p>
+
+</dd>
+<dt id="make-tardist">make tardist</dt>
+<dd>
+
+<p>First does a distdir. Then a command $(PREOP) which defaults to a null command, followed by $(TO_UNIX), which defaults to a null command under UNIX, and will convert files in distribution directory to UNIX format otherwise. Next it runs <code>tar</code> on that directory into a tarfile and deletes the directory. Finishes with a command $(POSTOP) which defaults to a null command.</p>
+
+</dd>
+<dt id="make-dist">make dist</dt>
+<dd>
+
+<p>Defaults to $(DIST_DEFAULT) which in turn defaults to tardist.</p>
+
+</dd>
+<dt id="make-uutardist">make uutardist</dt>
+<dd>
+
+<p>Runs a tardist first and uuencodes the tarfile.</p>
+
+</dd>
+<dt id="make-shdist">make shdist</dt>
+<dd>
+
+<p>First does a distdir. Then a command $(PREOP) which defaults to a null command. Next it runs <code>shar</code> on that directory into a sharfile and deletes the intermediate directory again. Finishes with a command $(POSTOP) which defaults to a null command. Note: For shdist to work properly a <code>shar</code> program that can handle directories is mandatory.</p>
+
+</dd>
+<dt id="make-zipdist">make zipdist</dt>
+<dd>
+
+<p>First does a distdir. Then a command $(PREOP) which defaults to a null command. Runs <code>$(ZIP) $(ZIPFLAGS)</code> on that directory into a zipfile. Then deletes that directory. Finishes with a command $(POSTOP) which defaults to a null command.</p>
+
+</dd>
+<dt id="make-ci">make ci</dt>
+<dd>
+
+<p>Does a $(CI) and a $(RCS_LABEL) on all files in the MANIFEST file.</p>
+
+</dd>
+</dl>
+
+<p>Customization of the dist targets can be done by specifying a hash reference to the dist attribute of the WriteMakefile call. The following parameters are recognized:</p>
+
+<pre><code>    CI           (&#39;ci -u&#39;)
+    COMPRESS     (&#39;gzip --best&#39;)
+    POSTOP       (&#39;@ :&#39;)
+    PREOP        (&#39;@ :&#39;)
+    TO_UNIX      (depends on the system)
+    RCS_LABEL    (&#39;rcs -q -Nv$(VERSION_SYM):&#39;)
+    SHAR         (&#39;shar&#39;)
+    SUFFIX       (&#39;.gz&#39;)
+    TAR          (&#39;tar&#39;)
+    TARFLAGS     (&#39;cvf&#39;)
+    ZIP          (&#39;zip&#39;)
+    ZIPFLAGS     (&#39;-r&#39;)</code></pre>
+
+<p>An example:</p>
+
+<pre><code>    WriteMakefile(
+        ...other options...
+        dist =&gt; {
+            COMPRESS =&gt; &quot;bzip2&quot;,
+            SUFFIX   =&gt; &quot;.bz2&quot;
+        }
+    );</code></pre>
+
+<h2 id="Module-Meta-Data-META-and-MYMETA">Module Meta-Data (META and MYMETA)</h2>
+
+<p>Long plaguing users of MakeMaker based modules has been the problem of getting basic information about the module out of the sources <i>without</i> running the <i>Makefile.PL</i> and doing a bunch of messy heuristics on the resulting <i>Makefile</i>. Over the years, it has become standard to keep this information in one or more CPAN Meta files distributed with each distribution.</p>
+
+<p>The original format of CPAN Meta files was <a href="/cperl/lib/TAP/Parser/Result/YAML.html">YAML</a> and the corresponding file was called <i>META.yml</i>. In 2010, version 2 of the <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a> was released, which mandates JSON format for the metadata in order to overcome certain compatibility issues between YAML serializers and to avoid breaking older clients unable to handle a new version of the spec. The <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> library is now standard for accessing old and new-style Meta files.</p>
+
+<p>If <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> is installed, MakeMaker will automatically generate <i>META.json</i> and <i>META.yml</i> files for you and add them to your <i>MANIFEST</i> as part of the &#39;distdir&#39; target (and thus the &#39;dist&#39; target). This is intended to seamlessly and rapidly populate CPAN with module meta-data. If you wish to shut this feature off, set the <code>NO_META</code> <code>WriteMakefile()</code> flag to true.</p>
+
+<p>At the 2008 QA Hackathon in Oslo, Perl module toolchain maintainers agrees to use the CPAN Meta format to communicate post-configuration requirements between toolchain components. These files, <i>MYMETA.json</i> and <i>MYMETA.yml</i>, are generated when <i>Makefile.PL</i> generates a <i>Makefile</i> (if <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> is installed). Clients like <a href="/cperl/lib/CPAN.html">CPAN</a> or <a>CPANPLUS</a> will read this files to see what prerequisites must be fulfilled before building or testing the distribution. If you with to shut this feature off, set the <code>NO_MYMETA</code> <code>WriteMakeFile()</code> flag to true.</p>
+
+<h2 id="Disabling-an-extension">Disabling an extension</h2>
+
+<p>If some events detected in <i>Makefile.PL</i> imply that there is no way to create the Module, but this is a normal state of things, then you can create a <i>Makefile</i> which does nothing, but succeeds on all the &quot;usual&quot; build targets. To do so, use</p>
+
+<pre><code>    use ExtUtils::MakeMaker qw(WriteEmptyMakefile);
+    WriteEmptyMakefile();</code></pre>
+
+<p>instead of WriteMakefile().</p>
+
+<p>This may be useful if other modules expect this module to be <i>built</i> OK, as opposed to <i>work</i> OK (say, this system-dependent module builds in a subdirectory of some other distribution, or is listed as a dependency in a CPAN::Bundle, but the functionality is supported by different means on the current architecture).</p>
+
+<h2 id="Other-Handy-Functions">Other Handy Functions</h2>
+
+<dl>
+
+<dt id="prompt">prompt</dt>
+<dd>
+
+<pre><code>    my $value = prompt($message);
+    my $value = prompt($message, $default);</code></pre>
+
+<p>The <code>prompt()</code> function provides an easy way to request user input used to write a makefile. It displays the $message as a prompt for input. If a $default is provided it will be used as a default. The function returns the $value selected by the user.</p>
+
+<p>If <code>prompt()</code> detects that it is not running interactively and there is nothing on STDIN or if the PERL_MM_USE_DEFAULT environment variable is set to true, the $default will be used without prompting. This prevents automated processes from blocking on user input.</p>
+
+<p>If no $default is provided an empty string will be used instead.</p>
+
+</dd>
+</dl>
+
+<h2 id="Supported-versions-of-Perl">Supported versions of Perl</h2>
+
+<p>Please note that while this module works on Perl 5.6, it is no longer being routinely tested on 5.6 - the earliest Perl version being routinely tested, and expressly supported, is 5.8.1. However, patches to repair any breakage on 5.6 are still being accepted.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<dl>
+
+<dt id="PERL_MM_OPT">PERL_MM_OPT</dt>
+<dd>
+
+<p>Command line options used by <code>MakeMaker-&gt;new()</code>, and thus by <code>WriteMakefile()</code>. The string is split as the shell would, and the result is processed before any actual command line arguments are processed.</p>
+
+<pre><code>  PERL_MM_OPT=&#39;CCFLAGS=&quot;-Wl,-rpath -Wl,/foo/bar/lib&quot; LIBS=&quot;-lwibble -lwobble&quot;&#39;</code></pre>
+
+</dd>
+<dt id="PERL_MM_USE_DEFAULT">PERL_MM_USE_DEFAULT</dt>
+<dd>
+
+<p>If set to a true value then MakeMaker&#39;s prompt function will always return the default without waiting for user input.</p>
+
+</dd>
+<dt id="PERL_CORE1">PERL_CORE</dt>
+<dd>
+
+<p>Same as the PERL_CORE parameter. The parameter overrides this.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a>Module::Build</a> is a pure-Perl alternative to MakeMaker which does not rely on make or any other external utility. It is easier to extend to suit your needs.</p>
+
+<p><a>Module::Install</a> is a wrapper around MakeMaker which adds features not normally available.</p>
+
+<p><a>ExtUtils::ModuleMaker</a> and <a>Module::Starter</a> are both modules to help you setup your distribution.</p>
+
+<p><a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> and <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a> explain CPAN Meta files in detail.</p>
+
+<p><a>File::ShareDir::Install</a> makes it easy to install static, sometimes also referred to as &#39;shared&#39; files. <a>File::ShareDir</a> helps accessing the shared files after installation.</p>
+
+<p><a>Dist::Zilla</a> makes it easy for the module author to create MakeMaker-based distributions with lots of bells and whistles.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Andy Dougherty <code>doughera@lafayette.edu</code>, Andreas K&ouml;nig <code>andreas.koenig@mind.de</code>, Tim Bunce <code>timb@cpan.org</code>. VMS support by Charles Bailey <code>bailey@newman.upenn.edu</code>. OS/2 support by Ilya Zakharevich <code>ilya@math.ohio-state.edu</code>.</p>
+
+<p>Currently maintained by Michael G Schwern <code>schwern@pobox.com</code></p>
+
+<p>Send patches and ideas to <code>makemaker@perl.org</code>.</p>
+
+<p>Send bug reports via http://rt.cpan.org/. Please send your generated Makefile along with your report.</p>
+
+<p>For more up-to-date information, see <a href="https://metacpan.org/release/ExtUtils-MakeMaker">https://metacpan.org/release/ExtUtils-MakeMaker</a>.</p>
+
+<p>Repository available at <a href="https://github.com/Perl-Toolchain-Gang/ExtUtils-MakeMaker">https://github.com/Perl-Toolchain-Gang/ExtUtils-MakeMaker</a>.</p>
+
+<h1 id="LICENSE1">LICENSE</h1>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>See <a href="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</a></p>
+
+
+</body>
+
+</html>
+
+

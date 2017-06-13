@@ -1,0 +1,112 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#RETURN">RETURN</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>File::Copy - Copy files or filehandles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>        use File::Copy;
+
+        copy(&quot;sourcefile&quot;,&quot;destinationfile&quot;) or die &quot;Copy failed: $!&quot;;
+        copy(&quot;Copy.pm&quot;,\*STDOUT);
+        move(&quot;/dev1/sourcefile&quot;,&quot;/dev2/destinationfile&quot;);
+
+        use File::Copy &quot;cp&quot;;
+
+        $n = FileHandle-&gt;new(&quot;/a/file&quot;,&quot;r&quot;);
+        cp($n,&quot;x&quot;);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The File::Copy module provides two basic functions, <code>copy</code> and <code>move</code>, which are useful for getting the contents of a file from one place to another.</p>
+
+<dl>
+
+<dt id="copy">copy  </dt>
+<dd>
+
+<p>The <code>copy</code> function takes two parameters: a file to copy from and a file to copy to. Either argument may be a string, a FileHandle reference or a FileHandle glob. Obviously, if the first argument is a filehandle of some sort, it will be read from, and if it is a file <i>name</i> it will be opened for reading. Likewise, the second argument will be written to. If the second argument does not exist but the parent directory does exist, then it will be created. Trying to copy a file into a non-existent directory is an error. Trying to copy a file on top of itself is also an error. <code>copy</code> will not overwrite read-only files.</p>
+
+<p>If the destination (second argument) already exists and is a directory, and the source (first argument) is not a filehandle, then the source file will be copied into the directory specified by the destination, using the same base name as the source file. It&#39;s a failure to have a filehandle as the source when the destination is a directory.</p>
+
+<p><b>Note that passing in files as handles instead of names may lead to loss of information on some operating systems; it is recommended that you use file names whenever possible.</b> Files are opened in binary mode where applicable. To get a consistent behaviour when copying from a filehandle to a file, use <code>binmode</code> on the filehandle.</p>
+
+<p>An optional third parameter can be used to specify the buffer size used for copying. This is the number of bytes from the first file, that will be held in memory at any given time, before being written to the second file. The default buffer size depends upon the file, but will generally be the whole file (up to 2MB), or 1k for filehandles that do not reference files (eg. sockets).</p>
+
+<p>You may use the syntax <code>use File::Copy &quot;cp&quot;</code> to get at the <code>cp</code> alias for this function. The syntax is <i>exactly</i> the same. The behavior is nearly the same as well: as of version 2.15, <code>cp</code> will preserve the source file&#39;s permission bits like the shell utility <code>cp(1)</code> would do, while <code>copy</code> uses the default permissions for the target file (which may depend on the process&#39; <code>umask</code>, file ownership, inherited ACLs, etc.). If an error occurs in setting permissions, <code>cp</code> will return 0, regardless of whether the file was successfully copied.</p>
+
+</dd>
+<dt id="move">move   </dt>
+<dd>
+
+<p>The <code>move</code> function also takes two parameters: the current name and the intended name of the file to be moved. If the destination already exists and is a directory, and the source is not a directory, then the source file will be renamed into the directory specified by the destination.</p>
+
+<p>If possible, move() will simply rename the file. Otherwise, it copies the file to the new location and deletes the original. If an error occurs during this copy-and-delete process, you may be left with a (possibly partial) copy of the file under the destination name.</p>
+
+<p>You may use the <code>mv</code> alias for this function in the same way that you may use the <code>cp</code> alias for <code>copy</code>.</p>
+
+</dd>
+<dt id="syscopy">syscopy </dt>
+<dd>
+
+<p>File::Copy also provides the <code>syscopy</code> routine, which copies the file specified in the first parameter to the file specified in the second parameter, preserving OS-specific attributes and file structure. For Unix systems, this is equivalent to the simple <code>copy</code> routine, which doesn&#39;t preserve OS-specific attributes. For VMS systems, this calls the <code>rmscopy</code> routine (see below). For OS/2 systems, this calls the <code>syscopy</code> XSUB directly. For Win32 systems, this calls <code>Win32::CopyFile</code>.</p>
+
+<p><b>Special behaviour if <code>syscopy</code> is defined (OS/2, VMS and Win32)</b>:</p>
+
+<p>If both arguments to <code>copy</code> are not file handles, then <code>copy</code> will perform a &quot;system copy&quot; of the input file to a new output file, in order to preserve file attributes, indexed file structure, <i>etc.</i> The buffer size parameter is ignored. If either argument to <code>copy</code> is a handle to an opened file, then data is copied using Perl operators, and no effort is made to preserve file attributes or record structure.</p>
+
+<p>The system copy routine may also be called directly under VMS and OS/2 as <code>File::Copy::syscopy</code> (or under VMS as <code>File::Copy::rmscopy</code>, which is the routine that does the actual work for syscopy).</p>
+
+</dd>
+<dt id="rmscopy-from-to-date_flag">rmscopy($from,$to[,$date_flag]) </dt>
+<dd>
+
+<p>The first and second arguments may be strings, typeglobs, typeglob references, or objects inheriting from IO::Handle; they are used in all cases to obtain the <i>filespec</i> of the input and output files, respectively. The name and type of the input file are used as defaults for the output file, if necessary.</p>
+
+<p>A new version of the output file is always created, which inherits the structure and RMS attributes of the input file, except for owner and protections (and possibly timestamps; see below). All data from the input file is copied to the output file; if either of the first two parameters to <code>rmscopy</code> is a file handle, its position is unchanged. (Note that this means a file handle pointing to the output file will be associated with an old version of that file after <code>rmscopy</code> returns, not the newly created version.)</p>
+
+<p>The third parameter is an integer flag, which tells <code>rmscopy</code> how to handle timestamps. If it is &lt; 0, none of the input file&#39;s timestamps are propagated to the output file. If it is &gt; 0, then it is interpreted as a bitmask: if bit 0 (the LSB) is set, then timestamps other than the revision date are propagated; if bit 1 is set, the revision date is propagated. If the third parameter to <code>rmscopy</code> is 0, then it behaves much like the DCL COPY command: if the name or type of the output file was explicitly specified, then no timestamps are propagated, but if they were taken implicitly from the input filespec, then all timestamps other than the revision date are propagated. If this parameter is not supplied, it defaults to 0.</p>
+
+<p><code>rmscopy</code> is VMS specific and cannot be exported; it must be referenced by its full name, e.g.:</p>
+
+<pre><code>  File::Copy::rmscopy($from, $to) or die $!;</code></pre>
+
+<p>Like <code>copy</code>, <code>rmscopy</code> returns 1 on success. If an error occurs, it sets <code>$!</code>, deletes the output file, and returns 0.</p>
+
+</dd>
+</dl>
+
+<h1 id="RETURN">RETURN</h1>
+
+<p>All functions return 1 on success, 0 on failure. $! will be set if an error was encountered.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>File::Copy was written by Aaron Sherman <i>&lt;ajs@ajs.com&gt;</i> in 1995, and updated by Charles Bailey <i>&lt;bailey@newman.upenn.edu&gt;</i> in 1996.</p>
+
+
+</body>
+
+</html>
+
+

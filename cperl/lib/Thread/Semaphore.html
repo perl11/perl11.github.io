@@ -1,0 +1,174 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#NOTES">NOTES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#MAINTAINER">MAINTAINER</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Thread::Semaphore - Thread-safe semaphores</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>This document describes Thread::Semaphore version 2.13</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Thread::Semaphore;
+    my $s = Thread::Semaphore-&gt;new();
+    $s-&gt;down();   # Also known as the semaphore P operation.
+    # The guarded section is here
+    $s-&gt;up();     # Also known as the semaphore V operation.
+
+    # Decrement the semaphore only if it would immediately succeed.
+    if ($s-&gt;down_nb()) {
+        # The guarded section is here
+        $s-&gt;up();
+    }
+
+    # Forcefully decrement the semaphore even if its count goes below 0.
+    $s-&gt;down_force();
+
+    # The default value for semaphore operations is 1
+    my $s = Thread::Semaphore-&gt;new($initial_value);
+    $s-&gt;down($down_value);
+    $s-&gt;up($up_value);
+    if ($s-&gt;down_nb($down_value)) {
+        ...
+        $s-&gt;up($up_value);
+    }
+    $s-&gt;down_force($down_value);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Semaphores provide a mechanism to regulate access to resources. Unlike locks, semaphores aren&#39;t tied to particular scalars, and so may be used to control access to anything you care to use them for.</p>
+
+<p>Semaphores don&#39;t limit their values to zero and one, so they can be used to control access to some resource that there may be more than one of (e.g., filehandles). Increment and decrement amounts aren&#39;t fixed at one either, so threads can reserve or return multiple resources at once.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="new">-&gt;new()</dt>
+<dd>
+
+</dd>
+<dt id="new-NUMBER">-&gt;new(NUMBER)</dt>
+<dd>
+
+<p><code>new</code> creates a new semaphore, and initializes its count to the specified number (which must be an integer). If no number is specified, the semaphore&#39;s count defaults to 1.</p>
+
+</dd>
+<dt id="down">-&gt;down()</dt>
+<dd>
+
+</dd>
+<dt id="down-NUMBER">-&gt;down(NUMBER)</dt>
+<dd>
+
+<p>The <code>down</code> method decreases the semaphore&#39;s count by the specified number (which must be an integer &gt;= 1), or by one if no number is specified.</p>
+
+<p>If the semaphore&#39;s count would drop below zero, this method will block until such time as the semaphore&#39;s count is greater than or equal to the amount you&#39;re <code>down</code>ing the semaphore&#39;s count by.</p>
+
+<p>This is the semaphore &quot;P operation&quot; (the name derives from the Dutch word &quot;pak&quot;, which means &quot;capture&quot; -- the semaphore operations were named by the late Dijkstra, who was Dutch).</p>
+
+</dd>
+<dt id="down_nb">-&gt;down_nb()</dt>
+<dd>
+
+</dd>
+<dt id="down_nb-NUMBER">-&gt;down_nb(NUMBER)</dt>
+<dd>
+
+<p>The <code>down_nb</code> method attempts to decrease the semaphore&#39;s count by the specified number (which must be an integer &gt;= 1), or by one if no number is specified.</p>
+
+<p>If the semaphore&#39;s count would drop below zero, this method will return <i>false</i>, and the semaphore&#39;s count remains unchanged. Otherwise, the semaphore&#39;s count is decremented and this method returns <i>true</i>.</p>
+
+</dd>
+<dt id="down_force">-&gt;down_force()</dt>
+<dd>
+
+</dd>
+<dt id="down_force-NUMBER">-&gt;down_force(NUMBER)</dt>
+<dd>
+
+<p>The <code>down_force</code> method decreases the semaphore&#39;s count by the specified number (which must be an integer &gt;= 1), or by one if no number is specified. This method does not block, and may cause the semaphore&#39;s count to drop below zero.</p>
+
+</dd>
+<dt id="down_timed-TIMEOUT">-&gt;down_timed(TIMEOUT)</dt>
+<dd>
+
+</dd>
+<dt id="down_timed-TIMEOUT-NUMBER">-&gt;down_timed(TIMEOUT, NUMBER)</dt>
+<dd>
+
+<p>The <code>down_timed</code> method attempts to decrease the semaphore&#39;s count by 1 or by the specified number within the specified timeout period given in seconds (which must be an integer &gt;= 0).</p>
+
+<p>If the semaphore&#39;s count would drop below zero, this method will block until either the semaphore&#39;s count is greater than or equal to the amount you&#39;re <code>down</code>ing the semaphore&#39;s count by, or until the timeout is reached.</p>
+
+<p>If the timeout is reached, this method will return <i>false</i>, and the semaphore&#39;s count remains unchanged. Otherwise, the semaphore&#39;s count is decremented and this method returns <i>true</i>.</p>
+
+</dd>
+<dt id="up">-&gt;up()</dt>
+<dd>
+
+</dd>
+<dt id="up-NUMBER">-&gt;up(NUMBER)</dt>
+<dd>
+
+<p>The <code>up</code> method increases the semaphore&#39;s count by the number specified (which must be an integer &gt;= 1), or by one if no number is specified.</p>
+
+<p>This will unblock any thread that is blocked trying to <code>down</code> the semaphore if the <code>up</code> raises the semaphore&#39;s count above the amount that the <code>down</code> is trying to decrement it by. For example, if three threads are blocked trying to <code>down</code> a semaphore by one, and another thread <code>up</code>s the semaphore by two, then two of the blocked threads (which two is indeterminate) will become unblocked.</p>
+
+<p>This is the semaphore &quot;V operation&quot; (the name derives from the Dutch word &quot;vrij&quot;, which means &quot;release&quot;).</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTES">NOTES</h1>
+
+<p>Semaphores created by <a href="/cperl/lib/Thread/Semaphore.html">Thread::Semaphore</a> can be used in both threaded and non-threaded applications. This allows you to write modules and packages that potentially make use of semaphores, and that will function in either environment.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>Thread::Semaphore on MetaCPAN: <a href="https://metacpan.org/release/Thread-Semaphore">https://metacpan.org/release/Thread-Semaphore</a></p>
+
+<p>Code repository for CPAN distribution: <a href="https://github.com/Dual-Life/Thread-Semaphore">https://github.com/Dual-Life/Thread-Semaphore</a></p>
+
+<p><a href="/cperl/lib/threads.html">threads</a>, <a href="/cperl/lib/threads/shared.html">threads::shared</a></p>
+
+<p>Sample code in the <i>examples</i> directory of this distribution on CPAN.</p>
+
+<h1 id="MAINTAINER">MAINTAINER</h1>
+
+<p>Jerry D. Hedden, <span style="white-space: nowrap;">&lt;jdhedden AT cpan DOT org&gt;</span></p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

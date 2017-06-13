@@ -1,0 +1,290 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Compression">Compression</a>
+    <ul>
+      <li><a href="#z-status-new-Compress::Raw::Bzip2-appendOutput-blockSize100k-workfactor">($z, $status) = new Compress::Raw::Bzip2 $appendOutput, $blockSize100k, $workfactor;</a></li>
+      <li><a href="#status-bz-bzdeflate-input-output">$status = $bz-&gt;bzdeflate($input, $output);</a></li>
+      <li><a href="#status-bz-bzflush-output">$status = $bz-&gt;bzflush($output);</a></li>
+      <li><a href="#status-bz-bzclose-output">$status = $bz-&gt;bzclose($output);</a></li>
+      <li><a href="#Example">Example</a></li>
+    </ul>
+  </li>
+  <li><a href="#Uncompression">Uncompression</a>
+    <ul>
+      <li><a href="#z-status-new-Compress::Raw::Bunzip2-appendOutput-consumeInput-small-verbosity-limitOutput">($z, $status) = new Compress::Raw::Bunzip2 $appendOutput, $consumeInput, $small, $verbosity, $limitOutput;</a></li>
+      <li><a href="#status-z-bzinflate-input-output">$status = $z-&gt;bzinflate($input, $output);</a></li>
+    </ul>
+  </li>
+  <li><a href="#Misc">Misc</a>
+    <ul>
+      <li><a href="#my-version-Compress::Raw::Bzip2::bzlibversion">my $version = Compress::Raw::Bzip2::bzlibversion();</a></li>
+    </ul>
+  </li>
+  <li><a href="#Constants">Constants</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#MODIFICATION-HISTORY">MODIFICATION HISTORY</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Compress::Raw::Bzip2 - Low-Level Interface to bzip2 compression library</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Compress::Raw::Bzip2 ;
+
+    my ($bz, $status) = new Compress::Raw::Bzip2 [OPTS]
+        or die &quot;Cannot create bzip2 object: $bzerno\n&quot;;
+    
+    $status = $bz-&gt;bzdeflate($input, $output);
+    $status = $bz-&gt;bzflush($output);
+    $status = $bz-&gt;bzclose($output);
+
+    my ($bz, $status) = new Compress::Raw::Bunzip2 [OPTS]
+        or die &quot;Cannot create bunzip2 object: $bzerno\n&quot;;
+    
+    $status = $bz-&gt;bzinflate($input, $output);
+
+    my $version = Compress::Raw::Bzip2::bzlibversion();</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>Compress::Raw::Bzip2</code> provides an interface to the in-memory compression/uncompression functions from the bzip2 compression library.</p>
+
+<p>Although the primary purpose for the existence of <code>Compress::Raw::Bzip2</code> is for use by the <code>IO::Compress::Bzip2</code> and <code>IO::Compress::Bunzip2</code> modules, it can be used on its own for simple compression/uncompression tasks.</p>
+
+<h1 id="Compression">Compression</h1>
+
+<h2 id="z-status-new-Compress::Raw::Bzip2-appendOutput-blockSize100k-workfactor">($z, $status) = new Compress::Raw::Bzip2 $appendOutput, $blockSize100k, $workfactor;</h2>
+
+<p>Creates a new compression object.</p>
+
+<p>If successful, it will return the initialised compression object, <code>$z</code> and a <code>$status</code> of <code>BZ_OK</code> in a list context. In scalar context it returns the deflation object, <code>$z</code>, only.</p>
+
+<p>If not successful, the returned compression object, <code>$z</code>, will be <i>undef</i> and <code>$status</code> will hold the a <i>bzip2</i> error code.</p>
+
+<p>Below is a list of the valid options:</p>
+
+<dl>
+
+<dt id="appendOutput"><b>$appendOutput</b></dt>
+<dd>
+
+<p>Controls whether the compressed data is appended to the output buffer in the <code>bzdeflate</code>, <code>bzflush</code> and <code>bzclose</code> methods.</p>
+
+<p>Defaults to 1.</p>
+
+</dd>
+<dt id="blockSize100k"><b>$blockSize100k</b></dt>
+<dd>
+
+<p>To quote the bzip2 documentation</p>
+
+<pre><code>    blockSize100k specifies the block size to be used for compression. It
+    should be a value between 1 and 9 inclusive, and the actual block size
+    used is 100000 x this figure. 9 gives the best compression but takes
+    most memory.</code></pre>
+
+<p>Defaults to 1.</p>
+
+</dd>
+<dt id="workfactor"><b>$workfactor</b></dt>
+<dd>
+
+<p>To quote the bzip2 documentation</p>
+
+<pre><code>    This parameter controls how the compression phase behaves when
+    presented with worst case, highly repetitive, input data. If
+    compression runs into difficulties caused by repetitive data, the
+    library switches from the standard sorting algorithm to a fallback
+    algorithm. The fallback is slower than the standard algorithm by
+    perhaps a factor of three, but always behaves reasonably, no matter how
+    bad the input.
+
+    Lower values of workFactor reduce the amount of effort the standard
+    algorithm will expend before resorting to the fallback. You should set
+    this parameter carefully; too low, and many inputs will be handled by
+    the fallback algorithm and so compress rather slowly, too high, and
+    your average-to-worst case compression times can become very large. The
+    default value of 30 gives reasonable behaviour over a wide range of
+    circumstances.
+
+    Allowable values range from 0 to 250 inclusive. 0 is a special case,
+    equivalent to using the default value of 30.</code></pre>
+
+<p>Defaults to 0.</p>
+
+</dd>
+</dl>
+
+<h2 id="status-bz-bzdeflate-input-output">$status = $bz-&gt;bzdeflate($input, $output);</h2>
+
+<p>Reads the contents of <code>$input</code>, compresses it and writes the compressed data to <code>$output</code>.</p>
+
+<p>Returns <code>BZ_RUN_OK</code> on success and a <code>bzip2</code> error code on failure.</p>
+
+<p>If <code>appendOutput</code> is enabled in the constructor for the bzip2 object, the compressed data will be appended to <code>$output</code>. If not enabled, <code>$output</code> will be truncated before the compressed data is written to it.</p>
+
+<h2 id="status-bz-bzflush-output">$status = $bz-&gt;bzflush($output);</h2>
+
+<p>Flushes any pending compressed data to <code>$output</code>.</p>
+
+<p>Returns <code>BZ_RUN_OK</code> on success and a <code>bzip2</code> error code on failure.</p>
+
+<h2 id="status-bz-bzclose-output">$status = $bz-&gt;bzclose($output);</h2>
+
+<p>Terminates the compressed data stream and flushes any pending compressed data to <code>$output</code>.</p>
+
+<p>Returns <code>BZ_STREAM_END</code> on success and a <code>bzip2</code> error code on failure.</p>
+
+<h2 id="Example">Example</h2>
+
+<h1 id="Uncompression">Uncompression</h1>
+
+<h2 id="z-status-new-Compress::Raw::Bunzip2-appendOutput-consumeInput-small-verbosity-limitOutput">($z, $status) = new Compress::Raw::Bunzip2 $appendOutput, $consumeInput, $small, $verbosity, $limitOutput;</h2>
+
+<p>If successful, it will return the initialised uncompression object, <code>$z</code> and a <code>$status</code> of <code>BZ_OK</code> in a list context. In scalar context it returns the deflation object, <code>$z</code>, only.</p>
+
+<p>If not successful, the returned uncompression object, <code>$z</code>, will be <i>undef</i> and <code>$status</code> will hold the a <i>bzip2</i> error code.</p>
+
+<p>Below is a list of the valid options:</p>
+
+<dl>
+
+<dt id="appendOutput1"><b>$appendOutput</b></dt>
+<dd>
+
+<p>Controls whether the compressed data is appended to the output buffer in the <code>bzinflate</code>, <code>bzflush</code> and <code>bzclose</code> methods.</p>
+
+<p>Defaults to 1.</p>
+
+</dd>
+<dt id="consumeInput"><b>$consumeInput</b></dt>
+<dd>
+
+</dd>
+<dt id="small"><b>$small</b></dt>
+<dd>
+
+<p>To quote the bzip2 documentation</p>
+
+<pre><code>    If small is nonzero, the library will use an alternative decompression
+    algorithm which uses less memory but at the cost of decompressing more
+    slowly (roughly speaking, half the speed, but the maximum memory
+    requirement drops to around 2300k). </code></pre>
+
+<p>Defaults to 0.</p>
+
+</dd>
+<dt id="limitOutput"><b>$limitOutput</b></dt>
+<dd>
+
+<p>The <code>LimitOutput</code> option changes the behavior of the <code>$i-&gt;bzinflate</code> method so that the amount of memory used by the output buffer can be limited.</p>
+
+<p>When <code>LimitOutput</code> is used the size of the output buffer used will either be the 16k or the amount of memory already allocated to <code>$output</code>, whichever is larger. Predicting the output size available is tricky, so don&#39;t rely on getting an exact output buffer size.</p>
+
+<p>When <code>LimitOutout</code> is not specified <code>$i-&gt;bzinflate</code> will use as much memory as it takes to write all the uncompressed data it creates by uncompressing the input buffer.</p>
+
+<p>If <code>LimitOutput</code> is enabled, the <code>ConsumeInput</code> option will also be enabled.</p>
+
+<p>This option defaults to false.</p>
+
+</dd>
+<dt id="verbosity"><b>$verbosity</b></dt>
+<dd>
+
+<p>This parameter is ignored.</p>
+
+<p>Defaults to 0.</p>
+
+</dd>
+</dl>
+
+<h2 id="status-z-bzinflate-input-output">$status = $z-&gt;bzinflate($input, $output);</h2>
+
+<p>Uncompresses <code>$input</code> and writes the uncompressed data to <code>$output</code>.</p>
+
+<p>Returns <code>BZ_OK</code> if the uncompression was successful, but the end of the compressed data stream has not been reached. Returns <code>BZ_STREAM_END</code> on successful uncompression and the end of the compression stream has been reached.</p>
+
+<p>If <code>consumeInput</code> is enabled in the constructor for the bunzip2 object, <code>$input</code> will have all compressed data removed from it after uncompression. On <code>BZ_OK</code> return this will mean that <code>$input</code> will be an empty string; when <code>BZ_STREAM_END</code> <code>$input</code> will either be an empty string or will contain whatever data immediately followed the compressed data stream.</p>
+
+<p>If <code>appendOutput</code> is enabled in the constructor for the bunzip2 object, the uncompressed data will be appended to <code>$output</code>. If not enabled, <code>$output</code> will be truncated before the uncompressed data is written to it.</p>
+
+<h1 id="Misc">Misc</h1>
+
+<h2 id="my-version-Compress::Raw::Bzip2::bzlibversion">my $version = Compress::Raw::Bzip2::bzlibversion();</h2>
+
+<p>Returns the version of the underlying bzip2 library.</p>
+
+<h1 id="Constants">Constants</h1>
+
+<p>The following bzip2 constants are exported by this module</p>
+
+<pre><code>                BZ_RUN
+                BZ_FLUSH
+                BZ_FINISH
+
+                BZ_OK
+                BZ_RUN_OK
+                BZ_FLUSH_OK
+                BZ_FINISH_OK
+                BZ_STREAM_END
+                BZ_SEQUENCE_ERROR
+                BZ_PARAM_ERROR
+                BZ_MEM_ERROR
+                BZ_DATA_ERROR
+                BZ_DATA_ERROR_MAGIC
+                BZ_IO_ERROR
+                BZ_UNEXPECTED_EOF
+                BZ_OUTBUFF_FULL
+                BZ_CONFIG_ERROR</code></pre>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Compress/Zlib.html">Compress::Zlib</a>, <a href="/cperl/lib/IO/Compress/Gzip.html">IO::Compress::Gzip</a>, <a href="/cperl/lib/IO/Uncompress/Gunzip.html">IO::Uncompress::Gunzip</a>, <a href="/cperl/lib/IO/Compress/Deflate.html">IO::Compress::Deflate</a>, <a href="/cperl/lib/IO/Uncompress/Inflate.html">IO::Uncompress::Inflate</a>, <a href="/cperl/lib/IO/Compress/RawDeflate.html">IO::Compress::RawDeflate</a>, <a href="/cperl/lib/IO/Uncompress/RawInflate.html">IO::Uncompress::RawInflate</a>, <a href="/cperl/lib/IO/Compress/Bzip2.html">IO::Compress::Bzip2</a>, <a href="/cperl/lib/IO/Uncompress/Bunzip2.html">IO::Uncompress::Bunzip2</a>, <a>IO::Compress::Lzma</a>, <a>IO::Uncompress::UnLzma</a>, <a>IO::Compress::Xz</a>, <a>IO::Uncompress::UnXz</a>, <a>IO::Compress::Lzop</a>, <a>IO::Uncompress::UnLzop</a>, <a>IO::Compress::Lzf</a>, <a>IO::Uncompress::UnLzf</a>, <a href="/cperl/lib/IO/Uncompress/AnyInflate.html">IO::Uncompress::AnyInflate</a>, <a href="/cperl/lib/IO/Uncompress/AnyUncompress.html">IO::Uncompress::AnyUncompress</a></p>
+
+<p><a href="/cperl/lib/IO/Compress/FAQ.html">IO::Compress::FAQ</a></p>
+
+<p><a href="/cperl/lib/File/GlobMapper.html">File::GlobMapper</a>, <a>Archive::Zip</a>, <a href="/cperl/lib/Archive/Tar.html">Archive::Tar</a>, <a href="/cperl/lib/IO/Zlib.html">IO::Zlib</a></p>
+
+<p>The primary site for the bzip2 program is <a href="http://www.bzip.org">http://www.bzip.org</a>.</p>
+
+<p>See the module <a href="/cperl/lib/IO/Compress/Bzip2.html">Compress::Bzip2</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>This module was written by Paul Marquess, <code>pmqs@cpan.org</code>.</p>
+
+<h1 id="MODIFICATION-HISTORY">MODIFICATION HISTORY</h1>
+
+<p>See the Changes file.</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (c) 2005-2017 Paul Marquess. All rights reserved.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

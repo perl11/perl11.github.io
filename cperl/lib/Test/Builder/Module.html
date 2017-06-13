@@ -1,0 +1,116 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Importing">Importing</a>
+        <ul>
+          <li><a href="#import">import</a></li>
+          <li><a href="#import_extra">import_extra</a></li>
+        </ul>
+      </li>
+      <li><a href="#Builder">Builder</a>
+        <ul>
+          <li><a href="#builder">builder</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Test::Builder::Module - Base class for test modules</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  # Emulates Test::Simple
+  package Your::Module;
+
+  my $CLASS = __PACKAGE__;
+
+  use base &#39;Test::Builder::Module&#39;;
+  @EXPORT = qw(ok);
+
+  sub ok ($;$) {
+      my $tb = $CLASS-&gt;builder;
+      return $tb-&gt;ok(@_);
+  }
+  
+  1;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This is a superclass for <a href="/cperl/lib/Test/Builder.html">Test::Builder</a>-based modules. It provides a handful of common functionality and a method of getting at the underlying <a href="/cperl/lib/Test/Builder.html">Test::Builder</a> object.</p>
+
+<h2 id="Importing">Importing</h2>
+
+<p>Test::Builder::Module is a subclass of <a href="/cperl/lib/Exporter.html">Exporter</a> which means your module is also a subclass of Exporter. @EXPORT, @EXPORT_OK, etc... all act normally.</p>
+
+<p>A few methods are provided to do the <code>use Your::Module tests =&gt; 23</code> part for you.</p>
+
+<h3 id="import">import</h3>
+
+<p>Test::Builder::Module provides an <code>import()</code> method which acts in the same basic way as <a href="/cperl/lib/Test/More.html">Test::More</a>&#39;s, setting the plan and controlling exporting of functions and variables. This allows your module to set the plan independent of <a href="/cperl/lib/Test/More.html">Test::More</a>.</p>
+
+<p>All arguments passed to <code>import()</code> are passed onto <code>Your::Module-&gt;builder-&gt;plan()</code> with the exception of <code>import =&gt;[qw(things to import)]</code>.</p>
+
+<pre><code>    use Your::Module import =&gt; [qw(this that)], tests =&gt; 23;</code></pre>
+
+<p>says to import the functions <code>this()</code> and <code>that()</code> as well as set the plan to be 23 tests.</p>
+
+<p><code>import()</code> also sets the <code>exported_to()</code> attribute of your builder to be the caller of the <code>import()</code> function.</p>
+
+<p>Additional behaviors can be added to your <code>import()</code> method by overriding <code>import_extra()</code>.</p>
+
+<h3 id="import_extra">import_extra</h3>
+
+<pre><code>    Your::Module-&gt;import_extra(\@import_args);</code></pre>
+
+<p><code>import_extra()</code> is called by <code>import()</code>. It provides an opportunity for you to add behaviors to your module based on its import list.</p>
+
+<p>Any extra arguments which shouldn&#39;t be passed on to <code>plan()</code> should be stripped off by this method.</p>
+
+<p>See <a href="/cperl/lib/Test/More.html">Test::More</a> for an example of its use.</p>
+
+<p><b>NOTE</b> This mechanism is <i>VERY ALPHA AND LIKELY TO CHANGE</i> as it feels like a bit of an ugly hack in its current form.</p>
+
+<h2 id="Builder">Builder</h2>
+
+<p>Test::Builder::Module provides some methods of getting at the underlying Test::Builder object.</p>
+
+<h3 id="builder">builder</h3>
+
+<pre><code>  my $builder = Your::Class-&gt;builder;</code></pre>
+
+<p>This method returns the <a href="/cperl/lib/Test/Builder.html">Test::Builder</a> object associated with Your::Class. It is not a constructor so you can call it as often as you like.</p>
+
+<p>This is the preferred way to get the <a href="/cperl/lib/Test/Builder.html">Test::Builder</a> object. You should <i>not</i> get it via <code>Test::Builder-&gt;new</code> as was previously recommended.</p>
+
+<p>The object returned by <code>builder()</code> may change at runtime so you should call <code>builder()</code> inside each function rather than store it in a global.</p>
+
+<pre><code>  sub ok {
+      my $builder = Your::Class-&gt;builder;
+
+      return $builder-&gt;ok(@_);
+  }</code></pre>
+
+
+</body>
+
+</html>
+
+

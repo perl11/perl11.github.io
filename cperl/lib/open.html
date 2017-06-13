@@ -1,0 +1,111 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#NONPERLIO-FUNCTIONALITY">NONPERLIO FUNCTIONALITY</a></li>
+  <li><a href="#IMPLEMENTATION-DETAILS">IMPLEMENTATION DETAILS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>open - perl pragma to set default PerlIO layers for input and output</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use open IN  =&gt; &quot;:crlf&quot;, OUT =&gt; &quot;:bytes&quot;;
+    use open OUT =&gt; &#39;:utf8&#39;;
+    use open IO  =&gt; &quot;:encoding(iso-8859-7)&quot;;
+
+    use open IO  =&gt; &#39;:locale&#39;;
+
+    use open &#39;:encoding(UTF-8)&#39;;
+    use open &#39;:locale&#39;;
+    use open &#39;:encoding(iso-8859-7)&#39;;
+
+    use open &#39;:std&#39;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Full-fledged support for I/O layers is now implemented provided Perl is configured to use PerlIO as its IO system (which is now the default).</p>
+
+<p>The <code>open</code> pragma serves as one of the interfaces to declare default &quot;layers&quot; (also known as &quot;disciplines&quot;) for all I/O. Any two-argument open(), readpipe() (aka qx//) and similar operators found within the lexical scope of this pragma will use the declared defaults. Even three-argument opens may be affected by this pragma when they don&#39;t specify IO layers in MODE.</p>
+
+<p>With the <code>IN</code> subpragma you can declare the default layers of input streams, and with the <code>OUT</code> subpragma you can declare the default layers of output streams. With the <code>IO</code> subpragma you can control both input and output streams simultaneously.</p>
+
+<p>If you have a legacy encoding, you can use the <code>:encoding(...)</code> tag.</p>
+
+<p>If you want to set your encoding layers based on your locale environment variables, you can use the <code>:locale</code> tag. For example:</p>
+
+<pre><code>    $ENV{LANG} = &#39;ru_RU.KOI8-R&#39;;
+    # the :locale will probe the locale environment variables like LANG
+    use open OUT =&gt; &#39;:locale&#39;;
+    open(O, &quot;&gt;koi8&quot;);
+    print O chr(0x430); # Unicode CYRILLIC SMALL LETTER A = KOI8-R 0xc1
+    close O;
+    open(I, &quot;&lt;koi8&quot;);
+    printf &quot;%#x\n&quot;, ord(&lt;I&gt;), &quot;\n&quot;; # this should print 0xc1
+    close I;</code></pre>
+
+<p>These are equivalent</p>
+
+<pre><code>    use open &#39;:encoding(UTF-8)&#39;;
+    use open IO =&gt; &#39;:encoding(UTF-8)&#39;;</code></pre>
+
+<p>as are these</p>
+
+<pre><code>    use open &#39;:locale&#39;;
+    use open IO =&gt; &#39;:locale&#39;;</code></pre>
+
+<p>and these</p>
+
+<pre><code>    use open &#39;:encoding(iso-8859-7)&#39;;
+    use open IO =&gt; &#39;:encoding(iso-8859-7)&#39;;</code></pre>
+
+<p>The matching of encoding names is loose: case does not matter, and many encodings have several aliases. See <a href="/cperl/lib/Encode/Supported.html">Encode::Supported</a> for details and the list of supported locales.</p>
+
+<p>When open() is given an explicit list of layers (with the three-arg syntax), they override the list declared using this pragma. open() can also be given a single colon (:) for a layer name, to override this pragma and use the default (<code>:raw</code> on Unix, <code>:crlf</code> on Windows).</p>
+
+<p>The <code>:std</code> subpragma on its own has no effect, but if combined with the <code>:utf8</code> or <code>:encoding</code> subpragmas, it converts the standard filehandles (STDIN, STDOUT, STDERR) to comply with encoding selected for input/output handles. For example, if both input and out are chosen to be <code>:encoding(UTF-8)</code>, a <code>:std</code> will mean that STDIN, STDOUT, and STDERR are also in <code>:encoding(UTF-8)</code>. On the other hand, if only output is chosen to be in <code>:encoding(koi8r)</code>, a <code>:std</code> will cause only the STDOUT and STDERR to be in <code>koi8r</code>. The <code>:locale</code> subpragma implicitly turns on <code>:std</code>.</p>
+
+<p>The logic of <code>:locale</code> is described in full in <a href="/cperl/lib/encoding.html">encoding</a>, but in short it is first trying nl_langinfo(CODESET) and then guessing from the LC_ALL and LANG locale environment variables.</p>
+
+<p>Directory handles may also support PerlIO layers in the future.</p>
+
+<h1 id="NONPERLIO-FUNCTIONALITY">NONPERLIO FUNCTIONALITY</h1>
+
+<p>If Perl is not built to use PerlIO as its IO system then only the two pseudo-layers <code>:bytes</code> and <code>:crlf</code> are available.</p>
+
+<p>The <code>:bytes</code> layer corresponds to &quot;binary mode&quot; and the <code>:crlf</code> layer corresponds to &quot;text mode&quot; on platforms that distinguish between the two modes when opening files (which is many DOS-like platforms, including Windows). These two layers are no-ops on platforms where binmode() is a no-op, but perform their functions everywhere if PerlIO is enabled.</p>
+
+<h1 id="IMPLEMENTATION-DETAILS">IMPLEMENTATION DETAILS</h1>
+
+<p>There is a class method in <code>PerlIO::Layer</code> <code>find</code> which is implemented as XS code. It is called by <code>import</code> to validate the layers:</p>
+
+<pre><code>   PerlIO::Layer::-&gt;find(&quot;perlio&quot;)</code></pre>
+
+<p>The return value (if defined) is a Perl object, of class <code>PerlIO::Layer</code> which is created by the C code in <i>perlio.c</i>. As yet there is nothing useful you can do with the object at the perl level.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perlfunc.html#binmode">&quot;binmode&quot; in perlfunc</a>, <a href="/cperl/perlfunc.html#open">&quot;open&quot; in perlfunc</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/PerlIO.html">PerlIO</a>, <a href="/cperl/lib/encoding.html">encoding</a></p>
+
+
+</body>
+
+</html>
+
+

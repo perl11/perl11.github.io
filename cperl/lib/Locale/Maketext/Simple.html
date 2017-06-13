@@ -1,0 +1,150 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a>
+    <ul>
+      <li><a href="#Class">Class</a></li>
+      <li><a href="#Path">Path</a></li>
+      <li><a href="#Style">Style</a></li>
+      <li><a href="#Export">Export</a></li>
+      <li><a href="#Subclass">Subclass</a></li>
+      <li><a href="#Decode">Decode</a></li>
+      <li><a href="#Encoding">Encoding</a></li>
+    </ul>
+  </li>
+  <li><a href="#ACKNOWLEDGMENTS">ACKNOWLEDGMENTS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a>
+    <ul>
+      <li><a href="#The-MIT-License">The &quot;MIT&quot; License</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Locale::Maketext::Simple - Simple interface to Locale::Maketext::Lexicon</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>This document describes version 0.18 of Locale::Maketext::Simple, released Septermber 8, 2006.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p>Minimal setup (looks for <i>auto/Foo/*.po</i> and <i>auto/Foo/*.mo</i>):</p>
+
+<pre><code>    package Foo;
+    use Locale::Maketext::Simple;       # exports &#39;loc&#39;
+    loc_lang(&#39;fr&#39;);                     # set language to French
+    sub hello {
+        print loc(&quot;Hello, [_1]!&quot;, &quot;World&quot;);
+    }</code></pre>
+
+<p>More sophisticated example:</p>
+
+<pre><code>    package Foo::Bar;
+    use Locale::Maketext::Simple (
+        Class       =&gt; &#39;Foo&#39;,       # search in auto/Foo/
+        Style       =&gt; &#39;gettext&#39;,   # %1 instead of [_1]
+        Export      =&gt; &#39;maketext&#39;,  # maketext() instead of loc()
+        Subclass    =&gt; &#39;L10N&#39;,      # Foo::L10N instead of Foo::I18N
+        Decode      =&gt; 1,           # decode entries to unicode-strings
+        Encoding    =&gt; &#39;locale&#39;,    # but encode lexicons in current locale
+                                    # (needs Locale::Maketext::Lexicon 0.36)
+    );
+    sub japh {
+        print maketext(&quot;Just another %1 hacker&quot;, &quot;Perl&quot;);
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module is a simple wrapper around <b>Locale::Maketext::Lexicon</b>, designed to alleviate the need of creating <i>Language Classes</i> for module authors.</p>
+
+<p>The language used is chosen from the loc_lang call. If a lookup is not possible, the i-default language will be used. If the lookup is not in the i-default language, then the key will be returned.</p>
+
+<p>If <b>Locale::Maketext::Lexicon</b> is not present, it implements a minimal localization function by simply interpolating <code>[_1]</code> with the first argument, <code>[_2]</code> with the second, etc. Interpolated function like <code>[quant,_1]</code> are treated as <code>[_1]</code>, with the sole exception of <code>[tense,_1,X]</code>, which will append <code>ing</code> to <code>_1</code> when X is <code>present</code>, or appending <code>ed</code> to &lt;_1&gt; otherwise.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<p>All options are passed either via the <code>use</code> statement, or via an explicit <code>import</code>.</p>
+
+<h2 id="Class">Class</h2>
+
+<p>By default, <b>Locale::Maketext::Simple</b> draws its source from the calling package&#39;s <i>auto/</i> directory; you can override this behaviour by explicitly specifying another package as <code>Class</code>.</p>
+
+<h2 id="Path">Path</h2>
+
+<p>If your PO and MO files are under a path elsewhere than <code>auto/</code>, you may specify it using the <code>Path</code> option.</p>
+
+<h2 id="Style">Style</h2>
+
+<p>By default, this module uses the <code>maketext</code> style of <code>[_1]</code> and <code>[quant,_1]</code> for interpolation. Alternatively, you can specify the <code>gettext</code> style, which uses <code>%1</code> and <code>%quant(%1)</code> for interpolation.</p>
+
+<p>This option is case-insensitive.</p>
+
+<h2 id="Export">Export</h2>
+
+<p>By default, this module exports a single function, <code>loc</code>, into its caller&#39;s namespace. You can set it to another name, or set it to an empty string to disable exporting.</p>
+
+<h2 id="Subclass">Subclass</h2>
+
+<p>By default, this module creates an <code>::I18N</code> subclass under the caller&#39;s package (or the package specified by <code>Class</code>), and stores lexicon data in its subclasses. You can assign a name other than <code>I18N</code> via this option.</p>
+
+<h2 id="Decode">Decode</h2>
+
+<p>If set to a true value, source entries will be converted into utf8-strings (available in Perl 5.6.1 or later). This feature needs the <b>Encode</b> or <b>Encode::compat</b> module.</p>
+
+<h2 id="Encoding">Encoding</h2>
+
+<p>Specifies an encoding to store lexicon entries, instead of utf8-strings. If set to <code>locale</code>, the encoding from the current locale setting is used. Implies a true value for <code>Decode</code>.</p>
+
+<h1 id="ACKNOWLEDGMENTS">ACKNOWLEDGMENTS</h1>
+
+<p>Thanks to Jos I. Boumans for suggesting this module to be written.</p>
+
+<p>Thanks to Chia-Liang Kao for suggesting <code>Path</code> and <code>loc_lang</code>.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Locale/Maketext.html">Locale::Maketext</a>, <a>Locale::Maketext::Lexicon</a></p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Audrey Tang &lt;cpan@audreyt.org&gt;</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright 2003, 2004, 2005, 2006 by Audrey Tang &lt;cpan@audreyt.org&gt;.</p>
+
+<p>This software is released under the MIT license cited below. Additionally, when this software is distributed with <b>Perl Kit, Version 5</b>, you may also redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h2 id="The-MIT-License">The &quot;MIT&quot; License</h2>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+
+
+</body>
+
+</html>
+
+

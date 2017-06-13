@@ -1,0 +1,207 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#new">new</a></li>
+        </ul>
+      </li>
+      <li><a href="#Instance-Methods">Instance Methods</a>
+        <ul>
+          <li><a href="#set_version">set_version</a></li>
+          <li><a href="#tokenize">tokenize</a></li>
+          <li><a href="#token_types">token_types</a></li>
+          <li><a href="#syntax_for">syntax_for</a></li>
+          <li><a href="#handler_for">handler_for</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#TAP-GRAMMAR">TAP GRAMMAR</a></li>
+  <li><a href="#SUBCLASSING">SUBCLASSING</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Parser::Grammar - A grammar for the Test Anything Protocol.</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use TAP::Parser::Grammar;
+  my $grammar = $self-&gt;make_grammar({
+    iterator =&gt; $tap_parser_iterator,
+    parser   =&gt; $tap_parser,
+    version  =&gt; 12,
+  });
+
+  my $result = $grammar-&gt;tokenize;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>TAP::Parser::Grammar</code> tokenizes lines from a <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a> and constructs <a href="/cperl/lib/TAP/Parser/Result.html">TAP::Parser::Result</a> subclasses to represent the tokens.</p>
+
+<p>Do not attempt to use this class directly. It won&#39;t make sense. It&#39;s mainly here to ensure that we will be able to have pluggable grammars when TAP is expanded at some future date (plus, this stuff was really cluttering the parser).</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="new"><code>new</code></h3>
+
+<pre><code>  my $grammar = TAP::Parser::Grammar-&gt;new({
+      iterator =&gt; $iterator,
+      parser   =&gt; $parser,
+      version  =&gt; $version,
+  });</code></pre>
+
+<p>Returns <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> grammar object that will parse the TAP stream from the specified iterator. Both <code>iterator</code> and <code>parser</code> are required arguments. If <code>version</code> is not set it defaults to <code>12</code> (see <a href="#set_version">&quot;set_version&quot;</a> for more details).</p>
+
+<h2 id="Instance-Methods">Instance Methods</h2>
+
+<h3 id="set_version"><code>set_version</code></h3>
+
+<pre><code>  $grammar-&gt;set_version(13);</code></pre>
+
+<p>Tell the grammar which TAP syntax version to support. The lowest supported version is 12. Although &#39;TAP version&#39; isn&#39;t valid version 12 syntax it is accepted so that higher version numbers may be parsed.</p>
+
+<h3 id="tokenize"><code>tokenize</code></h3>
+
+<pre><code>  my $token = $grammar-&gt;tokenize;</code></pre>
+
+<p>This method will return a <a href="/cperl/lib/TAP/Parser/Result.html">TAP::Parser::Result</a> object representing the current line of TAP.</p>
+
+<h3 id="token_types"><code>token_types</code></h3>
+
+<pre><code>  my @types = $grammar-&gt;token_types;</code></pre>
+
+<p>Returns the different types of tokens which this grammar can parse.</p>
+
+<h3 id="syntax_for"><code>syntax_for</code></h3>
+
+<pre><code>  my $syntax = $grammar-&gt;syntax_for($token_type);</code></pre>
+
+<p>Returns a pre-compiled regular expression which will match a chunk of TAP corresponding to the token type. For example (not that you should really pay attention to this, <code>$grammar-&gt;syntax_for(&#39;comment&#39;)</code> will return <code>qr/^#(.*)/</code>.</p>
+
+<h3 id="handler_for"><code>handler_for</code></h3>
+
+<pre><code>  my $handler = $grammar-&gt;handler_for($token_type);</code></pre>
+
+<p>Returns a code reference which, when passed an appropriate line of TAP, returns the lexed token corresponding to that line. As a result, the basic TAP parsing loop looks similar to the following:</p>
+
+<pre><code> my @tokens;
+ my $grammar = TAP::Grammar-&gt;new;
+ LINE: while ( defined( my $line = $parser-&gt;_next_chunk_of_tap ) ) {
+     for my $type ( $grammar-&gt;token_types ) {
+         my $syntax  = $grammar-&gt;syntax_for($type);
+         if ( $line =~ $syntax ) {
+             my $handler = $grammar-&gt;handler_for($type);
+             push @tokens =&gt; $grammar-&gt;$handler($line);
+             next LINE;
+         }
+     }
+     push @tokens =&gt; $grammar-&gt;_make_unknown_token($line);
+ }</code></pre>
+
+<h1 id="TAP-GRAMMAR">TAP GRAMMAR</h1>
+
+<p><b>NOTE:</b> This grammar is slightly out of date. There&#39;s still some discussion about it and a new one will be provided when we have things better defined.</p>
+
+<p>The <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> does not use a formal grammar because TAP is essentially a stream-based protocol. In fact, it&#39;s quite legal to have an infinite stream. For the same reason that we don&#39;t apply regexes to streams, we&#39;re not using a formal grammar here. Instead, we parse the TAP in lines.</p>
+
+<p>For purposes for forward compatibility, any result which does not match the following grammar is currently referred to as <a href="/cperl/lib/TAP/Parser/Result/Unknown.html">TAP::Parser::Result::Unknown</a>. It is <i>not</i> a parse error.</p>
+
+<p>A formal grammar would look similar to the following:</p>
+
+<pre><code> (*
+     For the time being, I&#39;m cheating on the EBNF by allowing
+     certain terms to be defined by POSIX character classes by
+     using the following syntax:
+
+       digit ::= [:digit:]
+
+     As far as I am aware, that&#39;s not valid EBNF.  Sue me.  I
+     didn&#39;t know how to write &quot;char&quot; otherwise (Unicode issues).
+     Suggestions welcome.
+ *)
+
+ tap            ::= version? { comment | unknown } leading_plan lines
+                    |
+                    lines trailing_plan {comment}
+
+ version        ::= &#39;TAP version &#39; positiveInteger {positiveInteger} &quot;\n&quot;
+
+ leading_plan   ::= plan skip_directive? &quot;\n&quot;
+
+ trailing_plan  ::= plan &quot;\n&quot;
+
+ plan           ::= &#39;1..&#39; nonNegativeInteger
+
+ lines          ::= line {line}
+
+ line           ::= (comment | test | unknown | bailout ) &quot;\n&quot;
+
+ test           ::= status positiveInteger? description? directive?
+
+ status         ::= &#39;not &#39;? &#39;ok &#39;
+
+ description    ::= (character - (digit | &#39;#&#39;)) {character - &#39;#&#39;}
+
+ directive      ::= todo_directive | skip_directive
+
+ todo_directive ::= hash_mark &#39;TODO&#39; &#39; &#39; {character}
+
+ skip_directive ::= hash_mark &#39;SKIP&#39; &#39; &#39; {character}
+
+ comment        ::= hash_mark {character}
+
+ hash_mark      ::= &#39;#&#39; {&#39; &#39;}
+
+ bailout        ::= &#39;Bail out!&#39; {character}
+
+ unknown        ::= { (character - &quot;\n&quot;) }
+
+ (* POSIX character classes and other terminals *)
+
+ digit              ::= [:digit:]
+ character          ::= ([:print:] - &quot;\n&quot;)
+ positiveInteger    ::= ( digit - &#39;0&#39; ) {digit}
+ nonNegativeInteger ::= digit {digit}</code></pre>
+
+<h1 id="SUBCLASSING">SUBCLASSING</h1>
+
+<p>Please see <a href="/cperl/lib/TAP/Parser.html#SUBCLASSING">&quot;SUBCLASSING&quot; in TAP::Parser</a> for a subclassing overview.</p>
+
+<p>If you <i>really</i> want to subclass <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>&#39;s grammar the best thing to do is read through the code. There&#39;s no easy way of summarizing it here.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/TAP/Object.html">TAP::Object</a>, <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>, <a href="/cperl/lib/TAP/Parser/Iterator.html">TAP::Parser::Iterator</a>, <a href="/cperl/lib/TAP/Parser/Result.html">TAP::Parser::Result</a>,</p>
+
+
+</body>
+
+</html>
+
+

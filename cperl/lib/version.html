@@ -1,0 +1,318 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#TYPES-OF-VERSION-OBJECTS">TYPES OF VERSION OBJECTS</a></li>
+  <li><a href="#DECLARING-VERSIONS">DECLARING VERSIONS</a>
+    <ul>
+      <li><a href="#How-to-convert-a-module-from-decimal-to-dotted-decimal">How to convert a module from decimal to dotted-decimal</a></li>
+      <li><a href="#How-to-declare-a-dotted-decimal-version">How to declare() a dotted-decimal version</a></li>
+    </ul>
+  </li>
+  <li><a href="#PARSING-AND-COMPARING-VERSIONS">PARSING AND COMPARING VERSIONS</a>
+    <ul>
+      <li><a href="#How-to-parse-a-version">How to parse() a version</a></li>
+      <li><a href="#How-to-check-for-a-legal-version-string">How to check for a legal version string</a></li>
+      <li><a href="#How-to-compare-version-objects">How to compare version objects</a></li>
+    </ul>
+  </li>
+  <li><a href="#OBJECT-METHODS">OBJECT METHODS</a>
+    <ul>
+      <li><a href="#is_alpha">is_alpha()</a></li>
+      <li><a href="#is_qv">is_qv()</a></li>
+      <li><a href="#normal">normal()</a></li>
+      <li><a href="#numify">numify()</a></li>
+      <li><a href="#stringify">stringify()</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXPORTED-FUNCTIONS">EXPORTED FUNCTIONS</a>
+    <ul>
+      <li><a href="#qv">qv()</a></li>
+      <li><a href="#is_lax1">is_lax()</a></li>
+      <li><a href="#is_strict1">is_strict()</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>version - Perl extension for Version Objects</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  # Parsing version strings (decimal or dotted-decimal)
+
+  use version 0.77; # get latest bug-fixes and API
+  $ver = version-&gt;parse($string)
+
+  # Declaring a dotted-decimal $VERSION (keep on one line!)
+
+  use version; our $VERSION = version-&gt;declare(&quot;v1.2.3&quot;); # formal
+  use version; our $VERSION = qv(&quot;v1.2.3&quot;);               # shorthand
+  use version; our $VERSION = qv(&quot;v1.2_3&quot;);               # alpha
+
+  # Declaring an old-style decimal $VERSION (use quotes!)
+
+  our $VERSION = &quot;1.0203&quot;;                                # recommended
+  use version; our $VERSION = version-&gt;parse(&quot;1.0203&quot;);   # formal
+  use version; our $VERSION = version-&gt;parse(&quot;1.02_03&quot;);  # alpha
+
+  # Comparing mixed version styles (decimals, dotted-decimals, objects)
+
+  if ( version-&gt;parse($v1) == version-&gt;parse($v2) ) {
+    # do stuff
+  }
+
+  # Sorting mixed version styles
+
+  @ordered = sort { version-&gt;parse($a) &lt;=&gt; version-&gt;parse($b) } @list;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Version objects were added to Perl in 5.10. This module implements version objects for older version of Perl and provides the version object API for all versions of Perl. All previous releases before 0.74 are deprecated and should not be used due to incompatible API changes. Version 0.77 introduces the new &#39;parse&#39; and &#39;declare&#39; methods to standardize usage. You are strongly urged to set 0.77 as a minimum in your code, e.g.</p>
+
+<pre><code>  use version 0.77; # even for Perl v.5.10.0</code></pre>
+
+<h1 id="TYPES-OF-VERSION-OBJECTS">TYPES OF VERSION OBJECTS</h1>
+
+<p>There are two different types of version objects, corresponding to the two different styles of versions in use:</p>
+
+<dl>
+
+<dt id="Decimal-Versions">Decimal Versions</dt>
+<dd>
+
+<p>The classic floating-point number $VERSION. The advantage to this style is that you don&#39;t need to do anything special, just type a number into your source file. Quoting is recommended, as it ensures that trailing zeroes (&quot;1.50&quot;) are preserved in any warnings or other output.</p>
+
+</dd>
+<dt id="Dotted-Decimal-Versions">Dotted Decimal Versions</dt>
+<dd>
+
+<p>The more modern form of version assignment, with 3 (or potentially more) integers separated by decimal points (e.g. v1.2.3). This is the form that Perl itself has used since 5.6.0 was released. The leading &#39;v&#39; is now strongly recommended for clarity, and will throw a warning in a future release if omitted. A leading &#39;v&#39; character is required to pass the <a href="#is_strict">&quot;is_strict()&quot;</a> test.</p>
+
+</dd>
+</dl>
+
+<h1 id="DECLARING-VERSIONS">DECLARING VERSIONS</h1>
+
+<p>If you have a module that uses a decimal $VERSION (floating point), and you do not intend to ever change that, this module is not for you. There is nothing that version.pm gains you over a simple $VERSION assignment:</p>
+
+<pre><code>  our $VERSION = &quot;1.02&quot;;</code></pre>
+
+<p>Since Perl v5.10.0 includes the version.pm comparison logic anyways, you don&#39;t need to do anything at all.</p>
+
+<h2 id="How-to-convert-a-module-from-decimal-to-dotted-decimal">How to convert a module from decimal to dotted-decimal</h2>
+
+<p>If you have used a decimal $VERSION in the past and wish to switch to a dotted-decimal $VERSION, then you need to make a one-time conversion to the new format.</p>
+
+<p><b>Important Note</b>: you must ensure that your new $VERSION is numerically greater than your current decimal $VERSION; this is not always obvious. First, convert your old decimal version (e.g. 1.02) to a normalized dotted-decimal form:</p>
+
+<pre><code>  $ perl -Mversion -e &#39;print version-&gt;parse(&quot;1.02&quot;)-&gt;normal&#39;
+  v1.20.0</code></pre>
+
+<p>Then increment any of the dotted-decimal components (v1.20.1 or v1.21.0).</p>
+
+<h2 id="How-to-declare-a-dotted-decimal-version">How to <code>declare()</code> a dotted-decimal version</h2>
+
+<pre><code>  use version; our $VERSION = version-&gt;declare(&quot;v1.2.3&quot;);</code></pre>
+
+<p>The <code>declare()</code> method always creates dotted-decimal version objects. When used in a module, you <b>must</b> put it on the same line as &quot;use version&quot; to ensure that $VERSION is read correctly by PAUSE and installer tools. You should also add &#39;version&#39; to the &#39;configure_requires&#39; section of your module metadata file. See instructions in <a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a> or <a>Module::Build</a> for details.</p>
+
+<p><b>Important Note</b>: Even if you pass in what looks like a decimal number (&quot;1.2&quot;), a dotted-decimal will be created (&quot;v1.200.0&quot;). To avoid confusion or unintentional errors on older Perls, follow these guidelines:</p>
+
+<ul>
+
+<li><p>Always use a dotted-decimal with (at least) three components</p>
+
+</li>
+<li><p>Always use a leading-v</p>
+
+</li>
+<li><p>Always quote the version</p>
+
+</li>
+</ul>
+
+<p>If you really insist on using version.pm with an ordinary decimal version, use <code>parse()</code> instead of declare. See the <a href="#PARSING-AND-COMPARING-VERSIONS">&quot;PARSING AND COMPARING VERSIONS&quot;</a> for details.</p>
+
+<p>See also <a href="/cperl/lib/version/Internals.html">version::Internals</a> for more on version number conversion, quoting, calculated version numbers and declaring developer or &quot;alpha&quot; version numbers.</p>
+
+<h1 id="PARSING-AND-COMPARING-VERSIONS">PARSING AND COMPARING VERSIONS</h1>
+
+<p>If you need to compare version numbers, but can&#39;t be sure whether they are expressed as numbers, strings, v-strings or version objects, then you should use version.pm to parse them all into objects for comparison.</p>
+
+<h2 id="How-to-parse-a-version">How to <code>parse()</code> a version</h2>
+
+<p>The <code>parse()</code> method takes in anything that might be a version and returns a corresponding version object, doing any necessary conversion along the way.</p>
+
+<ul>
+
+<li><p>Dotted-decimal: bare v-strings (v1.2.3) and strings with more than one decimal point and a leading &#39;v&#39; (&quot;v1.2.3&quot;); NOTE you can technically use a v-string or strings with a leading-v and only one decimal point (v1.2 or &quot;v1.2&quot;), but you will confuse both yourself and others.</p>
+
+</li>
+<li><p>Decimal: regular decimal numbers (literal or in a string)</p>
+
+</li>
+</ul>
+
+<p>Some examples:</p>
+
+<pre><code>  $variable   version-&gt;parse($variable)
+  ---------   -------------------------
+  1.23        v1.230.0
+  &quot;1.23&quot;      v1.230.0
+  v1.23       v1.23.0
+  &quot;v1.23&quot;     v1.23.0
+  &quot;1.2.3&quot;     v1.2.3
+  &quot;v1.2.3&quot;    v1.2.3
+  1.23c       v1.230.0c</code></pre>
+
+<p>See <a href="/cperl/lib/version/Internals.html">version::Internals</a> for more on version number conversion.</p>
+
+<h2 id="How-to-check-for-a-legal-version-string">How to check for a legal version string</h2>
+
+<p>If you do not want to actually create a full blown version object, but would still like to verify that a given string meets the criteria to be parsed as a version, there are two helper functions that can be employed directly:</p>
+
+<dl>
+
+<dt id="is_lax"><code>is_lax()</code></dt>
+<dd>
+
+<p>The lax criteria corresponds to what is currently allowed by the version parser. All of the following formats are acceptable for dotted-decimal formats strings:</p>
+
+<pre><code>    v1.2
+    1.2345.6
+    v1.23_4
+    1.2345
+    1.2345_01
+    1.2345c</code></pre>
+
+</dd>
+<dt id="is_strict"><code>is_strict()</code></dt>
+<dd>
+
+<p>If you want to limit yourself to a much more narrow definition of what a version string constitutes, <code>is_strict()</code> is limited to version strings like the following list:</p>
+
+<pre><code>    v1.234.5
+    2.3456
+    2.34c</code></pre>
+
+</dd>
+</dl>
+
+<p>See <a href="/cperl/lib/version/Internals.html">version::Internals</a> for details of the regular expressions that define the legal version string forms, as well as how to use those regular expressions in your own code if <code>is_lax()</code> and <code>is_strict()</code> are not sufficient for your needs.</p>
+
+<h2 id="How-to-compare-version-objects">How to compare version objects</h2>
+
+<p>Version objects overload the <code>cmp</code> and <code>&lt;=&gt;</code> operators. Perl automatically generates all of the other comparison operators based on those two so all the normal logical comparisons will work.</p>
+
+<pre><code>  if ( version-&gt;parse($v1) == version-&gt;parse($v2) ) {
+    # do stuff
+  }</code></pre>
+
+<p>If a version object is compared against a non-version object, the non-object term will be converted to a version object using <code>parse()</code>. This may give surprising results:</p>
+
+<pre><code>  $v1 = version-&gt;parse(&quot;v0.95.0&quot;);
+  $bool = $v1 &lt; 0.96; # FALSE since 0.96 is v0.960.0</code></pre>
+
+<p>Always comparing to a version object will help avoid surprises:</p>
+
+<pre><code>  $bool = $v1 &lt; version-&gt;parse(&quot;v0.96.0&quot;); # TRUE</code></pre>
+
+<p>Note that &quot;alpha&quot; version objects (where the version string contains a trailing underscore segment) compare as less than the equivalent version without an underscore:</p>
+
+<pre><code>  $bool = version-&gt;parse(&quot;1.23_45&quot;) &lt; version-&gt;parse(&quot;1.2345&quot;); # TRUE</code></pre>
+
+<p>See <a href="/cperl/lib/version/Internals.html">version::Internals</a> for more details on &quot;alpha&quot; versions.</p>
+
+<h1 id="OBJECT-METHODS">OBJECT METHODS</h1>
+
+<h2 id="is_alpha">is_alpha()</h2>
+
+<p>True if and only if the version object was created with a underscore, e.g.</p>
+
+<pre><code>  version-&gt;parse(&#39;1.002_03&#39;)-&gt;is_alpha;  # TRUE
+  version-&gt;declare(&#39;1.2.3_4&#39;)-&gt;is_alpha; # TRUE</code></pre>
+
+<h2 id="is_qv">is_qv()</h2>
+
+<p>True only if the version object is a dotted-decimal version, e.g.</p>
+
+<pre><code>  version-&gt;parse(&#39;v1.2.0&#39;)-&gt;is_qv;       # TRUE
+  version-&gt;declare(&#39;v1.2&#39;)-&gt;is_qv;       # TRUE
+  qv(&#39;1.2&#39;)-&gt;is_qv;                      # TRUE
+  version-&gt;parse(&#39;1.2&#39;)-&gt;is_qv;          # FALSE</code></pre>
+
+<h2 id="normal">normal()</h2>
+
+<p>Returns a string with a standard &#39;normalized&#39; dotted-decimal form with a leading-v and at least 3 components.</p>
+
+<pre><code> version-&gt;declare(&#39;v1.2&#39;)-&gt;normal;  # v1.2.0
+ version-&gt;parse(&#39;1.2&#39;)-&gt;normal;     # v1.200.0</code></pre>
+
+<h2 id="numify">numify()</h2>
+
+<p>Returns a value representing the object in a pure decimal form without trailing zeroes.</p>
+
+<pre><code> version-&gt;declare(&#39;v1.2&#39;)-&gt;numify;  # 1.002
+ version-&gt;parse(&#39;1.2&#39;)-&gt;numify;     # 1.2</code></pre>
+
+<h2 id="stringify">stringify()</h2>
+
+<p>Returns a string that is as close to the original representation as possible. If the original representation was a numeric literal, it will be returned the way perl would normally represent it in a string. This method is used whenever a version object is interpolated into a string.</p>
+
+<pre><code> version-&gt;declare(&#39;v1.2&#39;)-&gt;stringify;    # v1.2
+ version-&gt;parse(&#39;1.200&#39;)-&gt;stringify;     # 1.200
+ version-&gt;parse(1.02_30)-&gt;stringify;     # 1.023</code></pre>
+
+<h1 id="EXPORTED-FUNCTIONS">EXPORTED FUNCTIONS</h1>
+
+<h2 id="qv">qv()</h2>
+
+<p>This function is no longer recommended for use, but is maintained for compatibility with existing code. If you do not want to have it exported to your namespace, use this form:</p>
+
+<pre><code>  use version 0.77 ();</code></pre>
+
+<h2 id="is_lax1">is_lax()</h2>
+
+<p>(Not exported by default)</p>
+
+<p>This function takes a scalar argument and returns a boolean value indicating whether the argument meets the &quot;lax&quot; rules for a version number. Leading and trailing spaces are not allowed.</p>
+
+<h2 id="is_strict1">is_strict()</h2>
+
+<p>(Not exported by default)</p>
+
+<p>This function takes a scalar argument and returns a boolean value indicating whether the argument meets the &quot;strict&quot; rules for a version number. Leading and trailing spaces are not allowed.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>John Peacock &lt;jpeacock@cpan.org&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/version/Internals.html">version::Internals</a>.</p>
+
+<p><a href="/cperl/perl.html">perl</a>.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,537 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#NOTE">NOTE</a></li>
+  <li><a href="#WARNING">WARNING</a></li>
+  <li><a href="#Operator-Names-and-Operator-Lists">Operator Names and Operator Lists</a></li>
+  <li><a href="#Opcode-Functions">Opcode Functions</a></li>
+  <li><a href="#Manipulating-Opsets">Manipulating Opsets</a></li>
+  <li><a href="#TO-DO-maybe">TO DO (maybe)</a></li>
+  <li><a href="#Predefined-Opcode-Tags">Predefined Opcode Tags</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Opcode - Disable named opcodes when compiling perl code</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Opcode;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Perl code is always compiled into an internal format before execution.</p>
+
+<p>Evaluating perl code (e.g. via &quot;eval&quot; or &quot;do &#39;file&#39;&quot;) causes the code to be compiled into an internal format and then, provided there was no error in the compilation, executed. The internal format is based on many distinct <i>opcodes</i>.</p>
+
+<p>By default no opmask is in effect and any code can be compiled.</p>
+
+<p>The Opcode module allow you to define an <i>operator mask</i> to be in effect when perl <i>next</i> compiles any code. Attempting to compile code which contains a masked opcode will cause the compilation to fail with an error. The code will not be executed.</p>
+
+<h1 id="NOTE">NOTE</h1>
+
+<p>The Opcode module is not usually used directly. See the ops pragma and Safe modules for more typical uses.</p>
+
+<h1 id="WARNING">WARNING</h1>
+
+<p>The authors make <b>no warranty</b>, implied or otherwise, about the suitability of this software for safety or security purposes.</p>
+
+<p>The authors shall not in any case be liable for special, incidental, consequential, indirect or other similar damages arising from the use of this software.</p>
+
+<p>Your mileage will vary. If in any doubt <b>do not use it</b>.</p>
+
+<h1 id="Operator-Names-and-Operator-Lists">Operator Names and Operator Lists</h1>
+
+<p>The canonical list of operator names is the contents of the array PL_op_name defined and initialised in file <i>opcode.h</i> of the Perl source distribution (and installed into the perl library).</p>
+
+<p>Each operator has both a terse name (its opname) and a more verbose or recognisable descriptive name. The opdesc function can be used to return a list of descriptions for a list of operators.</p>
+
+<p>Many of the functions and methods listed below take a list of operators as parameters. Most operator lists can be made up of several types of element. Each element can be one of</p>
+
+<dl>
+
+<dt id="an-operator-name-opname">an operator name (opname)</dt>
+<dd>
+
+<p>Operator names are typically small lowercase words like enterloop, leaveloop, last, next, redo etc. Sometimes they are rather cryptic like gv2cv, i_ncmp and ftsvtx.</p>
+
+</dd>
+<dt id="an-operator-tag-name-optag">an operator tag name (optag)</dt>
+<dd>
+
+<p>Operator tags can be used to refer to groups (or sets) of operators. Tag names always begin with a colon. The Opcode module defines several optags and the user can define others using the define_optag function.</p>
+
+</dd>
+<dt id="a-negated-opname-or-optag">a negated opname or optag</dt>
+<dd>
+
+<p>An opname or optag can be prefixed with an exclamation mark, e.g., !mkdir. Negating an opname or optag means remove the corresponding ops from the accumulated set of ops at that point.</p>
+
+</dd>
+<dt id="an-operator-set-opset">an operator set (opset)</dt>
+<dd>
+
+<p>An <i>opset</i> as a binary string of approximately 44 bytes which holds a set or zero or more operators.</p>
+
+<p>The opset and opset_to_ops functions can be used to convert from a list of operators to an opset and <i>vice versa</i>.</p>
+
+<p>Wherever a list of operators can be given you can use one or more opsets. See also Manipulating Opsets below.</p>
+
+</dd>
+</dl>
+
+<h1 id="Opcode-Functions">Opcode Functions</h1>
+
+<p>The Opcode package contains functions for manipulating operator names tags and sets. All are available for export by the package.</p>
+
+<dl>
+
+<dt id="opcodes">opcodes</dt>
+<dd>
+
+<p>In a scalar context opcodes returns the number of opcodes in this version of perl (around 350 for perl-5.7.0, 396 for perl-5.22, 427 for cperl).</p>
+
+<p>In a list context it returns a list of all the operator names. (Not yet implemented, use @names = opset_to_ops(full_opset).)</p>
+
+</dd>
+<dt id="opset-OP">opset (OP, ...)</dt>
+<dd>
+
+<p>Returns an opset containing the listed operators.</p>
+
+</dd>
+<dt id="opset_to_ops-OPSET">opset_to_ops (OPSET)</dt>
+<dd>
+
+<p>Returns a list of operator names corresponding to those operators in the set.</p>
+
+</dd>
+<dt id="opset_to_hex-OPSET">opset_to_hex (OPSET)</dt>
+<dd>
+
+<p>Returns a string representation of an opset. Can be handy for debugging.</p>
+
+</dd>
+<dt id="full_opset">full_opset</dt>
+<dd>
+
+<p>Returns an opset which includes all operators.</p>
+
+</dd>
+<dt id="empty_opset">empty_opset</dt>
+<dd>
+
+<p>Returns an opset which contains no operators.</p>
+
+</dd>
+<dt id="invert_opset-OPSET">invert_opset (OPSET)</dt>
+<dd>
+
+<p>Returns an opset which is the inverse set of the one supplied.</p>
+
+</dd>
+<dt id="verify_opset-OPSET">verify_opset (OPSET, ...)</dt>
+<dd>
+
+<p>Returns true if the supplied opset looks like a valid opset (is the right length etc) otherwise it returns false. If an optional second parameter is true then verify_opset will croak on an invalid opset instead of returning false.</p>
+
+<p>Most of the other Opcode functions call verify_opset automatically and will croak if given an invalid opset.</p>
+
+</dd>
+<dt id="define_optag-OPTAG-OPSET">define_optag (OPTAG, OPSET)</dt>
+<dd>
+
+<p>Define OPTAG as a symbolic name for OPSET. Optag names always start with a colon <code>:</code>.</p>
+
+<p>The optag name used must not be defined already (define_optag will croak if it is already defined). Optag names are global to the perl process and optag definitions cannot be altered or deleted once defined.</p>
+
+<p>It is strongly recommended that applications using Opcode should use a leading capital letter on their tag names since lowercase names are reserved for use by the Opcode module. If using Opcode within a module you should prefix your tags names with the name of your module to ensure uniqueness and thus avoid clashes with other modules.</p>
+
+</dd>
+<dt id="opmask_add-OPSET">opmask_add (OPSET)</dt>
+<dd>
+
+<p>Adds the supplied opset to the current opmask. Note that there is currently <i>no</i> mechanism for unmasking ops once they have been masked. This is intentional.</p>
+
+</dd>
+<dt id="opmask">opmask</dt>
+<dd>
+
+<p>Returns an opset corresponding to the current opmask.</p>
+
+</dd>
+<dt id="opdesc-OP">opdesc (OP, ...)</dt>
+<dd>
+
+<p>This takes a list of operator names and returns the corresponding list of operator descriptions.</p>
+
+</dd>
+<dt id="opdump-PAT">opdump (PAT)</dt>
+<dd>
+
+<p>Dumps to STDOUT a two column list of op names and op descriptions. If an optional pattern is given then only lines which match the (case insensitive) pattern will be output.</p>
+
+<p>It&#39;s designed to be used as a handy command line utility:</p>
+
+<pre><code>        perl -MOpcode=opdump -e opdump
+        perl -MOpcode=opdump -e &#39;opdump Eval&#39;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Manipulating-Opsets">Manipulating Opsets</h1>
+
+<p>Opsets may be manipulated using the perl bit vector operators &amp; (and), | (or), ^ (xor) and ~ (negate/invert).</p>
+
+<p>However you should never rely on the numerical position of any opcode within the opset. In other words both sides of a bit vector operator should be opsets returned from Opcode functions.</p>
+
+<p>Also, since the number of opcodes in your current version of perl might not be an exact multiple of eight, there may be unused bits in the last byte of an upset. This should not cause any problems (Opcode functions ignore those extra bits) but it does mean that using the ~ operator will typically not produce the same &#39;physical&#39; opset &#39;string&#39; as the invert_opset function.</p>
+
+<h1 id="TO-DO-maybe">TO DO (maybe)</h1>
+
+<pre><code>    $bool = opset_eq($opset1, $opset2)  true if opsets are logically
+                                        equivalent
+    $yes = opset_can($opset, @ops)      true if $opset has all @ops set
+
+    @diff = opset_diff($opset1, $opset2) =&gt; (&#39;foo&#39;, &#39;!bar&#39;, ...)</code></pre>
+
+<h1 id="Predefined-Opcode-Tags">Predefined Opcode Tags</h1>
+
+<dl>
+
+<dt id="base_core">:base_core</dt>
+<dd>
+
+<pre><code>    null stub scalar pushmark wantarray const defined undef
+
+    rv2sv sassign
+
+    rv2av aassign aelem aelemfast aelemfast_lex aslice kvaslice
+    av2arylen aelem_u aelemfast_lex_u
+    n_aelem s_aelem_u i_aelem_u i_aelem n_aelem_u s_aelem
+
+    rv2hv helem hslice kvhslice each values keys exists delete
+    aeach akeys avalues multideref signature
+
+    preinc i_preinc predec i_predec postinc i_postinc
+    postdec i_postdec int hex oct abs pow i_pow
+    multiply i_multiply u_multiply divide i_divide modulo i_modulo
+    add i_add u_add subtract i_subtract u_subtract
+
+    left_shift right_shift bit_and bit_xor bit_or i_bit_and
+    i_bit_xor i_bit_or s_bit_and s_bit_xor s_bit_or negate i_negate not
+    complement i_complement s_complement
+
+    lt i_lt gt i_gt le i_le ge i_ge eq i_eq ne i_ne cmp i_cmp
+    s_lt s_gt s_le s_ge s_eq s_ne s_cmp
+
+    substr vec stringify study pos length index rindex ord chr
+
+    ucfirst lcfirst uc lc fc quotemeta trans transr chop schop
+    chomp schomp
+
+    match split qr
+
+    list lslice splice push pop shift unshift reverse
+
+    cond_expr flip flop andassign orassign dorassign and or dor xor
+
+    warn die lineseq nextstate scope enter leave
+
+    rv2cv anoncode prototype coreargs avhvswitch anonconst
+
+    entersub leavesub leavesublv return method method_named
+    method_super method_redir method_redir_super
+     -- XXX loops via recursion?
+
+    leaveeval -- needed for Safe to operate, is safe
+                 without entereval</code></pre>
+
+</dd>
+<dt id="base_mem">:base_mem</dt>
+<dd>
+
+<p>These memory related ops are not included in :base_core because they can easily be used to implement a resource attack (e.g., consume all available memory).</p>
+
+<pre><code>    concat repeat join range
+
+    anonlist anonhash</code></pre>
+
+<p>Note that despite the existence of this optag a memory resource attack may still be possible using only :base_core ops.</p>
+
+<p>Disabling these ops is a <i>very</i> heavy handed way to attempt to prevent a memory resource attack. It&#39;s probable that a specific memory limit mechanism will be added to perl in the near future.</p>
+
+</dd>
+<dt id="base_loop">:base_loop</dt>
+<dd>
+
+<p>These loop ops are not included in :base_core because they can easily be used to implement a resource attack (e.g., consume all available CPU time).</p>
+
+<pre><code>    grepstart grepwhile
+    mapstart mapwhile
+    enteriter iter iter_ary iter_lazyiv
+    enterloop leaveloop unstack
+    last next redo
+    goto</code></pre>
+
+</dd>
+<dt id="base_io">:base_io</dt>
+<dd>
+
+<p>These ops enable <i>filehandle</i> (rather than filename) based input and output. These are safe on the assumption that only pre-existing filehandles are available for use. Usually, to create new filehandles other ops such as open would need to be enabled, if you don&#39;t take into account the magical open of ARGV.</p>
+
+<pre><code>    readline rcatline getc read
+
+    formline enterwrite leavewrite
+
+    print say sysread syswrite send recv
+
+    eof tell seek sysseek
+
+    readdir telldir seekdir rewinddir</code></pre>
+
+</dd>
+<dt id="base_orig">:base_orig</dt>
+<dd>
+
+<p>These are a hotchpotch of opcodes still waiting to be considered</p>
+
+<pre><code>    gvsv gv gelem
+
+    padsv padav padhv padcv padany padrange introcv clonecv
+
+    once
+
+    rv2gv refgen srefgen ref refassign lvref lvrefslice lvavref
+
+    bless -- could be used to change ownership of objects
+             (reblessing)
+
+     regcmaybe regcreset regcomp subst substcont
+
+    sprintf prtf -- can core dump
+
+    crypt
+
+    tie untie
+
+    dbmopen dbmclose
+    sselect select
+    pipe_op sockpair
+
+    getppid getpgrp setpgrp getpriority setpriority
+    localtime gmtime
+
+    entertry leavetry -- can be used to &#39;hide&#39; fatal errors
+
+    entergiven leavegiven
+    enterwhen leavewhen
+    break continue
+    smartmatch
+
+    custom -- where should this go</code></pre>
+
+</dd>
+<dt id="base_math">:base_math</dt>
+<dd>
+
+<p>These ops are not included in :base_core because of the risk of them being used to generate floating point exceptions (which would have to be caught using a $SIG{FPE} handler).</p>
+
+<pre><code>    atan2 sin cos exp log sqrt</code></pre>
+
+<p>These ops are not included in :base_core because they have an effect beyond the scope of the compartment.</p>
+
+<pre><code>    rand srand</code></pre>
+
+</dd>
+<dt id="base_thread">:base_thread</dt>
+<dd>
+
+<p>These ops are related to multi-threading.</p>
+
+<pre><code>    lock</code></pre>
+
+</dd>
+<dt id="default">:default</dt>
+<dd>
+
+<p>A handy tag name for a <i>reasonable</i> default set of ops. (The current ops allowed are unstable while development continues. It will change.)</p>
+
+<pre><code>    :base_core :base_mem :base_loop :base_orig :base_thread</code></pre>
+
+<p>This list used to contain :base_io prior to Opcode 1.07.</p>
+
+<p>If safety matters to you (and why else would you be using the Opcode module?) then you should not rely on the definition of this, or indeed any other, optag!</p>
+
+</dd>
+<dt id="filesys_read">:filesys_read</dt>
+<dd>
+
+<pre><code>    stat lstat readlink
+
+    ftatime ftblk ftchr ftctime ftdir fteexec fteowned
+    fteread ftewrite ftfile ftis ftlink ftmtime ftpipe
+    ftrexec ftrowned ftrread ftsgid ftsize ftsock ftsuid
+    fttty ftzero ftrwrite ftsvtx
+
+    fttext ftbinary
+
+    fileno</code></pre>
+
+</dd>
+<dt id="sys_db">:sys_db</dt>
+<dd>
+
+<pre><code>    ghbyname ghbyaddr ghostent shostent ehostent      -- hosts
+    gnbyname gnbyaddr gnetent snetent enetent         -- networks
+    gpbyname gpbynumber gprotoent sprotoent eprotoent -- protocols
+    gsbyname gsbyport gservent sservent eservent      -- services
+
+    gpwnam gpwuid gpwent spwent epwent getlogin       -- users
+    ggrnam ggrgid ggrent sgrent egrent                -- groups</code></pre>
+
+</dd>
+<dt id="browse">:browse</dt>
+<dd>
+
+<p>A handy tag name for a <i>reasonable</i> default set of ops beyond the :default optag. Like :default (and indeed all the other optags) its current definition is unstable while development continues. It will change.</p>
+
+<p>The :browse tag represents the next step beyond :default. It it a superset of the :default ops and adds :filesys_read the :sys_db. The intent being that scripts can access more (possibly sensitive) information about your system but not be able to change it.</p>
+
+<pre><code>    :default :filesys_read :sys_db</code></pre>
+
+</dd>
+<dt id="filesys_open">:filesys_open</dt>
+<dd>
+
+<pre><code>    sysopen open close
+    umask binmode
+
+    open_dir closedir -- other dir ops are in :base_io</code></pre>
+
+</dd>
+<dt id="filesys_write">:filesys_write</dt>
+<dd>
+
+<pre><code>    link unlink rename symlink truncate
+
+    mkdir rmdir
+
+    utime chmod chown
+
+    fcntl -- not strictly filesys related, but possibly as
+             dangerous?</code></pre>
+
+</dd>
+<dt id="subprocess">:subprocess</dt>
+<dd>
+
+<pre><code>    backtick system
+
+    fork
+
+    wait waitpid
+
+    glob -- access to Cshell via &lt;`rm *`&gt;</code></pre>
+
+</dd>
+<dt id="ownprocess">:ownprocess</dt>
+<dd>
+
+<pre><code>    exec exit kill
+
+    time tms -- could be used for timing attacks (paranoid?)</code></pre>
+
+</dd>
+<dt id="others">:others</dt>
+<dd>
+
+<p>This tag holds groups of assorted specialist opcodes that don&#39;t warrant having optags defined for them.</p>
+
+<p>SystemV Interprocess Communications:</p>
+
+<pre><code>    msgctl msgget msgrcv msgsnd
+
+    semctl semget semop
+
+    shmctl shmget shmread shmwrite</code></pre>
+
+</dd>
+<dt id="load">:load</dt>
+<dd>
+
+<p>This tag holds opcodes related to loading modules and getting information about calling environment and args.</p>
+
+<pre><code>    require dofile 
+    caller runcv</code></pre>
+
+</dd>
+<dt id="still_to_be_decided">:still_to_be_decided</dt>
+<dd>
+
+<pre><code>    enterxssub -- can do everything
+
+    chdir
+    flock ioctl
+
+    socket getpeername ssockopt
+    bind connect listen accept shutdown gsockopt getsockname
+
+    sleep alarm -- changes global timer state and signal handling
+    sort -- assorted problems including core dumps
+    tied -- can be used to access object implementing a tie
+    pack unpack -- can be used to create/use memory pointers
+
+    hintseval -- constant op holding eval hints
+
+    entereval -- can be used to hide code from initial compile
+
+    reset
+
+    dbstate -- perl -d version of nextstate(ment) opcode</code></pre>
+
+</dd>
+<dt id="dangerous">:dangerous</dt>
+<dd>
+
+<p>This tag is simply a bucket for opcodes that are unlikely to be used via a tag name but need to be tagged for completeness and documentation.</p>
+
+<pre><code>    syscall dump chroot</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/ops.html">ops</a> -- perl pragma interface to Opcode module.</p>
+
+<p><a href="/cperl/lib/Safe.html">Safe</a> -- Opcode and namespace limited execution compartments</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Originally designed and implemented by Malcolm Beattie, mbeattie@sable.ox.ac.uk as part of Safe version 1.</p>
+
+<p>Split out from Safe module version 1, named opcode tags and other changes added by Tim Bunce.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,162 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#new">new</a></li>
+      <li><a href="#requirements_for">requirements_for</a></li>
+      <li><a href="#phases">phases</a></li>
+      <li><a href="#types_in">types_in</a></li>
+      <li><a href="#with_merged_prereqs">with_merged_prereqs</a></li>
+      <li><a href="#merged_requirements">merged_requirements</a></li>
+      <li><a href="#as_string_hash">as_string_hash</a></li>
+      <li><a href="#is_finalized">is_finalized</a></li>
+      <li><a href="#finalize">finalize</a></li>
+      <li><a href="#clone">clone</a></li>
+    </ul>
+  </li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>CPAN::Meta::Prereqs - a set of distribution prerequisites by phase and type</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>version 2.150010c</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>A CPAN::Meta::Prereqs object represents the prerequisites for a CPAN distribution or one of its optional features. Each set of prereqs is organized by phase and type, as described in <a href="/cperl/lib/CPAN/Meta/Prereqs.html">CPAN::Meta::Prereqs</a>.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="new">new</h2>
+
+<pre><code>  my $prereq = CPAN::Meta::Prereqs-&gt;new( \%prereq_spec );</code></pre>
+
+<p>This method returns a new set of Prereqs. The input should look like the contents of the <code>prereqs</code> field described in <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a>, meaning something more or less like this:</p>
+
+<pre><code>  my $prereq = CPAN::Meta::Prereqs-&gt;new({
+    runtime =&gt; {
+      requires =&gt; {
+        &#39;Some::Module&#39; =&gt; &#39;1.234&#39;,
+        ...,
+      },
+      ...,
+    },
+    ...,
+  });</code></pre>
+
+<p>You can also construct an empty set of prereqs with:</p>
+
+<pre><code>  my $prereqs = CPAN::Meta::Prereqs-&gt;new;</code></pre>
+
+<p>This empty set of prereqs is useful for accumulating new prereqs before finally dumping the whole set into a structure or string.</p>
+
+<h2 id="requirements_for">requirements_for</h2>
+
+<pre><code>  my $requirements = $prereqs-&gt;requirements_for( $phase, $type );</code></pre>
+
+<p>This method returns a <a href="/cperl/lib/CPAN/Meta/Requirements.html">CPAN::Meta::Requirements</a> object for the given phase/type combination. If no prerequisites are registered for that combination, a new CPAN::Meta::Requirements object will be returned, and it may be added to as needed.</p>
+
+<p>If <code>$phase</code> or <code>$type</code> are undefined or otherwise invalid, an exception will be raised.</p>
+
+<h2 id="phases">phases</h2>
+
+<pre><code>  my @phases = $prereqs-&gt;phases;</code></pre>
+
+<p>This method returns the list of all phases currently populated in the prereqs object, suitable for iterating.</p>
+
+<h2 id="types_in">types_in</h2>
+
+<pre><code>  my @runtime_types = $prereqs-&gt;types_in(&#39;runtime&#39;);</code></pre>
+
+<p>This method returns the list of all types currently populated in the prereqs object for the provided phase, suitable for iterating.</p>
+
+<h2 id="with_merged_prereqs">with_merged_prereqs</h2>
+
+<pre><code>  my $new_prereqs = $prereqs-&gt;with_merged_prereqs( $other_prereqs );
+
+  my $new_prereqs = $prereqs-&gt;with_merged_prereqs( \@other_prereqs );</code></pre>
+
+<p>This method returns a new CPAN::Meta::Prereqs objects in which all the other prerequisites given are merged into the current set. This is primarily provided for combining a distribution&#39;s core prereqs with the prereqs of one of its optional features.</p>
+
+<p>The new prereqs object has no ties to the originals, and altering it further will not alter them.</p>
+
+<h2 id="merged_requirements">merged_requirements</h2>
+
+<pre><code>    my $new_reqs = $prereqs-&gt;merged_requirements( \@phases, \@types );
+    my $new_reqs = $prereqs-&gt;merged_requirements( \@phases );
+    my $new_reqs = $prereqs-&gt;merged_requirements();</code></pre>
+
+<p>This method joins together all requirements across a number of phases and types into a new <a href="/cperl/lib/CPAN/Meta/Requirements.html">CPAN::Meta::Requirements</a> object. If arguments are omitted, it defaults to &quot;runtime&quot;, &quot;build&quot; and &quot;test&quot; for phases and &quot;requires&quot; and &quot;recommends&quot; for types.</p>
+
+<h2 id="as_string_hash">as_string_hash</h2>
+
+<p>This method returns a hashref containing structures suitable for dumping into a distmeta data structure. It is made up of hashes and strings, only; there will be no Prereqs, CPAN::Meta::Requirements, or <code>version</code> objects inside it.</p>
+
+<h2 id="is_finalized">is_finalized</h2>
+
+<p>This method returns true if the set of prereqs has been marked &quot;finalized,&quot; and cannot be altered.</p>
+
+<h2 id="finalize">finalize</h2>
+
+<p>Calling <code>finalize</code> on a Prereqs object will close it for further modification. Attempting to make any changes that would actually alter the prereqs will result in an exception being thrown.</p>
+
+<h2 id="clone">clone</h2>
+
+<pre><code>  my $cloned_prereqs = $prereqs-&gt;clone;</code></pre>
+
+<p>This method returns a Prereqs object that is identical to the original object, but can be altered without affecting the original object. Finalization does not survive cloning, meaning that you may clone a finalized set of prereqs and then modify the clone.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please report any bugs or feature using the CPAN Request Tracker. Bugs can be submitted through the web interface at <a href="http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Meta">http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Meta</a></p>
+
+<p>When submitting a bug or request, please include a test-file or a patch to an existing test-file that illustrates the bug or desired feature.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<ul>
+
+<li><p>David Golden &lt;dagolden@cpan.org&gt;</p>
+
+</li>
+<li><p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p>
+
+</li>
+<li><p>Adam Kennedy &lt;adamk@cpan.org&gt;</p>
+
+</li>
+</ul>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>This software is copyright (c) 2010 by David Golden, Ricardo Signes, Adam Kennedy and Contributors.</p>
+
+<p>This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.</p>
+
+
+</body>
+
+</html>
+
+

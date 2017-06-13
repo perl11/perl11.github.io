@@ -1,0 +1,481 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a></li>
+  <li><a href="#NOTABLE-FUNCTIONS">NOTABLE FUNCTIONS</a>
+    <ul>
+      <li><a href="#cc_queue">cc_queue</a></li>
+    </ul>
+  </li>
+  <li><a href="#save_or_restore_lexical_state">save_or_restore_lexical_state</a>
+    <ul>
+      <li><a href="#load_pad">load_pad</a></li>
+      <li><a href="#label">label</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#TYPES">TYPES</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#DIFFERENCES">DIFFERENCES</a>
+    <ul>
+      <li><a href="#Loops">Loops</a></li>
+      <li><a href="#Context-of">Context of &quot;..&quot;</a></li>
+      <li><a href="#Arithmetic">Arithmetic</a></li>
+      <li><a href="#Deprecated-features">Deprecated features</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>B::CC - Perl compiler&#39;s optimized C translation backend</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>        perl -MO=CC[,OPTIONS] foo.pl</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This compiler backend takes Perl source and generates C source code corresponding to the flow of your program with unrolled ops and optimised stack handling and lexicals variable types. In other words, this backend is somewhat a &quot;real&quot; compiler in the sense that many people think about compilers. Note however that, currently, it is a very poor compiler in that although it generates (mostly, or at least sometimes) correct code, it performs relatively few optimisations. This will change as the compiler and the types develops. The result is that running an executable compiled with this backend may start up more quickly than running the original Perl program (a feature shared by the <b>C</b> compiler backend--see <a href="/cperl/lib/B/C.html">B::C</a>) and may also execute slightly faster. This is by no means a good optimising compiler--yet.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<p>If there are any non-option arguments, they are taken to be names of objects to be saved (probably doesn&#39;t work properly yet). Without extra arguments, it saves the main program.</p>
+
+<dl>
+
+<dt id="ofilename"><b>-ofilename</b></dt>
+<dd>
+
+<p>Output to filename instead of STDOUT</p>
+
+</dd>
+<dt id="c"><b>-c</b></dt>
+<dd>
+
+<p>Check and abort.</p>
+
+<p>Compiles and prints only warnings, but does not emit C code.</p>
+
+</dd>
+<dt id="v"><b>-v</b></dt>
+<dd>
+
+<p>Verbose compilation (prints a few compilation stages).</p>
+
+</dd>
+<dt id="pod"><b>--</b></dt>
+<dd>
+
+<p>Force end of options</p>
+
+</dd>
+<dt id="uPackname"><b>-uPackname</b></dt>
+<dd>
+
+<p>Force apparently unused subs from package Packname to be compiled. This allows programs to use eval &quot;foo()&quot; even when sub foo is never seen to be used at compile time. The down side is that any subs which really are never used also have code generated. This option is necessary, for example, if you have a signal handler foo which you initialise with <code>$SIG{BAR} = &quot;foo&quot;</code>. A better fix, though, is just to change it to <code>$SIG{BAR} = \&amp;foo</code>. You can have multiple <b>-u</b> options. The compiler tries to figure out which packages may possibly have subs in which need compiling but the current version doesn&#39;t do it very well. In particular, it is confused by nested packages (i.e. of the form <code>A::B</code>) where package <code>A</code> does not contain any subs.</p>
+
+</dd>
+<dt id="UPackname-unuse-skip-Package"><b>-UPackname</b> &quot;unuse&quot; skip Package</dt>
+<dd>
+
+<p>Ignore all subs from Package to be compiled.</p>
+
+<p>Certain packages might not be needed at run-time, even if the pessimistic walker detects it.</p>
+
+</dd>
+<dt id="mModulename"><b>-mModulename</b></dt>
+<dd>
+
+<p>Instead of generating source for a runnable executable, generate source for an XSUB module. The boot_Modulename function (which DynaLoader can look for) does the appropriate initialisation and runs the main part of the Perl source that is being compiled.</p>
+
+</dd>
+<dt id="nInitname"><b>-nInitname</b></dt>
+<dd>
+
+<p>Provide a different init name for additional objects added via cmdline.</p>
+
+</dd>
+<dt id="strict"><b>-strict</b></dt>
+<dd>
+
+<p>With a DEBUGGING perl compile-time errors for range and flip without compile-time context are only warnings. With <code>-strict</code> these warnings are fatal, otherwise only run-time errors occur.</p>
+
+</dd>
+<dt id="On"><b>-On</b></dt>
+<dd>
+
+<p>Optimisation level (n = 0, 1, 2). <b>-O</b> means <b>-O1</b>.</p>
+
+<p>The following <a href="/cperl/lib/B/C.html">B::C</a> optimisations are applied automatically:</p>
+
+<p>optimize_warn_sv save_data_fh av-init2|av_init save_sig destruct pv_copy_on_grow</p>
+
+<p><b>-O1</b> sets <b>-ffreetmps-each-bblock</b>.</p>
+
+<p><b>-O2</b> adds <b>-ffreetmps-each-loop</b>, <code>-faelem</code> and <b>-fno-destruct</b> from <a href="/cperl/lib/B/C.html">B::C</a>.</p>
+
+<p>The following options must be set explicitly:</p>
+
+<pre><code>  B&lt;-fno-taint&gt; or B&lt;-fomit-taint&gt;,
+
+  B&lt;-fslow-signals&gt;,
+
+  B&lt;-no-autovivify&gt;,
+
+  B&lt;-fno-magic&gt;.</code></pre>
+
+</dd>
+<dt id="fOPTIM"><b>-f</b><code>OPTIM</code></dt>
+<dd>
+
+<p>Force optimisations on or off one at a time. Unknown optimizations are passed down to <a href="/cperl/lib/B/C.html">B::C</a>.</p>
+
+</dd>
+<dt id="ffreetmps-each-bblock"><b>-ffreetmps-each-bblock</b></dt>
+<dd>
+
+<p>Delays FREETMPS from the end of each statement to the end of the each basic block.</p>
+
+<p>Enabled with <b>-O1</b>.</p>
+
+</dd>
+<dt id="ffreetmps-each-loop"><b>-ffreetmps-each-loop</b></dt>
+<dd>
+
+<p>Delays FREETMPS from the end of each statement to the end of the group of basic blocks forming a loop. At most one of the freetmps-each-* options can be used.</p>
+
+<p>Enabled with <b>-O2</b>.</p>
+
+</dd>
+<dt id="faelem"><b>-faelem</b></dt>
+<dd>
+
+<p>Enable array element access optimizations, allowing unchecked fast access under certain circumstances.</p>
+
+<p>Enabled with <b>-O2</b> and not-threaded perls only.</p>
+
+</dd>
+<dt id="fno-inline-ops"><b>-fno-inline-ops</b></dt>
+<dd>
+
+<p>Do not inline calls to certain small pp ops.</p>
+
+<p>Most of the inlinable ops were already inlined. Turns off inlining for some new ops.</p>
+
+<p>AUTOMATICALLY inlined:</p>
+
+<p>pp_null pp_stub pp_unstack pp_and pp_andassign pp_or pp_orassign pp_cond_expr pp_padsv pp_const pp_nextstate pp_dbstate pp_rv2gv pp_sort pp_gv pp_gvsv pp_aelemfast pp_ncmp pp_add pp_subtract pp_multiply pp_divide pp_modulo pp_left_shift pp_right_shift pp_i_add pp_i_subtract pp_i_multiply pp_i_divide pp_i_modulo pp_eq pp_ne pp_lt pp_gt pp_le pp_ge pp_i_eq pp_i_ne pp_i_lt pp_i_gt pp_i_le pp_i_ge pp_scmp pp_slt pp_sgt pp_sle pp_sge pp_seq pp_sne pp_sassign pp_preinc pp_pushmark pp_list pp_entersub pp_formline pp_goto pp_enterwrite pp_leavesub pp_leavewrite pp_entergiven pp_leavegiven pp_entereval pp_dofile pp_require pp_entertry pp_leavetry pp_grepstart pp_mapstart pp_grepwhile pp_mapwhile pp_return pp_range pp_flip pp_flop pp_enterloop pp_enteriter pp_leaveloop pp_next pp_redo pp_last pp_subst pp_substcont</p>
+
+<p>DONE with -finline-ops:</p>
+
+<p>pp_enter pp_reset pp_regcreset pp_stringify</p>
+
+<p>TODO with -finline-ops:</p>
+
+<p>pp_anoncode pp_wantarray pp_srefgen pp_refgen pp_ref pp_trans pp_schop pp_chop pp_schomp pp_chomp pp_not pp_sprintf pp_anonlist pp_shift pp_once pp_lock pp_rcatline pp_close pp_time pp_alarm pp_av2arylen: no lvalue, pp_length: no magic</p>
+
+</dd>
+<dt id="fomit-taint"><b>-fomit-taint</b></dt>
+<dd>
+
+<p>Omits generating code for handling perl&#39;s tainting mechanism.</p>
+
+</dd>
+<dt id="fslow-signals"><b>-fslow-signals</b></dt>
+<dd>
+
+<p>Add PERL_ASYNC_CHECK after every op as in the old Perl runloop before 5.13.</p>
+
+<p>perl &quot;Safe signals&quot; check the state of incoming signals after every op. See <a href="http://perldoc.perl.org/perlipc.html#Deferred-Signals-(Safe-Signals)">http://perldoc.perl.org/perlipc.html#Deferred-Signals-(Safe-Signals)</a> We trade safety for more speed and delay the execution of non-IO signals (IO signals are already handled in PerlIO) from after every single Perl op to the same ops as used in 5.14.</p>
+
+<p>Only with -fslow-signals we get the old slow and safe behaviour.</p>
+
+</dd>
+<dt id="fno-name-magic"><b>-fno-name-magic</b></dt>
+<dd>
+
+<p>With the default <code>-fname-magic</code> we infer the SCALAR type for specially named locals vars and most ops use C vars then, not the perl vars. Arithmetic and comparison is inlined. Scalar magic is bypassed.</p>
+
+<p>With <code>-fno-name-magic</code> do not infer a local variable type from its name:</p>
+
+<pre><code>  B&lt;_i&gt; suffix for int, B&lt;_d&gt; for double/num, B&lt;_ir&gt; for register int</code></pre>
+
+<p>See the experimental <code>-ftype-attr</code> type attributes. Currently supported are <b>int</b> and <b>num</b> only. See &lt;/load_pad&gt;.</p>
+
+</dd>
+<dt id="ftype-attr-DOES-NOT-WORK-YET"><b>-ftype-attr</b> (DOES NOT WORK YET)</dt>
+<dd>
+
+<p>Experimentally support <b>type attributes</b> for <b>int</b> and <b>num</b>, SCALAR only so far. For most ops new C vars are used then, not the fat perl vars. Very awkward to use until the basic type classes are supported from within core or use types.</p>
+
+<p>Enabled with <b>-O2</b>. See <a>TYPES</a> and &lt;/load_pad&gt;.</p>
+
+</dd>
+<dt id="fno-autovivify"><b>-fno-autovivify</b></dt>
+<dd>
+
+<p>Do not vivify array and soon also hash elements when accessing them. Beware: Vivified elements default to undef, unvivified elements are invalid.</p>
+
+<p>This is the same as the pragma &quot;no autovivification&quot; and allows very fast array accesses, 4-6 times faster, without the overhead of <a>autovivification</a>.</p>
+
+</dd>
+<dt id="fno-magic"><b>-fno-magic</b></dt>
+<dd>
+
+<p>Assume certain data being optimized is never tied or is holding other magic. This mainly holds for arrays being optimized, but in the future hashes also.</p>
+
+</dd>
+<dt id="D"><b>-D</b></dt>
+<dd>
+
+<p>Debug options (concatenated or separate flags like <code>perl -D</code>). Verbose debugging options are crucial, because the interactive debugger <a>Od</a> adds a lot of ballast to the resulting code.</p>
+
+</dd>
+<dt id="Dr"><b>-Dr</b></dt>
+<dd>
+
+<p>Writes debugging output to STDERR just as it&#39;s about to write to the program&#39;s runtime (otherwise writes debugging info as comments in its C output).</p>
+
+</dd>
+<dt id="DO"><b>-DO</b></dt>
+<dd>
+
+<p>Outputs each OP as it&#39;s compiled</p>
+
+</dd>
+<dt id="DT"><b>-DT</b></dt>
+<dd>
+
+<p>Outputs the contents of the <b>stack</b> at each OP. Values are B::Stackobj objects.</p>
+
+</dd>
+<dt id="Dc"><b>-Dc</b></dt>
+<dd>
+
+<p>Outputs the contents of the loop <b>context stack</b>, the @cxstack.</p>
+
+</dd>
+<dt id="Dw"><b>-Dw</b></dt>
+<dd>
+
+<p>Outputs the contents of the <b>shadow</b> stack at each OP.</p>
+
+</dd>
+<dt id="Da"><b>-Da</b></dt>
+<dd>
+
+<p>Outputs the contents of the shadow pad of lexicals as it&#39;s loaded for each sub or the main program.</p>
+
+</dd>
+<dt id="Dq"><b>-Dq</b></dt>
+<dd>
+
+<p>Outputs the name of each fake PP function in the queue as it&#39;s about to process it.</p>
+
+</dd>
+<dt id="Dl"><b>-Dl</b></dt>
+<dd>
+
+<p>Output the filename and line number of each original line of Perl code as it&#39;s processed (<code>pp_nextstate</code>).</p>
+
+</dd>
+<dt id="Dt"><b>-Dt</b></dt>
+<dd>
+
+<p>Outputs timing information of compilation stages.</p>
+
+</dd>
+<dt id="DF"><b>-DF</b></dt>
+<dd>
+
+<p>Add Flags info to the code.</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTABLE-FUNCTIONS">NOTABLE FUNCTIONS</h1>
+
+<h2 id="cc_queue">cc_queue</h2>
+
+<p>Creates a new ccpp optree.</p>
+
+<p>Initialised by saveoptree_callback in <a href="/cperl/lib/B/C.html">B::C</a>, replaces B::C::walk_and_save_optree. Called by every <code>CV::save</code> if ROOT. <b>blocksort</b> also creates its block closure with cc_queue.</p>
+
+<h1 id="save_or_restore_lexical_state">save_or_restore_lexical_state</h1>
+
+<p>The compiler tracks state of lexical variables in @pad to generate optimised code. But multiple execution paths lead to the entry point of a basic block. The state of the first execution path is saved and all other execution paths are restored to the state of the first one.</p>
+
+<p>Missing flags are regenerated by loading values.</p>
+
+<p>Added flags must are removed; otherwise the compiler would be too optimistic, hence generating code which doesn&#39;t match state of the other execution paths.</p>
+
+<h2 id="load_pad">load_pad</h2>
+
+<p>Load pad takes (the elements of) a PADLIST as arguments and loads up @pad with Stackobj-derived objects which represent those lexicals.</p>
+
+<p>If/when perl itself can generate type information <code>(my int $foo; my $foo : int)</code> then we&#39;ll take advantage of that here. Until then, we&#39;ll use the <a>&quot;-fno-name-magic&quot; in -fname-magic</a> hack to tell the compiler when we want a lexical to be a particular type or to be a register.</p>
+
+<h2 id="label">label</h2>
+
+<p>We not only mark named labels in C as such - with prefix &quot;label_&quot;.</p>
+
+<p>We also have to mark each known (back jumps) and yet unknown branch targets (forward jumps) for compile-time generated branch points, with the &quot;lab_&quot; prefix.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<pre><code>        perl -MO=CC,-O2,-ofoo.c foo.pl
+        perl cc_harness -o foo foo.c</code></pre>
+
+<p>Note that <code>cc_harness</code> lives in the <code>B</code> subdirectory of your perl library directory. The utility called <code>perlcc</code> may also be used to help make use of this compiler.</p>
+
+<pre><code>        # create a shared XS module
+        perl -MO=CC,-mFoo,-oFoo.c Foo.pm
+        perl cc_harness -shared -c -o Foo.so Foo.c
+
+        # side-effects just for the types and attributes
+        perl -MB::CC -e&#39;my int $i:unsigned; ...&#39;</code></pre>
+
+<h1 id="TYPES">TYPES</h1>
+
+<p>Implemented type classes are <b>int</b> and <b>num</b>. Planned is <b>str</b> also. Implemented are only SCALAR types yet. Typed arrays and hashes and perfect hashes need <a>coretypes</a>, <a href="/cperl/lib/types.html">types</a> and proper <code>const</code> support first.</p>
+
+<p>Deprecated are inferred types via the names of locals, with &#39;_i&#39;, &#39;_d&#39; suffix and an optional &#39;r&#39; suffix for register allocation.</p>
+
+<pre><code>  C&lt;my ($i_i, $j_ir, $num_d);&gt;</code></pre>
+
+<p>Planned type attributes are <b>int</b>, <b>num</b>, <b>str</b>, <b>unsigned</b>, <b>ro</b> / <b>const</b>.</p>
+
+<p>The attributes are perl attributes, and <code>int|num|str</code> are either compiler classes or hints for more allowed types.</p>
+
+<pre><code>  C&lt;my int $i :num;&gt;  declares a NV with SVf_IOK. Same as C&lt;my $i:int:double;&gt;
+  C&lt;my int $i;&gt;          declares an IV. Same as C&lt;my $i:int;&gt;
+  C&lt;my int $i :str;&gt;  declares a PVIV. Same as C&lt;my $i:int:string;&gt;
+
+  C&lt;my int @array :unsigned = (0..4);&gt; will be used as c var in faster arithmetic and cmp.
+                                       With :const or :ro even more.
+  C&lt;my str %hash :const
+    = (foo =&gt; &#39;foo&#39;, bar =&gt; &#39;bar&#39;);&gt; declare string values,
+                                     generate as read-only perfect hash.</code></pre>
+
+<p><b>:unsigned</b> is valid for int only and declares an UV.</p>
+
+<p><b>:register</b> denotes optionally a short and hot life-time.</p>
+
+<p><b>:temporary</b> are usually generated internally, nameless lexicals. They are more aggressivly destroyed and ignored.</p>
+
+<p><b>:ro</b> or <b>:const</b> throw a compile-time error on write access and may optimize the internal structure of the variable. We don&#39;t need to write back the variable to perl (lexical write_back).</p>
+
+<p>STATUS</p>
+
+<p>OK (classes only):</p>
+
+<pre><code>  my int $i;
+  my num $d;</code></pre>
+
+<p>NOT YET OK (attributes):</p>
+
+<pre><code>  my int $i :register;
+  my $i :int;
+  my $const :int:const;
+  my $uv :int:unsigned;</code></pre>
+
+<p>ISSUES</p>
+
+<p>This does not work with pure perl, unless you <code>use B::CC</code> or <code>use types</code> or implement the classes and attribute type stubs in your code, <code>sub Mypkg::MODIFY_SCALAR_ATTRIBUTES {}</code> and <code>sub Mypkg::FETCH_SCALAR_ATTRIBUTES {}</code>. (TODO: empty should be enough to be detected by the compiler.)</p>
+
+<p>Compiled code pulls in the magic MODIFY_SCALAR_ATTRIBUTES and FETCH_SCALAR_ATTRIBUTES functions, even if they are used at compile time only.</p>
+
+<p>Using attributes adds an import block to your code.</p>
+
+<p>Up until 5.20 only <b>our</b> variable attributes are checked at compile-time, <b>my</b> variables attributes at run-time only, which is too late for the compiler. Perl attributes need to be fixed for types hints by adding <code>CHECK_SCALAR_ATTRIBUTES</code>.</p>
+
+<p>FUTURE</p>
+
+<p>We should be able to support types on ARRAY and HASH. For arrays also sizes to omit bounds-checking.</p>
+
+<pre><code>  my int @array; # array of ints, faster magic-less access esp. in inlined arithmetic and cmp.
+  my str @array : const = qw(foo bar);   # compile-time error on write. no lexical write_back
+
+  my int $hash = {&quot;1&quot; =&gt; 1, &quot;2&quot; =&gt; 2};   # int values, type-checked on write my
+  str %hash1 : const = (foo =&gt; &#39;bar&#39;);   # string keys only =&gt; maybe gperf
+                                         # compile-time error on write</code></pre>
+
+<p>Typed hash keys are always strings, as array keys are always int. Only the values are typed.</p>
+
+<p>We should be also able to add type attributes for functions and methods, i.e. for argument and return types. See <a href="/cperl/lib/types.html">types</a> and <a href="http://blogs.perl.org/users/rurban/2011/02/use-types.html">http://blogs.perl.org/users/rurban/2011/02/use-types.html</a></p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Plenty. Current status: experimental.</p>
+
+<h1 id="DIFFERENCES">DIFFERENCES</h1>
+
+<p>These aren&#39;t really bugs but they are constructs which are heavily tied to perl&#39;s compile-and-go implementation and with which this compiler backend cannot cope.</p>
+
+<h2 id="Loops">Loops</h2>
+
+<p>Standard perl calculates the target of &quot;next&quot;, &quot;last&quot;, and &quot;redo&quot; at run-time. The compiler calculates the targets at compile-time. For example, the program</p>
+
+<pre><code>    sub skip_on_odd { next NUMBER if $_[0] % 2 }
+    NUMBER: for ($i = 0; $i &lt; 5; $i++) {
+        skip_on_odd($i);
+        print $i;
+    }</code></pre>
+
+<p>produces the output</p>
+
+<pre><code>    024</code></pre>
+
+<p>with standard perl but calculates with the compiler the goto label_NUMBER wrong, producing 01234.</p>
+
+<h2 id="Context-of">Context of &quot;..&quot;</h2>
+
+<p>The context (scalar or array) of the &quot;..&quot; operator determines whether it behaves as a range or a flip/flop. Standard perl delays until runtime the decision of which context it is in but the compiler needs to know the context at compile-time. For example,</p>
+
+<pre><code>    @a = (4,6,1,0,0,1);
+    sub range { (shift @a)..(shift @a) }
+    print range();
+    while (@a) { print scalar(range()) }</code></pre>
+
+<p>generates the output</p>
+
+<pre><code>    456123E0</code></pre>
+
+<p>with standard Perl but gives a run-time warning with compiled Perl.</p>
+
+<p>If the option <b>-strict</b> is used it gives a compile-time error.</p>
+
+<h2 id="Arithmetic">Arithmetic</h2>
+
+<p>Compiled Perl programs use native C arithmetic much more frequently than standard perl. Operations on large numbers or on boundary cases may produce different behaviour. In doubt B::CC code behaves more like with <code>use integer</code>.</p>
+
+<h2 id="Deprecated-features">Deprecated features</h2>
+
+<p>Features of standard perl such as <code>$[</code> which have been deprecated in standard perl since Perl5 was released have not been implemented in the optimizing compiler.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<p>Malcolm Beattie <code>MICB at cpan.org</code> <i>(1996-1998, retired)</i>, Vishal Bhatia &lt;vishal at deja.com&gt; I(1999), Gurusamy Sarathy &lt;gsar at cpan.org&gt; I(1998-2001), Reini Urban <code>perl-compiler at googlegroups.com</code> I(2008-now), Heinz Knutzen <code>heinz.knutzen at gmx.de</code> I(2010) Will Braswell <code>wbraswell at hush.com</code> I(2012)</p>
+
+
+</body>
+
+</html>
+
+

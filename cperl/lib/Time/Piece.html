@@ -1,0 +1,246 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#USAGE">USAGE</a>
+    <ul>
+      <li><a href="#Local-Locales">Local Locales</a></li>
+      <li><a href="#Date-Calculations">Date Calculations</a></li>
+      <li><a href="#Date-Comparisons">Date Comparisons</a></li>
+      <li><a href="#Date-Parsing">Date Parsing</a></li>
+      <li><a href="#YYYY-MM-DDThh:mm:ss">YYYY-MM-DDThh:mm:ss</a></li>
+      <li><a href="#Week-Number">Week Number</a></li>
+      <li><a href="#Global-Overriding">Global Overriding</a></li>
+    </ul>
+  </li>
+  <li><a href="#CAVEATS">CAVEATS</a>
+    <ul>
+      <li><a href="#Setting-ENV-TZ-in-Threads-on-Win32">Setting $ENV{TZ} in Threads on Win32</a></li>
+      <li><a href="#Use-of-epoch-seconds">Use of epoch seconds</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Time::Piece - Object Oriented time objects</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Time::Piece;
+    
+    my $t = localtime;
+    print &quot;Time is $t\n&quot;;
+    print &quot;Year is &quot;, $t-&gt;year, &quot;\n&quot;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module replaces the standard <code>localtime</code> and <code>gmtime</code> functions with implementations that return objects. It does so in a backwards compatible manner, so that using localtime/gmtime in the way documented in perlfunc will still return what you expect.</p>
+
+<p>The module actually implements most of an interface described by Larry Wall on the perl5-porters mailing list here: http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/2000-01/msg00241.html</p>
+
+<h1 id="USAGE">USAGE</h1>
+
+<p>After importing this module, when you use localtime or gmtime in a scalar context, rather than getting an ordinary scalar string representing the date and time, you get a Time::Piece object, whose stringification happens to produce the same effect as the localtime and gmtime functions. There is also a new() constructor provided, which is the same as localtime(), except when passed a Time::Piece object, in which case it&#39;s a copy constructor. The following methods are available on the object:</p>
+
+<pre><code>    $t-&gt;sec                 # also available as $t-&gt;second
+    $t-&gt;min                 # also available as $t-&gt;minute
+    $t-&gt;hour                # 24 hour
+    $t-&gt;mday                # also available as $t-&gt;day_of_month
+    $t-&gt;mon                 # 1 = January
+    $t-&gt;_mon                # 0 = January
+    $t-&gt;monname             # Feb
+    $t-&gt;month               # same as $t-&gt;monname
+    $t-&gt;fullmonth           # February
+    $t-&gt;year                # based at 0 (year 0 AD is, of course 1 BC)
+    $t-&gt;_year               # year minus 1900
+    $t-&gt;yy                  # 2 digit year
+    $t-&gt;wday                # 1 = Sunday
+    $t-&gt;_wday               # 0 = Sunday
+    $t-&gt;day_of_week         # 0 = Sunday
+    $t-&gt;wdayname            # Tue
+    $t-&gt;day                 # same as wdayname
+    $t-&gt;fullday             # Tuesday
+    $t-&gt;yday                # also available as $t-&gt;day_of_year, 0 = Jan 01
+    $t-&gt;isdst               # also available as $t-&gt;daylight_savings
+
+    $t-&gt;hms                 # 12:34:56
+    $t-&gt;hms(&quot;.&quot;)            # 12.34.56
+    $t-&gt;time                # same as $t-&gt;hms
+
+    $t-&gt;ymd                 # 2000-02-29
+    $t-&gt;date                # same as $t-&gt;ymd
+    $t-&gt;mdy                 # 02-29-2000
+    $t-&gt;mdy(&quot;/&quot;)            # 02/29/2000
+    $t-&gt;dmy                 # 29-02-2000
+    $t-&gt;dmy(&quot;.&quot;)            # 29.02.2000
+    $t-&gt;datetime            # 2000-02-29T12:34:56 (ISO 8601)
+    $t-&gt;cdate               # Tue Feb 29 12:34:56 2000
+    &quot;$t&quot;                    # same as $t-&gt;cdate
+
+    $t-&gt;epoch               # seconds since the epoch
+    $t-&gt;tzoffset            # timezone offset in a Time::Seconds object
+
+    $t-&gt;julian_day          # number of days since Julian period began
+    $t-&gt;mjd                 # modified Julian date (JD-2400000.5 days)
+
+    $t-&gt;week                # week number (ISO 8601)
+
+    $t-&gt;is_leap_year        # true if it&#39;s a leap year
+    $t-&gt;month_last_day      # 28-31
+
+    $t-&gt;time_separator($s)  # set the default separator (default &quot;:&quot;)
+    $t-&gt;date_separator($s)  # set the default separator (default &quot;-&quot;)
+    $t-&gt;day_list(@days)     # set the default weekdays
+    $t-&gt;mon_list(@days)     # set the default months
+
+    $t-&gt;strftime(FORMAT)    # same as POSIX::strftime (without the overhead
+                            # of the full POSIX extension)
+    $t-&gt;strftime()          # &quot;Tue, 29 Feb 2000 12:34:56 GMT&quot;
+    
+    Time::Piece-&gt;strptime(STRING, FORMAT)
+                            # see strptime man page. Creates a new
+                            # Time::Piece object</code></pre>
+
+<p>Note that <code>localtime</code> and <code>gmtime</code> are not listed above. If called as methods on a Time::Piece object, they act as constructors, returning a new Time::Piece object for the current time. In other words: they&#39;re not useful as methods.</p>
+
+<h2 id="Local-Locales">Local Locales</h2>
+
+<p>Both wdayname (day) and monname (month) allow passing in a list to use to index the name of the days against. This can be useful if you need to implement some form of localisation without actually installing or using locales.</p>
+
+<pre><code>  my @days = qw( Dimanche Lundi Merdi Mercredi Jeudi Vendredi Samedi );
+
+  my $french_day = localtime-&gt;day(@days);</code></pre>
+
+<p>These settings can be overridden globally too:</p>
+
+<pre><code>  Time::Piece::day_list(@days);</code></pre>
+
+<p>Or for months:</p>
+
+<pre><code>  Time::Piece::mon_list(@months);</code></pre>
+
+<p>And locally for months:</p>
+
+<pre><code>  print localtime-&gt;month(@months);</code></pre>
+
+<h2 id="Date-Calculations">Date Calculations</h2>
+
+<p>It&#39;s possible to use simple addition and subtraction of objects:</p>
+
+<pre><code>    use Time::Seconds;
+    
+    my $seconds = $t1 - $t2;
+    $t1 += ONE_DAY; # add 1 day (constant from Time::Seconds)</code></pre>
+
+<p>The following are valid ($t1 and $t2 are Time::Piece objects):</p>
+
+<pre><code>    $t1 - $t2; # returns Time::Seconds object
+    $t1 - 42; # returns Time::Piece object
+    $t1 + 533; # returns Time::Piece object</code></pre>
+
+<p>However adding a Time::Piece object to another Time::Piece object will cause a runtime error.</p>
+
+<p>Note that the first of the above returns a Time::Seconds object, so while examining the object will print the number of seconds (because of the overloading), you can also get the number of minutes, hours, days, weeks and years in that delta, using the Time::Seconds API.</p>
+
+<p>In addition to adding seconds, there are two APIs for adding months and years:</p>
+
+<pre><code>    $t-&gt;add_months(6);
+    $t-&gt;add_years(5);</code></pre>
+
+<p>The months and years can be negative for subtractions. Note that there is some &quot;strange&quot; behaviour when adding and subtracting months at the ends of months. Generally when the resulting month is shorter than the starting month then the number of overlap days is added. For example subtracting a month from 2008-03-31 will not result in 2008-02-31 as this is an impossible date. Instead you will get 2008-03-02. This appears to be consistent with other date manipulation tools.</p>
+
+<h2 id="Date-Comparisons">Date Comparisons</h2>
+
+<p>Date comparisons are also possible, using the full suite of &quot;&lt;&quot;, &quot;&gt;&quot;, &quot;&lt;=&quot;, &quot;&gt;=&quot;, &quot;&lt;=&gt;&quot;, &quot;==&quot; and &quot;!=&quot;.</p>
+
+<h2 id="Date-Parsing">Date Parsing</h2>
+
+<p>Time::Piece has a built-in strptime() function (from FreeBSD), allowing you incredibly flexible date parsing routines. For example:</p>
+
+<pre><code>  my $t = Time::Piece-&gt;strptime(&quot;Sunday 3rd Nov, 1943&quot;,
+                                &quot;%A %drd %b, %Y&quot;);
+  
+  print $t-&gt;strftime(&quot;%a, %d %b %Y&quot;);</code></pre>
+
+<p>Outputs:</p>
+
+<pre><code>  Wed, 03 Nov 1943</code></pre>
+
+<p>(see, it&#39;s even smart enough to fix my obvious date bug)</p>
+
+<p>For more information see &quot;man strptime&quot;, which should be on all unix systems.</p>
+
+<p>Alternatively look here: http://www.unix.com/man-page/FreeBSD/3/strftime/</p>
+
+<h2 id="YYYY-MM-DDThh:mm:ss">YYYY-MM-DDThh:mm:ss</h2>
+
+<p>The ISO 8601 standard defines the date format to be YYYY-MM-DD, and the time format to be hh:mm:ss (24 hour clock), and if combined, they should be concatenated with date first and with a capital &#39;T&#39; in front of the time.</p>
+
+<h2 id="Week-Number">Week Number</h2>
+
+<p>The <i>week number</i> may be an unknown concept to some readers. The ISO 8601 standard defines that weeks begin on a Monday and week 1 of the year is the week that includes both January 4th and the first Thursday of the year. In other words, if the first Monday of January is the 2nd, 3rd, or 4th, the preceding days of the January are part of the last week of the preceding year. Week numbers range from 1 to 53.</p>
+
+<h2 id="Global-Overriding">Global Overriding</h2>
+
+<p>Finally, it&#39;s possible to override localtime and gmtime everywhere, by including the &#39;:override&#39; tag in the import list:</p>
+
+<pre><code>    use Time::Piece &#39;:override&#39;;</code></pre>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<h2 id="Setting-ENV-TZ-in-Threads-on-Win32">Setting $ENV{TZ} in Threads on Win32</h2>
+
+<p>Note that when using perl in the default build configuration on Win32 (specifically, when perl is built with PERL_IMPLICIT_SYS), each perl interpreter maintains its own copy of the environment and only the main interpreter will update the process environment seen by strftime.</p>
+
+<p>Therefore, if you make changes to $ENV{TZ} from inside a thread other than the main thread then those changes will not be seen by strftime if you subsequently call that with the %Z formatting code. You must change $ENV{TZ} in the main thread to have the desired effect in this case (and you must also call _tzset() in the main thread to register the environment change).</p>
+
+<p>Furthermore, remember that this caveat also applies to fork(), which is emulated by threads on Win32.</p>
+
+<h2 id="Use-of-epoch-seconds">Use of epoch seconds</h2>
+
+<p>This module internally uses the epoch seconds system that is provided via the perl <code>time()</code> function and supported by <code>gmtime()</code> and <code>localtime()</code>.</p>
+
+<p>If your perl does not support times larger than <code>2^31</code> seconds then this module is likely to fail at processing dates beyond the year 2038. There are moves afoot to fix that in perl. Alternatively use 64 bit perl. Or if none of those are options, use the <a>DateTime</a> module which has support for years well into the future and past.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Sergeant, matt@sergeant.org Jarkko Hietaniemi, jhi@iki.fi (while creating Time::Piece for core perl)</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright 2001, Larry Wall.</p>
+
+<p>This module is free software, you may distribute it under the same terms as Perl.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The excellent Calendar FAQ at http://www.tondering.dk/claus/calendar.html</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>The test harness leaves much to be desired. Patches welcome.</p>
+
+
+</body>
+
+</html>
+
+

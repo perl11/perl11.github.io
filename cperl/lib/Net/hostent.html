@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#NOTE">NOTE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Net::hostent - by-name interface to Perl&#39;s built-in gethost*() functions</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use Net::hostent;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module&#39;s default exports override the core gethostbyname() and gethostbyaddr() functions, replacing them with versions that return &quot;Net::hostent&quot; objects. This object has methods that return the similarly named structure field name from the C&#39;s hostent structure from <i>netdb.h</i>; namely name, aliases, addrtype, length, and addr_list. The aliases and addr_list methods return array reference, the rest scalars. The addr method is equivalent to the zeroth element in the addr_list array reference.</p>
+
+<p>You may also import all the structure fields directly into your namespace as regular variables using the :FIELDS import tag. (Note that this still overrides your core functions.) Access these fields as variables named with a preceding <code>h_</code>. Thus, <code>$host_obj-&gt;name()</code> corresponds to $h_name if you import the fields. Array references are available as regular array variables, so for example <code>@{ $host_obj-&gt;aliases() }</code> would be simply @h_aliases.</p>
+
+<p>The gethost() function is a simple front-end that forwards a numeric argument to gethostbyaddr() by way of Socket::inet_aton, and the rest to gethostbyname().</p>
+
+<p>To access this functionality without the core overrides, pass the <code>use</code> an empty import list, and then access function functions with their full qualified names. On the other hand, the built-ins are still available via the <code>CORE::</code> pseudo-package.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<pre><code> use Net::hostent;
+ use Socket;
+
+ @ARGV = (&#39;netscape.com&#39;) unless @ARGV;
+
+ for $host ( @ARGV ) {
+
+    unless ($h = gethost($host)) {
+        warn &quot;$0: no such host: $host\n&quot;;
+        next;
+    }
+
+    printf &quot;\n%s is %s%s\n&quot;, 
+            $host, 
+            lc($h-&gt;name) eq lc($host) ? &quot;&quot; : &quot;*really* &quot;,
+            $h-&gt;name;
+
+    print &quot;\taliases are &quot;, join(&quot;, &quot;, @{$h-&gt;aliases}), &quot;\n&quot;
+                if @{$h-&gt;aliases};     
+
+    if ( @{$h-&gt;addr_list} &gt; 1 ) { 
+        my $i;
+        for $addr ( @{$h-&gt;addr_list} ) {
+            printf &quot;\taddr #%d is [%s]\n&quot;, $i++, inet_ntoa($addr);
+        } 
+    } else {
+        printf &quot;\taddress is [%s]\n&quot;, inet_ntoa($h-&gt;addr);
+    } 
+
+    if ($h = gethostbyaddr($h-&gt;addr)) {
+        if (lc($h-&gt;name) ne lc($host)) {
+            printf &quot;\tThat addr reverses to host %s!\n&quot;, $h-&gt;name;
+            $host = $h-&gt;name;
+            redo;
+        } 
+    }
+ }</code></pre>
+
+<h1 id="NOTE">NOTE</h1>
+
+<p>While this class is currently implemented using the Class::Struct module to build a struct-like class, you shouldn&#39;t rely upon this.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Tom Christiansen</p>
+
+
+</body>
+
+</html>
+
+

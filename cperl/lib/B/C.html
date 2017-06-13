@@ -1,0 +1,558 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#CAVEAT">CAVEAT</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>B::C - Perl compiler&#39;s C backend</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>        perl -MO=C[,OPTIONS] foo.pl</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This compiler backend takes Perl source and generates C source code corresponding to the internal structures that perl uses to run your program. When the generated C source is compiled and run, it cuts out the time which perl would have taken to load and parse your program into its internal semi-compiled form. That means that compiling with this backend will not help improve the runtime execution speed of your program but may improve the start-up time. Depending on the environment in which your program runs this may be either a help or a hindrance.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<p>If there are any non-option arguments, they are taken to be names of objects to be saved (probably doesn&#39;t work properly yet). Without extra arguments, it saves the main program.</p>
+
+<dl>
+
+<dt id="ofilename"><b>-o</b><i>filename</i></dt>
+<dd>
+
+<p>Output to filename instead of STDOUT</p>
+
+</dd>
+<dt id="c"><b>-c</b></dt>
+<dd>
+
+<p>Check and abort.</p>
+
+<p>Compiles and prints only warnings, but does not emit C code.</p>
+
+</dd>
+<dt id="mPackagename-NYI"><b>-m</b><i>Packagename</i> <i>(NYI)</i></dt>
+<dd>
+
+<p>Prepare to compile a module with all dependent code to a single shared library rather than to standalone program.</p>
+
+<p>Currently this just means that the code for initialising <code>main_start</code>, <code>main_root</code> and <code>curpad</code> are omitted. The <i>.pm</i> stub to bootstrap the shared lib is not generated. This option should be used via <code>perlcc -m</code>.</p>
+
+<p>Not yet implemented.</p>
+
+</dd>
+<dt id="ninit_name"><b>-n</b><i>init_name</i></dt>
+<dd>
+
+<p>Default: &quot;perl_init&quot; and &quot;init_module&quot;</p>
+
+</dd>
+<dt id="v"><b>-v</b></dt>
+<dd>
+
+<p>Verbose compilation. Currently gives a few compilation statistics.</p>
+
+</dd>
+<dt id="pod"><b>--</b></dt>
+<dd>
+
+<p>Force end of options</p>
+
+</dd>
+<dt id="uPackage-use-Package"><b>-u</b><i>Package</i> &quot;use Package&quot;</dt>
+<dd>
+
+<p>Force all subs from Package to be compiled.</p>
+
+<p>This allows programs to use eval &quot;foo()&quot; even when sub foo is never seen to be used at compile time. The down side is that any subs which really are never used also have code generated. This option is necessary, for example, if you have a signal handler foo which you initialise with <code>$SIG{BAR} = &quot;foo&quot;</code>. A better fix, though, is just to change it to <code>$SIG{BAR} = \&amp;foo</code>. You can have multiple <b>-u</b> options. The compiler tries to figure out which packages may possibly have subs in which need compiling but the current version doesn&#39;t do it very well. In particular, it is confused by nested packages (i.e. of the form <code>A::B</code>) where package <code>A</code> does not contain any subs.</p>
+
+</dd>
+<dt id="UPackage-unuse-skip-Package"><b>-U</b><i>Package</i> &quot;unuse&quot; skip Package</dt>
+<dd>
+
+<p>Ignore all subs from Package to be compiled.</p>
+
+<p>Certain packages might not be needed at run-time, even if the pessimistic walker detects it.</p>
+
+</dd>
+<dt id="staticxs"><b>-staticxs</b></dt>
+<dd>
+
+<p>Dump a list of bootstrapped XS package names to <i>outfile.lst</i> needed for <code>perlcc --staticxs</code>. Add code to DynaLoader to add the .so/.dll path to PATH.</p>
+
+</dd>
+<dt id="D-OPTIONS"><b>-D</b><code>[OPTIONS]</code></dt>
+<dd>
+
+<p>Debug options, concatenated or separate flags like <code>perl -D</code>. Verbose debugging options are crucial, because the interactive debugger <a>Od</a> adds a lot of ballast to the resulting code.</p>
+
+</dd>
+<dt id="Dfull"><b>-Dfull</b></dt>
+<dd>
+
+<p>Enable all full debugging, as with <code>-DoOcAHCMGSpWF</code>. All but <code>-Du</code>.</p>
+
+</dd>
+<dt id="Do"><b>-Do</b></dt>
+<dd>
+
+<p>All Walkop&#39;ed OPs</p>
+
+</dd>
+<dt id="DO"><b>-DO</b></dt>
+<dd>
+
+<p>OP Type,Flags,Private</p>
+
+</dd>
+<dt id="DS"><b>-DS</b></dt>
+<dd>
+
+<p>Scalar SVs, prints <b>SV/RE/RV</b> information on saving.</p>
+
+</dd>
+<dt id="DP"><b>-DP</b></dt>
+<dd>
+
+<p>Extra PV information on saving. (static, len, hek, fake_off, ...)</p>
+
+</dd>
+<dt id="Dc"><b>-Dc</b></dt>
+<dd>
+
+<p><b>COPs</b>, prints COPs as processed (incl. file &amp; line num)</p>
+
+</dd>
+<dt id="DA"><b>-DA</b></dt>
+<dd>
+
+<p>prints <b>AV</b> information on saving.</p>
+
+</dd>
+<dt id="DH"><b>-DH</b></dt>
+<dd>
+
+<p>prints <b>HV</b> information on saving.</p>
+
+</dd>
+<dt id="DC"><b>-DC</b></dt>
+<dd>
+
+<p>prints <b>CV</b> information on saving.</p>
+
+</dd>
+<dt id="DG"><b>-DG</b></dt>
+<dd>
+
+<p>prints <b>GV</b> information on saving.</p>
+
+</dd>
+<dt id="DM"><b>-DM</b></dt>
+<dd>
+
+<p>prints <b>MAGIC</b> information on saving.</p>
+
+</dd>
+<dt id="DR"><b>-DR</b></dt>
+<dd>
+
+<p>prints <b>REGEXP</b> information on saving.</p>
+
+</dd>
+<dt id="Dp"><b>-Dp</b></dt>
+<dd>
+
+<p>prints cached <b>package</b> information, if used or not.</p>
+
+</dd>
+<dt id="Ds"><b>-Ds</b></dt>
+<dd>
+
+<p>prints all compiled sub names, optionally with &quot; not found&quot;.</p>
+
+</dd>
+<dt id="DF"><b>-DF</b></dt>
+<dd>
+
+<p>Add Flags info to the code.</p>
+
+</dd>
+<dt id="DW"><b>-DW</b></dt>
+<dd>
+
+<p>Together with <b>-Dp</b> also prints every <b>walked</b> package symbol.</p>
+
+</dd>
+<dt id="Du"><b>-Du</b></dt>
+<dd>
+
+<p>do not print <b>-D</b> information when parsing for the unused subs.</p>
+
+</dd>
+<dt id="Dr"><b>-Dr</b></dt>
+<dd>
+
+<p>Writes debugging output to STDERR and to the program&#39;s generated C file. Otherwise writes debugging info to STDERR only.</p>
+
+</dd>
+<dt id="fOPTIM"><b>-f</b><i>OPTIM</i></dt>
+<dd>
+
+<p>Force options/optimisations on or off one at a time. You can explicitly disable an option using <b>-fno-option</b>. All options default to <b>disabled</b>.</p>
+
+<dl>
+
+<dt id="fcog-Ignored"><b>-fcog</b> <i>(Ignored)</i></dt>
+<dd>
+
+<p>Future flag to enable Copy-on-grow, i.e Copy-on-write, when perl will store the COWREFCNT in a seperate field and not in the string buffer.</p>
+
+<p>Some strings are declared and initialised statically independent of <code>-fcog</code>, see <code>-fconst-strings</code> instead.</p>
+
+</dd>
+<dt id="fav-init"><b>-fav-init</b></dt>
+<dd>
+
+<p>Faster pre-initialization of AVs (arrays and pads). Also used if -fav-init2 is used and independent_comalloc() is not detected.</p>
+
+<p>Enabled with <code>-O1</code>.</p>
+
+</dd>
+<dt id="fav-init2"><b>-fav-init2</b></dt>
+<dd>
+
+<p>Even more faster pre-initialization of AVs with <b>independent_comalloc()</b> if supported. Excludes <code>-fav_init</code> if so; uses <code>-fav_init</code> if <code>independent_comalloc()</code> is not supported.</p>
+
+<p><code>independent_comalloc()</code> is recommended from <b>ptmalloc3</b>, but also included in <code>ptmalloc</code>, <code>dlmalloc</code> and <code>nedmalloc</code>. Download <code>ptmalloc3</code> here: <a href="http://www.malloc.de/en/">http://www.malloc.de/en/</a> Note: <code>independent_comalloc()</code> is not included in <code>google-perftools</code> <code>tcmalloc</code>.</p>
+
+<p>Enabled with <code>-O1</code>.</p>
+
+</dd>
+<dt id="fppaddr"><b>-fppaddr</b></dt>
+<dd>
+
+<p>Optimize the initialization of <code>op_ppaddr</code>.</p>
+
+<p>Enabled with <code>-O1</code>.</p>
+
+</dd>
+<dt id="fwarn-sv"><b>-fwarn-sv</b></dt>
+<dd>
+
+<p>Use static initialization for cop_warnings. Automatically disabled for MSVC 5.</p>
+
+<p>Disable with <code>-fno-warn-sv</code>.</p>
+
+</dd>
+<dt id="fro-inc"><b>-fro-inc</b></dt>
+<dd>
+
+<p>Set read-only <b>@INC</b> and <b>%INC</b> pathnames (<code>-fconst-string</code>, not the AV) to store them const and statically, not via malloc at run-time.</p>
+
+<p>This forbids run-time extends of INC path strings, the run-time will crash then.</p>
+
+<p>It will also skip storing string values of internal regexp capture groups <code>$1</code> - <code>$9</code>, which were used internally by the compiler or some module. They are considered volatile.</p>
+
+<p>Enabled with <code>-O2</code>.</p>
+
+</dd>
+<dt id="fsave-data"><b>-fsave-data</b></dt>
+<dd>
+
+<p>Save package::DATA filehandles ( only available with PerlIO ). Does not work yet on Perl 5.6, 5.12 and non-threaded 5.10, and is enabled automatically where it is known to work.</p>
+
+<p>Enabled with <code>-O2</code>.</p>
+
+</dd>
+<dt id="fcow"><b>-fcow</b></dt>
+<dd>
+
+<p>Enforce static COW strings since 5.18 for most strings.</p>
+
+<p>Enabled with <code>-O2</code> since 5.20.</p>
+
+</dd>
+<dt id="fconst-strings"><b>-fconst-strings</b></dt>
+<dd>
+
+<p>Declares static readonly strings as const. Note that readonly strings in eval&#39;d string code will cause a run-time failure.</p>
+
+<p>Enabled with <code>-O3</code>.</p>
+
+</dd>
+<dt id="fno-destruct"><b>-fno-destruct</b></dt>
+<dd>
+
+<p>Does no global <code>perl_destruct()</code> at the end of the process, leaving the memory cleanup to operating system.</p>
+
+<p>This will cause problems if used embedded or as shared library/module, but not in long-running processes.</p>
+
+<p>This helps with destruction problems of static data in the default perl destructor, and enables <code>-fcog</code> since 5.10.</p>
+
+<p>Enabled with <code>-O3</code>.</p>
+
+</dd>
+<dt id="fno-walkall"><b>-fno-walkall</b></dt>
+<dd>
+
+<p><code>-fno-walkall</code> uses the simple old algorithm to detect which packages needs to be stored. <code>-fwalkall</code> was introduced to catch previously uncompiled packages for computed methods or undetected deeper run-time dependencies.</p>
+
+</dd>
+<dt id="fno-save-sig-hash"><b>-fno-save-sig-hash</b></dt>
+<dd>
+
+<p>Disable compile-time modifications to the %SIG hash.</p>
+
+</dd>
+<dt id="fno-fold-since-5.14"><b>-fno-fold</b> <i>(since 5.14)</i></dt>
+<dd>
+
+<p>m//i since 5.13.10 requires the whole unicore/To/Fold table in memory, which is about 1.6MB on 32-bit. In CORE this is demand-loaded from <i>utf8.pm</i>.</p>
+
+<p>If you are sure not to use or require any case-insensitive matching you can strip this table from memory with <code>-fno-fold</code>.</p>
+
+<p>Enabled with <code>-O3</code>.</p>
+
+</dd>
+<dt id="fno-warnings-since-5.14"><b>-fno-warnings</b> <i>(since 5.14)</i></dt>
+<dd>
+
+<p>Run-time warnings since 5.13.5 require some <code>warnings::register_categories</code> in memory, which is about 68kB on 32-bit. In CORE this is demand-loaded from <i>warnings.pm</i>.</p>
+
+<p>You can strip this table from memory with <code>-fno-warnings</code>.</p>
+
+<p>Enabled with <code>-O3</code>.</p>
+
+</dd>
+<dt id="fstash"><b>-fstash</b></dt>
+<dd>
+
+<p>Add dynamic creation of stashes, which are nested hashes of symbol tables, names ending with <code>::</code>, starting at <code>%main::</code>.</p>
+
+<p>These are rarely needed, sometimes for checking of existance of packages, which could be better done by checking <code>%INC</code>, and cost about 10% space and startup-time.</p>
+
+<p>If an explicit stash member or the stash itself <code>%package::</code> is used in the source code, the requested stash member(s) is/are automatically created.</p>
+
+<p><code>-fno-stash</code> is the default.</p>
+
+</dd>
+<dt id="fno-delete-pkg"><b>-fno-delete-pkg</b></dt>
+<dd>
+
+<p>Do not delete compiler-internal and dependent packages which appear to be nowhere used automatically. This might miss run-time called stringified methods. See <a>B::C::Config</a> for <code>@deps</code> which packages are affected.</p>
+
+<p><code>-fdelete-pkg</code> is the default.</p>
+
+</dd>
+<dt id="fuse-script-name"><b>-fuse-script-name</b></dt>
+<dd>
+
+<p>Use the script name instead of the program name as <code>$0</code>.</p>
+
+<p>Not enabled with any <code>-O</code> option.</p>
+
+</dd>
+<dt id="fno-dyn-padlist"><b>-fno-dyn-padlist</b></dt>
+<dd>
+
+<p>Disable dynamic padlists since 5.17.6. Dynamic padlists are needed to prevent from <code>cv_undef</code> crashes on static padlists when cleaning up the stack on non-local exits, like <code>die</code> or <code>exit</code>.</p>
+
+<p>All functions in END blocks and all Attribute::Handler function padlists are automatically dynamic.</p>
+
+<p>Enabled with <code>-O4</code>.</p>
+
+</dd>
+<dt id="fcop"><b>-fcop</b></dt>
+<dd>
+
+<p>DO NOT USE YET!</p>
+
+<p>Omit COP info (nextstate without labels, unneeded NULL ops, files, linenumbers) for ~10% faster execution and less space, but warnings and errors will have no file and line infos.</p>
+
+<p>It will most likely not work yet. <i>(was -fbypass-nullops in earlier compilers)</i></p>
+
+<p>Enabled with <code>-O4</code>.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="On"><b>-On</b></dt>
+<dd>
+
+<p>Optimisation level (n = 0, 1, 2, 3, 4). <b>-O</b> means <b>-O1</b>.</p>
+
+<dl>
+
+<dt id="O0"><b>-O0</b></dt>
+<dd>
+
+<p>Disable all optimizations.</p>
+
+</dd>
+<dt id="O1"><b>-O1</b></dt>
+<dd>
+
+<p>Enable <b>-fcog</b>, <b>-fav-init2</b>/<b>-fav-init</b>, <b>-fppaddr</b> and <b>-fwarn-sv</b>.</p>
+
+<p>Note that <code>-fcog</code> without <code>-fno-destruct</code> will be disabled &gt;= 5.10.</p>
+
+</dd>
+<dt id="O2"><b>-O2</b></dt>
+<dd>
+
+<p>Enable <b>-O1</b> plus <b>-fro-inc</b>, <b>-fsave-data</b> and <b>fcow</b>.</p>
+
+</dd>
+<dt id="O3"><b>-O3</b></dt>
+<dd>
+
+<p>Enable <b>-O2</b> plus <b>-fno-destruct</b> and <b>-fconst-strings</b>.</p>
+
+</dd>
+<dt id="O4"><b>-O4</b></dt>
+<dd>
+
+<p>Enable <b>-O3</b> plus <b>-fcop</b> and <b>-fno-dyn-padlist</b>. Very unsafe, rarely works, 10% faster, 10% smaller.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="llimit"><b>-l</b><i>limit</i></dt>
+<dd>
+
+<p>&quot;line length limit&quot;.</p>
+
+<p>Some C compilers impose an arbitrary limit on the length of string constants (e.g. 2048 characters for Microsoft Visual C++). <b>-l2048</b> tells the C backend not to generate string literals exceeding that limit.</p>
+
+</dd>
+<dt id="e-ARG"><b>-e ARG</b></dt>
+<dd>
+
+<p>Evaluate ARG at startup</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<pre><code>    perl -MO=C,-ofoo.c foo.pl
+    perl cc_harness -o foo foo.c</code></pre>
+
+<p>Note that <code>cc_harness</code> lives in the <code>B</code> subdirectory of your perl library directory. The utility called <code>perlcc</code> may also be used to help make use of this compiler.</p>
+
+<pre><code>    perlcc foo.pl
+
+    perl -MO=C,-v,-DcA,-l2048 bar.pl &gt; /dev/null</code></pre>
+
+<h1 id="CAVEAT">CAVEAT</h1>
+
+<p>With 5.6 it is not possible to use the __DATA__ filehandle, because compatible access via PerlIO::scalar was added with 5.8.1</p>
+
+<p>It is generally not possible to restore all of the compiled BEGIN-time state. Esp. problematic are non-standard filehandles (i.e. fd&gt;2), process ids, environment specific knowledge, because only with the compiler BEGIN blocks are not executed in the client environment.</p>
+
+<p>The compiler produces some warnings, which might need source code changes or changed compiler options.</p>
+
+<dl>
+
+<dt id="Warning:-Problem-with-require-name---INC-file.pm">Warning: Problem with require &quot;$name&quot; - $INC{file.pm}</dt>
+<dd>
+
+<p>Dynamic load of $name did not add the expected %INC key.</p>
+
+</dd>
+<dt id="Warning:-C.xs-PMOP-missing-for-QR">Warning: C.xs PMOP missing for QR</dt>
+<dd>
+
+<p>In an initial C.xs runloop all QR regex ops are stored, so that they can matched later to PMOPs.</p>
+
+</dd>
+<dt id="Warning:-DynaLoader-broken-with-5.15.2-5.15.3">Warning: DynaLoader broken with 5.15.2-5.15.3.</dt>
+<dd>
+
+<p>[perl #100138] DynaLoader symbols were XS_INTERNAL. Strict linking could not resolve it. Usually libperl was patched to overcome this for these two versions. Setting the environment variable NO_DL_WARN=1 omits this warning.</p>
+
+</dd>
+<dt id="Warning:-__DATA__-handle-fullname-not-stored.-Need--O2-or--fsave-data">Warning: __DATA__ handle $fullname not stored. Need -O2 or -fsave-data.</dt>
+<dd>
+
+<p>Since processing the __DATA__ filehandle involves some overhead, requiring PerlIO::scalar with all its dependencies, you must use -O2 or -fsave-data.</p>
+
+</dd>
+<dt id="Warning:-Write-BEGIN-block-fullname-to-FileHandle-iotype-fd">Warning: Write BEGIN-block $fullname to FileHandle $iotype \&amp;$fd</dt>
+<dd>
+
+<p>Critical problem. This must be fixed in the source.</p>
+
+</dd>
+<dt id="Warning:-Read-BEGIN-block-fullname-from-FileHandle-iotype-fd">Warning: Read BEGIN-block $fullname from FileHandle $iotype \&amp;$fd</dt>
+<dd>
+
+<p>Critical problem. This must be fixed in the source.</p>
+
+</dd>
+<dt id="Warning:--o-argument-ignored-with--c">Warning: -o argument ignored with -c</dt>
+<dd>
+
+<p>-c does only check, but not accumulate C output lines.</p>
+
+</dd>
+<dt id="Warning:-unresolved-section-symbol-s-xxx">Warning: unresolved $section symbol s\\xxx</dt>
+<dd>
+
+<p>This symbol was not resolved during compilation, and replaced by 0.</p>
+
+<p>With B::C this is most likely a critical internal compiler bug, esp. if in an op section. See [issue #110].</p>
+
+<p>With B::CC it can be caused by valid optimizations, e.g. when op-&gt;next pointers were inlined or inlined GV or CONST ops were optimized away.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Current status: A few known bugs, but usable in production</p>
+
+<p>5.6: reading from __DATA__ handles (15) AUTOLOAD xsubs (27)</p>
+
+<p>&gt;=5.10: Attribute::Handlers and run-time attributes @- (#281) compile-time perlio layers run-time loading of DynaLoader packages which use AutoLoad i.e. BSD::Resource. (#308) format STDOUT or STDERR (#285)</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Malcolm Beattie <code>MICB at cpan.org</code> <i>(1996-1998, retired)</i>, Nick Ing-Simmons &lt;nik at tiuk.ti.com&gt; I(1998-1999), Vishal Bhatia &lt;vishal at deja.com&gt; I(1999), Gurusamy Sarathy &lt;gsar at cpan.org&gt; I(1998-2001), Mattia Barbon &lt;mbarbon at dsi.unive.it&gt; I(2002), Reini Urban <code>perl-compiler@googlegroups.com</code> I(2008-)</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a>perlcompiler</a> for a general overview, <a href="/cperl/lib/B/CC.html">B::CC</a> for the optimising C compiler, <a href="/cperl/lib/B/Bytecode.html">B::Bytecode</a> + <a href="/cperl/lib/ByteLoader.html">ByteLoader</a> for the bytecode compiler, <a>Od</a> for source level debugging in the <a>B::Debugger</a>, <a>illguts</a> for the illustrated Perl guts, <a href="/cperl/lib/B/perloptree.html">perloptree</a> for the Perl optree.</p>
+
+
+</body>
+
+</html>
+
+

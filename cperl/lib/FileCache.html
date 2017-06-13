@@ -1,0 +1,89 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>FileCache - keep more files open than the system permits</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    no strict &#39;refs&#39;;
+
+    use FileCache;
+    # or
+    use FileCache maxopen =&gt; 16;
+
+    cacheout $mode, $path;
+    # or
+    cacheout $path;
+    print $path @data;
+
+    $fh = cacheout $mode, $path;
+    # or
+    $fh = cacheout $path;
+    print $fh @data;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <code>cacheout</code> function will make sure that there&#39;s a filehandle open for reading or writing available as the pathname you give it. It automatically closes and re-opens files if you exceed your system&#39;s maximum number of file descriptors, or the suggested maximum <i>maxopen</i>.</p>
+
+<dl>
+
+<dt id="cacheout-EXPR">cacheout EXPR</dt>
+<dd>
+
+<p>The 1-argument form of cacheout will open a file for writing (<code>&#39;&gt;&#39;</code>) on it&#39;s first use, and appending (<code>&#39;&gt;&gt;&#39;</code>) thereafter.</p>
+
+<p>Returns EXPR on success for convenience. You may neglect the return value and manipulate EXPR as the filehandle directly if you prefer.</p>
+
+</dd>
+<dt id="cacheout-MODE-EXPR">cacheout MODE, EXPR</dt>
+<dd>
+
+<p>The 2-argument form of cacheout will use the supplied mode for the initial and subsequent openings. Most valid modes for 3-argument <code>open</code> are supported namely; <code>&#39;&gt;&#39;</code>, <code>&#39;+&gt;&#39;</code>, <code>&#39;&lt;&#39;</code>, <code>&#39;&lt;+&#39;</code>, <code>&#39;&gt;&gt;&#39;</code>, <code> &#39;|-&#39; </code> and <code> &#39;-|&#39; </code></p>
+
+<p>To pass supplemental arguments to a program opened with <code> &#39;|-&#39; </code> or <code> &#39;-|&#39; </code> append them to the command string as you would system EXPR.</p>
+
+<p>Returns EXPR on success for convenience. You may neglect the return value and manipulate EXPR as the filehandle directly if you prefer.</p>
+
+</dd>
+</dl>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>While it is permissible to <code>close</code> a FileCache managed file, do not do so if you are calling <code>FileCache::cacheout</code> from a package other than which it was imported, or with another module which overrides <code>close</code>. If you must, use <code>FileCache::cacheout_close</code>.</p>
+
+<p>Although FileCache can be used with piped opens (&#39;-|&#39; or &#39;|-&#39;) doing so is strongly discouraged. If FileCache finds it necessary to close and then reopen a pipe, the command at the far end of the pipe will be reexecuted - the results of performing IO on FileCache&#39;d pipes is unlikely to be what you expect. The ability to use FileCache on pipes may be removed in a future release.</p>
+
+<p>FileCache does not store the current file offset if it finds it necessary to close a file. When the file is reopened, the offset will be as specified by the original <code>open</code> file mode. This could be construed to be a bug.</p>
+
+<p>The module functionality relies on symbolic references, so things will break under &#39;use strict&#39; unless &#39;no strict &quot;refs&quot;&#39; is also specified.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p><i>sys/param.h</i> lies with its <code>NOFILE</code> define on some systems, so you may have to set <i>maxopen</i> yourself.</p>
+
+
+</body>
+
+</html>
+
+

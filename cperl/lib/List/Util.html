@@ -1,0 +1,516 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#LIST-REDUCTION-FUNCTIONS">LIST-REDUCTION FUNCTIONS</a>
+    <ul>
+      <li><a href="#reduce">reduce</a></li>
+      <li><a href="#any">any</a></li>
+      <li><a href="#all">all</a></li>
+      <li><a href="#none">none</a></li>
+      <li><a href="#notall">notall</a></li>
+      <li><a href="#first">first</a></li>
+      <li><a href="#max">max</a></li>
+      <li><a href="#maxstr">maxstr</a></li>
+      <li><a href="#min">min</a></li>
+      <li><a href="#minstr">minstr</a></li>
+      <li><a href="#product">product</a></li>
+      <li><a href="#sum">sum</a></li>
+      <li><a href="#sum0">sum0</a></li>
+    </ul>
+  </li>
+  <li><a href="#KEY-VALUE-PAIR-LIST-FUNCTIONS">KEY/VALUE PAIR LIST FUNCTIONS</a>
+    <ul>
+      <li><a href="#pairs">pairs</a></li>
+      <li><a href="#unpairs">unpairs</a></li>
+      <li><a href="#pairkeys">pairkeys</a></li>
+      <li><a href="#pairvalues">pairvalues</a></li>
+      <li><a href="#pairgrep">pairgrep</a></li>
+      <li><a href="#pairfirst">pairfirst</a></li>
+      <li><a href="#pairmap">pairmap</a></li>
+    </ul>
+  </li>
+  <li><a href="#OTHER-FUNCTIONS">OTHER FUNCTIONS</a>
+    <ul>
+      <li><a href="#shuffle">shuffle</a></li>
+      <li><a href="#uniq">uniq</a></li>
+      <li><a href="#uniqnum">uniqnum</a></li>
+      <li><a href="#uniqstr">uniqstr</a></li>
+    </ul>
+  </li>
+  <li><a href="#KNOWN-BUGS">KNOWN BUGS</a>
+    <ul>
+      <li><a href="#RT-95409">RT #95409</a></li>
+      <li><a href="#uniqnum-on-oversized-bignums">uniqnum() on oversized bignums</a></li>
+    </ul>
+  </li>
+  <li><a href="#SUGGESTED-ADDITIONS">SUGGESTED ADDITIONS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>List::Util - A selection of general-utility list subroutines</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use List::Util qw(
+      reduce any all none notall first
+
+      max maxstr min minstr product sum sum0
+
+      pairs pairkeys pairvalues pairfirst pairgrep pairmap
+
+      shuffle uniqnum uniqstr
+    );</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>List::Util</code> contains a selection of subroutines that people have expressed would be nice to have in the perl core, but the usage would not really be high enough to warrant the use of a keyword, and the size so small such that being individual extensions would be wasteful.</p>
+
+<p>By default <code>List::Util</code> does not export any subroutines.</p>
+
+<h1 id="LIST-REDUCTION-FUNCTIONS">LIST-REDUCTION FUNCTIONS</h1>
+
+<p>The following set of functions all reduce a list down to a single value.</p>
+
+<h2 id="reduce">reduce</h2>
+
+<pre><code>    $result = reduce { BLOCK } @list</code></pre>
+
+<p>Reduces <code>@list</code> by calling <code>BLOCK</code> in a scalar context multiple times, setting <code>$a</code> and <code>$b</code> each time. The first call will be with <code>$a</code> and <code>$b</code> set to the first two elements of the list, subsequent calls will be done by setting <code>$a</code> to the result of the previous call and <code>$b</code> to the next element in the list.</p>
+
+<p>Returns the result of the last call to the <code>BLOCK</code>. If <code>@list</code> is empty then <code>undef</code> is returned. If <code>@list</code> only contains one element then that element is returned and <code>BLOCK</code> is not executed.</p>
+
+<p>The following examples all demonstrate how <code>reduce</code> could be used to implement the other list-reduction functions in this module. (They are not in fact implemented like this, but instead in a more efficient manner in individual C functions).</p>
+
+<pre><code>    $foo = reduce { defined($a)            ? $a :
+                    $code-&gt;(local $_ = $b) ? $b :
+                                             undef } undef, @list # first
+
+    $foo = reduce { $a &gt; $b ? $a : $b } 1..10       # max
+    $foo = reduce { $a gt $b ? $a : $b } &#39;A&#39;..&#39;Z&#39;   # maxstr
+    $foo = reduce { $a &lt; $b ? $a : $b } 1..10       # min
+    $foo = reduce { $a lt $b ? $a : $b } &#39;aa&#39;..&#39;zz&#39; # minstr
+    $foo = reduce { $a + $b } 1 .. 10               # sum
+    $foo = reduce { $a . $b } @bar                  # concat
+
+    $foo = reduce { $a || $code-&gt;(local $_ = $b) } 0, @bar   # any
+    $foo = reduce { $a &amp;&amp; $code-&gt;(local $_ = $b) } 1, @bar   # all
+    $foo = reduce { $a &amp;&amp; !$code-&gt;(local $_ = $b) } 1, @bar  # none
+    $foo = reduce { $a || !$code-&gt;(local $_ = $b) } 0, @bar  # notall
+       # Note that these implementations do not fully short-circuit</code></pre>
+
+<p>If your algorithm requires that <code>reduce</code> produce an identity value, then make sure that you always pass that identity value as the first argument to prevent <code>undef</code> being returned</p>
+
+<pre><code>  $foo = reduce { $a + $b } 0, @values;             # sum with 0 identity value</code></pre>
+
+<p>The above example code blocks also suggest how to use <code>reduce</code> to build a more efficient combined version of one of these basic functions and a <code>map</code> block. For example, to find the total length of the all the strings in a list, we could use</p>
+
+<pre><code>    $total = sum map { length } @strings;</code></pre>
+
+<p>However, this produces a list of temporary integer values as long as the original list of strings, only to reduce it down to a single value again. We can compute the same result more efficiently by using <code>reduce</code> with a code block that accumulates lengths by writing this instead as:</p>
+
+<pre><code>    $total = reduce { $a + length $b } 0, @strings</code></pre>
+
+<p>The remaining list-reduction functions are all specialisations of this generic idea.</p>
+
+<h2 id="any">any</h2>
+
+<pre><code>    my $bool = any { BLOCK } @list;</code></pre>
+
+<p><i>Since version 1.33.</i></p>
+
+<p>Similar to <code>grep</code> in that it evaluates <code>BLOCK</code> setting <code>$_</code> to each element of <code>@list</code> in turn. <code>any</code> returns true if any element makes the <code>BLOCK</code> return a true value. If <code>BLOCK</code> never returns true or <code>@list</code> was empty then it returns false.</p>
+
+<p>Many cases of using <code>grep</code> in a conditional can be written using <code>any</code> instead, as it can short-circuit after the first true result.</p>
+
+<pre><code>    if( any { length &gt; 10 } @strings ) {
+        # at least one string has more than 10 characters
+    }</code></pre>
+
+<h2 id="all">all</h2>
+
+<pre><code>    my $bool = all { BLOCK } @list;</code></pre>
+
+<p><i>Since version 1.33.</i></p>
+
+<p>Similar to <a href="#any">&quot;any&quot;</a>, except that it requires all elements of the <code>@list</code> to make the <code>BLOCK</code> return true. If any element returns false, then it returns false. If the <code>BLOCK</code> never returns false or the <code>@list</code> was empty then it returns true.</p>
+
+<h2 id="none">none</h2>
+
+<pre><code>    my $bool = none { BLOCK } @list;</code></pre>
+
+<p><i>Since version 1.33.</i></p>
+
+<p>Similar to <a href="#any">&quot;any&quot;</a> and <a href="#all">&quot;all&quot;</a>, but with the return sense inverted. <code>none</code> returns true only if no value in the <code>@list</code> causes the <code>BLOCK</code> to return true.</p>
+
+<h2 id="notall">notall</h2>
+
+<pre><code>    my $bool = notall { BLOCK } @list;</code></pre>
+
+<p><i>Since version 1.33.</i></p>
+
+<p>Similar to <a href="#any">&quot;any&quot;</a> and <a href="#all">&quot;all&quot;</a>, but with the return sense inverted. <code>none</code> returns true only if no value in the <code>@list</code> causes the <code>BLOCK</code> to return true, and <code>notall</code> returns true only if not all of the values do.</p>
+
+<h2 id="first">first</h2>
+
+<pre><code>    my $val = first { BLOCK } @list;</code></pre>
+
+<p>Similar to <code>grep</code> in that it evaluates <code>BLOCK</code> setting <code>$_</code> to each element of <code>@list</code> in turn. <code>first</code> returns the first element where the result from <code>BLOCK</code> is a true value. If <code>BLOCK</code> never returns true or <code>@list</code> was empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = first { defined($_) } @list    # first defined value in @list
+    $foo = first { $_ &gt; $value } @list    # first value in @list which
+                                          # is greater than $value</code></pre>
+
+<h2 id="max">max</h2>
+
+<pre><code>    my $num = max @list;</code></pre>
+
+<p>Returns the entry in the list with the highest numerical value. If the list is empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = max 1..10                # 10
+    $foo = max 3,9,12               # 12
+    $foo = max @bar, @baz           # whatever</code></pre>
+
+<h2 id="maxstr">maxstr</h2>
+
+<pre><code>    my $str = maxstr @list;</code></pre>
+
+<p>Similar to <a href="#max">&quot;max&quot;</a>, but treats all the entries in the list as strings and returns the highest string as defined by the <code>gt</code> operator. If the list is empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = maxstr &#39;A&#39;..&#39;Z&#39;          # &#39;Z&#39;
+    $foo = maxstr &quot;hello&quot;,&quot;world&quot;   # &quot;world&quot;
+    $foo = maxstr @bar, @baz        # whatever</code></pre>
+
+<h2 id="min">min</h2>
+
+<pre><code>    my $num = min @list;</code></pre>
+
+<p>Similar to <a href="#max">&quot;max&quot;</a> but returns the entry in the list with the lowest numerical value. If the list is empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = min 1..10                # 1
+    $foo = min 3,9,12               # 3
+    $foo = min @bar, @baz           # whatever</code></pre>
+
+<h2 id="minstr">minstr</h2>
+
+<pre><code>    my $str = minstr @list;</code></pre>
+
+<p>Similar to <a href="#min">&quot;min&quot;</a>, but treats all the entries in the list as strings and returns the lowest string as defined by the <code>lt</code> operator. If the list is empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = minstr &#39;A&#39;..&#39;Z&#39;          # &#39;A&#39;
+    $foo = minstr &quot;hello&quot;,&quot;world&quot;   # &quot;hello&quot;
+    $foo = minstr @bar, @baz        # whatever</code></pre>
+
+<h2 id="product">product</h2>
+
+<pre><code>    my $num = product @list;</code></pre>
+
+<p><i>Since version 1.35.</i></p>
+
+<p>Returns the numerical product of all the elements in <code>@list</code>. If <code>@list</code> is empty then <code>1</code> is returned.</p>
+
+<pre><code>    $foo = product 1..10            # 3628800
+    $foo = product 3,9,12           # 324</code></pre>
+
+<h2 id="sum">sum</h2>
+
+<pre><code>    my $num_or_undef = sum @list;</code></pre>
+
+<p>Returns the numerical sum of all the elements in <code>@list</code>. For backwards compatibility, if <code>@list</code> is empty then <code>undef</code> is returned.</p>
+
+<pre><code>    $foo = sum 1..10                # 55
+    $foo = sum 3,9,12               # 24
+    $foo = sum @bar, @baz           # whatever</code></pre>
+
+<h2 id="sum0">sum0</h2>
+
+<pre><code>    my $num = sum0 @list;</code></pre>
+
+<p><i>Since version 1.26.</i></p>
+
+<p>Similar to <a href="#sum">&quot;sum&quot;</a>, except this returns 0 when given an empty list, rather than <code>undef</code>.</p>
+
+<h1 id="KEY-VALUE-PAIR-LIST-FUNCTIONS">KEY/VALUE PAIR LIST FUNCTIONS</h1>
+
+<p>The following set of functions, all inspired by <a>List::Pairwise</a>, consume an even-sized list of pairs. The pairs may be key/value associations from a hash, or just a list of values. The functions will all preserve the original ordering of the pairs, and will not be confused by multiple pairs having the same &quot;key&quot; value - nor even do they require that the first of each pair be a plain string.</p>
+
+<p><b>NOTE</b>: At the time of writing, the following <code>pair*</code> functions that take a block do not modify the value of <code>$_</code> within the block, and instead operate using the <code>$a</code> and <code>$b</code> globals instead. This has turned out to be a poor design, as it precludes the ability to provide a <code>pairsort</code> function. Better would be to pass pair-like objects as 2-element array references in <code>$_</code>, in a style similar to the return value of the <code>pairs</code> function. At some future version this behaviour may be added.</p>
+
+<p>Until then, users are alerted <b>NOT</b> to rely on the value of <code>$_</code> remaining unmodified between the outside and the inside of the control block. In particular, the following example is <b>UNSAFE</b>:</p>
+
+<pre><code> my @kvlist = ...
+
+ foreach (qw( some keys here )) {
+    my @items = pairgrep { $a eq $_ } @kvlist;
+    ...
+ }</code></pre>
+
+<p>Instead, write this using a lexical variable:</p>
+
+<pre><code> foreach my $key (qw( some keys here )) {
+    my @items = pairgrep { $a eq $key } @kvlist;
+    ...
+ }</code></pre>
+
+<h2 id="pairs">pairs</h2>
+
+<pre><code>    my @pairs = pairs @kvlist;</code></pre>
+
+<p><i>Since version 1.29.</i></p>
+
+<p>A convenient shortcut to operating on even-sized lists of pairs, this function returns a list of <code>ARRAY</code> references, each containing two items from the given list. It is a more efficient version of</p>
+
+<pre><code>    @pairs = pairmap { [ $a, $b ] } @kvlist</code></pre>
+
+<p>It is most convenient to use in a <code>foreach</code> loop, for example:</p>
+
+<pre><code>    foreach my $pair ( pairs @kvlist ) {
+       my ( $key, $value ) = @$pair;
+       ...
+    }</code></pre>
+
+<p>Since version <code>1.39</code> these <code>ARRAY</code> references are blessed objects, recognising the two methods <code>key</code> and <code>value</code>. The following code is equivalent:</p>
+
+<pre><code>    foreach my $pair ( pairs @kvlist ) {
+       my $key   = $pair-&gt;key;
+       my $value = $pair-&gt;value;
+       ...
+    }</code></pre>
+
+<h2 id="unpairs">unpairs</h2>
+
+<pre><code>    my @kvlist = unpairs @pairs</code></pre>
+
+<p><i>Since version 1.42.</i></p>
+
+<p>The inverse function to <code>pairs</code>; this function takes a list of <code>ARRAY</code> references containing two elements each, and returns a flattened list of the two values from each of the pairs, in order. This is notionally equivalent to</p>
+
+<pre><code>    my @kvlist = map { @{$_}[0,1] } @pairs</code></pre>
+
+<p>except that it is implemented more efficiently internally. Specifically, for any input item it will extract exactly two values for the output list; using <code>undef</code> if the input array references are short.</p>
+
+<p>Between <code>pairs</code> and <code>unpairs</code>, a higher-order list function can be used to operate on the pairs as single scalars; such as the following near-equivalents of the other <code>pair*</code> higher-order functions:</p>
+
+<pre><code>    @kvlist = unpairs grep { FUNC } pairs @kvlist
+    # Like pairgrep, but takes $_ instead of $a and $b
+
+    @kvlist = unpairs map { FUNC } pairs @kvlist
+    # Like pairmap, but takes $_ instead of $a and $b</code></pre>
+
+<p>Note however that these versions will not behave as nicely in scalar context.</p>
+
+<p>Finally, this technique can be used to implement a sort on a keyvalue pair list; e.g.:</p>
+
+<pre><code>    @kvlist = unpairs sort { $a-&gt;key cmp $b-&gt;key } pairs @kvlist</code></pre>
+
+<h2 id="pairkeys">pairkeys</h2>
+
+<pre><code>    my @keys = pairkeys @kvlist;</code></pre>
+
+<p><i>Since version 1.29.</i></p>
+
+<p>A convenient shortcut to operating on even-sized lists of pairs, this function returns a list of the the first values of each of the pairs in the given list. It is a more efficient version of</p>
+
+<pre><code>    @keys = pairmap { $a } @kvlist</code></pre>
+
+<h2 id="pairvalues">pairvalues</h2>
+
+<pre><code>    my @values = pairvalues @kvlist;</code></pre>
+
+<p><i>Since version 1.29.</i></p>
+
+<p>A convenient shortcut to operating on even-sized lists of pairs, this function returns a list of the the second values of each of the pairs in the given list. It is a more efficient version of</p>
+
+<pre><code>    @values = pairmap { $b } @kvlist</code></pre>
+
+<h2 id="pairgrep">pairgrep</h2>
+
+<pre><code>    my @kvlist = pairgrep { BLOCK } @kvlist;
+
+    my $count = pairgrep { BLOCK } @kvlist;</code></pre>
+
+<p><i>Since version 1.29.</i></p>
+
+<p>Similar to perl&#39;s <code>grep</code> keyword, but interprets the given list as an even-sized list of pairs. It invokes the <code>BLOCK</code> multiple times, in scalar context, with <code>$a</code> and <code>$b</code> set to successive pairs of values from the <code>@kvlist</code>.</p>
+
+<p>Returns an even-sized list of those pairs for which the <code>BLOCK</code> returned true in list context, or the count of the <b>number of pairs</b> in scalar context. (Note, therefore, in scalar context that it returns a number half the size of the count of items it would have returned in list context).</p>
+
+<pre><code>    @subset = pairgrep { $a =~ m/^[[:upper:]]+$/ } @kvlist</code></pre>
+
+<p>As with <code>grep</code> aliasing <code>$_</code> to list elements, <code>pairgrep</code> aliases <code>$a</code> and <code>$b</code> to elements of the given list. Any modifications of it by the code block will be visible to the caller.</p>
+
+<h2 id="pairfirst">pairfirst</h2>
+
+<pre><code>    my ( $key, $val ) = pairfirst { BLOCK } @kvlist;
+
+    my $found = pairfirst { BLOCK } @kvlist;</code></pre>
+
+<p><i>Since version 1.30.</i></p>
+
+<p>Similar to the <a href="#first">&quot;first&quot;</a> function, but interprets the given list as an even-sized list of pairs. It invokes the <code>BLOCK</code> multiple times, in scalar context, with <code>$a</code> and <code>$b</code> set to successive pairs of values from the <code>@kvlist</code>.</p>
+
+<p>Returns the first pair of values from the list for which the <code>BLOCK</code> returned true in list context, or an empty list of no such pair was found. In scalar context it returns a simple boolean value, rather than either the key or the value found.</p>
+
+<pre><code>    ( $key, $value ) = pairfirst { $a =~ m/^[[:upper:]]+$/ } @kvlist</code></pre>
+
+<p>As with <code>grep</code> aliasing <code>$_</code> to list elements, <code>pairfirst</code> aliases <code>$a</code> and <code>$b</code> to elements of the given list. Any modifications of it by the code block will be visible to the caller.</p>
+
+<h2 id="pairmap">pairmap</h2>
+
+<pre><code>    my @list = pairmap { BLOCK } @kvlist;
+
+    my $count = pairmap { BLOCK } @kvlist;</code></pre>
+
+<p><i>Since version 1.29.</i></p>
+
+<p>Similar to perl&#39;s <code>map</code> keyword, but interprets the given list as an even-sized list of pairs. It invokes the <code>BLOCK</code> multiple times, in list context, with <code>$a</code> and <code>$b</code> set to successive pairs of values from the <code>@kvlist</code>.</p>
+
+<p>Returns the concatenation of all the values returned by the <code>BLOCK</code> in list context, or the count of the number of items that would have been returned in scalar context.</p>
+
+<pre><code>    @result = pairmap { &quot;The key $a has value $b&quot; } @kvlist</code></pre>
+
+<p>As with <code>map</code> aliasing <code>$_</code> to list elements, <code>pairmap</code> aliases <code>$a</code> and <code>$b</code> to elements of the given list. Any modifications of it by the code block will be visible to the caller.</p>
+
+<p>See <a href="#KNOWN-BUGS">&quot;KNOWN BUGS&quot;</a> for a known-bug with <code>pairmap</code>, and a workaround.</p>
+
+<h1 id="OTHER-FUNCTIONS">OTHER FUNCTIONS</h1>
+
+<h2 id="shuffle">shuffle</h2>
+
+<pre><code>    my @values = shuffle @values;</code></pre>
+
+<p>Returns the values of the input in a random order</p>
+
+<pre><code>    @cards = shuffle 0..51      # 0..51 in a random order</code></pre>
+
+<h2 id="uniq">uniq</h2>
+
+<pre><code>    my @subset = uniq @values</code></pre>
+
+<p><i>Since version 1.45.</i></p>
+
+<p>Filters a list of values to remove subsequent duplicates, as judged by a DWIM-ish string equality or <code>undef</code> test. Preserves the order of unique elements, and retains the first value of any duplicate set.</p>
+
+<pre><code>    my $count = uniq @values</code></pre>
+
+<p>In scalar context, returns the number of elements that would have been returned as a list.</p>
+
+<p>The <code>undef</code> value is treated by this function as distinct from the empty string, and no warning will be produced. It is left as-is in the returned list. Subsequent <code>undef</code> values are still considered identical to the first, and will be removed.</p>
+
+<h2 id="uniqnum">uniqnum</h2>
+
+<pre><code>    my @subset = uniqnum @values</code></pre>
+
+<p><i>Since version 1.44.</i></p>
+
+<p>Filters a list of values to remove subsequent duplicates, as judged by a numerical equality test. Preserves the order of unique elements, and retains the first value of any duplicate set.</p>
+
+<pre><code>    my $count = uniqnum @values</code></pre>
+
+<p>In scalar context, returns the number of elements that would have been returned as a list.</p>
+
+<p>Note that <code>undef</code> is treated much as other numerical operations treat it; it compares equal to zero but additionally produces a warning if such warnings are enabled (<code>use warnings &#39;uninitialized&#39;;</code>). In addition, an <code>undef</code> in the returned list is coerced into a numerical zero, so that the entire list of values returned by <code>uniqnum</code> are well-behaved as numbers.</p>
+
+<h2 id="uniqstr">uniqstr</h2>
+
+<pre><code>    my @subset = uniqstr @values</code></pre>
+
+<p><i>Since version 1.45.</i></p>
+
+<p>Filters a list of values to remove subsequent duplicates, as judged by a string equality test. Preserves the order of unique elements, and retains the first value of any duplicate set.</p>
+
+<pre><code>    my $count = uniqstr @values</code></pre>
+
+<p>In scalar context, returns the number of elements that would have been returned as a list.</p>
+
+<p>Note that <code>undef</code> is treated much as other string operations treat it; it compares equal to the empty string but additionally produces a warning if such warnings are enabled (<code>use warnings &#39;uninitialized&#39;;</code>). In addition, an <code>undef</code> in the returned list is coerced into an empty string, so that the entire list of values returned by <code>uniqstr</code> are well-behaved as strings.</p>
+
+<h1 id="KNOWN-BUGS">KNOWN BUGS</h1>
+
+<h2 id="RT-95409">RT #95409</h2>
+
+<p><a href="https://rt.cpan.org/Ticket/Display.html?id=95409">https://rt.cpan.org/Ticket/Display.html?id=95409</a></p>
+
+<p>If the block of code given to <a href="#pairmap">&quot;pairmap&quot;</a> contains lexical variables that are captured by a returned closure, and the closure is executed after the block has been re-used for the next iteration, these lexicals will not see the correct values. For example:</p>
+
+<pre><code> my @subs = pairmap {
+    my $var = &quot;$a is $b&quot;;
+    sub { print &quot;$var\n&quot; };
+ } one =&gt; 1, two =&gt; 2, three =&gt; 3;
+
+ $_-&gt;() for @subs;</code></pre>
+
+<p>Will incorrectly print</p>
+
+<pre><code> three is 3
+ three is 3
+ three is 3</code></pre>
+
+<p>This is due to the performance optimisation of using <code>MULTICALL</code> for the code block, which means that fresh SVs do not get allocated for each call to the block. Instead, the same SV is re-assigned for each iteration, and all the closures will share the value seen on the final iteration.</p>
+
+<p>To work around this bug, surround the code with a second set of braces. This creates an inner block that defeats the <code>MULTICALL</code> logic, and does get fresh SVs allocated each time:</p>
+
+<pre><code> my @subs = pairmap {
+    {
+       my $var = &quot;$a is $b&quot;;
+       sub { print &quot;$var\n&quot;; }
+    }
+ } one =&gt; 1, two =&gt; 2, three =&gt; 3;</code></pre>
+
+<p>This bug only affects closures that are generated by the block but used afterwards. Lexical variables that are only used during the lifetime of the block&#39;s execution will take their individual values for each invocation, as normal.</p>
+
+<h2 id="uniqnum-on-oversized-bignums">uniqnum() on oversized bignums</h2>
+
+<p>Due to the way that <code>uniqnum()</code> compares numbers, it cannot distinguish differences between bignums (especially bigints) that are too large to fit in the native platform types. For example,</p>
+
+<pre><code> my $x = Math::BigInt-&gt;new( &quot;1&quot; x 100 );
+ my $y = $x + 1;
+
+ say for uniqnum( $x, $y );</code></pre>
+
+<p>Will print just the value of <code>$x</code>, believing that <code>$y</code> is a numerically- equivalent value. This bug does not affect <code>uniqstr()</code>, which will correctly observe that the two values stringify to different strings.</p>
+
+<h1 id="SUGGESTED-ADDITIONS">SUGGESTED ADDITIONS</h1>
+
+<p>The following are additions that have been requested, but I have been reluctant to add due to them being very simple to implement in perl</p>
+
+<pre><code>  # How many elements are true
+
+  sub true { scalar grep { $_ } @_ }
+
+  # How many elements are false
+
+  sub false { scalar grep { !$_ } @_ }</code></pre>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Scalar/Util.html">Scalar::Util</a>, <a>List::MoreUtils</a></p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright (c) 1997-2007 Graham Barr &lt;gbarr@pobox.com&gt;. All rights reserved. This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>Recent additions and current maintenance by Paul Evans, &lt;leonerd@leonerd.org.uk&gt;.</p>
+
+
+</body>
+
+</html>
+
+

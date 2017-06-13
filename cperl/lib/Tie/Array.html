@@ -1,0 +1,192 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Tie::Array - base class for tied arrays</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    package Tie::NewArray;
+    use Tie::Array;
+    @ISA = (&#39;Tie::Array&#39;);
+
+    # mandatory methods
+    sub TIEARRAY { ... }
+    sub FETCH { ... }
+    sub FETCHSIZE { ... }
+
+    sub STORE { ... }       # mandatory if elements writeable
+    sub STORESIZE { ... }   # mandatory if elements can be added/deleted
+    sub EXISTS { ... }      # mandatory if exists() expected to work
+    sub DELETE { ... }      # mandatory if delete() expected to work
+
+    # optional methods - for efficiency
+    sub CLEAR { ... }
+    sub PUSH { ... }
+    sub POP { ... }
+    sub SHIFT { ... }
+    sub UNSHIFT { ... }
+    sub SPLICE { ... }
+    sub EXTEND { ... }
+    sub DESTROY { ... }
+
+    package Tie::NewStdArray;
+    use Tie::Array;
+
+    @ISA = (&#39;Tie::StdArray&#39;);
+
+    # all methods provided by default
+
+    package main;
+
+    $object = tie @somearray,&#39;Tie::NewArray&#39;;
+    $object = tie @somearray,&#39;Tie::StdArray&#39;;
+    $object = tie @somearray,&#39;Tie::NewStdArray&#39;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides methods for array-tying classes. See <a href="/cperl/perltie.html">perltie</a> for a list of the functions required in order to tie an array to a package. The basic <b>Tie::Array</b> package provides stub <code>DESTROY</code>, and <code>EXTEND</code> methods that do nothing, stub <code>DELETE</code> and <code>EXISTS</code> methods that croak() if the delete() or exists() builtins are ever called on the tied array, and implementations of <code>PUSH</code>, <code>POP</code>, <code>SHIFT</code>, <code>UNSHIFT</code>, <code>SPLICE</code> and <code>CLEAR</code> in terms of basic <code>FETCH</code>, <code>STORE</code>, <code>FETCHSIZE</code>, <code>STORESIZE</code>.</p>
+
+<p>The <b>Tie::StdArray</b> package provides efficient methods required for tied arrays which are implemented as blessed references to an &quot;inner&quot; perl array. It inherits from <b>Tie::Array</b>, and should cause tied arrays to behave exactly like standard arrays, allowing for selective overloading of methods.</p>
+
+<p>For developers wishing to write their own tied arrays, the required methods are briefly defined below. See the <a href="/cperl/perltie.html">perltie</a> section for more detailed descriptive, as well as example code:</p>
+
+<dl>
+
+<dt id="TIEARRAY-classname-LIST">TIEARRAY classname, LIST</dt>
+<dd>
+
+<p>The class method is invoked by the command <code>tie @array, classname</code>. Associates an array instance with the specified class. <code>LIST</code> would represent additional arguments (along the lines of <a href="/cperl/lib/AnyDBM_File.html">AnyDBM_File</a> and compatriots) needed to complete the association. The method should return an object of a class which provides the methods below.</p>
+
+</dd>
+<dt id="STORE-this-index-value">STORE this, index, value</dt>
+<dd>
+
+<p>Store datum <i>value</i> into <i>index</i> for the tied array associated with object <i>this</i>. If this makes the array larger then class&#39;s mapping of <code>undef</code> should be returned for new positions.</p>
+
+</dd>
+<dt id="FETCH-this-index">FETCH this, index</dt>
+<dd>
+
+<p>Retrieve the datum in <i>index</i> for the tied array associated with object <i>this</i>.</p>
+
+</dd>
+<dt id="FETCHSIZE-this">FETCHSIZE this</dt>
+<dd>
+
+<p>Returns the total number of items in the tied array associated with object <i>this</i>. (Equivalent to <code>scalar(@array)</code>).</p>
+
+</dd>
+<dt id="STORESIZE-this-count">STORESIZE this, count</dt>
+<dd>
+
+<p>Sets the total number of items in the tied array associated with object <i>this</i> to be <i>count</i>. If this makes the array larger then class&#39;s mapping of <code>undef</code> should be returned for new positions. If the array becomes smaller then entries beyond count should be deleted.</p>
+
+</dd>
+<dt id="EXTEND-this-count">EXTEND this, count</dt>
+<dd>
+
+<p>Informative call that array is likely to grow to have <i>count</i> entries. Can be used to optimize allocation. This method need do nothing.</p>
+
+</dd>
+<dt id="EXISTS-this-key">EXISTS this, key</dt>
+<dd>
+
+<p>Verify that the element at index <i>key</i> exists in the tied array <i>this</i>.</p>
+
+<p>The <b>Tie::Array</b> implementation is a stub that simply croaks.</p>
+
+</dd>
+<dt id="DELETE-this-key">DELETE this, key</dt>
+<dd>
+
+<p>Delete the element at index <i>key</i> from the tied array <i>this</i>.</p>
+
+<p>The <b>Tie::Array</b> implementation is a stub that simply croaks.</p>
+
+</dd>
+<dt id="CLEAR-this">CLEAR this</dt>
+<dd>
+
+<p>Clear (remove, delete, ...) all values from the tied array associated with object <i>this</i>.</p>
+
+</dd>
+<dt id="DESTROY-this">DESTROY this</dt>
+<dd>
+
+<p>Normal object destructor method.</p>
+
+</dd>
+<dt id="PUSH-this-LIST">PUSH this, LIST</dt>
+<dd>
+
+<p>Append elements of LIST to the array.</p>
+
+</dd>
+<dt id="POP-this">POP this</dt>
+<dd>
+
+<p>Remove last element of the array and return it.</p>
+
+</dd>
+<dt id="SHIFT-this">SHIFT this</dt>
+<dd>
+
+<p>Remove the first element of the array (shifting other elements down) and return it.</p>
+
+</dd>
+<dt id="UNSHIFT-this-LIST">UNSHIFT this, LIST</dt>
+<dd>
+
+<p>Insert LIST elements at the beginning of the array, moving existing elements up to make room.</p>
+
+</dd>
+<dt id="SPLICE-this-offset-length-LIST">SPLICE this, offset, length, LIST</dt>
+<dd>
+
+<p>Perform the equivalent of <code>splice</code> on the array.</p>
+
+<p><i>offset</i> is optional and defaults to zero, negative values count back from the end of the array.</p>
+
+<p><i>length</i> is optional and defaults to rest of the array.</p>
+
+<p><i>LIST</i> may be empty.</p>
+
+<p>Returns a list of the original <i>length</i> elements at <i>offset</i>.</p>
+
+</dd>
+</dl>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>There is no support at present for tied @ISA. There is a potential conflict between magic entries needed to notice setting of @ISA, and those needed to implement &#39;tie&#39;.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Nick Ing-Simmons &lt;nik@tiuk.ti.com&gt;</p>
+
+
+</body>
+
+</html>
+
+

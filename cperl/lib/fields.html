@@ -1,0 +1,144 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>fields - compile-time class fields</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    {
+        package Foo;
+        use fields qw(foo bar _Foo_private);
+        sub new {
+            my Foo $self = shift;
+            unless (ref $self) {
+                $self = fields::new($self);
+                $self-&gt;{_Foo_private} = &quot;this is Foo&#39;s secret&quot;;
+            }
+            $self-&gt;{foo} = 10;
+            $self-&gt;{bar} = 20;
+            return $self;
+        }
+    }
+
+    my $var = Foo-&gt;new;
+    $var-&gt;{foo} = 42;
+
+    # this will generate a run-time error
+    $var-&gt;{zap} = 42;
+
+    # this will generate a compile-time error
+    my Foo $foo = Foo-&gt;new;
+    $foo-&gt;{zap} = 24;
+
+    # subclassing
+    {
+        package Bar;
+        use base &#39;Foo&#39;;
+        use fields qw(baz _Bar_private);        # not shared with Foo
+        sub new {
+            my $class = shift;
+            my $self = fields::new($class);
+            $self-&gt;SUPER::new();                # init base fields
+            $self-&gt;{baz} = 10;                  # init own fields
+            $self-&gt;{_Bar_private} = &quot;this is Bar&#39;s secret&quot;;
+            return $self;
+        }
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <code>fields</code> pragma enables compile-time and run-time verified class fields.</p>
+
+<p>NOTE: The current implementation keeps the declared fields in the %FIELDS hash of the calling package, but this may change in future versions. Do <b>not</b> update the %FIELDS hash directly, because it must be created at compile-time for it to be fully useful, as is done by this pragma.</p>
+
+<p>If a typed lexical variable (<code>my Class $var</code>) holding a reference is used to access a hash element and a package with the same name as the type has declared class fields using this pragma, then the hash key is verified at compile time. If the variables are not typed, access is only checked at run time.</p>
+
+<p>The related <code>base</code> pragma will combine fields from base classes and any fields declared using the <code>fields</code> pragma. This enables field inheritance to work properly. Inherited fields can be overridden but will generate a warning if warnings are enabled.</p>
+
+<p><b>Only valid for Perl 5.8.x and earlier and future cperl versions:</b> Field names that start with an underscore character are made private to the class and are not visible to subclasses.</p>
+
+<p>Also, <b>until in Perl 5.8.x and future cperl versions</b>, this pragma uses pseudo-hashes, the effect being that you can have objects with named fields which are as compact and as fast arrays to access, as long as the objects are accessed through properly typed variables.</p>
+
+<p>The following functions are supported:</p>
+
+<dl>
+
+<dt id="new">new</dt>
+<dd>
+
+<p>fields::new() creates and blesses a hash comprised of the fields declared using the <code>fields</code> pragma into the specified class. It is the recommended way to construct a fields-based object.</p>
+
+<p>This makes it possible to write a constructor like this:</p>
+
+<pre><code>    package Critter::Sounds;
+    use fields qw(cat dog bird);
+
+    sub new {
+        my $self = shift;
+        $self = fields::new($self) unless ref $self;
+        $self-&gt;{cat} = &#39;meow&#39;;                      # scalar element
+        @$self{&#39;dog&#39;,&#39;bird&#39;} = (&#39;bark&#39;,&#39;tweet&#39;);    # slice
+        return $self;
+    }</code></pre>
+
+</dd>
+<dt id="phash">phash</dt>
+<dd>
+
+<p><b>This function only works in Perl 5.8.x and earlier.</b> Pseudo-hashes were removed from Perl as of 5.10. Consider using restricted hashes or fields::new() instead (which itself uses restricted hashes under 5.10+). See <a href="/cperl/lib/Hash/Util.html">Hash::Util</a>. Using fields::phash() under 5.10 or higher will cause an error.</p>
+
+<p>fields::phash() can be used to create and initialize a plain (unblessed) pseudo-hash. This function should always be used instead of creating pseudo-hashes directly.</p>
+
+<p>If the first argument is a reference to an array, the pseudo-hash will be created with keys from that array. If a second argument is supplied, it must also be a reference to an array whose elements will be used as the values. If the second array contains less elements than the first, the trailing elements of the pseudo-hash will not be initialized. This makes it particularly useful for creating a pseudo-hash from subroutine arguments:</p>
+
+<pre><code>    sub dogtag {
+       my $tag = fields::phash([qw(name rank ser_num)], [@_]);
+    }</code></pre>
+
+<p>fields::phash() also accepts a list of key-value pairs that will be used to construct the pseudo hash. Examples:</p>
+
+<pre><code>    my $tag = fields::phash(name =&gt; &quot;Joe&quot;,
+                            rank =&gt; &quot;captain&quot;,
+                            ser_num =&gt; 42);
+
+    my $pseudohash = fields::phash(%args);</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>Due to the limitations of the implementation, you must use base <i>before</i> you declare any of your own fields.</p>
+
+<p>perl5 allows @ISA do be changed at run-time, which defeats any compile-time type checks and optimizations. cperl packages which use fields or base guarantee a READONLY @ISA, which enables compile-time type checking of inherited classes.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/base.html">base</a>, <a href="/cperl/lib/Hash/Util.html">Hash::Util</a></p>
+
+
+</body>
+
+</html>
+
+

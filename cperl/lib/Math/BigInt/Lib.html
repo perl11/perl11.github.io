@@ -1,0 +1,678 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#General-Notes">General Notes</a>
+        <ul>
+          <li><a href="#API-version">API version</a></li>
+          <li><a href="#Constructors">Constructors</a></li>
+          <li><a href="#Mathematical-functions">Mathematical functions</a></li>
+          <li><a href="#Bitwise-operators">Bitwise operators</a></li>
+          <li><a href="#Boolean-operators">Boolean operators</a></li>
+          <li><a href="#String-conversion">String conversion</a></li>
+          <li><a href="#Numeric-conversion">Numeric conversion</a></li>
+          <li><a href="#Miscellaneous">Miscellaneous</a></li>
+        </ul>
+      </li>
+      <li><a href="#API-version-2">API version 2</a>
+        <ul>
+          <li><a href="#Constructors1">Constructors</a></li>
+          <li><a href="#Mathematical-functions1">Mathematical functions</a></li>
+          <li><a href="#Miscellaneous1">Miscellaneous</a></li>
+        </ul>
+      </li>
+      <li><a href="#API-optional-methods">API optional methods</a>
+        <ul>
+          <li><a href="#Signed-bitwise-operators">Signed bitwise operators.</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#WRAP-YOUR-OWN">WRAP YOUR OWN</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Math::BigInt::Lib - virtual parent class for Math::BigInt libraries</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    # In the backend library for Math::BigInt et al.
+
+    package Math::BigInt::MyBackend;
+
+    use Math::BigInt::lib;
+    our @ISA = qw&lt; Math::BigInt::lib &gt;;
+
+    sub _new { ... }
+    sub _str { ... }
+    sub _add { ... }
+    str _sub { ... }
+    ...
+
+    # In your main program.
+
+    use Math::BigInt lib =&gt; &#39;MyBackend&#39;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides support for big integer calculations. It is not intended to be used directly, but rather as a parent class for backend libraries used by Math::BigInt, Math::BigFloat, Math::BigRat, and related modules.</p>
+
+<p>Other backend libraries include Math::BigInt::Calc, Math::BigInt::FastCalc, Math::BigInt::GMP, and Math::BigInt::Pari.</p>
+
+<p>In order to allow for multiple big integer libraries, Math::BigInt was rewritten to use a plug-in library for core math routines. Any module which conforms to the API can be used by Math::BigInt by using this in your program:</p>
+
+<pre><code>        use Math::BigInt lib =&gt; &#39;libname&#39;;</code></pre>
+
+<p>&#39;libname&#39; is either the long name, like &#39;Math::BigInt::Pari&#39;, or only the short version, like &#39;Pari&#39;.</p>
+
+<h2 id="General-Notes">General Notes</h2>
+
+<p>A library only needs to deal with unsigned big integers. Testing of input parameter validity is done by the caller, so there is no need to worry about underflow (e.g., in <code>_sub()</code> and <code>_dec()</code>) or about division by zero (e.g., in <code>_div()</code> and <code>_mod()</code>)) or similar cases.</p>
+
+<p>Some libraries use methods that don&#39;t modify their argument, and some libraries don&#39;t even use objects, but rather unblessed references. Because of this, liberary methods are always called as class methods, not instance methods:</p>
+
+<pre><code>    $x = Class -&gt; method($x, $y);     # like this
+    $x = $x -&gt; method($y);            # not like this ...
+    $x -&gt; method($y);                 # ... or like this</code></pre>
+
+<p>And with boolean methods</p>
+
+<pre><code>    $bool = Class -&gt; method($x, $y);  # like this
+    $bool = $x -&gt; method($y);         # not like this</code></pre>
+
+<p>Return values are always objects, strings, Perl scalars, or true/false for comparison routines.</p>
+
+<h3 id="API-version">API version</h3>
+
+<dl>
+
+<dt id="CLASS-api_version">CLASS-&gt;api_version()</dt>
+<dd>
+
+<p>Return API version as a Perl scalar, 1 for Math::BigInt v1.70, 2 for Math::BigInt v1.83.</p>
+
+<p>This method is no longer used. Methods that are not implemented by a subclass will be inherited from this class.</p>
+
+</dd>
+</dl>
+
+<h3 id="Constructors">Constructors</h3>
+
+<p>The following methods are mandatory: _new(), _str(), _add(), and _sub(). However, computations will be very slow without _mul() and _div().</p>
+
+<dl>
+
+<dt id="CLASS-_new-STR">CLASS-&gt;_new(STR)</dt>
+<dd>
+
+<p>Convert a string representing an unsigned decimal number to an object representing the same number. The input is normalized, i.e., it matches <code>^(0|[1-9]\d*)$</code>.</p>
+
+</dd>
+<dt id="CLASS-_zero">CLASS-&gt;_zero()</dt>
+<dd>
+
+<p>Return an object representing the number zero.</p>
+
+</dd>
+<dt id="CLASS-_one">CLASS-&gt;_one()</dt>
+<dd>
+
+<p>Return an object representing the number one.</p>
+
+</dd>
+<dt id="CLASS-_two">CLASS-&gt;_two()</dt>
+<dd>
+
+<p>Return an object representing the number two.</p>
+
+</dd>
+<dt id="CLASS-_ten">CLASS-&gt;_ten()</dt>
+<dd>
+
+<p>Return an object representing the number ten.</p>
+
+</dd>
+<dt id="CLASS-_from_bin-STR">CLASS-&gt;_from_bin(STR)</dt>
+<dd>
+
+<p>Return an object given a string representing a binary number. The input has a &#39;0b&#39; prefix and matches the regular expression <code>^0[bB](0|1[01]*)$</code>.</p>
+
+</dd>
+<dt id="CLASS-_from_oct-STR">CLASS-&gt;_from_oct(STR)</dt>
+<dd>
+
+<p>Return an object given a string representing an octal number. The input has a &#39;0&#39; prefix and matches the regular expression <code>^0[1-7]*$</code>.</p>
+
+</dd>
+<dt id="CLASS-_from_hex-STR">CLASS-&gt;_from_hex(STR)</dt>
+<dd>
+
+<p>Return an object given a string representing a hexadecimal number. The input has a &#39;0x&#39; prefix and matches the regular expression <code>^0x(0|[1-9a-fA-F][\da-fA-F]*)$</code>.</p>
+
+</dd>
+<dt id="CLASS-_from_bytes-STR">CLASS-&gt;_from_bytes(STR)</dt>
+<dd>
+
+<p>Returns an object given a byte string representing the number. The byte string is in big endian byte order, so the two-byte input string &quot;\x01\x00&quot; should give an output value representing the number 256.</p>
+
+</dd>
+</dl>
+
+<h3 id="Mathematical-functions">Mathematical functions</h3>
+
+<dl>
+
+<dt id="CLASS-_add-OBJ1-OBJ2">CLASS-&gt;_add(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns the result of adding OBJ2 to OBJ1.</p>
+
+</dd>
+<dt id="CLASS-_mul-OBJ1-OBJ2">CLASS-&gt;_mul(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns the result of multiplying OBJ2 and OBJ1.</p>
+
+</dd>
+<dt id="CLASS-_div-OBJ1-OBJ2">CLASS-&gt;_div(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>In scalar context, returns the quotient after dividing OBJ1 by OBJ2 and truncating the result to an integer. In list context, return the quotient and the remainder.</p>
+
+</dd>
+<dt id="CLASS-_sub-OBJ1-OBJ2-FLAG">CLASS-&gt;_sub(OBJ1, OBJ2, FLAG)</dt>
+<dd>
+
+</dd>
+<dt id="CLASS-_sub-OBJ1-OBJ2">CLASS-&gt;_sub(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns the result of subtracting OBJ2 by OBJ1. If <code>flag</code> is false or omitted, OBJ1 might be modified. If <code>flag</code> is true, OBJ2 might be modified.</p>
+
+</dd>
+<dt id="CLASS-_dec-OBJ">CLASS-&gt;_dec(OBJ)</dt>
+<dd>
+
+<p>Returns the result after decrementing OBJ by one.</p>
+
+</dd>
+<dt id="CLASS-_inc-OBJ">CLASS-&gt;_inc(OBJ)</dt>
+<dd>
+
+<p>Returns the result after incrementing OBJ by one.</p>
+
+</dd>
+<dt id="CLASS-_mod-OBJ1-OBJ2">CLASS-&gt;_mod(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns OBJ1 modulo OBJ2, i.e., the remainder after dividing OBJ1 by OBJ2.</p>
+
+</dd>
+<dt id="CLASS-_sqrt-OBJ">CLASS-&gt;_sqrt(OBJ)</dt>
+<dd>
+
+<p>Returns the square root of OBJ, truncated to an integer.</p>
+
+</dd>
+<dt id="CLASS-_root-OBJ-N">CLASS-&gt;_root(OBJ, N)</dt>
+<dd>
+
+<p>Returns the Nth root of OBJ, truncated to an integer.</p>
+
+</dd>
+<dt id="CLASS-_fac-OBJ">CLASS-&gt;_fac(OBJ)</dt>
+<dd>
+
+<p>Returns the factorial of OBJ, i.e., the product of all positive integers up to and including OBJ.</p>
+
+</dd>
+<dt id="CLASS-_dfac-OBJ">CLASS-&gt;_dfac(OBJ)</dt>
+<dd>
+
+<p>Returns the double factorial of OBJ. If OBJ is an even integer, returns the product of all positive, even integers up to and including OBJ, i.e., 2*4*6*...*OBJ. If OBJ is an odd integer, returns the product of all positive, odd integers, i.e., 1*3*5*...*OBJ.</p>
+
+</dd>
+<dt id="CLASS-_pow-OBJ1-OBJ2">CLASS-&gt;_pow(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns OBJ1 raised to the power of OBJ2. By convention, 0**0 = 1.</p>
+
+</dd>
+<dt id="CLASS-_modinv-OBJ1-OBJ2">CLASS-&gt;_modinv(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns the modular multiplicative inverse, i.e., return OBJ3 so that</p>
+
+<pre><code>    (OBJ3 * OBJ1) % OBJ2 = 1 % OBJ2</code></pre>
+
+<p>The result is returned as two arguments. If the modular multiplicative inverse does not exist, both arguments are undefined. Otherwise, the arguments are a number (object) and its sign (&quot;+&quot; or &quot;-&quot;).</p>
+
+<p>The output value, with its sign, must either be a positive value in the range 1,2,...,OBJ2-1 or the same value subtracted OBJ2. For instance, if the input arguments are objects representing the numbers 7 and 5, the method must either return an object representing the number 3 and a &quot;+&quot; sign, since (3*7) % 5 = 1 % 5, or an object representing the number 2 and a &quot;-&quot; sign, since (-2*7) % 5 = 1 % 5.</p>
+
+</dd>
+<dt id="CLASS-_modpow-OBJ1-OBJ2-OBJ3">CLASS-&gt;_modpow(OBJ1, OBJ2, OBJ3)</dt>
+<dd>
+
+<p>Returns the modular exponentiation, i.e., (OBJ1 ** OBJ2) % OBJ3.</p>
+
+</dd>
+<dt id="CLASS-_rsft-OBJ-N-B">CLASS-&gt;_rsft(OBJ, N, B)</dt>
+<dd>
+
+<p>Returns the result after shifting OBJ N digits to thee right in base B. This is equivalent to performing integer division by B**N and discarding the remainder, except that it might be much faster.</p>
+
+<p>For instance, if the object $obj represents the hexadecimal number 0xabcde, then <code>_rsft($obj, 2, 16)</code> returns an object representing the number 0xabc. The &quot;remainer&quot;, 0xde, is discarded and not returned.</p>
+
+</dd>
+<dt id="CLASS-_lsft-OBJ-N-B">CLASS-&gt;_lsft(OBJ, N, B)</dt>
+<dd>
+
+<p>Returns the result after shifting OBJ N digits to the left in base B. This is equivalent to multiplying by B**N, except that it might be much faster.</p>
+
+</dd>
+<dt id="CLASS-_log_int-OBJ-B">CLASS-&gt;_log_int(OBJ, B)</dt>
+<dd>
+
+<p>Returns the logarithm of OBJ to base BASE truncted to an integer. This method has two output arguments, the OBJECT and a STATUS. The STATUS is Perl scalar; it is 1 if OBJ is the exact result, 0 if the result was truncted to give OBJ, and undef if it is unknown whether OBJ is the exact result.</p>
+
+</dd>
+<dt id="CLASS-_gcd-OBJ1-OBJ2">CLASS-&gt;_gcd(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns the greatest common divisor of OBJ1 and OBJ2.</p>
+
+</dd>
+<dt id="CLASS-_lcm-OBJ1-OBJ2">CLASS-&gt;_lcm(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Return the least common multiple of OBJ1 and OBJ2.</p>
+
+</dd>
+<dt id="CLASS-_fib-OBJ">CLASS-&gt;_fib(OBJ)</dt>
+<dd>
+
+<p>In scalar context, returns the nth Fibonacci number: _fib(0) returns 0, _fib(1) returns 1, _fib(2) returns 1, _fib(3) returns 2 etc. In list context, returns the Fibonacci numbers from F(0) to F(n): 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, ...</p>
+
+</dd>
+<dt id="CLASS-_lucas-OBJ">CLASS-&gt;_lucas(OBJ)</dt>
+<dd>
+
+<p>In scalar context, returns the nth Lucas number: _lucas(0) returns 2, _lucas(1) returns 1, _lucas(2) returns 3, etc. In list context, returns the Lucas numbers from L(0) to L(n): 2, 1, 3, 4, 7, 11, 18, 29,47, 76, ...</p>
+
+</dd>
+</dl>
+
+<h3 id="Bitwise-operators">Bitwise operators</h3>
+
+<dl>
+
+<dt id="CLASS-_and-OBJ1-OBJ2">CLASS-&gt;_and(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Returns bitwise and.</p>
+
+</dd>
+<dt id="CLASS-_or-OBJ1-OBJ2">CLASS-&gt;_or(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Return bitwise or.</p>
+
+</dd>
+<dt id="CLASS-_xor-OBJ1-OBJ2">CLASS-&gt;_xor(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Return bitwise exclusive or.</p>
+
+</dd>
+</dl>
+
+<h3 id="Boolean-operators">Boolean operators</h3>
+
+<dl>
+
+<dt id="CLASS-_is_zero-OBJ">CLASS-&gt;_is_zero(OBJ)</dt>
+<dd>
+
+<p>Returns a true value if OBJ is zero, and false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_is_one-OBJ">CLASS-&gt;_is_one(OBJ)</dt>
+<dd>
+
+<p>Returns a true value if OBJ is one, and false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_is_two-OBJ">CLASS-&gt;_is_two(OBJ)</dt>
+<dd>
+
+<p>Returns a true value if OBJ is two, and false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_is_ten-OBJ">CLASS-&gt;_is_ten(OBJ)</dt>
+<dd>
+
+<p>Returns a true value if OBJ is ten, and false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_is_even-OBJ">CLASS-&gt;_is_even(OBJ)</dt>
+<dd>
+
+<p>Return a true value if OBJ is an even integer, and a false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_is_odd-OBJ">CLASS-&gt;_is_odd(OBJ)</dt>
+<dd>
+
+<p>Return a true value if OBJ is an even integer, and a false value otherwise.</p>
+
+</dd>
+<dt id="CLASS-_acmp-OBJ1-OBJ2">CLASS-&gt;_acmp(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Compare OBJ1 and OBJ2 and return -1, 0, or 1, if OBJ1 is numerically less than, equal to, or larger than OBJ2, respectively.</p>
+
+</dd>
+</dl>
+
+<h3 id="String-conversion">String conversion</h3>
+
+<dl>
+
+<dt id="CLASS-_str-OBJ">CLASS-&gt;_str(OBJ)</dt>
+<dd>
+
+<p>Returns a string representing OBJ in decimal notation. The returned string should have no leading zeros, i.e., it should match <code>^(0|[1-9]\d*)$</code>.</p>
+
+</dd>
+<dt id="CLASS-_to_bin-OBJ">CLASS-&gt;_to_bin(OBJ)</dt>
+<dd>
+
+<p>Returns the binary string representation of OBJ.</p>
+
+</dd>
+<dt id="CLASS-_to_oct-OBJ">CLASS-&gt;_to_oct(OBJ)</dt>
+<dd>
+
+<p>Returns the octal string representation of the number.</p>
+
+</dd>
+<dt id="CLASS-_to_hex-OBJ">CLASS-&gt;_to_hex(OBJ)</dt>
+<dd>
+
+<p>Returns the hexadecimal string representation of the number.</p>
+
+</dd>
+<dt id="CLASS-_to_bytes-OBJ">CLASS-&gt;_to_bytes(OBJ)</dt>
+<dd>
+
+<p>Returns a byte string representation of OBJ. The byte string is in big endian byte order, so if OBJ represents the number 256, the output should be the two-byte string &quot;\x01\x00&quot;.</p>
+
+</dd>
+<dt id="CLASS-_as_bin-OBJ">CLASS-&gt;_as_bin(OBJ)</dt>
+<dd>
+
+<p>Like <code>_to_bin()</code> but with a &#39;0b&#39; prefix.</p>
+
+</dd>
+<dt id="CLASS-_as_oct-OBJ">CLASS-&gt;_as_oct(OBJ)</dt>
+<dd>
+
+<p>Like <code>_to_oct()</code> but with a &#39;0&#39; prefix.</p>
+
+</dd>
+<dt id="CLASS-_as_hex-OBJ">CLASS-&gt;_as_hex(OBJ)</dt>
+<dd>
+
+<p>Like <code>_to_hex()</code> but with a &#39;0x&#39; prefix.</p>
+
+</dd>
+<dt id="CLASS-_as_bytes-OBJ">CLASS-&gt;_as_bytes(OBJ)</dt>
+<dd>
+
+<p>This is an alias to <code>_to_bytes()</code>.</p>
+
+</dd>
+</dl>
+
+<h3 id="Numeric-conversion">Numeric conversion</h3>
+
+<dl>
+
+<dt id="CLASS-_num-OBJ">CLASS-&gt;_num(OBJ)</dt>
+<dd>
+
+<p>Returns a Perl scalar number representing the number OBJ as close as possible. Since Perl scalars have limited precision, the returned value might not be exactly the same as OBJ.</p>
+
+</dd>
+</dl>
+
+<h3 id="Miscellaneous">Miscellaneous</h3>
+
+<dl>
+
+<dt id="CLASS-_copy-OBJ">CLASS-&gt;_copy(OBJ)</dt>
+<dd>
+
+<p>Returns a true copy OBJ.</p>
+
+</dd>
+<dt id="CLASS-_len-OBJ">CLASS-&gt;_len(OBJ)</dt>
+<dd>
+
+<p>Returns the number of the decimal digits in OBJ. The output is a Perl scalar.</p>
+
+</dd>
+<dt id="CLASS-_zeros-OBJ">CLASS-&gt;_zeros(OBJ)</dt>
+<dd>
+
+<p>Returns the number of trailing decimal zeros. The output is a Perl scalar. The number zero has no trailing decimal zeros.</p>
+
+</dd>
+<dt id="CLASS-_digit-OBJ-N">CLASS-&gt;_digit(OBJ, N)</dt>
+<dd>
+
+<p>Returns the Nth digit in OBJ as a Perl scalar. N is a Perl scalar, where zero refers to the rightmost (least significant) digit, and negative values count from the left (most significant digit). If $obj represents the number 123, then</p>
+
+<pre><code>    CLASS-&gt;_digit($obj,  0)     # returns 3
+    CLASS-&gt;_digit($obj,  1)     # returns 2
+    CLASS-&gt;_digit($obj,  2)     # returns 1
+    CLASS-&gt;_digit($obj, -1)     # returns 1</code></pre>
+
+</dd>
+<dt id="CLASS-_check-OBJ">CLASS-&gt;_check(OBJ)</dt>
+<dd>
+
+<p>Returns true if the object is invalid and false otherwise. Preferably, the true value is a string describing the problem with the object. This is a check routine to test the internal state of the object for corruption.</p>
+
+</dd>
+<dt id="CLASS-_set-OBJ">CLASS-&gt;_set(OBJ)</dt>
+<dd>
+
+<p>xxx</p>
+
+</dd>
+</dl>
+
+<h2 id="API-version-2">API version 2</h2>
+
+<p>The following methods are required for an API version of 2 or greater.</p>
+
+<h3 id="Constructors1">Constructors</h3>
+
+<dl>
+
+<dt id="CLASS-_1ex-N">CLASS-&gt;_1ex(N)</dt>
+<dd>
+
+<p>Return an object representing the number 10**N where N &gt;= 0 is a Perl scalar.</p>
+
+</dd>
+</dl>
+
+<h3 id="Mathematical-functions1">Mathematical functions</h3>
+
+<dl>
+
+<dt id="CLASS-_nok-OBJ1-OBJ2">CLASS-&gt;_nok(OBJ1, OBJ2)</dt>
+<dd>
+
+<p>Return the binomial coefficient OBJ1 over OBJ1.</p>
+
+</dd>
+</dl>
+
+<h3 id="Miscellaneous1">Miscellaneous</h3>
+
+<dl>
+
+<dt id="CLASS-_alen-OBJ">CLASS-&gt;_alen(OBJ)</dt>
+<dd>
+
+<p>Return the approximate number of decimal digits of the object. The output is a Perl scalar.</p>
+
+</dd>
+</dl>
+
+<h2 id="API-optional-methods">API optional methods</h2>
+
+<p>The following methods are optional, and can be defined if the underlying lib has a fast way to do them. If undefined, Math::BigInt will use pure Perl (hence slow) fallback routines to emulate these:</p>
+
+<h3 id="Signed-bitwise-operators">Signed bitwise operators.</h3>
+
+<dl>
+
+<dt id="CLASS-_signed_or-OBJ1-OBJ2-SIGN1-SIGN2">CLASS-&gt;_signed_or(OBJ1, OBJ2, SIGN1, SIGN2)</dt>
+<dd>
+
+<p>Return the signed bitwise or.</p>
+
+</dd>
+<dt id="CLASS-_signed_and-OBJ1-OBJ2-SIGN1-SIGN2">CLASS-&gt;_signed_and(OBJ1, OBJ2, SIGN1, SIGN2)</dt>
+<dd>
+
+<p>Return the signed bitwise and.</p>
+
+</dd>
+<dt id="CLASS-_signed_xor-OBJ1-OBJ2-SIGN1-SIGN2">CLASS-&gt;_signed_xor(OBJ1, OBJ2, SIGN1, SIGN2)</dt>
+<dd>
+
+<p>Return the signed bitwise exclusive or.</p>
+
+</dd>
+</dl>
+
+<h1 id="WRAP-YOUR-OWN">WRAP YOUR OWN</h1>
+
+<p>If you want to port your own favourite C library for big numbers to the Math::BigInt interface, you can take any of the already existing modules as a rough guideline. You should really wrap up the latest Math::BigInt and Math::BigFloat testsuites with your module, and replace in them any of the following:</p>
+
+<pre><code>        use Math::BigInt;</code></pre>
+
+<p>by this:</p>
+
+<pre><code>        use Math::BigInt lib =&gt; &#39;yourlib&#39;;</code></pre>
+
+<p>This way you ensure that your library really works 100% within Math::BigInt.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please report any bugs or feature requests to <code>bug-math-bigint at rt.cpan.org</code>, or through the web interface at <a href="https://rt.cpan.org/Ticket/Create.html?Queue=Math-BigInt">https://rt.cpan.org/Ticket/Create.html?Queue=Math-BigInt</a> (requires login). We will be notified, and then you&#39;ll automatically be notified of progress on your bug as I make changes.</p>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>You can find documentation for this module with the perldoc command.</p>
+
+<pre><code>    perldoc Math::BigInt::Calc</code></pre>
+
+<p>You can also look for information at:</p>
+
+<ul>
+
+<li><p>RT: CPAN&#39;s request tracker</p>
+
+<p><a href="https://rt.cpan.org/Public/Dist/Display.html?Name=Math-BigInt">https://rt.cpan.org/Public/Dist/Display.html?Name=Math-BigInt</a></p>
+
+</li>
+<li><p>AnnoCPAN: Annotated CPAN documentation</p>
+
+<p><a href="http://annocpan.org/dist/Math-BigInt">http://annocpan.org/dist/Math-BigInt</a></p>
+
+</li>
+<li><p>CPAN Ratings</p>
+
+<p><a href="http://cpanratings.perl.org/dist/Math-BigInt">http://cpanratings.perl.org/dist/Math-BigInt</a></p>
+
+</li>
+<li><p>Search CPAN</p>
+
+<p><a href="http://search.cpan.org/dist/Math-BigInt/">http://search.cpan.org/dist/Math-BigInt/</a></p>
+
+</li>
+<li><p>CPAN Testers Matrix</p>
+
+<p><a href="http://matrix.cpantesters.org/?dist=Math-BigInt">http://matrix.cpantesters.org/?dist=Math-BigInt</a></p>
+
+</li>
+<li><p>The Bignum mailing list</p>
+
+<ul>
+
+<li><p>Post to mailing list</p>
+
+<p><code>bignum at lists.scsys.co.uk</code></p>
+
+</li>
+<li><p>View mailing list</p>
+
+<p><a href="http://lists.scsys.co.uk/pipermail/bignum/">http://lists.scsys.co.uk/pipermail/bignum/</a></p>
+
+</li>
+<li><p>Subscribe/Unsubscribe</p>
+
+<p><a href="http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/bignum">http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/bignum</a></p>
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you may redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Peter John Acklam, &lt;pjacklam@online.no&gt;</p>
+
+<p>Code and documentation based on the Math::BigInt::Calc module by Tels &lt;nospam-abuse@bloodgate.com&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a>, <a href="/cperl/lib/Math/BigInt/Calc.html">Math::BigInt::Calc</a>, <a>Math::BigInt::GMP</a>, <a href="/cperl/lib/Math/BigInt/FastCalc.html">Math::BigInt::FastCalc</a> and <a>Math::BigInt::Pari</a>.</p>
+
+
+</body>
+
+</html>
+
+

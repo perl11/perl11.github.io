@@ -1,0 +1,459 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#SUBROUTINES">SUBROUTINES</a>
+    <ul>
+      <li><a href="#standard_typemap_locations">standard_typemap_locations()</a></li>
+      <li><a href="#trim_whitespace">trim_whitespace()</a></li>
+      <li><a href="#C_string">C_string()</a></li>
+      <li><a href="#valid_proto_string">valid_proto_string()</a></li>
+      <li><a href="#process_typemaps">process_typemaps()</a></li>
+      <li><a href="#map_type">map_type()</a></li>
+      <li><a href="#standard_XS_defs">standard_XS_defs()</a></li>
+      <li><a href="#assign_func_args">assign_func_args()</a></li>
+      <li><a href="#analyze_preprocessor_statements">analyze_preprocessor_statements()</a></li>
+      <li><a href="#set_cond">set_cond()</a></li>
+      <li><a href="#current_line_number">current_line_number()</a></li>
+      <li><a href="#Warn">Warn()</a></li>
+      <li><a href="#blurt">blurt()</a></li>
+      <li><a href="#death">death()</a></li>
+      <li><a href="#check_conditional_preprocessor_statements">check_conditional_preprocessor_statements()</a></li>
+      <li><a href="#escape_file_for_line_directive">escape_file_for_line_directive()</a></li>
+      <li><a href="#report_typemap_failure">report_typemap_failure</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::ParseXS::Utilities - Subroutines used with ExtUtils::ParseXS</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use ExtUtils::ParseXS::Utilities qw(
+    standard_typemap_locations
+    trim_whitespace
+    C_string
+    valid_proto_string
+    process_typemaps
+    map_type
+    standard_XS_defs
+    assign_func_args
+    analyze_preprocessor_statements
+    set_cond
+    Warn
+    blurt
+    death
+    check_conditional_preprocessor_statements
+    escape_file_for_line_directive
+    report_typemap_failure
+  );</code></pre>
+
+<h1 id="SUBROUTINES">SUBROUTINES</h1>
+
+<p>The following functions are not considered to be part of the public interface. They are documented here for the benefit of future maintainers of this module.</p>
+
+<h2 id="standard_typemap_locations"><code>standard_typemap_locations()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Provide a list of filepaths where <i>typemap</i> files may be found. The filepaths -- relative paths to files (not just directory paths) -- appear in this list in lowest-to-highest priority.</p>
+
+<p>The highest priority is to look in the current directory.</p>
+
+<pre><code>  &#39;typemap&#39;</code></pre>
+
+<p>The second and third highest priorities are to look in the parent of the current directory and a directory called <i>lib/ExtUtils</i> underneath the parent directory.</p>
+
+<pre><code>  &#39;../typemap&#39;,
+  &#39;../lib/ExtUtils/typemap&#39;,</code></pre>
+
+<p>The fourth through ninth highest priorities are to look in the corresponding grandparent, great-grandparent and great-great-grandparent directories.</p>
+
+<pre><code>  &#39;../../typemap&#39;,
+  &#39;../../lib/ExtUtils/typemap&#39;,
+  &#39;../../../typemap&#39;,
+  &#39;../../../lib/ExtUtils/typemap&#39;,
+  &#39;../../../../typemap&#39;,
+  &#39;../../../../lib/ExtUtils/typemap&#39;,</code></pre>
+
+<p>The tenth and subsequent priorities are to look in directories named <i>ExtUtils</i> which are subdirectories of directories found in <code>@INC</code> -- <i>provided</i> a file named <i>typemap</i> actually exists in such a directory. Example:</p>
+
+<pre><code>  &#39;/usr/local/lib/perl5/5.10.1/ExtUtils/typemap&#39;,</code></pre>
+
+<p>However, these filepaths appear in the list returned by <code>standard_typemap_locations()</code> in reverse order, <i>i.e.</i>, lowest-to-highest.</p>
+
+<pre><code>  &#39;/usr/local/lib/perl5/5.10.1/ExtUtils/typemap&#39;,
+  &#39;../../../../lib/ExtUtils/typemap&#39;,
+  &#39;../../../../typemap&#39;,
+  &#39;../../../lib/ExtUtils/typemap&#39;,
+  &#39;../../../typemap&#39;,
+  &#39;../../lib/ExtUtils/typemap&#39;,
+  &#39;../../typemap&#39;,
+  &#39;../lib/ExtUtils/typemap&#39;,
+  &#39;../typemap&#39;,
+  &#39;typemap&#39;</code></pre>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>  my @stl = standard_typemap_locations( \@INC );</code></pre>
+
+<p>Reference to <code>@INC</code>.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Array holding list of directories to be searched for <i>typemap</i> files.</p>
+
+</li>
+</ul>
+
+<h2 id="trim_whitespace"><code>trim_whitespace()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Perform an in-place trimming of leading and trailing whitespace from the first argument provided to the function.</p>
+
+</li>
+<li><p>Argument</p>
+
+<pre><code>  trim_whitespace($arg);</code></pre>
+
+</li>
+<li><p>Return Value</p>
+
+<p>None. Remember: this is an <i>in-place</i> modification of the argument.</p>
+
+</li>
+</ul>
+
+<h2 id="C_string"><code>C_string()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Escape backslashes (<code>\</code>) in prototype strings.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>      $ProtoThisXSUB = C_string($_);</code></pre>
+
+<p>String needing escaping.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Properly escaped string.</p>
+
+</li>
+</ul>
+
+<h2 id="valid_proto_string"><code>valid_proto_string()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Validate prototype string.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<p>String needing checking.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Upon success, returns the same string passed as argument.</p>
+
+<p>Upon failure, returns <code>0</code>.</p>
+
+</li>
+</ul>
+
+<h2 id="process_typemaps"><code>process_typemaps()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Process all typemap files.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>  my $typemaps_object = process_typemaps( $args{typemap}, $pwd );</code></pre>
+
+<p>List of two elements: <code>typemap</code> element from <code>%args</code>; current working directory.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Upon success, returns an <a href="/cperl/lib/ExtUtils/Typemaps.html">ExtUtils::Typemaps</a> object.</p>
+
+</li>
+</ul>
+
+<h2 id="map_type"><code>map_type()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Performs a mapping at several places inside <code>PARAGRAPH</code> loop.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>  $type = map_type($self, $type, $varname);</code></pre>
+
+<p>List of three arguments.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>String holding augmented version of second argument.</p>
+
+</li>
+</ul>
+
+<h2 id="standard_XS_defs"><code>standard_XS_defs()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Writes to the <code>.c</code> output file certain preprocessor directives and function headers needed in all such files.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<p>None.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Returns true.</p>
+
+</li>
+</ul>
+
+<h2 id="assign_func_args"><code>assign_func_args()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Perform assignment to the <code>func_args</code> attribute.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>  $string = assign_func_args($self, $argsref, $class);</code></pre>
+
+<p>List of three elements. Second is an array reference; third is a string.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>String.</p>
+
+</li>
+</ul>
+
+<h2 id="analyze_preprocessor_statements"><code>analyze_preprocessor_statements()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Within each function inside each Xsub, print to the <i>.c</i> output file certain preprocessor statements.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<pre><code>      ( $self, $XSS_work_idx, $BootCode_ref ) =
+        analyze_preprocessor_statements(
+          $self, $statement, $XSS_work_idx, $BootCode_ref
+        );</code></pre>
+
+<p>List of four elements.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Modifed values of three of the arguments passed to the function. In particular, the <code>XSStack</code> and <code>InitFileCode</code> attributes are modified.</p>
+
+</li>
+</ul>
+
+<h2 id="set_cond"><code>set_cond()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+</li>
+<li><p>Arguments</p>
+
+</li>
+<li><p>Return Value</p>
+
+</li>
+</ul>
+
+<h2 id="current_line_number"><code>current_line_number()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Figures out the current line number in the XS file.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<p><code>$self</code></p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>The current line number.</p>
+
+</li>
+</ul>
+
+<h2 id="Warn"><code>Warn()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+</li>
+<li><p>Arguments</p>
+
+</li>
+<li><p>Return Value</p>
+
+</li>
+</ul>
+
+<h2 id="blurt"><code>blurt()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+</li>
+<li><p>Arguments</p>
+
+</li>
+<li><p>Return Value</p>
+
+</li>
+</ul>
+
+<h2 id="death"><code>death()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+</li>
+<li><p>Arguments</p>
+
+</li>
+<li><p>Return Value</p>
+
+</li>
+</ul>
+
+<h2 id="check_conditional_preprocessor_statements"><code>check_conditional_preprocessor_statements()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+</li>
+<li><p>Arguments</p>
+
+</li>
+<li><p>Return Value</p>
+
+</li>
+</ul>
+
+<h2 id="escape_file_for_line_directive"><code>escape_file_for_line_directive()</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Escapes a given code source name (typically a file name but can also be a command that was read from) so that double-quotes and backslashes are escaped.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<p>A string.</p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>A string with escapes for double-quotes and backslashes.</p>
+
+</li>
+</ul>
+
+<h2 id="report_typemap_failure"><code>report_typemap_failure</code></h2>
+
+<ul>
+
+<li><p>Purpose</p>
+
+<p>Do error reporting for missing typemaps.</p>
+
+</li>
+<li><p>Arguments</p>
+
+<p>The <code>ExtUtils::ParseXS</code> object.</p>
+
+<p>An <code>ExtUtils::Typemaps</code> object.</p>
+
+<p>The string that represents the C type that was not found in the typemap.</p>
+
+<p>Optionally, the string <code>death</code> or <code>blurt</code> to choose whether the error is immediately fatal or not. Default: <code>blurt</code></p>
+
+</li>
+<li><p>Return Value</p>
+
+<p>Returns nothing. Depending on the arguments, this may call <code>death</code> or <code>blurt</code>, the former of which is fatal.</p>
+
+</li>
+</ul>
+
+
+</body>
+
+</html>
+
+

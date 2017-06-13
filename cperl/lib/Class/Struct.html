@@ -1,0 +1,364 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#The-struct-function">The struct() function</a></li>
+      <li><a href="#Class-Creation-at-Compile-Time">Class Creation at Compile Time</a></li>
+      <li><a href="#Element-Types-and-Accessor-Methods">Element Types and Accessor Methods</a></li>
+      <li><a href="#Initializing-with-new">Initializing with new</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#Author-and-Modification-History">Author and Modification History</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Class::Struct - declare struct-like datatypes as Perl classes</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Class::Struct;
+            # declare struct, based on array:
+    struct( CLASS_NAME =&gt; [ ELEMENT_NAME =&gt; ELEMENT_TYPE, ... ]);
+            # declare struct, based on hash:
+    struct( CLASS_NAME =&gt; { ELEMENT_NAME =&gt; ELEMENT_TYPE, ... });
+
+    package CLASS_NAME;
+    use Class::Struct;
+            # declare struct, based on array, implicit class name:
+    struct( ELEMENT_NAME =&gt; ELEMENT_TYPE, ... );
+
+    # Declare struct at compile time
+    use Class::Struct CLASS_NAME =&gt; [ELEMENT_NAME =&gt; ELEMENT_TYPE, ...];
+    use Class::Struct CLASS_NAME =&gt; {ELEMENT_NAME =&gt; ELEMENT_TYPE, ...};
+
+    # declare struct at compile time, based on array, implicit
+    # class name:
+    package CLASS_NAME;
+    use Class::Struct ELEMENT_NAME =&gt; ELEMENT_TYPE, ... ;
+
+    package Myobj;
+    use Class::Struct;
+            # declare struct with four types of elements:
+    struct( s =&gt; &#39;$&#39;, a =&gt; &#39;@&#39;, h =&gt; &#39;%&#39;, c =&gt; &#39;My_Other_Class&#39; );
+
+    $obj = new Myobj;               # constructor
+
+                                    # scalar type accessor:
+    $element_value = $obj-&gt;s;           # element value
+    $obj-&gt;s(&#39;new value&#39;);               # assign to element
+
+                                    # array type accessor:
+    $ary_ref = $obj-&gt;a;                 # reference to whole array
+    $ary_element_value = $obj-&gt;a(2);    # array element value
+    $obj-&gt;a(2, &#39;new value&#39;);            # assign to array element
+
+                                    # hash type accessor:
+    $hash_ref = $obj-&gt;h;                # reference to whole hash
+    $hash_element_value = $obj-&gt;h(&#39;x&#39;); # hash element value
+    $obj-&gt;h(&#39;x&#39;, &#39;new value&#39;);          # assign to hash element
+
+                                    # class type accessor:
+    $element_value = $obj-&gt;c;           # object reference
+    $obj-&gt;c-&gt;method(...);               # call method of object
+    $obj-&gt;c(new My_Other_Class);        # assign a new object</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>Class::Struct</code> exports a single function, <code>struct</code>. Given a list of element names and types, and optionally a class name, <code>struct</code> creates a Perl 5 class that implements a &quot;struct-like&quot; data structure.</p>
+
+<p>The new class is given a constructor method, <code>new</code>, for creating struct objects.</p>
+
+<p>Each element in the struct data has an accessor method, which is used to assign to the element and to fetch its value. The default accessor can be overridden by declaring a <code>sub</code> of the same name in the package. (See Example 2.)</p>
+
+<p>Each element&#39;s type can be scalar, array, hash, or class.</p>
+
+<h2 id="The-struct-function">The <code>struct()</code> function</h2>
+
+<p>The <code>struct</code> function has three forms of parameter-list.</p>
+
+<pre><code>    struct( CLASS_NAME =&gt; [ ELEMENT_LIST ]);
+    struct( CLASS_NAME =&gt; { ELEMENT_LIST });
+    struct( ELEMENT_LIST );</code></pre>
+
+<p>The first and second forms explicitly identify the name of the class being created. The third form assumes the current package name as the class name.</p>
+
+<p>An object of a class created by the first and third forms is based on an array, whereas an object of a class created by the second form is based on a hash. The array-based forms will be somewhat faster and smaller; the hash-based forms are more flexible.</p>
+
+<p>The class created by <code>struct</code> must not be a subclass of another class other than <code>UNIVERSAL</code>.</p>
+
+<p>It can, however, be used as a superclass for other classes. To facilitate this, the generated constructor method uses a two-argument blessing. Furthermore, if the class is hash-based, the key of each element is prefixed with the class name (see <i>Perl Cookbook</i>, Recipe 13.12).</p>
+
+<p>A function named <code>new</code> must not be explicitly defined in a class created by <code>struct</code>.</p>
+
+<p>The <i>ELEMENT_LIST</i> has the form</p>
+
+<pre><code>    NAME =&gt; TYPE, ...</code></pre>
+
+<p>Each name-type pair declares one element of the struct. Each element name will be defined as an accessor method unless a method by that name is explicitly defined; in the latter case, a warning is issued if the warning flag (<b>-w</b>) is set.</p>
+
+<h2 id="Class-Creation-at-Compile-Time">Class Creation at Compile Time</h2>
+
+<p><code>Class::Struct</code> can create your class at compile time. The main reason for doing this is obvious, so your class acts like every other class in Perl. Creating your class at compile time will make the order of events similar to using any other class ( or Perl module ).</p>
+
+<p>There is no significant speed gain between compile time and run time class creation, there is just a new, more standard order of events.</p>
+
+<h2 id="Element-Types-and-Accessor-Methods">Element Types and Accessor Methods</h2>
+
+<p>The four element types -- scalar, array, hash, and class -- are represented by strings -- <code>&#39;$&#39;</code>, <code>&#39;@&#39;</code>, <code>&#39;%&#39;</code>, and a class name -- optionally preceded by a <code>&#39;*&#39;</code>.</p>
+
+<p>The accessor method provided by <code>struct</code> for an element depends on the declared type of the element.</p>
+
+<dl>
+
+<dt id="Scalar-or">Scalar (<code>&#39;$&#39;</code> or <code>&#39;*$&#39;</code>)</dt>
+<dd>
+
+<p>The element is a scalar, and by default is initialized to <code>undef</code> (but see <a href="#Initializing-with-new">&quot;Initializing with new&quot;</a>).</p>
+
+<p>The accessor&#39;s argument, if any, is assigned to the element.</p>
+
+<p>If the element type is <code>&#39;$&#39;</code>, the value of the element (after assignment) is returned. If the element type is <code>&#39;*$&#39;</code>, a reference to the element is returned.</p>
+
+</dd>
+<dt id="Array-or">Array (<code>&#39;@&#39;</code> or <code>&#39;*@&#39;</code>)</dt>
+<dd>
+
+<p>The element is an array, initialized by default to <code>()</code>.</p>
+
+<p>With no argument, the accessor returns a reference to the element&#39;s whole array (whether or not the element was specified as <code>&#39;@&#39;</code> or <code>&#39;*@&#39;</code>).</p>
+
+<p>With one or two arguments, the first argument is an index specifying one element of the array; the second argument, if present, is assigned to the array element. If the element type is <code>&#39;@&#39;</code>, the accessor returns the array element value. If the element type is <code>&#39;*@&#39;</code>, a reference to the array element is returned.</p>
+
+<p>As a special case, when the accessor is called with an array reference as the sole argument, this causes an assignment of the whole array element. The object reference is returned.</p>
+
+</dd>
+<dt id="Hash-or">Hash (<code>&#39;%&#39;</code> or <code>&#39;*%&#39;</code>)</dt>
+<dd>
+
+<p>The element is a hash, initialized by default to <code>()</code>.</p>
+
+<p>With no argument, the accessor returns a reference to the element&#39;s whole hash (whether or not the element was specified as <code>&#39;%&#39;</code> or <code>&#39;*%&#39;</code>).</p>
+
+<p>With one or two arguments, the first argument is a key specifying one element of the hash; the second argument, if present, is assigned to the hash element. If the element type is <code>&#39;%&#39;</code>, the accessor returns the hash element value. If the element type is <code>&#39;*%&#39;</code>, a reference to the hash element is returned.</p>
+
+<p>As a special case, when the accessor is called with a hash reference as the sole argument, this causes an assignment of the whole hash element. The object reference is returned.</p>
+
+</dd>
+<dt id="Class-Class_Name-or-Class_Name">Class (<code>&#39;Class_Name&#39;</code> or <code>&#39;*Class_Name&#39;</code>)</dt>
+<dd>
+
+<p>The element&#39;s value must be a reference blessed to the named class or to one of its subclasses. The element is not initialized by default.</p>
+
+<p>The accessor&#39;s argument, if any, is assigned to the element. The accessor will <code>croak</code> if this is not an appropriate object reference.</p>
+
+<p>If the element type does not start with a <code>&#39;*&#39;</code>, the accessor returns the element value (after assignment). If the element type starts with a <code>&#39;*&#39;</code>, a reference to the element itself is returned.</p>
+
+</dd>
+</dl>
+
+<h2 id="Initializing-with-new">Initializing with <code>new</code></h2>
+
+<p><code>struct</code> always creates a constructor called <code>new</code>. That constructor may take a list of initializers for the various elements of the new struct.</p>
+
+<p>Each initializer is a pair of values: <i>element name</i><code> =&gt; </code><i>value</i>. The initializer value for a scalar element is just a scalar value. The initializer for an array element is an array reference. The initializer for a hash is a hash reference.</p>
+
+<p>The initializer for a class element is an object of the corresponding class, or of one of it&#39;s subclasses, or a reference to a hash containing named arguments to be passed to the element&#39;s constructor.</p>
+
+<p>See Example 3 below for an example of initialization.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="Example-1">Example 1</dt>
+<dd>
+
+<p>Giving a struct element a class type that is also a struct is how structs are nested. Here, <code>Timeval</code> represents a time (seconds and microseconds), and <code>Rusage</code> has two elements, each of which is of type <code>Timeval</code>.</p>
+
+<pre><code>    use Class::Struct;
+
+    struct( Rusage =&gt; {
+        ru_utime =&gt; &#39;Timeval&#39;,  # user time used
+        ru_stime =&gt; &#39;Timeval&#39;,  # system time used
+    });
+
+    struct( Timeval =&gt; [
+        tv_secs  =&gt; &#39;$&#39;,        # seconds
+        tv_usecs =&gt; &#39;$&#39;,        # microseconds
+    ]);
+
+    # create an object:
+    my $t = Rusage-&gt;new(ru_utime=&gt;Timeval-&gt;new(),
+        ru_stime=&gt;Timeval-&gt;new());
+
+    # $t-&gt;ru_utime and $t-&gt;ru_stime are objects of type Timeval.
+    # set $t-&gt;ru_utime to 100.0 sec and $t-&gt;ru_stime to 5.0 sec.
+    $t-&gt;ru_utime-&gt;tv_secs(100);
+    $t-&gt;ru_utime-&gt;tv_usecs(0);
+    $t-&gt;ru_stime-&gt;tv_secs(5);
+    $t-&gt;ru_stime-&gt;tv_usecs(0);</code></pre>
+
+</dd>
+<dt id="Example-2">Example 2</dt>
+<dd>
+
+<p>An accessor function can be redefined in order to provide additional checking of values, etc. Here, we want the <code>count</code> element always to be nonnegative, so we redefine the <code>count</code> accessor accordingly.</p>
+
+<pre><code>    package MyObj;
+    use Class::Struct;
+
+    # declare the struct
+    struct ( &#39;MyObj&#39;, { count =&gt; &#39;$&#39;, stuff =&gt; &#39;%&#39; } );
+
+    # override the default accessor method for &#39;count&#39;
+    sub count {
+        my $self = shift;
+        if ( @_ ) {
+            die &#39;count must be nonnegative&#39; if $_[0] &lt; 0;
+            $self-&gt;{&#39;MyObj::count&#39;} = shift;
+            warn &quot;Too many args to count&quot; if @_;
+        }
+        return $self-&gt;{&#39;MyObj::count&#39;};
+    }
+
+    package main;
+    $x = new MyObj;
+    print &quot;\$x-&gt;count(5) = &quot;, $x-&gt;count(5), &quot;\n&quot;;
+                            # prints &#39;$x-&gt;count(5) = 5&#39;
+
+    print &quot;\$x-&gt;count = &quot;, $x-&gt;count, &quot;\n&quot;;
+                            # prints &#39;$x-&gt;count = 5&#39;
+
+    print &quot;\$x-&gt;count(-5) = &quot;, $x-&gt;count(-5), &quot;\n&quot;;
+                            # dies due to negative argument!</code></pre>
+
+</dd>
+<dt id="Example-3">Example 3</dt>
+<dd>
+
+<p>The constructor of a generated class can be passed a list of <i>element</i>=&gt;<i>value</i> pairs, with which to initialize the struct. If no initializer is specified for a particular element, its default initialization is performed instead. Initializers for non-existent elements are silently ignored.</p>
+
+<p>Note that the initializer for a nested class may be specified as an object of that class, or as a reference to a hash of initializers that are passed on to the nested struct&#39;s constructor.</p>
+
+<pre><code>    use Class::Struct;
+
+    struct Breed =&gt;
+    {
+        name  =&gt; &#39;$&#39;,
+        cross =&gt; &#39;$&#39;,
+    };
+
+    struct Cat =&gt;
+    [
+        name     =&gt; &#39;$&#39;,
+        kittens  =&gt; &#39;@&#39;,
+        markings =&gt; &#39;%&#39;,
+        breed    =&gt; &#39;Breed&#39;,
+    ];
+
+
+    my $cat = Cat-&gt;new( name =&gt; &#39;Socks&#39;,
+               kittens  =&gt; [&#39;Monica&#39;, &#39;Kenneth&#39;],
+               markings =&gt; { socks=&gt;1, blaze=&gt;&quot;white&quot; },
+               breed    =&gt; Breed-&gt;new(name=&gt;&#39;short-hair&#39;, cross=&gt;1),
+          or:  breed    =&gt; {name=&gt;&#39;short-hair&#39;, cross=&gt;1},
+                      );
+
+    print &quot;Once a cat called &quot;, $cat-&gt;name, &quot;\n&quot;;
+    print &quot;(which was a &quot;, $cat-&gt;breed-&gt;name, &quot;)\n&quot;;
+    print &quot;had 2 kittens: &quot;, join(&#39; and &#39;, @{$cat-&gt;kittens}), &quot;\n&quot;;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Author-and-Modification-History">Author and Modification History</h1>
+
+<p>Modified by Damian Conway, 2001-09-10, v0.62.</p>
+
+<pre><code>   Modified implicit construction of nested objects.
+   Now will also take an object ref instead of requiring a hash ref.
+   Also default initializes nested object attributes to undef, rather
+   than calling object constructor without args
+   Original over-helpfulness was fraught with problems:
+       * the class&#39;s constructor might not be called &#39;new&#39;
+       * the class might not have a hash-like-arguments constructor
+       * the class might not have a no-argument constructor
+       * &quot;recursive&quot; data structures didn&#39;t work well:
+                 package Person;
+                 struct { mother =&gt; &#39;Person&#39;, father =&gt; &#39;Person&#39;};</code></pre>
+
+<p>Modified by Casey West, 2000-11-08, v0.59.</p>
+
+<pre><code>    Added the ability for compile time class creation.</code></pre>
+
+<p>Modified by Damian Conway, 1999-03-05, v0.58.</p>
+
+<pre><code>    Added handling of hash-like arg list to class ctor.
+
+    Changed to two-argument blessing in ctor to support
+    derivation from created classes.
+
+    Added classname prefixes to keys in hash-based classes
+    (refer to &quot;Perl Cookbook&quot;, Recipe 13.12 for rationale).
+
+    Corrected behaviour of accessors for &#39;*@&#39; and &#39;*%&#39; struct
+    elements.  Package now implements documented behaviour when
+    returning a reference to an entire hash or array element.
+    Previously these were returned as a reference to a reference
+    to the element.</code></pre>
+
+<p>Renamed to <code>Class::Struct</code> and modified by Jim Miner, 1997-04-02.</p>
+
+<pre><code>    members() function removed.
+    Documentation corrected and extended.
+    Use of struct() in a subclass prohibited.
+    User definition of accessor allowed.
+    Treatment of &#39;*&#39; in element types corrected.
+    Treatment of classes as element types corrected.
+    Class name to struct() made optional.
+    Diagnostic checks added.</code></pre>
+
+<p>Originally <code>Class::Template</code> by Dean Roehrich.</p>
+
+<pre><code>    # Template.pm   --- struct/member template builder
+    #   12mar95
+    #   Dean Roehrich
+    #
+    # changes/bugs fixed since 28nov94 version:
+    #  - podified
+    # changes/bugs fixed since 21nov94 version:
+    #  - Fixed examples.
+    # changes/bugs fixed since 02sep94 version:
+    #  - Moved to Class::Template.
+    # changes/bugs fixed since 20feb94 version:
+    #  - Updated to be a more proper module.
+    #  - Added &quot;use strict&quot;.
+    #  - Bug in build_methods, was using @var when @$var needed.
+    #  - Now using my() rather than local().
+    #
+    # Uses perl5 classes to create nested data types.
+    # This is offered as one implementation of Tom Christiansen&#39;s
+    # &quot;structs.pl&quot; idea.</code></pre>
+
+
+</body>
+
+</html>
+
+

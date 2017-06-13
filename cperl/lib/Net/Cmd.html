@@ -1,0 +1,229 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#USER-METHODS">USER METHODS</a></li>
+  <li><a href="#CLASS-METHODS">CLASS METHODS</a></li>
+  <li><a href="#PSEUDO-RESPONSES">PSEUDO RESPONSES</a></li>
+  <li><a href="#EXPORTS">EXPORTS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Net::Cmd - Network Command class (as used by FTP, SMTP etc)</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Net::Cmd;
+
+    @ISA = qw(Net::Cmd);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>Net::Cmd</code> is a collection of methods that can be inherited by a sub-class of <code>IO::Socket::INET</code>. These methods implement the functionality required for a command based protocol, for example FTP and SMTP.</p>
+
+<p>If your sub-class does not also derive from <code>IO::Socket::INET</code> or similar (e.g. <code>IO::Socket::IP</code>, <code>IO::Socket::INET6</code> or <code>IO::Socket::SSL</code>) then you must provide the following methods by other means yourself: <code>close()</code> and <code>timeout()</code>, e.g. based on <a href="/cperl/lib/IO/Handle.html">IO::Handle</a>.</p>
+
+<h1 id="USER-METHODS">USER METHODS</h1>
+
+<p>These methods provide a user interface to the <code>Net::Cmd</code> object.</p>
+
+<dl>
+
+<dt id="debug-VALUE">debug ( VALUE )</dt>
+<dd>
+
+<p>Set the level of debug information for this object. If <code>VALUE</code> is not given then the current state is returned. Otherwise the state is changed to <code>VALUE</code> and the previous state returned.</p>
+
+<p>Different packages may implement different levels of debug but a non-zero value results in copies of all commands and responses also being sent to STDERR.</p>
+
+<p>If <code>VALUE</code> is <code>undef</code> then the debug level will be set to the default debug level for the class.</p>
+
+<p>This method can also be called as a <i>static</i> method to set/get the default debug level for a given class.</p>
+
+</dd>
+<dt id="message">message ()</dt>
+<dd>
+
+<p>Returns the text message returned from the last command. In a scalar context it returns a single string, in a list context it will return each line as a separate element. (See <a href="#PSEUDO-RESPONSES">&quot;PSEUDO RESPONSES&quot;</a> below.)</p>
+
+</dd>
+<dt id="code">code ()</dt>
+<dd>
+
+<p>Returns the 3-digit code from the last command. If a command is pending then the value 0 is returned. (See <a href="#PSEUDO-RESPONSES">&quot;PSEUDO RESPONSES&quot;</a> below.)</p>
+
+</dd>
+<dt id="ok">ok ()</dt>
+<dd>
+
+<p>Returns non-zero if the last code value was greater than zero and less than 400. This holds true for most command servers. Servers where this does not hold may override this method.</p>
+
+</dd>
+<dt id="status">status ()</dt>
+<dd>
+
+<p>Returns the most significant digit of the current status code. If a command is pending then <code>CMD_PENDING</code> is returned.</p>
+
+</dd>
+<dt id="datasend-DATA">datasend ( DATA )</dt>
+<dd>
+
+<p>Send data to the remote server, converting LF to CRLF. Any line starting with a &#39;.&#39; will be prefixed with another &#39;.&#39;. <code>DATA</code> may be an array or a reference to an array. The <code>DATA</code> passed in must be encoded by the caller to octets of whatever encoding is required, e.g. by using the Encode module&#39;s <code>encode()</code> function.</p>
+
+</dd>
+<dt id="dataend">dataend ()</dt>
+<dd>
+
+<p>End the sending of data to the remote server. This is done by ensuring that the data already sent ends with CRLF then sending &#39;.CRLF&#39; to end the transmission. Once this data has been sent <code>dataend</code> calls <code>response</code> and returns true if <code>response</code> returns CMD_OK.</p>
+
+</dd>
+</dl>
+
+<h1 id="CLASS-METHODS">CLASS METHODS</h1>
+
+<p>These methods are not intended to be called by the user, but used or over-ridden by a sub-class of <code>Net::Cmd</code></p>
+
+<dl>
+
+<dt id="debug_print-DIR-TEXT">debug_print ( DIR, TEXT )</dt>
+<dd>
+
+<p>Print debugging information. <code>DIR</code> denotes the direction <i>true</i> being data being sent to the server. Calls <code>debug_text</code> before printing to STDERR.</p>
+
+</dd>
+<dt id="debug_text-DIR-TEXT">debug_text ( DIR, TEXT )</dt>
+<dd>
+
+<p>This method is called to print debugging information. TEXT is the text being sent. The method should return the text to be printed.</p>
+
+<p>This is primarily meant for the use of modules such as FTP where passwords are sent, but we do not want to display them in the debugging information.</p>
+
+</dd>
+<dt id="command-CMD-ARGS">command ( CMD [, ARGS, ... ])</dt>
+<dd>
+
+<p>Send a command to the command server. All arguments are first joined with a space character and CRLF is appended, this string is then sent to the command server.</p>
+
+<p>Returns undef upon failure.</p>
+
+</dd>
+<dt id="unsupported">unsupported ()</dt>
+<dd>
+
+<p>Sets the status code to 580 and the response text to &#39;Unsupported command&#39;. Returns zero.</p>
+
+</dd>
+<dt id="response">response ()</dt>
+<dd>
+
+<p>Obtain a response from the server. Upon success the most significant digit of the status code is returned. Upon failure, timeout etc., <i>CMD_ERROR</i> is returned.</p>
+
+</dd>
+<dt id="parse_response-TEXT">parse_response ( TEXT )</dt>
+<dd>
+
+<p>This method is called by <code>response</code> as a method with one argument. It should return an array of 2 values, the 3-digit status code and a flag which is true when this is part of a multi-line response and this line is not the last.</p>
+
+</dd>
+<dt id="getline">getline ()</dt>
+<dd>
+
+<p>Retrieve one line, delimited by CRLF, from the remote server. Returns <i>undef</i> upon failure.</p>
+
+<p><b>NOTE</b>: If you do use this method for any reason, please remember to add some <code>debug_print</code> calls into your method.</p>
+
+</dd>
+<dt id="ungetline-TEXT">ungetline ( TEXT )</dt>
+<dd>
+
+<p>Unget a line of text from the server.</p>
+
+</dd>
+<dt id="rawdatasend-DATA">rawdatasend ( DATA )</dt>
+<dd>
+
+<p>Send data to the remote server without performing any conversions. <code>DATA</code> is a scalar. As with <code>datasend()</code>, the <code>DATA</code> passed in must be encoded by the caller to octets of whatever encoding is required, e.g. by using the Encode module&#39;s <code>encode()</code> function.</p>
+
+</dd>
+<dt id="read_until_dot">read_until_dot ()</dt>
+<dd>
+
+<p>Read data from the remote server until a line consisting of a single &#39;.&#39;. Any lines starting with &#39;..&#39; will have one of the &#39;.&#39;s removed.</p>
+
+<p>Returns a reference to a list containing the lines, or <i>undef</i> upon failure.</p>
+
+</dd>
+<dt id="tied_fh">tied_fh ()</dt>
+<dd>
+
+<p>Returns a filehandle tied to the Net::Cmd object. After issuing a command, you may read from this filehandle using read() or &lt;&gt;. The filehandle will return EOF when the final dot is encountered. Similarly, you may write to the filehandle in order to send data to the server after issuing a command that expects data to be written.</p>
+
+<p>See the Net::POP3 and Net::SMTP modules for examples of this.</p>
+
+</dd>
+</dl>
+
+<h1 id="PSEUDO-RESPONSES">PSEUDO RESPONSES</h1>
+
+<p>Normally the values returned by <code>message()</code> and <code>code()</code> are obtained from the remote server, but in a few circumstances, as detailed below, <code>Net::Cmd</code> will return values that it sets. You can alter this behavior by overriding DEF_REPLY_CODE() to specify a different default reply code, or overriding one of the specific error handling methods below.</p>
+
+<dl>
+
+<dt id="Initial-value">Initial value</dt>
+<dd>
+
+<p>Before any command has executed or if an unexpected error occurs <code>code()</code> will return &quot;421&quot; (temporary connection failure) and <code>message()</code> will return undef.</p>
+
+</dd>
+<dt id="Connection-closed">Connection closed</dt>
+<dd>
+
+<p>If the underlying <code>IO::Handle</code> is closed, or if there are any read or write failures, the file handle will be forced closed, and <code>code()</code> will return &quot;421&quot; (temporary connection failure) and <code>message()</code> will return &quot;[$pkg] Connection closed&quot; (where $pkg is the name of the class that subclassed <code>Net::Cmd</code>). The _set_status_closed() method can be overridden to set a different message (by calling set_status()) or otherwise trap this error.</p>
+
+</dd>
+<dt id="Timeout">Timeout</dt>
+<dd>
+
+<p>If there is a read or write timeout <code>code()</code> will return &quot;421&quot; (temporary connection failure) and <code>message()</code> will return &quot;[$pkg] Timeout&quot; (where $pkg is the name of the class that subclassed <code>Net::Cmd</code>). The _set_status_timeout() method can be overridden to set a different message (by calling set_status()) or otherwise trap this error.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXPORTS">EXPORTS</h1>
+
+<p><code>Net::Cmd</code> exports six subroutines, five of these, <code>CMD_INFO</code>, <code>CMD_OK</code>, <code>CMD_MORE</code>, <code>CMD_REJECT</code> and <code>CMD_ERROR</code>, correspond to possible results of <code>response</code> and <code>status</code>. The sixth is <code>CMD_PENDING</code>.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Graham Barr &lt;<i>gbarr@pobox.com</i>&gt;</p>
+
+<p>Steve Hay &lt;<i>shay@cpan.org</i>&gt; is now maintaining libnet as of version 1.22_02</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Versions up to 2.29_1 Copyright (c) 1995-2006 Graham Barr. All rights reserved. Changes in Version 2.29_2 onwards Copyright (C) 2013-2014 Steve Hay. All rights reserved.</p>
+
+<p>This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself, i.e. under the terms of either the GNU General Public License or the Artistic License, as specified in the <i>LICENCE</i> file.</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,485 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#OPTIONS-ARGUMENTS">OPTIONS/ARGUMENTS</a>
+    <ul>
+      <li><a href="#podchecker">podchecker()</a></li>
+    </ul>
+  </li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#DIAGNOSTICS">DIAGNOSTICS</a>
+    <ul>
+      <li><a href="#Errors">Errors</a></li>
+      <li><a href="#Warnings">Warnings</a></li>
+      <li><a href="#Hyperlinks">Hyperlinks</a></li>
+    </ul>
+  </li>
+  <li><a href="#RETURN-VALUE">RETURN VALUE</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+  <li><a href="#SCRIPTS">SCRIPTS</a></li>
+  <li><a href="#INTERFACE">INTERFACE</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Pod::Checker - check pod documents for syntax errors</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Pod::Checker;
+
+  $syntax_okay = podchecker($filepath, $outputpath, %options);
+
+  my $checker = Pod::Checker-&gt;new(%options);
+  $checker-&gt;parse_from_file($filepath, \*STDERR);</code></pre>
+
+<h1 id="OPTIONS-ARGUMENTS">OPTIONS/ARGUMENTS</h1>
+
+<p><code>$filepath</code> is the input POD to read and <code>$outputpath</code> is where to write POD syntax error messages. Either argument may be a scalar indicating a file-path, or else a reference to an open filehandle. If unspecified, the input-file it defaults to <code>\*STDIN</code>, and the output-file defaults to <code>\*STDERR</code>.</p>
+
+<h2 id="podchecker">podchecker()</h2>
+
+<p>This function can take a hash of options:</p>
+
+<dl>
+
+<dt id="warnings-val"><b>-warnings</b> =&gt; <i>val</i></dt>
+<dd>
+
+<p>Turn warnings on/off. <i>val</i> is usually 1 for on, but higher values trigger additional warnings. See <a href="#Warnings">&quot;Warnings&quot;</a>.</p>
+
+</dd>
+<dt id="quiet-val"><b>-quiet</b> =&gt; <i>val</i></dt>
+<dd>
+
+<p>If <code>val</code> is true, do not print any errors/warnings.</p>
+
+</dd>
+</dl>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>podchecker</b> will perform syntax checking of Perl5 POD format documentation.</p>
+
+<p>Curious/ambitious users are welcome to propose additional features they wish to see in <b>Pod::Checker</b> and <b>podchecker</b> and verify that the checks are consistent with <a href="/cperl/perlpod.html">perlpod</a>.</p>
+
+<p>The following checks are currently performed:</p>
+
+<ul>
+
+<li><p>Unknown &#39;=xxxx&#39; commands, unknown &#39;X&lt;...&gt;&#39; interior-sequences, and unterminated interior sequences.</p>
+
+</li>
+<li><p>Check for proper balancing of <code>=begin</code> and <code>=end</code>. The contents of such a block are generally ignored, i.e. no syntax checks are performed.</p>
+
+</li>
+<li><p>Check for proper nesting and balancing of <code>=over</code>, <code>=item</code> and <code>=back</code>.</p>
+
+</li>
+<li><p>Check for same nested interior-sequences (e.g. <code>L&lt;...L&lt;...&gt;...&gt;</code>).</p>
+
+</li>
+<li><p>Check for malformed or non-existing entities <code>E&lt;...&gt;</code>.</p>
+
+</li>
+<li><p>Check for correct syntax of hyperlinks <code>L&lt;...&gt;</code>. See <a href="/cperl/perlpod.html">perlpod</a> for details.</p>
+
+</li>
+<li><p>Check for unresolved document-internal links. This check may also reveal misspelled links that seem to be internal links but should be links to something else.</p>
+
+</li>
+</ul>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<h2 id="Errors">Errors</h2>
+
+<ul>
+
+<li><p>empty =headn</p>
+
+<p>A heading (<code>=head1</code> or <code>=head2</code>) without any text? That ain&#39;t no heading!</p>
+
+</li>
+<li><p>=over on line <i>N</i> without closing =back</p>
+
+</li>
+<li><p>You forgot a &#39;=back&#39; before &#39;=head<i>N</i>&#39;</p>
+
+</li>
+<li><p>=over is the last thing in the document?!</p>
+
+<p>The <code>=over</code> command does not have a corresponding <code>=back</code> before the next heading (<code>=head1</code> or <code>=head2</code>) or the end of the file.</p>
+
+</li>
+<li><p>&#39;=item&#39; outside of any &#39;=over&#39;</p>
+
+</li>
+<li><p>=back without =over</p>
+
+<p>An <code>=item</code> or <code>=back</code> command has been found outside a <code>=over</code>/<code>=back</code> block.</p>
+
+</li>
+<li><p>Can&#39;t have a 0 in =over <i>N</i></p>
+
+<p>You need to indent a strictly positive number of spaces, not 0.</p>
+
+</li>
+<li><p>=over should be: &#39;=over&#39; or &#39;=over positive_number&#39;</p>
+
+<p>Either have an argumentless =over, or have its argument a strictly positive number.</p>
+
+</li>
+<li><p>=begin <i>TARGET</i> without matching =end <i>TARGET</i></p>
+
+<p>A <code>=begin</code> command was found that has no matching =end command.</p>
+
+</li>
+<li><p>=begin without a target?</p>
+
+<p>A <code>=begin</code> command was found that is not followed by the formatter specification.</p>
+
+</li>
+<li><p>=end <i>TARGET</i> without matching =begin.</p>
+
+<p>A standalone <code>=end</code> command was found.</p>
+
+</li>
+<li><p>&#39;=end&#39; without a target?</p>
+
+<p>&#39;=end&#39; directives need to have a target, just like =begin directives.</p>
+
+</li>
+<li><p>&#39;=end <i>TARGET</i>&#39; is invalid.</p>
+
+<p><i>TARGET</i> needs to be one word</p>
+
+</li>
+<li><p>=end <i>CONTENT</i> doesn&#39;t match =begin <i>TARGET</i></p>
+
+<p><i>CONTENT</i> needs to match =begin&#39;s <i>TARGET</i>.</p>
+
+</li>
+<li><p>=for without a target?</p>
+
+<p>There is no specification of the formatter after the <code>=for</code> command.</p>
+
+</li>
+<li><p>unresolved internal link <i>NAME</i></p>
+
+<p>The given link to <i>NAME</i> does not have a matching node in the current POD. This also happened when a single word node name is not enclosed in <code>&quot;&quot;</code>.</p>
+
+</li>
+<li><p>Unknown directive: <i>CMD</i></p>
+
+<p>An invalid POD command has been found. Valid are <code>=head1</code>, <code>=head2</code>, <code>=head3</code>, <code>=head4</code>, <code>=over</code>, <code>=item</code>, <code>=back</code>, <code>=begin</code>, <code>=end</code>, <code>=for</code>, <code>=pod</code>, <code>=cut</code></p>
+
+</li>
+<li><p>Deleting unknown formatting code <i>SEQ</i></p>
+
+<p>An invalid markup command has been encountered. Valid are: <code>B&lt;&gt;</code>, <code>C&lt;&gt;</code>, <code>E&lt;&gt;</code>, <code>F&lt;&gt;</code>, <code>I&lt;&gt;</code>, <code>L&lt;&gt;</code>, <code>S&lt;&gt;</code>, <code>X&lt;&gt;</code>, <code>Z&lt;&gt;</code></p>
+
+</li>
+<li><p>Unterminated <i>SEQ</i>&lt;&gt; sequence</p>
+
+<p>An unclosed formatting code</p>
+
+</li>
+<li><p>An E&lt;...&gt; surrounding strange content</p>
+
+<p>The <i>STRING</i> found cannot be interpreted as a character entity.</p>
+
+</li>
+<li><p>An empty E&lt;&gt;</p>
+
+</li>
+<li><p>An empty <code>L&lt;&gt;</code></p>
+
+</li>
+<li><p>An empty X&lt;&gt;</p>
+
+<p>There needs to be content inside E, L, and X formatting codes.</p>
+
+</li>
+<li><p>A non-empty Z&lt;&gt;</p>
+
+<p>The <code>Z&lt;&gt;</code> sequence is supposed to be empty.</p>
+
+</li>
+<li><p>Spurious text after =pod / =cut</p>
+
+<p>The commands <code>=pod</code> and <code>=cut</code> do not take any arguments.</p>
+
+</li>
+<li><p>=back doesn&#39;t take any parameters, but you said =back <i>ARGUMENT</i></p>
+
+<p>The <code>=back</code> command does not take any arguments.</p>
+
+</li>
+<li><p>=pod directives shouldn&#39;t be over one line long! Ignoring all <i>N</i> lines of content</p>
+
+<p>Self explanatory</p>
+
+</li>
+<li><p>=cut found outside a pod block.</p>
+
+<p>A &#39;=cut&#39; directive found in the middle of non-POD</p>
+
+</li>
+<li><p>Invalid =encoding syntax: <i>CONTENT</i></p>
+
+<p>Syntax error in =encoding directive</p>
+
+</li>
+</ul>
+
+<h2 id="Warnings">Warnings</h2>
+
+<p>These may not necessarily cause trouble, but indicate mediocre style.</p>
+
+<ul>
+
+<li><p>nested commands <i>CMD</i>&lt;...<i>CMD</i>&lt;...&gt;...&gt;</p>
+
+<p>Two nested identical markup commands have been found. Generally this does not make sense.</p>
+
+</li>
+<li><p>multiple occurrences (<i>N</i>) of link target <i>name</i></p>
+
+<p>The POD file has some <code>=item</code> and/or <code>=head</code> commands that have the same text. Potential hyperlinks to such a text cannot be unique then. This warning is printed only with warning level greater than one.</p>
+
+</li>
+<li><p>line containing nothing but whitespace in paragraph</p>
+
+<p>There is some whitespace on a seemingly empty line. POD is very sensitive to such things, so this is flagged. <b>vi</b> users switch on the <b>list</b> option to avoid this problem.</p>
+
+</li>
+<li><p>=item has no contents</p>
+
+<p>There is a list <code>=item</code> that has no text contents. You probably want to delete empty items.</p>
+
+</li>
+<li><p>You can&#39;t have =items (as at line <i>N</i>) unless the first thing after the =over is an =item</p>
+
+<p>A list introduced by <code>=over</code> starts with a text or verbatim paragraph, but continues with <code>=item</code>s. Move the non-item paragraph out of the <code>=over</code>/<code>=back</code> block.</p>
+
+</li>
+<li><p>Expected &#39;=item <i>EXPECTED VALUE</i>&#39;</p>
+
+</li>
+<li><p>Expected &#39;=item *&#39;</p>
+
+</li>
+<li><p>Possible =item type mismatch: &#39;<i>x</i>&#39; found leading a supposed definition =item</p>
+
+<p>A list started with e.g. a bullet-like <code>=item</code> and continued with a numbered one. This is obviously inconsistent. For most translators the type of the <i>first</i> <code>=item</code> determines the type of the list.</p>
+
+</li>
+<li><p>You have &#39;=item x&#39; instead of the expected &#39;=item <i>N</i>&#39;</p>
+
+<p>Erroneous numbering of =item numbers; they need to ascend consecutively.</p>
+
+</li>
+<li><p>Unknown E content in E&lt;<i>CONTENT</i>&gt;</p>
+
+<p>A character entity was found that does not belong to the standard ISO set or the POD specials <code>verbar</code> and <code>sol</code>. <i>Currently, this warning only appears if a character entity was found that does not have a Unicode character. This should be fixed to adhere to the original warning.</i></p>
+
+</li>
+<li><p>empty =over/=back block</p>
+
+<p>The list opened with <code>=over</code> does not contain anything.</p>
+
+</li>
+<li><p>empty section in previous paragraph</p>
+
+<p>The previous section (introduced by a <code>=head</code> command) does not contain any valid content. This usually indicates that something is missing. Note: A <code>=head1</code> followed immediately by <code>=head2</code> does not trigger this warning.</p>
+
+</li>
+<li><p>Verbatim paragraph in NAME section</p>
+
+<p>The NAME section (<code>=head1 NAME</code>) should consist of a single paragraph with the script/module name, followed by a dash `-&#39; and a very short description of what the thing is good for.</p>
+
+</li>
+<li><p>=head<i>n</i> without preceding higher level</p>
+
+<p>For example if there is a <code>=head2</code> in the POD file prior to a <code>=head1</code>.</p>
+
+</li>
+</ul>
+
+<h2 id="Hyperlinks">Hyperlinks</h2>
+
+<p>There are some warnings with respect to malformed hyperlinks:</p>
+
+<ul>
+
+<li><p>ignoring leading/trailing whitespace in link</p>
+
+<p>There is whitespace at the beginning or the end of the contents of L&lt;...&gt;.</p>
+
+</li>
+<li><p>alternative text/node &#39;%s&#39; contains non-escaped | or /</p>
+
+<p>The characters <code>|</code> and <code>/</code> are special in the L&lt;...&gt; context. Although the hyperlink parser does its best to determine which &quot;/&quot; is text and which is a delimiter in case of doubt, one ought to escape these literal characters like this:</p>
+
+<pre><code>  /     E&lt;sol&gt;
+  |     E&lt;verbar&gt;</code></pre>
+
+</li>
+</ul>
+
+<p>Note that the line number of the error/warning may refer to the line number of the start of the paragraph in which the error/warning exists, not the line number that the error/warning is on. This bug is present in errors/warnings related to formatting codes. <i>This should be fixed.</i></p>
+
+<h1 id="RETURN-VALUE">RETURN VALUE</h1>
+
+<p><b>podchecker</b> returns the number of POD syntax errors found or -1 if there were no POD commands at all found in the file.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>See <a href="#SYNOPSIS">&quot;SYNOPSIS&quot;</a></p>
+
+<h1 id="SCRIPTS">SCRIPTS</h1>
+
+<p>The <b>podchecker</b> script that comes with this distribution is a lean wrapper around this module. See the online manual with</p>
+
+<pre><code>  podchecker -help
+  podchecker -man</code></pre>
+
+<h1 id="INTERFACE">INTERFACE</h1>
+
+<p>While checking, this module collects document properties, e.g. the nodes for hyperlinks (<code>=headX</code>, <code>=item</code>) and index entries (<code>X&lt;&gt;</code>). POD translators can use this feature to syntax-check and get the nodes in a first pass before actually starting to convert. This is expensive in terms of execution time, but allows for very robust conversions.</p>
+
+<p>Since v1.24 the <b>Pod::Checker</b> module uses only the <b>poderror</b> method to print errors and warnings. The summary output (e.g. &quot;Pod syntax OK&quot;) has been dropped from the module and has been included in <b>podchecker</b> (the script). This allows users of <b>Pod::Checker</b> to control completely the output behavior. Users of <b>podchecker</b> (the script) get the well-known behavior.</p>
+
+<p>v1.45 inherits from Pod::Simple as opposed to all previous versions inheriting from Pod::Parser. Do <b>not</b> use Pod::Simple&#39;s interface when using Pod::Checker unless it is documented somewhere on this page. I repeat, DO <b>NOT</b> USE POD::SIMPLE&#39;S INTERFACE.</p>
+
+<dl>
+
+<dt id="Pod::Checker-new-options"><code>Pod::Checker-&gt;new( %options )</code></dt>
+<dd>
+
+<p>Return a reference to a new Pod::Checker object that inherits from Pod::Simple and is used for calling the required methods later. The following options are recognized:</p>
+
+<p><code>-warnings =&gt; num</code> Print warnings if <code>num</code> is true. The higher the value of <code>num</code>, the more warnings are printed. Currently there are only levels 1 and 2.</p>
+
+<p><code>-quiet =&gt; num</code> If <code>num</code> is true, do not print any errors/warnings. This is useful when Pod::Checker is used to munge POD code into plain text from within POD formatters.</p>
+
+</dd>
+<dt id="checker-poderror-args"><code>$checker-&gt;poderror( @args )</code></dt>
+<dd>
+
+</dd>
+<dt id="checker-poderror-opts-args"><code>$checker-&gt;poderror( {%opts}, @args )</code></dt>
+<dd>
+
+<p>Internal method for printing errors and warnings. If no options are given, simply prints &quot;@_&quot;. The following options are recognized and used to form the output:</p>
+
+<pre><code>  -msg</code></pre>
+
+<p>A message to print prior to <code>@args</code>.</p>
+
+<pre><code>  -line</code></pre>
+
+<p>The line number the error occurred in.</p>
+
+<pre><code>  -file</code></pre>
+
+<p>The file (name) the error occurred in. Defaults to the name of the current file being processed.</p>
+
+<pre><code>  -severity</code></pre>
+
+<p>The error level, should be &#39;WARNING&#39; or &#39;ERROR&#39;.</p>
+
+</dd>
+<dt id="checker-num_errors"><code>$checker-&gt;num_errors()</code></dt>
+<dd>
+
+<p>Set (if argument specified) and retrieve the number of errors found.</p>
+
+</dd>
+<dt id="checker-num_warnings"><code>$checker-&gt;num_warnings()</code></dt>
+<dd>
+
+<p>Set (if argument specified) and retrieve the number of warnings found.</p>
+
+</dd>
+<dt id="checker-name"><code>$checker-&gt;name()</code></dt>
+<dd>
+
+<p>Set (if argument specified) and retrieve the canonical name of POD as found in the <code>=head1 NAME</code> section.</p>
+
+</dd>
+<dt id="checker-node"><code>$checker-&gt;node()</code></dt>
+<dd>
+
+<p>Add (if argument specified) and retrieve the nodes (as defined by <code>=headX</code> and <code>=item</code>) of the current POD. The nodes are returned in the order of their occurrence. They consist of plain text, each piece of whitespace is collapsed to a single blank.</p>
+
+</dd>
+<dt id="checker-idx"><code>$checker-&gt;idx()</code></dt>
+<dd>
+
+<p>Add (if argument specified) and retrieve the index entries (as defined by <code>X&lt;&gt;</code>) of the current POD. They consist of plain text, each piece of whitespace is collapsed to a single blank.</p>
+
+</dd>
+<dt id="checker-hyperlinks"><code>$checker-&gt;hyperlinks()</code></dt>
+<dd>
+
+<p>Retrieve an array containing the hyperlinks to things outside the current POD (as defined by <code>L&lt;&gt;</code>).</p>
+
+<p>Each is an instance of a class with the following methods:</p>
+
+</dd>
+<dt id="line">line()</dt>
+<dd>
+
+<p>Returns the approximate line number in which the link was encountered</p>
+
+</dd>
+<dt id="type">type()</dt>
+<dd>
+
+<p>Returns the type of the link; one of: <code>&quot;url&quot;</code> for things like <code>http://www.foo</code>, <code>&quot;man&quot;</code> for man pages, or <code>&quot;pod&quot;</code>.</p>
+
+</dd>
+<dt id="page">page()</dt>
+<dd>
+
+<p>Returns the linked-to page or url.</p>
+
+</dd>
+<dt id="node">node()</dt>
+<dd>
+
+<p>Returns the anchor or node within the linked-to page, or an empty string (<code>&quot;&quot;</code>) if none appears in the link.</p>
+
+</dd>
+</dl>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Please report bugs using <a href="http://rt.cpan.org">http://rt.cpan.org</a>.</p>
+
+<p>Brad Appleton &lt;bradapp@enteract.com&gt; (initial version), Marek Rouchal &lt;marekr@cpan.org&gt;, Marc Green &lt;marcgreen@cpan.org&gt; (port to Pod::Simple) Ricardo Signes &lt;rjbs@cpan.org&gt; (more porting to Pod::Simple) Karl Williamson &lt;khw@cpan.org&gt; (more porting to Pod::Simple)</p>
+
+<p>Based on code for <b>Pod::Text::pod2text()</b> written by Tom Christiansen &lt;tchrist@mox.perl.com&gt;</p>
+
+
+</body>
+
+</html>
+
+

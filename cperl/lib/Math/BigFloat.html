@@ -1,0 +1,843 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Input">Input</a></li>
+      <li><a href="#Output">Output</a></li>
+    </ul>
+  </li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Configuration-methods">Configuration methods</a></li>
+      <li><a href="#Constructor-methods">Constructor methods</a></li>
+      <li><a href="#Arithmetic-methods">Arithmetic methods</a></li>
+      <li><a href="#ACCURACY-AND-PRECISION">ACCURACY AND PRECISION</a></li>
+      <li><a href="#Rounding">Rounding</a></li>
+    </ul>
+  </li>
+  <li><a href="#Autocreating-constants">Autocreating constants</a>
+    <ul>
+      <li><a href="#Math-library">Math library</a></li>
+      <li><a href="#Using-Math::BigInt::Lite">Using Math::BigInt::Lite</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXPORTS">EXPORTS</a></li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Math::BigFloat - Arbitrary size floating point math package</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use Math::BigFloat;
+
+  # Configuration methods (may be used as class methods and instance methods)
+
+  Math::BigFloat-&gt;accuracy();     # get class accuracy
+  Math::BigFloat-&gt;accuracy($n);   # set class accuracy
+  Math::BigFloat-&gt;precision();    # get class precision
+  Math::BigFloat-&gt;precision($n);  # set class precision
+  Math::BigFloat-&gt;round_mode();   # get class rounding mode
+  Math::BigFloat-&gt;round_mode($m); # set global round mode, must be one of
+                                  # &#39;even&#39;, &#39;odd&#39;, &#39;+inf&#39;, &#39;-inf&#39;, &#39;zero&#39;,
+                                  # &#39;trunc&#39;, or &#39;common&#39;
+  Math::BigFloat-&gt;config();       # return hash with configuration
+
+  # Constructor methods (when the class methods below are used as instance
+  # methods, the value is assigned the invocand)
+
+  $x = Math::BigFloat-&gt;new($str);               # defaults to 0
+  $x = Math::BigFloat-&gt;new(&#39;0x123&#39;);            # from hexadecimal
+  $x = Math::BigFloat-&gt;new(&#39;0b101&#39;);            # from binary
+  $x = Math::BigFloat-&gt;from_hex(&#39;0xc.afep+3&#39;);  # from hex
+  $x = Math::BigFloat-&gt;from_hex(&#39;cafe&#39;);        # ditto
+  $x = Math::BigFloat-&gt;from_oct(&#39;1.3267p-4&#39;);   # from octal
+  $x = Math::BigFloat-&gt;from_oct(&#39;0377&#39;);        # ditto
+  $x = Math::BigFloat-&gt;from_bin(&#39;0b1.1001p-4&#39;); # from binary
+  $x = Math::BigFloat-&gt;from_bin(&#39;0101&#39;);        # ditto
+  $x = Math::BigFloat-&gt;bzero();                 # create a +0
+  $x = Math::BigFloat-&gt;bone();                  # create a +1
+  $x = Math::BigFloat-&gt;bone(&#39;-&#39;);               # create a -1
+  $x = Math::BigFloat-&gt;binf();                  # create a +inf
+  $x = Math::BigFloat-&gt;binf(&#39;-&#39;);               # create a -inf
+  $x = Math::BigFloat-&gt;bnan();                  # create a Not-A-Number
+  $x = Math::BigFloat-&gt;bpi();                   # returns pi
+
+  $y = $x-&gt;copy();        # make a copy (unlike $y = $x)
+  $y = $x-&gt;as_int();      # return as BigInt
+
+  # Boolean methods (these don&#39;t modify the invocand)
+
+  $x-&gt;is_zero();          # if $x is 0
+  $x-&gt;is_one();           # if $x is +1
+  $x-&gt;is_one(&quot;+&quot;);        # ditto
+  $x-&gt;is_one(&quot;-&quot;);        # if $x is -1
+  $x-&gt;is_inf();           # if $x is +inf or -inf
+  $x-&gt;is_inf(&quot;+&quot;);        # if $x is +inf
+  $x-&gt;is_inf(&quot;-&quot;);        # if $x is -inf
+  $x-&gt;is_nan();           # if $x is NaN
+
+  $x-&gt;is_positive();      # if $x &gt; 0
+  $x-&gt;is_pos();           # ditto
+  $x-&gt;is_negative();      # if $x &lt; 0
+  $x-&gt;is_neg();           # ditto
+
+  $x-&gt;is_odd();           # if $x is odd
+  $x-&gt;is_even();          # if $x is even
+  $x-&gt;is_int();           # if $x is an integer
+
+  # Comparison methods
+
+  $x-&gt;bcmp($y);           # compare numbers (undef, &lt; 0, == 0, &gt; 0)
+  $x-&gt;bacmp($y);          # compare absolutely (undef, &lt; 0, == 0, &gt; 0)
+  $x-&gt;beq($y);            # true if and only if $x == $y
+  $x-&gt;bne($y);            # true if and only if $x != $y
+  $x-&gt;blt($y);            # true if and only if $x &lt; $y
+  $x-&gt;ble($y);            # true if and only if $x &lt;= $y
+  $x-&gt;bgt($y);            # true if and only if $x &gt; $y
+  $x-&gt;bge($y);            # true if and only if $x &gt;= $y
+
+  # Arithmetic methods
+
+  $x-&gt;bneg();             # negation
+  $x-&gt;babs();             # absolute value
+  $x-&gt;bsgn();             # sign function (-1, 0, 1, or NaN)
+  $x-&gt;bnorm();            # normalize (no-op)
+  $x-&gt;binc();             # increment $x by 1
+  $x-&gt;bdec();             # decrement $x by 1
+  $x-&gt;badd($y);           # addition (add $y to $x)
+  $x-&gt;bsub($y);           # subtraction (subtract $y from $x)
+  $x-&gt;bmul($y);           # multiplication (multiply $x by $y)
+  $x-&gt;bmuladd($y,$z);     # $x = $x * $y + $z
+  $x-&gt;bdiv($y);           # division (floored), set $x to quotient
+                          # return (quo,rem) or quo if scalar
+  $x-&gt;btdiv($y);          # division (truncated), set $x to quotient
+                          # return (quo,rem) or quo if scalar
+  $x-&gt;bmod($y);           # modulus (x % y)
+  $x-&gt;btmod($y);          # modulus (truncated)
+  $x-&gt;bmodinv($mod);      # modular multiplicative inverse
+  $x-&gt;bmodpow($y,$mod);   # modular exponentiation (($x ** $y) % $mod)
+  $x-&gt;bpow($y);           # power of arguments (x ** y)
+  $x-&gt;blog();             # logarithm of $x to base e (Euler&#39;s number)
+  $x-&gt;blog($base);        # logarithm of $x to base $base (e.g., base 2)
+  $x-&gt;bexp();             # calculate e ** $x where e is Euler&#39;s number
+  $x-&gt;bnok($y);           # x over y (binomial coefficient n over k)
+  $x-&gt;bsin();             # sine
+  $x-&gt;bcos();             # cosine
+  $x-&gt;batan();            # inverse tangent
+  $x-&gt;batan2($y);         # two-argument inverse tangent
+  $x-&gt;bsqrt();            # calculate square-root
+  $x-&gt;broot($y);          # $y&#39;th root of $x (e.g. $y == 3 =&gt; cubic root)
+  $x-&gt;bfac();             # factorial of $x (1*2*3*4*..$x)
+
+  $x-&gt;blsft($n);          # left shift $n places in base 2
+  $x-&gt;blsft($n,$b);       # left shift $n places in base $b
+                          # returns (quo,rem) or quo (scalar context)
+  $x-&gt;brsft($n);          # right shift $n places in base 2
+  $x-&gt;brsft($n,$b);       # right shift $n places in base $b
+                          # returns (quo,rem) or quo (scalar context)
+
+  # Bitwise methods
+
+  $x-&gt;band($y);           # bitwise and
+  $x-&gt;bior($y);           # bitwise inclusive or
+  $x-&gt;bxor($y);           # bitwise exclusive or
+  $x-&gt;bnot();             # bitwise not (two&#39;s complement)
+
+  # Rounding methods
+  $x-&gt;round($A,$P,$mode); # round to accuracy or precision using
+                          # rounding mode $mode
+  $x-&gt;bround($n);         # accuracy: preserve $n digits
+  $x-&gt;bfround($n);        # $n &gt; 0: round to $nth digit left of dec. point
+                          # $n &lt; 0: round to $nth digit right of dec. point
+  $x-&gt;bfloor();           # round towards minus infinity
+  $x-&gt;bceil();            # round towards plus infinity
+  $x-&gt;bint();             # round towards zero
+
+  # Other mathematical methods
+
+  $x-&gt;bgcd($y);            # greatest common divisor
+  $x-&gt;blcm($y);            # least common multiple
+
+  # Object property methods (do not modify the invocand)
+
+  $x-&gt;sign();              # the sign, either +, - or NaN
+  $x-&gt;digit($n);           # the nth digit, counting from the right
+  $x-&gt;digit(-$n);          # the nth digit, counting from the left
+  $x-&gt;length();            # return number of digits in number
+  ($xl,$f) = $x-&gt;length(); # length of number and length of fraction
+                           # part, latter is always 0 digits long
+                           # for Math::BigInt objects
+  $x-&gt;mantissa();          # return (signed) mantissa as BigInt
+  $x-&gt;exponent();          # return exponent as BigInt
+  $x-&gt;parts();             # return (mantissa,exponent) as BigInt
+  $x-&gt;sparts();            # mantissa and exponent (as integers)
+  $x-&gt;nparts();            # mantissa and exponent (normalised)
+  $x-&gt;eparts();            # mantissa and exponent (engineering notation)
+  $x-&gt;dparts();            # integer and fraction part
+
+  # Conversion methods (do not modify the invocand)
+
+  $x-&gt;bstr();         # decimal notation, possibly zero padded
+  $x-&gt;bsstr();        # string in scientific notation with integers
+  $x-&gt;bnstr();        # string in normalized notation
+  $x-&gt;bestr();        # string in engineering notation
+  $x-&gt;bdstr();        # string in decimal notation
+  $x-&gt;as_hex();       # as signed hexadecimal string with prefixed 0x
+  $x-&gt;as_bin();       # as signed binary string with prefixed 0b
+  $x-&gt;as_oct();       # as signed octal string with prefixed 0
+
+  # Other conversion methods
+
+  $x-&gt;numify();           # return as scalar (might overflow or underflow)</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Math::BigFloat provides support for arbitrary precision floating point. Overloading is also provided for Perl operators.</p>
+
+<p>All operators (including basic math operations) are overloaded if you declare your big floating point numbers as</p>
+
+<pre><code>  $x = Math::BigFloat -&gt; new(&#39;12_3.456_789_123_456_789E-2&#39;);</code></pre>
+
+<p>Operations with overloaded operators preserve the arguments, which is exactly what you expect.</p>
+
+<h2 id="Input">Input</h2>
+
+<p>Input values to these routines may be any scalar number or string that looks like a number and represents a floating point number.</p>
+
+<ul>
+
+<li><p>Leading and trailing whitespace is ignored.</p>
+
+</li>
+<li><p>Leading and trailing zeros are ignored.</p>
+
+</li>
+<li><p>If the string has a &quot;0x&quot; prefix, it is interpreted as a hexadecimal number.</p>
+
+</li>
+<li><p>If the string has a &quot;0b&quot; prefix, it is interpreted as a binary number.</p>
+
+</li>
+<li><p>For hexadecimal and binary numbers, the exponent must be separated from the significand (mantissa) by the letter &quot;p&quot; or &quot;P&quot;, not &quot;e&quot; or &quot;E&quot; as with decimal numbers.</p>
+
+</li>
+<li><p>One underline is allowed between any two digits, including hexadecimal and binary digits.</p>
+
+</li>
+<li><p>If the string can not be interpreted, NaN is returned.</p>
+
+</li>
+</ul>
+
+<p>Octal numbers are typically prefixed by &quot;0&quot;, but since leading zeros are stripped, these methods can not automatically recognize octal numbers, so use the constructor from_oct() to interpret octal strings.</p>
+
+<p>Some examples of valid string input</p>
+
+<pre><code>    Input string                Resulting value
+    123                         123
+    1.23e2                      123
+    12300e-2                    123
+    0xcafe                      51966
+    0b1101                      13
+    67_538_754                  67538754
+    -4_5_6.7_8_9e+0_1_0         -4567890000000
+    0x1.921fb5p+1               3.14159262180328369140625e+0
+    0b1.1001p-4                 9.765625e-2</code></pre>
+
+<h2 id="Output">Output</h2>
+
+<p>Output values are usually Math::BigFloat objects.</p>
+
+<p>Boolean operators <code>is_zero()</code>, <code>is_one()</code>, <code>is_inf()</code>, etc. return true or false.</p>
+
+<p>Comparison operators <code>bcmp()</code> and <code>bacmp()</code>) return -1, 0, 1, or undef.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<p>Math::BigFloat supports all methods that Math::BigInt supports, except it calculates non-integer results when possible. Please see <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> for a full description of each method. Below are just the most important differences:</p>
+
+<h2 id="Configuration-methods">Configuration methods</h2>
+
+<dl>
+
+<dt id="accuracy">accuracy()</dt>
+<dd>
+
+<pre><code>    $x-&gt;accuracy(5);           # local for $x
+    CLASS-&gt;accuracy(5);        # global for all members of CLASS
+                               # Note: This also applies to new()!
+
+    $A = $x-&gt;accuracy();       # read out accuracy that affects $x
+    $A = CLASS-&gt;accuracy();    # read out global accuracy</code></pre>
+
+<p>Set or get the global or local accuracy, aka how many significant digits the results have. If you set a global accuracy, then this also applies to new()!</p>
+
+<p>Warning! The accuracy <i>sticks</i>, e.g. once you created a number under the influence of <code>CLASS-&gt;accuracy($A)</code>, all results from math operations with that number will also be rounded.</p>
+
+<p>In most cases, you should probably round the results explicitly using one of <a href="/cperl/lib/Math/BigInt.html#round">&quot;round()&quot; in Math::BigInt</a>, <a href="/cperl/lib/Math/BigInt.html#bround">&quot;bround()&quot; in Math::BigInt</a> or <a href="/cperl/lib/Math/BigInt.html#bfround">&quot;bfround()&quot; in Math::BigInt</a> or by passing the desired accuracy to the math operation as additional parameter:</p>
+
+<pre><code>    my $x = Math::BigInt-&gt;new(30000);
+    my $y = Math::BigInt-&gt;new(7);
+    print scalar $x-&gt;copy()-&gt;bdiv($y, 2);           # print 4300
+    print scalar $x-&gt;copy()-&gt;bdiv($y)-&gt;bround(2);   # print 4300</code></pre>
+
+</dd>
+<dt id="precision">precision()</dt>
+<dd>
+
+<pre><code>    $x-&gt;precision(-2);        # local for $x, round at the second
+                              # digit right of the dot
+    $x-&gt;precision(2);         # ditto, round at the second digit
+                              # left of the dot
+
+    CLASS-&gt;precision(5);      # Global for all members of CLASS
+                              # This also applies to new()!
+    CLASS-&gt;precision(-5);     # ditto
+
+    $P = CLASS-&gt;precision();  # read out global precision
+    $P = $x-&gt;precision();     # read out precision that affects $x</code></pre>
+
+<p>Note: You probably want to use <a href="#accuracy">&quot;accuracy()&quot;</a> instead. With <a href="#accuracy">&quot;accuracy()&quot;</a> you set the number of digits each result should have, with <a href="#precision">&quot;precision()&quot;</a> you set the place where to round!</p>
+
+</dd>
+</dl>
+
+<h2 id="Constructor-methods">Constructor methods</h2>
+
+<dl>
+
+<dt id="from_hex">from_hex()</dt>
+<dd>
+
+<pre><code>    $x -&gt; from_hex(&quot;0x1.921fb54442d18p+1&quot;);
+    $x = Math::BigFloat -&gt; from_hex(&quot;0x1.921fb54442d18p+1&quot;);</code></pre>
+
+<p>Interpret input as a hexadecimal string.A prefix (&quot;0x&quot;, &quot;x&quot;, ignoring case) is optional. A single underscore character (&quot;_&quot;) may be placed between any two digits. If the input is invalid, a NaN is returned. The exponent is in base 2 using decimal digits.</p>
+
+<p>If called as an instance method, the value is assigned to the invocand.</p>
+
+</dd>
+<dt id="from_oct">from_oct()</dt>
+<dd>
+
+<pre><code>    $x -&gt; from_oct(&quot;1.3267p-4&quot;);
+    $x = Math::BigFloat -&gt; from_oct(&quot;1.3267p-4&quot;);</code></pre>
+
+<p>Interpret input as an octal string. A single underscore character (&quot;_&quot;) may be placed between any two digits. If the input is invalid, a NaN is returned. The exponent is in base 2 using decimal digits.</p>
+
+<p>If called as an instance method, the value is assigned to the invocand.</p>
+
+</dd>
+<dt id="from_bin">from_bin()</dt>
+<dd>
+
+<pre><code>    $x -&gt; from_bin(&quot;0b1.1001p-4&quot;);
+    $x = Math::BigFloat -&gt; from_bin(&quot;0b1.1001p-4&quot;);</code></pre>
+
+<p>Interpret input as a hexadecimal string. A prefix (&quot;0b&quot; or &quot;b&quot;, ignoring case) is optional. A single underscore character (&quot;_&quot;) may be placed between any two digits. If the input is invalid, a NaN is returned. The exponent is in base 2 using decimal digits.</p>
+
+<p>If called as an instance method, the value is assigned to the invocand.</p>
+
+</dd>
+<dt id="bpi">bpi()</dt>
+<dd>
+
+<pre><code>    print Math::BigFloat-&gt;bpi(100), &quot;\n&quot;;</code></pre>
+
+<p>Calculate PI to N digits (including the 3 before the dot). The result is rounded according to the current rounding mode, which defaults to &quot;even&quot;.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+</dl>
+
+<h2 id="Arithmetic-methods">Arithmetic methods</h2>
+
+<dl>
+
+<dt id="bmuladd">bmuladd()</dt>
+<dd>
+
+<pre><code>    $x-&gt;bmuladd($y,$z);</code></pre>
+
+<p>Multiply $x by $y, and then add $z to the result.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+<dt id="bdiv">bdiv()</dt>
+<dd>
+
+<pre><code>    $q = $x-&gt;bdiv($y);
+    ($q, $r) = $x-&gt;bdiv($y);</code></pre>
+
+<p>In scalar context, divides $x by $y and returns the result to the given or default accuracy/precision. In list context, does floored division (F-division), returning an integer $q and a remainder $r so that $x = $q * $y + $r. The remainer (modulo) is equal to what is returned by <code>$x-</code>bmod($y)&gt;.</p>
+
+</dd>
+<dt id="bmod">bmod()</dt>
+<dd>
+
+<pre><code>    $x-&gt;bmod($y);</code></pre>
+
+<p>Returns $x modulo $y. When $x is finite, and $y is finite and non-zero, the result is identical to the remainder after floored division (F-division). If, in addition, both $x and $y are integers, the result is identical to the result from Perl&#39;s % operator.</p>
+
+</dd>
+<dt id="bexp">bexp()</dt>
+<dd>
+
+<pre><code>    $x-&gt;bexp($accuracy);            # calculate e ** X</code></pre>
+
+<p>Calculates the expression <code>e ** $x</code> where <code>e</code> is Euler&#39;s number.</p>
+
+<p>This method was added in v1.82 of Math::BigInt (April 2007).</p>
+
+</dd>
+<dt id="bnok">bnok()</dt>
+<dd>
+
+<pre><code>    $x-&gt;bnok($y);   # x over y (binomial coefficient n over k)</code></pre>
+
+<p>Calculates the binomial coefficient n over k, also called the &quot;choose&quot; function. The result is equivalent to:</p>
+
+<pre><code>    ( n )      n!
+    | - |  = -------
+    ( k )    k!(n-k)!</code></pre>
+
+<p>This method was added in v1.84 of Math::BigInt (April 2007).</p>
+
+</dd>
+<dt id="bsin">bsin()</dt>
+<dd>
+
+<pre><code>    my $x = Math::BigFloat-&gt;new(1);
+    print $x-&gt;bsin(100), &quot;\n&quot;;</code></pre>
+
+<p>Calculate the sinus of $x, modifying $x in place.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+<dt id="bcos">bcos()</dt>
+<dd>
+
+<pre><code>    my $x = Math::BigFloat-&gt;new(1);
+    print $x-&gt;bcos(100), &quot;\n&quot;;</code></pre>
+
+<p>Calculate the cosinus of $x, modifying $x in place.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+<dt id="batan">batan()</dt>
+<dd>
+
+<pre><code>    my $x = Math::BigFloat-&gt;new(1);
+    print $x-&gt;batan(100), &quot;\n&quot;;</code></pre>
+
+<p>Calculate the arcus tanges of $x, modifying $x in place. See also <a href="#batan2">&quot;batan2()&quot;</a>.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+<dt id="batan2">batan2()</dt>
+<dd>
+
+<pre><code>    my $y = Math::BigFloat-&gt;new(2);
+    my $x = Math::BigFloat-&gt;new(3);
+    print $y-&gt;batan2($x), &quot;\n&quot;;</code></pre>
+
+<p>Calculate the arcus tanges of <code>$y</code> divided by <code>$x</code>, modifying $y in place. See also <a href="#batan">&quot;batan()&quot;</a>.</p>
+
+<p>This method was added in v1.87 of Math::BigInt (June 2007).</p>
+
+</dd>
+<dt id="as_float">as_float()</dt>
+<dd>
+
+<p>This method is called when Math::BigFloat encounters an object it doesn&#39;t know how to handle. For instance, assume $x is a Math::BigFloat, or subclass thereof, and $y is defined, but not a Math::BigFloat, or subclass thereof. If you do</p>
+
+<pre><code>    $x -&gt; badd($y);</code></pre>
+
+<p>$y needs to be converted into an object that $x can deal with. This is done by first checking if $y is something that $x might be upgraded to. If that is the case, no further attempts are made. The next is to see if $y supports the method <code>as_float()</code>. The method <code>as_float()</code> is expected to return either an object that has the same class as $x, a subclass thereof, or a string that <code>ref($x)-&gt;new()</code> can parse to create an object.</p>
+
+<p>In Math::BigFloat, <code>as_float()</code> has the same effect as <code>copy()</code>.</p>
+
+</dd>
+</dl>
+
+<h2 id="ACCURACY-AND-PRECISION">ACCURACY AND PRECISION</h2>
+
+<p>See also: <a href="#Rounding">Rounding</a>.</p>
+
+<p>Math::BigFloat supports both precision (rounding to a certain place before or after the dot) and accuracy (rounding to a certain number of digits). For a full documentation, examples and tips on these topics please see the large section about rounding in <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a>.</p>
+
+<p>Since things like <code>sqrt(2)</code> or <code>1 / 3</code> must presented with a limited accuracy lest a operation consumes all resources, each operation produces no more than the requested number of digits.</p>
+
+<p>If there is no global precision or accuracy set, <b>and</b> the operation in question was not called with a requested precision or accuracy, <b>and</b> the input $x has no accuracy or precision set, then a fallback parameter will be used. For historical reasons, it is called <code>div_scale</code> and can be accessed via:</p>
+
+<pre><code>    $d = Math::BigFloat-&gt;div_scale();       # query
+    Math::BigFloat-&gt;div_scale($n);          # set to $n digits</code></pre>
+
+<p>The default value for <code>div_scale</code> is 40.</p>
+
+<p>In case the result of one operation has more digits than specified, it is rounded. The rounding mode taken is either the default mode, or the one supplied to the operation after the <i>scale</i>:</p>
+
+<pre><code>    $x = Math::BigFloat-&gt;new(2);
+    Math::BigFloat-&gt;accuracy(5);              # 5 digits max
+    $y = $x-&gt;copy()-&gt;bdiv(3);                 # gives 0.66667
+    $y = $x-&gt;copy()-&gt;bdiv(3,6);               # gives 0.666667
+    $y = $x-&gt;copy()-&gt;bdiv(3,6,undef,&#39;odd&#39;);   # gives 0.666667
+    Math::BigFloat-&gt;round_mode(&#39;zero&#39;);
+    $y = $x-&gt;copy()-&gt;bdiv(3,6);               # will also give 0.666667</code></pre>
+
+<p>Note that <code>Math::BigFloat-&gt;accuracy()</code> and <code>Math::BigFloat-&gt;precision()</code> set the global variables, and thus <b>any</b> newly created number will be subject to the global rounding <b>immediately</b>. This means that in the examples above, the <code>3</code> as argument to <code>bdiv()</code> will also get an accuracy of <b>5</b>.</p>
+
+<p>It is less confusing to either calculate the result fully, and afterwards round it explicitly, or use the additional parameters to the math functions like so:</p>
+
+<pre><code>    use Math::BigFloat;
+    $x = Math::BigFloat-&gt;new(2);
+    $y = $x-&gt;copy()-&gt;bdiv(3);
+    print $y-&gt;bround(5),&quot;\n&quot;;               # gives 0.66667
+
+    or
+
+    use Math::BigFloat;
+    $x = Math::BigFloat-&gt;new(2);
+    $y = $x-&gt;copy()-&gt;bdiv(3,5);             # gives 0.66667
+    print &quot;$y\n&quot;;</code></pre>
+
+<h2 id="Rounding">Rounding</h2>
+
+<dl>
+
+<dt id="bfround-scale">bfround ( +$scale )</dt>
+<dd>
+
+<p>Rounds to the $scale&#39;th place left from the &#39;.&#39;, counting from the dot. The first digit is numbered 1.</p>
+
+</dd>
+<dt id="bfround---scale">bfround ( -$scale )</dt>
+<dd>
+
+<p>Rounds to the $scale&#39;th place right from the &#39;.&#39;, counting from the dot.</p>
+
+</dd>
+<dt id="bfround-0">bfround ( 0 )</dt>
+<dd>
+
+<p>Rounds to an integer.</p>
+
+</dd>
+<dt id="bround-scale">bround ( +$scale )</dt>
+<dd>
+
+<p>Preserves accuracy to $scale digits from the left (aka significant digits) and pads the rest with zeros. If the number is between 1 and -1, the significant digits count from the first non-zero after the &#39;.&#39;</p>
+
+</dd>
+<dt id="bround---scale-and-bround-0">bround ( -$scale ) and bround ( 0 )</dt>
+<dd>
+
+<p>These are effectively no-ops.</p>
+
+</dd>
+</dl>
+
+<p>All rounding functions take as a second parameter a rounding mode from one of the following: &#39;even&#39;, &#39;odd&#39;, &#39;+inf&#39;, &#39;-inf&#39;, &#39;zero&#39;, &#39;trunc&#39; or &#39;common&#39;.</p>
+
+<p>The default rounding mode is &#39;even&#39;. By using <code>Math::BigFloat-&gt;round_mode($round_mode);</code> you can get and set the default mode for subsequent rounding. The usage of <code>$Math::BigFloat::$round_mode</code> is no longer supported. The second parameter to the round functions then overrides the default temporarily.</p>
+
+<p>The <code>as_number()</code> function returns a BigInt from a Math::BigFloat. It uses &#39;trunc&#39; as rounding mode to make it equivalent to:</p>
+
+<pre><code>    $x = 2.5;
+    $y = int($x) + 2;</code></pre>
+
+<p>You can override this by passing the desired rounding mode as parameter to <code>as_number()</code>:</p>
+
+<pre><code>    $x = Math::BigFloat-&gt;new(2.5);
+    $y = $x-&gt;as_number(&#39;odd&#39;);      # $y = 3</code></pre>
+
+<h1 id="Autocreating-constants">Autocreating constants</h1>
+
+<p>After <code>use Math::BigFloat &#39;:constant&#39;</code> all the floating point constants in the given scope are converted to <code>Math::BigFloat</code>. This conversion happens at compile time.</p>
+
+<p>In particular</p>
+
+<pre><code>    perl -MMath::BigFloat=:constant -e &#39;print 2E-100,&quot;\n&quot;&#39;</code></pre>
+
+<p>prints the value of <code>2E-100</code>. Note that without conversion of constants the expression 2E-100 will be calculated as normal floating point number.</p>
+
+<p>Please note that &#39;:constant&#39; does not affect integer constants, nor binary nor hexadecimal constants. Use <a href="/cperl/lib/bignum.html">bignum</a> or <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> to get this to work.</p>
+
+<h2 id="Math-library">Math library</h2>
+
+<p>Math with the numbers is done (by default) by a module called Math::BigInt::Calc. This is equivalent to saying:</p>
+
+<pre><code>    use Math::BigFloat lib =&gt; &#39;Calc&#39;;</code></pre>
+
+<p>You can change this by using:</p>
+
+<pre><code>    use Math::BigFloat lib =&gt; &#39;GMP&#39;;</code></pre>
+
+<p><b>Note</b>: General purpose packages should not be explicit about the library to use; let the script author decide which is best.</p>
+
+<p>Note: The keyword &#39;lib&#39; will warn when the requested library could not be loaded. To suppress the warning use &#39;try&#39; instead:</p>
+
+<pre><code>    use Math::BigFloat try =&gt; &#39;GMP&#39;;</code></pre>
+
+<p>If your script works with huge numbers and Calc is too slow for them, you can also for the loading of one of these libraries and if none of them can be used, the code will die:</p>
+
+<pre><code>    use Math::BigFloat only =&gt; &#39;GMP,Pari&#39;;</code></pre>
+
+<p>The following would first try to find Math::BigInt::Foo, then Math::BigInt::Bar, and when this also fails, revert to Math::BigInt::Calc:</p>
+
+<pre><code>    use Math::BigFloat lib =&gt; &#39;Foo,Math::BigInt::Bar&#39;;</code></pre>
+
+<p>See the respective low-level library documentation for further details.</p>
+
+<p>Please note that Math::BigFloat does <b>not</b> use the denoted library itself, but it merely passes the lib argument to Math::BigInt. So, instead of the need to do:</p>
+
+<pre><code>    use Math::BigInt lib =&gt; &#39;GMP&#39;;
+    use Math::BigFloat;</code></pre>
+
+<p>you can roll it all into one line:</p>
+
+<pre><code>    use Math::BigFloat lib =&gt; &#39;GMP&#39;;</code></pre>
+
+<p>It is also possible to just require Math::BigFloat:</p>
+
+<pre><code>    require Math::BigFloat;</code></pre>
+
+<p>This will load the necessary things (like BigInt) when they are needed, and automatically.</p>
+
+<p>See <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> for more details than you ever wanted to know about using a different low-level library.</p>
+
+<h2 id="Using-Math::BigInt::Lite">Using Math::BigInt::Lite</h2>
+
+<p>For backwards compatibility reasons it is still possible to request a different storage class for use with Math::BigFloat:</p>
+
+<pre><code>    use Math::BigFloat with =&gt; &#39;Math::BigInt::Lite&#39;;</code></pre>
+
+<p>However, this request is ignored, as the current code now uses the low-level math library for directly storing the number parts.</p>
+
+<h1 id="EXPORTS">EXPORTS</h1>
+
+<p><code>Math::BigFloat</code> exports nothing by default, but can export the <code>bpi()</code> method:</p>
+
+<pre><code>    use Math::BigFloat qw/bpi/;
+
+    print bpi(10), &quot;\n&quot;;</code></pre>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>Do not try to be clever to insert some operations in between switching libraries:</p>
+
+<pre><code>    require Math::BigFloat;
+    my $matter = Math::BigFloat-&gt;bone() + 4;    # load BigInt and Calc
+    Math::BigFloat-&gt;import( lib =&gt; &#39;Pari&#39; );    # load Pari, too
+    my $anti_matter = Math::BigFloat-&gt;bone()+4; # now use Pari</code></pre>
+
+<p>This will create objects with numbers stored in two different backend libraries, and <b>VERY BAD THINGS</b> will happen when you use these together:</p>
+
+<pre><code>    my $flash_and_bang = $matter + $anti_matter;    # Don&#39;t do this!</code></pre>
+
+<dl>
+
+<dt id="stringify-bstr">stringify, bstr()</dt>
+<dd>
+
+<p>Both stringify and bstr() now drop the leading &#39;+&#39;. The old code would return &#39;+1.23&#39;, the new returns &#39;1.23&#39;. See the documentation in <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> for reasoning and details.</p>
+
+</dd>
+<dt id="brsft">brsft()</dt>
+<dd>
+
+<p>The following will probably not print what you expect:</p>
+
+<pre><code>    my $c = Math::BigFloat-&gt;new(&#39;3.14159&#39;);
+    print $c-&gt;brsft(3,10),&quot;\n&quot;;     # prints 0.00314153.1415</code></pre>
+
+<p>It prints both quotient and remainder, since print calls <code>brsft()</code> in list context. Also, <code>$c-&gt;brsft()</code> will modify $c, so be careful. You probably want to use</p>
+
+<pre><code>    print scalar $c-&gt;copy()-&gt;brsft(3,10),&quot;\n&quot;;
+    # or if you really want to modify $c
+    print scalar $c-&gt;brsft(3,10),&quot;\n&quot;;</code></pre>
+
+<p>instead.</p>
+
+</dd>
+<dt id="Modifying-and">Modifying and =</dt>
+<dd>
+
+<p>Beware of:</p>
+
+<pre><code>    $x = Math::BigFloat-&gt;new(5);
+    $y = $x;</code></pre>
+
+<p>It will not do what you think, e.g. making a copy of $x. Instead it just makes a second reference to the <b>same</b> object and stores it in $y. Thus anything that modifies $x will modify $y (except overloaded math operators), and vice versa. See <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> for details and how to avoid that.</p>
+
+</dd>
+<dt id="precision-vs.-accuracy">precision() vs. accuracy()</dt>
+<dd>
+
+<p>A common pitfall is to use <a href="#precision">&quot;precision()&quot;</a> when you want to round a result to a certain number of digits:</p>
+
+<pre><code>    use Math::BigFloat;
+
+    Math::BigFloat-&gt;precision(4);           # does not do what you
+                                            # think it does
+    my $x = Math::BigFloat-&gt;new(12345);     # rounds $x to &quot;12000&quot;!
+    print &quot;$x\n&quot;;                           # print &quot;12000&quot;
+    my $y = Math::BigFloat-&gt;new(3);         # rounds $y to &quot;0&quot;!
+    print &quot;$y\n&quot;;                           # print &quot;0&quot;
+    $z = $x / $y;                           # 12000 / 0 =&gt; NaN!
+    print &quot;$z\n&quot;;
+    print $z-&gt;precision(),&quot;\n&quot;;             # 4</code></pre>
+
+<p>Replacing <a href="#precision">&quot;precision()&quot;</a> with <a href="#accuracy">&quot;accuracy()&quot;</a> is probably not what you want, either:</p>
+
+<pre><code>    use Math::BigFloat;
+
+    Math::BigFloat-&gt;accuracy(4);          # enables global rounding:
+    my $x = Math::BigFloat-&gt;new(123456);  # rounded immediately
+                                          #   to &quot;12350&quot;
+    print &quot;$x\n&quot;;                         # print &quot;123500&quot;
+    my $y = Math::BigFloat-&gt;new(3);       # rounded to &quot;3
+    print &quot;$y\n&quot;;                         # print &quot;3&quot;
+    print $z = $x-&gt;copy()-&gt;bdiv($y),&quot;\n&quot;; # 41170
+    print $z-&gt;accuracy(),&quot;\n&quot;;            # 4</code></pre>
+
+<p>What you want to use instead is:</p>
+
+<pre><code>    use Math::BigFloat;
+
+    my $x = Math::BigFloat-&gt;new(123456);    # no rounding
+    print &quot;$x\n&quot;;                           # print &quot;123456&quot;
+    my $y = Math::BigFloat-&gt;new(3);         # no rounding
+    print &quot;$y\n&quot;;                           # print &quot;3&quot;
+    print $z = $x-&gt;copy()-&gt;bdiv($y,4),&quot;\n&quot;; # 41150
+    print $z-&gt;accuracy(),&quot;\n&quot;;              # undef</code></pre>
+
+<p>In addition to computing what you expected, the last example also does <b>not</b> &quot;taint&quot; the result with an accuracy or precision setting, which would influence any further operation.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please report any bugs or feature requests to <code>bug-math-bigint at rt.cpan.org</code>, or through the web interface at <a href="https://rt.cpan.org/Ticket/Create.html?Queue=Math-BigInt">https://rt.cpan.org/Ticket/Create.html?Queue=Math-BigInt</a> (requires login). We will be notified, and then you&#39;ll automatically be notified of progress on your bug as I make changes.</p>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>You can find documentation for this module with the perldoc command.</p>
+
+<pre><code>    perldoc Math::BigFloat</code></pre>
+
+<p>You can also look for information at:</p>
+
+<ul>
+
+<li><p>RT: CPAN&#39;s request tracker</p>
+
+<p><a href="https://rt.cpan.org/Public/Dist/Display.html?Name=Math-BigInt">https://rt.cpan.org/Public/Dist/Display.html?Name=Math-BigInt</a></p>
+
+</li>
+<li><p>AnnoCPAN: Annotated CPAN documentation</p>
+
+<p><a href="http://annocpan.org/dist/Math-BigInt">http://annocpan.org/dist/Math-BigInt</a></p>
+
+</li>
+<li><p>CPAN Ratings</p>
+
+<p><a href="http://cpanratings.perl.org/dist/Math-BigInt">http://cpanratings.perl.org/dist/Math-BigInt</a></p>
+
+</li>
+<li><p>Search CPAN</p>
+
+<p><a href="http://search.cpan.org/dist/Math-BigInt/">http://search.cpan.org/dist/Math-BigInt/</a></p>
+
+</li>
+<li><p>CPAN Testers Matrix</p>
+
+<p><a href="http://matrix.cpantesters.org/?dist=Math-BigInt">http://matrix.cpantesters.org/?dist=Math-BigInt</a></p>
+
+</li>
+<li><p>The Bignum mailing list</p>
+
+<ul>
+
+<li><p>Post to mailing list</p>
+
+<p><code>bignum at lists.scsys.co.uk</code></p>
+
+</li>
+<li><p>View mailing list</p>
+
+<p><a href="http://lists.scsys.co.uk/pipermail/bignum/">http://lists.scsys.co.uk/pipermail/bignum/</a></p>
+
+</li>
+<li><p>Subscribe/Unsubscribe</p>
+
+<p><a href="http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/bignum">http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/bignum</a></p>
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you may redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Math/BigFloat.html">Math::BigFloat</a> and <a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> as well as the backends <a href="/cperl/lib/Math/BigInt/FastCalc.html">Math::BigInt::FastCalc</a>, <a>Math::BigInt::GMP</a>, and <a>Math::BigInt::Pari</a>.</p>
+
+<p>The pragmas <a href="/cperl/lib/bignum.html">bignum</a>, <a href="/cperl/lib/bigint.html">bigint</a> and <a href="/cperl/lib/bigrat.html">bigrat</a> also might be of interest because they solve the autoupgrading/downgrading issue, at least partly.</p>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<ul>
+
+<li><p>Mark Biggar, overloaded interface by Ilya Zakharevich, 1996-2001.</p>
+
+</li>
+<li><p>Completely rewritten by Tels <a href="http://bloodgate.com">http://bloodgate.com</a> in 2001-2008.</p>
+
+</li>
+<li><p>Florian Ragwitz &lt;flora@cpan.org&gt;, 2010.</p>
+
+</li>
+<li><p>Peter John Acklam &lt;pjacklam@online.no&gt;, 2011-.</p>
+
+</li>
+</ul>
+
+
+</body>
+
+</html>
+
+

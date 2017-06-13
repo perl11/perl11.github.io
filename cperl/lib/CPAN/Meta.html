@@ -1,0 +1,460 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#new">new</a></li>
+      <li><a href="#create">create</a></li>
+      <li><a href="#load_file">load_file</a></li>
+      <li><a href="#load_yaml_string">load_yaml_string</a></li>
+      <li><a href="#load_json_string">load_json_string</a></li>
+      <li><a href="#load_string">load_string</a></li>
+      <li><a href="#save">save</a></li>
+      <li><a href="#meta_spec_version">meta_spec_version</a></li>
+      <li><a href="#effective_prereqs">effective_prereqs</a></li>
+      <li><a href="#should_index_file">should_index_file</a></li>
+      <li><a href="#should_index_package">should_index_package</a></li>
+      <li><a href="#features">features</a></li>
+      <li><a href="#feature">feature</a></li>
+      <li><a href="#as_struct">as_struct</a></li>
+      <li><a href="#as_string">as_string</a></li>
+    </ul>
+  </li>
+  <li><a href="#STRING-DATA">STRING DATA</a></li>
+  <li><a href="#LIST-DATA">LIST DATA</a></li>
+  <li><a href="#MAP-DATA">MAP DATA</a></li>
+  <li><a href="#CUSTOM-DATA">CUSTOM DATA</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a>
+    <ul>
+      <li><a href="#Bugs-Feature-Requests">Bugs / Feature Requests</a></li>
+      <li><a href="#Source-Code">Source Code</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHORS">AUTHORS</a></li>
+  <li><a href="#CONTRIBUTORS">CONTRIBUTORS</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>CPAN::Meta - the distribution metadata for a CPAN dist</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>version 2.150010c</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use v5.10;
+    use strict;
+    use warnings;
+    use CPAN::Meta;
+    use Module::Load;
+
+    my $meta = CPAN::Meta-&gt;load_file(&#39;META.json&#39;);
+
+    printf &quot;testing requirements for %s version %s\n&quot;,
+    $meta-&gt;name,
+    $meta-&gt;version;
+
+    my $prereqs = $meta-&gt;effective_prereqs;
+
+    for my $phase ( qw/configure runtime build test/ ) {
+        say &quot;Requirements for $phase:&quot;;
+        my $reqs = $prereqs-&gt;requirements_for($phase, &quot;requires&quot;);
+        for my $module ( sort $reqs-&gt;required_modules ) {
+            my $status;
+            if ( eval { load $module unless $module eq &#39;perl&#39;; 1 } ) {
+                my $version = $module eq &#39;perl&#39; ? $] : $module-&gt;VERSION;
+                $status = $reqs-&gt;accepts_module($module, $version)
+                        ? &quot;$version ok&quot; : &quot;$version not ok&quot;;
+            } else {
+                $status = &quot;missing&quot;
+            };
+            say &quot;  $module ($status)&quot;;
+        }
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Software distributions released to the CPAN include a <i>META.json</i> or, for older distributions, <i>META.yml</i>, which describes the distribution, its contents, and the requirements for building and installing the distribution. The data structure stored in the <i>META.json</i> file is described in <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a>.</p>
+
+<p>CPAN::Meta provides a simple class to represent this distribution metadata (or <i>distmeta</i>), along with some helpful methods for interrogating that data.</p>
+
+<p>The documentation below is only for the methods of the CPAN::Meta object. For information on the meaning of individual fields, consult the spec.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="new">new</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;new($distmeta_struct, \%options);</code></pre>
+
+<p>Returns a valid CPAN::Meta object or dies if the supplied metadata hash reference fails to validate. Older-format metadata will be up-converted to version 2 if they validate against the original stated specification.</p>
+
+<p>It takes an optional hashref of options. Valid options include:</p>
+
+<ul>
+
+<li><p>lazy_validation -- if true, new will attempt to convert the given metadata to version 2 before attempting to validate it. This means than any fixable errors will be handled by CPAN::Meta::Converter before validation. (Note that this might result in invalid optional data being silently dropped.) The default is false.</p>
+
+</li>
+</ul>
+
+<h2 id="create">create</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;create($distmeta_struct, \%options);</code></pre>
+
+<p>This is same as <code>new()</code>, except that <code>generated_by</code> and <code>meta-spec</code> fields will be generated if not provided. This means the metadata structure is assumed to otherwise follow the latest <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a>.</p>
+
+<h2 id="load_file">load_file</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;load_file($distmeta_file, \%options);</code></pre>
+
+<p>Given a pathname to a file containing metadata, this deserializes the file according to its file suffix and constructs a new <code>CPAN::Meta</code> object, just like <code>new()</code>. It will die if the deserialized version fails to validate against its stated specification version.</p>
+
+<p>It takes the same options as <code>new()</code> but <code>lazy_validation</code> defaults to true.</p>
+
+<h2 id="load_yaml_string">load_yaml_string</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;load_yaml_string($yaml, \%options);</code></pre>
+
+<p>This method returns a new CPAN::Meta object using the first document in the given YAML string. In other respects it is identical to <code>load_file()</code>.</p>
+
+<h2 id="load_json_string">load_json_string</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;load_json_string($json, \%options);</code></pre>
+
+<p>This method returns a new CPAN::Meta object using the structure represented by the given JSON string. In other respects it is identical to <code>load_file()</code>.</p>
+
+<h2 id="load_string">load_string</h2>
+
+<pre><code>  my $meta = CPAN::Meta-&gt;load_string($string, \%options);</code></pre>
+
+<p>If you don&#39;t know if a string contains YAML or JSON, this method will use <a href="/cperl/lib/Parse/CPAN/Meta.html">Parse::CPAN::Meta</a> to guess. In other respects it is identical to <code>load_file()</code>.</p>
+
+<h2 id="save">save</h2>
+
+<pre><code>  $meta-&gt;save($distmeta_file, \%options);</code></pre>
+
+<p>Serializes the object as JSON and writes it to the given file. The only valid option is <code>version</code>, which defaults to &#39;2&#39;. On Perl 5.8.1 or later, the file is saved with UTF-8 encoding.</p>
+
+<p>For <code>version</code> 2 (or higher), the filename should end in &#39;.json&#39;. <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> is the default JSON backend. Using another JSON backend requires <a>JSON</a> 2.5 or later and you must set the <code>$ENV{PERL_JSON_BACKEND}</code> to a supported alternate backend like <a>JSON</a>, <a>JSON::MaybeXS</a>, <a>JSON::Any</a>, <a href="/cperl/lib/Cpanel/JSON/XS.html">JSON::XS</a>.</p>
+
+<p>For <code>version</code> less than 2, the filename should end in &#39;.yml&#39;. <a href="/cperl/lib/CPAN/Meta/Converter.html">CPAN::Meta::Converter</a> is used to generate an older metadata structure, which is serialized to YAML. <a href="/cperl/lib/YAML/XS.html">YAML::XS</a> is the default YAML backend. You may set the <code>$ENV{PERL_YAML_BACKEND}</code> to a supported alternative backend. <a href="/cperl/lib/CPAN/Meta/YAML.html">YAML</a> has severe limitations, <a href="/cperl/lib/YAML/XS.html">YAML::XS</a> is as strict as <a href="/cperl/lib/CPAN/Meta/YAML.html">YAML</a>, which makes it failing fixable yaml data tests. <a>YAML::Syck</a> is fast and passes all the tests, but doesn&#39;t implement the latest YAML 1.2 specification. <a>YAML::Tiny</a> passes all tests, but is slow. <a href="/cperl/lib/CPAN/Meta/YAML.html">CPAN::Meta::YAML</a> the default parser in perl5 core is based on YAML::Tiny.</p>
+
+<h2 id="meta_spec_version">meta_spec_version</h2>
+
+<p>This method returns the version part of the <code>meta_spec</code> entry in the distmeta structure. It is equivalent to:</p>
+
+<pre><code>  $meta-&gt;meta_spec-&gt;{version};</code></pre>
+
+<h2 id="effective_prereqs">effective_prereqs</h2>
+
+<pre><code>  my $prereqs = $meta-&gt;effective_prereqs;
+
+  my $prereqs = $meta-&gt;effective_prereqs( \@feature_identifiers );</code></pre>
+
+<p>This method returns a <a href="/cperl/lib/CPAN/Meta/Prereqs.html">CPAN::Meta::Prereqs</a> object describing all the prereqs for the distribution. If an arrayref of feature identifiers is given, the prereqs for the identified features are merged together with the distribution&#39;s core prereqs before the <code>CPAN::Meta::Prereqs</code> object is returned.</p>
+
+<h2 id="should_index_file">should_index_file</h2>
+
+<pre><code>  ... if $meta-&gt;should_index_file( $filename );</code></pre>
+
+<p>This method returns true if the given file should be indexed. It decides this by checking the <code>file</code> and <code>directory</code> keys in the <code>no_index</code> property of the distmeta structure. Note that neither the version format nor <code>release_status</code> are considered.</p>
+
+<p><code>$filename</code> should be given in unix format.</p>
+
+<h2 id="should_index_package">should_index_package</h2>
+
+<pre><code>  ... if $meta-&gt;should_index_package( $package );</code></pre>
+
+<p>This method returns true if the given package should be indexed. It decides this by checking the <code>package</code> and <code>namespace</code> keys in the <code>no_index</code> property of the distmeta structure. Note that neither the version format nor <code>release_status</code> are considered.</p>
+
+<h2 id="features">features</h2>
+
+<pre><code>  my @feature_objects = $meta-&gt;features;</code></pre>
+
+<p>This method returns a list of <a href="/cperl/lib/CPAN/Meta/Feature.html">CPAN::Meta::Feature</a> objects, one for each optional feature described by the distribution&#39;s metadata.</p>
+
+<h2 id="feature">feature</h2>
+
+<pre><code>  my $feature_object = $meta-&gt;feature( $identifier );</code></pre>
+
+<p>This method returns a <a href="/cperl/lib/CPAN/Meta/Feature.html">CPAN::Meta::Feature</a> object for the optional feature with the given identifier. If no feature with that identifier exists, an exception will be raised.</p>
+
+<h2 id="as_struct">as_struct</h2>
+
+<pre><code>  my $copy = $meta-&gt;as_struct( \%options );</code></pre>
+
+<p>This method returns a deep copy of the object&#39;s metadata as an unblessed hash reference. It takes an optional hashref of options. If the hashref contains a <code>version</code> argument, the copied metadata will be converted to the version of the specification and returned. For example:</p>
+
+<pre><code>  my $old_spec = $meta-&gt;as_struct( {version =&gt; &quot;1.4&quot;} );</code></pre>
+
+<h2 id="as_string">as_string</h2>
+
+<pre><code>  my $string = $meta-&gt;as_string( \%options );</code></pre>
+
+<p>This method returns a serialized copy of the object&#39;s metadata as a character string. (The strings are <b>not</b> UTF-8 encoded.) It takes an optional hashref of options. If the hashref contains a <code>version</code> argument, the copied metadata will be converted to the version of the specification and returned. For example:</p>
+
+<pre><code>  my $string = $meta-&gt;as_string( {version =&gt; &quot;1.4&quot;} );</code></pre>
+
+<p>For <code>version</code> greater than or equal to 2, the string will be serialized as JSON. For <code>version</code> less than 2, the string will be serialized as YAML. In both cases, the same rules are followed as in the <code>save()</code> method for choosing a serialization backend.</p>
+
+<p>The serialized structure will include a <code>x_serialization_backend</code> entry giving the package and version used to serialize. Any existing key in the given <code>$meta</code> object will be clobbered.</p>
+
+<h1 id="STRING-DATA">STRING DATA</h1>
+
+<p>The following methods return a single value, which is the value for the corresponding entry in the distmeta structure. Values should be either undef or strings.</p>
+
+<ul>
+
+<li><p>abstract</p>
+
+</li>
+<li><p>description</p>
+
+</li>
+<li><p>dynamic_config</p>
+
+</li>
+<li><p>generated_by</p>
+
+</li>
+<li><p>name</p>
+
+</li>
+<li><p>release_status</p>
+
+</li>
+<li><p>version</p>
+
+</li>
+</ul>
+
+<h1 id="LIST-DATA">LIST DATA</h1>
+
+<p>These methods return lists of string values, which might be represented in the distmeta structure as arrayrefs or scalars:</p>
+
+<ul>
+
+<li><p>authors</p>
+
+</li>
+<li><p>keywords</p>
+
+</li>
+<li><p>licenses</p>
+
+</li>
+</ul>
+
+<p>The <code>authors</code> and <code>licenses</code> methods may also be called as <code>author</code> and <code>license</code>, respectively, to match the field name in the distmeta structure.</p>
+
+<h1 id="MAP-DATA">MAP DATA</h1>
+
+<p>These readers return hashrefs of arbitrary unblessed data structures, each described more fully in the specification:</p>
+
+<ul>
+
+<li><p>meta_spec</p>
+
+</li>
+<li><p>resources</p>
+
+</li>
+<li><p>provides</p>
+
+</li>
+<li><p>no_index</p>
+
+</li>
+<li><p>prereqs</p>
+
+</li>
+<li><p>optional_features</p>
+
+</li>
+</ul>
+
+<h1 id="CUSTOM-DATA">CUSTOM DATA</h1>
+
+<p>A list of custom keys are available from the <code>custom_keys</code> method and particular keys may be retrieved with the <code>custom</code> method.</p>
+
+<pre><code>  say $meta-&gt;custom($_) for $meta-&gt;custom_keys;</code></pre>
+
+<p>If a custom key refers to a data structure, a deep clone is returned.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please report any bugs or feature using the CPAN Request Tracker. Bugs can be submitted through the web interface at <a href="http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Meta">http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Meta</a></p>
+
+<p>When submitting a bug or request, please include a test-file or a patch to an existing test-file that illustrates the bug or desired feature.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<ul>
+
+<li><p><a href="/cperl/lib/CPAN/Meta/Converter.html">CPAN::Meta::Converter</a></p>
+
+</li>
+<li><p><a href="/cperl/lib/CPAN/Meta/Validator.html">CPAN::Meta::Validator</a></p>
+
+</li>
+</ul>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<h2 id="Bugs-Feature-Requests">Bugs / Feature Requests</h2>
+
+<p>Please report any bugs or feature requests through the issue tracker at <a href="https://github.com/Perl-Toolchain-Gang/CPAN-Meta/issues">https://github.com/Perl-Toolchain-Gang/CPAN-Meta/issues</a>. You will be notified automatically of any progress on your issue.</p>
+
+<h2 id="Source-Code">Source Code</h2>
+
+<p>This is open source software. The code repository is available for public review and contribution under the terms of the license.</p>
+
+<p><a href="https://github.com/Perl-Toolchain-Gang/CPAN-Meta">https://github.com/Perl-Toolchain-Gang/CPAN-Meta</a></p>
+
+<pre><code>  git clone https://github.com/Perl-Toolchain-Gang/CPAN-Meta.git</code></pre>
+
+<h1 id="AUTHORS">AUTHORS</h1>
+
+<ul>
+
+<li><p>David Golden &lt;dagolden@cpan.org&gt;</p>
+
+</li>
+<li><p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p>
+
+</li>
+<li><p>Adam Kennedy &lt;adamk@cpan.org&gt;</p>
+
+</li>
+</ul>
+
+<h1 id="CONTRIBUTORS">CONTRIBUTORS</h1>
+
+<ul>
+
+<li><p>Ansgar Burchardt &lt;ansgar@cpan.org&gt;</p>
+
+</li>
+<li><p>Avar Arnfjord Bjarmason &lt;avar@cpan.org&gt;</p>
+
+</li>
+<li><p>Benjamin Noggle &lt;agwind@users.noreply.github.com&gt;</p>
+
+</li>
+<li><p>Christopher J. Madsen &lt;cjm@cpan.org&gt;</p>
+
+</li>
+<li><p>Chuck Adams &lt;cja987@gmail.com&gt;</p>
+
+</li>
+<li><p>Cory G Watson &lt;gphat@cpan.org&gt;</p>
+
+</li>
+<li><p>Damyan Ivanov &lt;dam@cpan.org&gt;</p>
+
+</li>
+<li><p>David Golden &lt;xdg@xdg.me&gt;</p>
+
+</li>
+<li><p>Eric Wilhelm &lt;ewilhelm@cpan.org&gt;</p>
+
+</li>
+<li><p>Graham Knop &lt;haarg@haarg.org&gt;</p>
+
+</li>
+<li><p>Gregor Hermann &lt;gregoa@debian.org&gt;</p>
+
+</li>
+<li><p>Karen Etheridge &lt;ether@cpan.org&gt;</p>
+
+</li>
+<li><p>Kenichi Ishigaki &lt;ishigaki@cpan.org&gt;</p>
+
+</li>
+<li><p>Kent Fredric &lt;kentfredric@gmail.com&gt;</p>
+
+</li>
+<li><p>Ken Williams &lt;kwilliams@cpan.org&gt;</p>
+
+</li>
+<li><p>Lars Dieckow &lt;daxim@cpan.org&gt;</p>
+
+</li>
+<li><p>Leon Timmermans &lt;leont@cpan.org&gt;</p>
+
+</li>
+<li><p>majensen &lt;maj@fortinbras.us&gt;</p>
+
+</li>
+<li><p>Mark Fowler &lt;markf@cpan.org&gt;</p>
+
+</li>
+<li><p>Matt S Trout &lt;mst@shadowcat.co.uk&gt;</p>
+
+</li>
+<li><p>Michael G. Schwern &lt;mschwern@cpan.org&gt;</p>
+
+</li>
+<li><p>Mohammad S Anwar &lt;mohammad.anwar@yahoo.com&gt;</p>
+
+</li>
+<li><p>mohawk2 &lt;mohawk2@users.noreply.github.com&gt;</p>
+
+</li>
+<li><p>moznion &lt;moznion@gmail.com&gt;</p>
+
+</li>
+<li><p>Niko Tyni &lt;ntyni@debian.org&gt;</p>
+
+</li>
+<li><p>Olaf Alders &lt;olaf@wundersolutions.com&gt;</p>
+
+</li>
+<li><p>Olivier Mengu&eacute; &lt;dolmen@cpan.org&gt;</p>
+
+</li>
+<li><p>Randy Sims &lt;randys@thepierianspring.org&gt;</p>
+
+</li>
+<li><p>Reini Urban &lt;rurban@cpan.org&gt;</p>
+
+<p>cperl, YAML::XS, Cpanel::JSON::XS support</p>
+
+</li>
+<li><p>Tomohiro Hosaka &lt;bokutin@bokut.in&gt;</p>
+
+</li>
+</ul>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>This software is copyright (c) 2010 by David Golden, Ricardo Signes, Adam Kennedy and Contributors.</p>
+
+<p>This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.</p>
+
+
+</body>
+
+</html>
+
+

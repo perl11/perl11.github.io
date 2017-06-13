@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Inheriting-from-Tie::Memoize">Inheriting from Tie::Memoize</a></li>
+  <li><a href="#EXAMPLE">EXAMPLE</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Tie::Memoize - add data to hash when needed</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  require Tie::Memoize;
+  tie %hash, &#39;Tie::Memoize&#39;,
+      \&amp;fetch,                  # The rest is optional
+      $DATA, \&amp;exists,
+      {%ini_value}, {%ini_existence};</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This package allows a tied hash to autoload its values on the first access, and to use the cached value on the following accesses.</p>
+
+<p>Only read-accesses (via fetching the value or <code>exists</code>) result in calls to the functions; the modify-accesses are performed as on a normal hash.</p>
+
+<p>The required arguments during <code>tie</code> are the hash, the package, and the reference to the <code>FETCH</code>ing function. The optional arguments are an arbitrary scalar $data, the reference to the <code>EXISTS</code> function, and initial values of the hash and of the existence cache.</p>
+
+<p>Both the <code>FETCH</code>ing function and the <code>EXISTS</code> functions have the same signature: the arguments are <code>$key, $data</code>; $data is the same value as given as argument during tie()ing. Both functions should return an empty list if the value does not exist. If <code>EXISTS</code> function is different from the <code>FETCH</code>ing function, it should return a TRUE value on success. The <code>FETCH</code>ing function should return the intended value if the key is valid.</p>
+
+<h1 id="Inheriting-from-Tie::Memoize">Inheriting from <b>Tie::Memoize</b></h1>
+
+<p>The structure of the tied() data is an array reference with elements</p>
+
+<pre><code>  0:  cache of known values
+  1:  cache of known existence of keys
+  2:  FETCH  function
+  3:  EXISTS function
+  4:  $data</code></pre>
+
+<p>The rest is for internal usage of this package. In particular, if TIEHASH is overwritten, it should call SUPER::TIEHASH.</p>
+
+<h1 id="EXAMPLE">EXAMPLE</h1>
+
+<pre><code>  sub slurp {
+    my ($key, $dir) = shift;
+    open my $h, &#39;&lt;&#39;, &quot;$dir/$key&quot; or return;
+    local $/; &lt;$h&gt;                      # slurp it all
+  }
+  sub exists { my ($key, $dir) = shift; return -f &quot;$dir/$key&quot; }
+
+  tie %hash, &#39;Tie::Memoize&#39;, \&amp;slurp, $directory, \&amp;exists,
+      { fake_file1 =&gt; $content1, fake_file2 =&gt; $content2 },
+      { pretend_does_not_exists =&gt; 0, known_to_exist =&gt; 1 };</code></pre>
+
+<p>This example treats the slightly modified contents of $directory as a hash. The modifications are that the keys <i>fake_file1</i> and <i>fake_file2</i> fetch values $content1 and $content2, and <i>pretend_does_not_exists</i> will never be accessed. Additionally, the existence of <i>known_to_exist</i> is never checked (so if it does not exists when its content is needed, the user of %hash may be confused).</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>FIRSTKEY and NEXTKEY methods go through the keys which were already read, not all the possible keys of the hash.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Ilya Zakharevich <a href="mailto:perl-module-hash-memoize@ilyaz.org">mailto:perl-module-hash-memoize@ilyaz.org</a>.</p>
+
+
+</body>
+
+</html>
+
+

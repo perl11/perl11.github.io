@@ -1,0 +1,183 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a>
+    <ul>
+      <li><a href="#SIGNAL-HANDLERS">SIGNAL HANDLERS</a></li>
+      <li><a href="#SIGNAL-LISTS">SIGNAL LISTS</a></li>
+      <li><a href="#OTHER">OTHER</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>sigtrap - Perl pragma to enable simple signal handling</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use sigtrap;
+    use sigtrap qw(stack-trace old-interface-signals);  # equivalent
+    use sigtrap qw(BUS SEGV PIPE ABRT);
+    use sigtrap qw(die INT QUIT);
+    use sigtrap qw(die normal-signals);
+    use sigtrap qw(die untrapped normal-signals);
+    use sigtrap qw(die untrapped normal-signals
+                    stack-trace any error-signals);
+    use sigtrap &#39;handler&#39; =&gt; \&amp;my_handler, &#39;normal-signals&#39;;
+    use sigtrap qw(handler my_handler normal-signals
+                    stack-trace error-signals);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <b>sigtrap</b> pragma is a simple interface to installing signal handlers. You can have it install one of two handlers supplied by <b>sigtrap</b> itself (one which provides a Perl stack trace and one which simply <code>die()</code>s), or alternately you can supply your own handler for it to install. It can be told only to install a handler for signals which are either untrapped or ignored. It has a couple of lists of signals to trap, plus you can supply your own list of signals.</p>
+
+<p>The arguments passed to the <code>use</code> statement which invokes <b>sigtrap</b> are processed in order. When a signal name or the name of one of <b>sigtrap</b>&#39;s signal lists is encountered a handler is immediately installed, when an option is encountered it affects subsequently installed handlers.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<h2 id="SIGNAL-HANDLERS">SIGNAL HANDLERS</h2>
+
+<p>These options affect which handler will be used for subsequently installed signals.</p>
+
+<dl>
+
+<dt id="stack-trace"><b>stack-trace</b></dt>
+<dd>
+
+<p>The handler used for subsequently installed signals outputs a Perl stack trace to STDERR and then tries to dump core. This is the default signal handler.</p>
+
+</dd>
+<dt id="die"><b>die</b></dt>
+<dd>
+
+<p>The handler used for subsequently installed signals calls <code>die</code> (actually <code>croak</code>) with a message indicating which signal was caught.</p>
+
+</dd>
+<dt id="handler-your-handler"><b>handler</b> <i>your-handler</i></dt>
+<dd>
+
+<p><i>your-handler</i> will be used as the handler for subsequently installed signals. <i>your-handler</i> can be any value which is valid as an assignment to an element of <code>%SIG</code>. See <a href="/cperl/perlvar.html">perlvar</a> for examples of handler functions.</p>
+
+</dd>
+</dl>
+
+<h2 id="SIGNAL-LISTS">SIGNAL LISTS</h2>
+
+<p><b>sigtrap</b> has a few built-in lists of signals to trap. They are:</p>
+
+<dl>
+
+<dt id="normal-signals"><b>normal-signals</b></dt>
+<dd>
+
+<p>These are the signals which a program might normally expect to encounter and which by default cause it to terminate. They are HUP, INT, PIPE and TERM.</p>
+
+</dd>
+<dt id="error-signals"><b>error-signals</b></dt>
+<dd>
+
+<p>These signals usually indicate a serious problem with the Perl interpreter or with your script. They are ABRT, BUS, EMT, FPE, ILL, QUIT, SEGV, SYS and TRAP.</p>
+
+</dd>
+<dt id="old-interface-signals"><b>old-interface-signals</b></dt>
+<dd>
+
+<p>These are the signals which were trapped by default by the old <b>sigtrap</b> interface, they are ABRT, BUS, EMT, FPE, ILL, PIPE, QUIT, SEGV, SYS, TERM, and TRAP. If no signals or signals lists are passed to <b>sigtrap</b>, this list is used.</p>
+
+</dd>
+</dl>
+
+<p>For each of these three lists, the collection of signals set to be trapped is checked before trapping; if your architecture does not implement a particular signal, it will not be trapped but rather silently ignored.</p>
+
+<h2 id="OTHER">OTHER</h2>
+
+<dl>
+
+<dt id="untrapped"><b>untrapped</b></dt>
+<dd>
+
+<p>This token tells <b>sigtrap</b> to install handlers only for subsequently listed signals which aren&#39;t already trapped or ignored.</p>
+
+</dd>
+<dt id="any"><b>any</b></dt>
+<dd>
+
+<p>This token tells <b>sigtrap</b> to install handlers for all subsequently listed signals. This is the default behavior.</p>
+
+</dd>
+<dt id="signal"><i>signal</i></dt>
+<dd>
+
+<p>Any argument which looks like a signal name (that is, <code>/^[A-Z][A-Z0-9]*$/</code>) indicates that <b>sigtrap</b> should install a handler for that name.</p>
+
+</dd>
+<dt id="number"><i>number</i></dt>
+<dd>
+
+<p>Require that at least version <i>number</i> of <b>sigtrap</b> is being used.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Provide a stack trace for the old-interface-signals:</p>
+
+<pre><code>    use sigtrap;</code></pre>
+
+<p>Ditto:</p>
+
+<pre><code>    use sigtrap qw(stack-trace old-interface-signals);</code></pre>
+
+<p>Provide a stack trace on the 4 listed signals only:</p>
+
+<pre><code>    use sigtrap qw(BUS SEGV PIPE ABRT);</code></pre>
+
+<p>Die on INT or QUIT:</p>
+
+<pre><code>    use sigtrap qw(die INT QUIT);</code></pre>
+
+<p>Die on HUP, INT, PIPE or TERM:</p>
+
+<pre><code>    use sigtrap qw(die normal-signals);</code></pre>
+
+<p>Die on HUP, INT, PIPE or TERM, except don&#39;t change the behavior for signals which are already trapped or ignored:</p>
+
+<pre><code>    use sigtrap qw(die untrapped normal-signals);</code></pre>
+
+<p>Die on receipt one of an of the <b>normal-signals</b> which is currently <b>untrapped</b>, provide a stack trace on receipt of <b>any</b> of the <b>error-signals</b>:</p>
+
+<pre><code>    use sigtrap qw(die untrapped normal-signals
+                    stack-trace any error-signals);</code></pre>
+
+<p>Install my_handler() as the handler for the <b>normal-signals</b>:</p>
+
+<pre><code>    use sigtrap &#39;handler&#39;, \&amp;my_handler, &#39;normal-signals&#39;;</code></pre>
+
+<p>Install my_handler() as the handler for the normal-signals, provide a Perl stack trace on receipt of one of the error-signals:</p>
+
+<pre><code>    use sigtrap qw(handler my_handler normal-signals
+                    stack-trace error-signals);</code></pre>
+
+
+</body>
+
+</html>
+
+

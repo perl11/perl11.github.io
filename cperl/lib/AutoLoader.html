@@ -1,0 +1,212 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Subroutine-Stubs">Subroutine Stubs</a></li>
+      <li><a href="#Using-AutoLoaders-AUTOLOAD-Subroutine">Using AutoLoader&#39;s AUTOLOAD Subroutine</a></li>
+      <li><a href="#Overriding-AutoLoaders-AUTOLOAD-Subroutine">Overriding AutoLoader&#39;s AUTOLOAD Subroutine</a></li>
+      <li><a href="#Package-Lexicals">Package Lexicals</a></li>
+      <li><a href="#Not-Using-AutoLoader">Not Using AutoLoader</a></li>
+      <li><a href="#AutoLoader-vs.-SelfLoader">AutoLoader vs. SelfLoader</a></li>
+      <li><a href="#Forcing-AutoLoader-to-Load-a-Function">Forcing AutoLoader to Load a Function</a></li>
+    </ul>
+  </li>
+  <li><a href="#CAVEATS">CAVEATS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>AutoLoader - load subroutines only on demand</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    package Foo;
+    use AutoLoader &#39;AUTOLOAD&#39;;   # import the default AUTOLOAD subroutine
+
+    package Bar;
+    use AutoLoader;              # don&#39;t import AUTOLOAD, define our own
+    sub AUTOLOAD {
+        ...
+        $AutoLoader::AUTOLOAD = &quot;...&quot;;
+        goto &amp;AutoLoader::AUTOLOAD;
+    }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <b>AutoLoader</b> module works with the <b>AutoSplit</b> module and the <code>__END__</code> token to defer the loading of some subroutines until they are used rather than loading them all at once.</p>
+
+<p>To use <b>AutoLoader</b>, the author of a module has to place the definitions of subroutines to be autoloaded after an <code>__END__</code> token. (See <a href="/cperl/perldata.html">perldata</a>.) The <b>AutoSplit</b> module can then be run manually to extract the definitions into individual files <i>auto/funcname.al</i>.</p>
+
+<p><b>AutoLoader</b> implements an AUTOLOAD subroutine. When an undefined subroutine in is called in a client module of <b>AutoLoader</b>, <b>AutoLoader</b>&#39;s AUTOLOAD subroutine attempts to locate the subroutine in a file with a name related to the location of the file from which the client module was read. As an example, if <i>POSIX.pm</i> is located in <i>/usr/local/lib/perl5/POSIX.pm</i>, <b>AutoLoader</b> will look for perl subroutines <b>POSIX</b> in <i>/usr/local/lib/perl5/auto/POSIX/*.al</i>, where the <code>.al</code> file has the same name as the subroutine, sans package. If such a file exists, AUTOLOAD will read and evaluate it, thus (presumably) defining the needed subroutine. AUTOLOAD will then <code>goto</code> the newly defined subroutine.</p>
+
+<p>Once this process completes for a given function, it is defined, so future calls to the subroutine will bypass the AUTOLOAD mechanism.</p>
+
+<h2 id="Subroutine-Stubs">Subroutine Stubs</h2>
+
+<p>In order for object method lookup and/or prototype checking to operate correctly even when methods have not yet been defined it is necessary to &quot;forward declare&quot; each subroutine (as in <code>sub NAME;</code>). See <a href="/cperl/perlsub.html#SYNOPSIS">&quot;SYNOPSIS&quot; in perlsub</a>. Such forward declaration creates &quot;subroutine stubs&quot;, which are place holders with no code.</p>
+
+<p>The AutoSplit and <b>AutoLoader</b> modules automate the creation of forward declarations. The AutoSplit module creates an &#39;index&#39; file containing forward declarations of all the AutoSplit subroutines. When the AutoLoader module is &#39;use&#39;d it loads these declarations into its callers package.</p>
+
+<p>Because of this mechanism it is important that <b>AutoLoader</b> is always <code>use</code>d and not <code>require</code>d.</p>
+
+<h2 id="Using-AutoLoaders-AUTOLOAD-Subroutine">Using <b>AutoLoader</b>&#39;s AUTOLOAD Subroutine</h2>
+
+<p>In order to use <b>AutoLoader</b>&#39;s AUTOLOAD subroutine you <i>must</i> explicitly import it:</p>
+
+<pre><code>    use AutoLoader &#39;AUTOLOAD&#39;;</code></pre>
+
+<h2 id="Overriding-AutoLoaders-AUTOLOAD-Subroutine">Overriding <b>AutoLoader</b>&#39;s AUTOLOAD Subroutine</h2>
+
+<p>Some modules, mainly extensions, provide their own AUTOLOAD subroutines. They typically need to check for some special cases (such as constants) and then fallback to <b>AutoLoader</b>&#39;s AUTOLOAD for the rest.</p>
+
+<p>Such modules should <i>not</i> import <b>AutoLoader</b>&#39;s AUTOLOAD subroutine. Instead, they should define their own AUTOLOAD subroutines along these lines:</p>
+
+<pre><code>    use AutoLoader;
+    use Carp;
+
+    sub AUTOLOAD {
+        my $sub = $AUTOLOAD;
+        (my $constname = $sub) =~ s/.*:://;
+        my $val = constant($constname, @_ ? $_[0] : 0);
+        if ($! != 0) {
+            if ($! =~ /Invalid/ || $!{EINVAL}) {
+                $AutoLoader::AUTOLOAD = $sub;
+                goto &amp;AutoLoader::AUTOLOAD;
+            }
+            else {
+                croak &quot;Your vendor has not defined constant $constname&quot;;
+            }
+        }
+        *$sub = sub { $val }; # same as: eval &quot;sub $sub { $val }&quot;;
+        goto &amp;$sub;
+    }</code></pre>
+
+<p>If any module&#39;s own AUTOLOAD subroutine has no need to fallback to the AutoLoader&#39;s AUTOLOAD subroutine (because it doesn&#39;t have any AutoSplit subroutines), then that module should not use <b>AutoLoader</b> at all.</p>
+
+<h2 id="Package-Lexicals">Package Lexicals</h2>
+
+<p>Package lexicals declared with <code>my</code> in the main block of a package using <b>AutoLoader</b> will not be visible to auto-loaded subroutines, due to the fact that the given scope ends at the <code>__END__</code> marker. A module using such variables as package globals will not work properly under the <b>AutoLoader</b>.</p>
+
+<p>The <code>vars</code> pragma (see <a href="/cperl/perlmod.html#vars">&quot;vars&quot; in perlmod</a>) may be used in such situations as an alternative to explicitly qualifying all globals with the package namespace. Variables pre-declared with this pragma will be visible to any autoloaded routines (but will not be invisible outside the package, unfortunately).</p>
+
+<h2 id="Not-Using-AutoLoader">Not Using AutoLoader</h2>
+
+<p>You can stop using AutoLoader by simply</p>
+
+<pre><code>        no AutoLoader;</code></pre>
+
+<h2 id="AutoLoader-vs.-SelfLoader"><b>AutoLoader</b> vs. <b>SelfLoader</b></h2>
+
+<p>The <b>AutoLoader</b> is similar in purpose to <b>SelfLoader</b>: both delay the loading of subroutines.</p>
+
+<p><b>SelfLoader</b> uses the <code>__DATA__</code> marker rather than <code>__END__</code>. While this avoids the use of a hierarchy of disk files and the associated open/close for each routine loaded, <b>SelfLoader</b> suffers a startup speed disadvantage in the one-time parsing of the lines after <code>__DATA__</code>, after which routines are cached. <b>SelfLoader</b> can also handle multiple packages in a file.</p>
+
+<p><b>AutoLoader</b> only reads code as it is requested, and in many cases should be faster, but requires a mechanism like <b>AutoSplit</b> be used to create the individual files. <a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a> will invoke <b>AutoSplit</b> automatically if <b>AutoLoader</b> is used in a module source file.</p>
+
+<h2 id="Forcing-AutoLoader-to-Load-a-Function">Forcing AutoLoader to Load a Function</h2>
+
+<p>Sometimes, it can be necessary or useful to make sure that a certain function is fully loaded by AutoLoader. This is the case, for example, when you need to wrap a function to inject debugging code. It is also helpful to force early loading of code before forking to make use of copy-on-write as much as possible.</p>
+
+<p>Starting with AutoLoader 5.73, you can call the <code>AutoLoader::autoload_sub</code> function with the fully-qualified name of the function to load from its <i>.al</i> file. The behaviour is exactly the same as if you called the function, triggering the regular <code>AUTOLOAD</code> mechanism, but it does not actually execute the autoloaded function.</p>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<p>AutoLoaders prior to Perl 5.002 had a slightly different interface. Any old modules which use <b>AutoLoader</b> should be changed to the new calling style. Typically this just means changing a require to a use, adding the explicit <code>&#39;AUTOLOAD&#39;</code> import if needed, and removing <b>AutoLoader</b> from <code>@ISA</code>.</p>
+
+<p>On systems with restrictions on file name length, the file corresponding to a subroutine may have a shorter name that the routine itself. This can lead to conflicting file names. The <i>AutoSplit</i> package warns of these potential conflicts when used to split a module.</p>
+
+<p>AutoLoader may fail to find the autosplit files (or even find the wrong ones) in cases where <code>@INC</code> contains relative paths, <b>and</b> the program does <code>chdir</code>.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/SelfLoader.html">SelfLoader</a> - an autoloader that doesn&#39;t use external files.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p><code>AutoLoader</code> is maintained by the perl5-porters. Please direct any questions to the canonical mailing list. Anything that is applicable to the CPAN release can be sent to its maintainer, though.</p>
+
+<p>Author and Maintainer: The Perl5-Porters &lt;perl5-porters@perl.org&gt;</p>
+
+<p>Maintainer of the CPAN release: Steffen Mueller &lt;smueller@cpan.org&gt;</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>This package has been part of the perl core since the first release of perl5. It has been released separately to CPAN so older installations can benefit from bug fixes.</p>
+
+<p>This package has the same copyright and license as the perl core:</p>
+
+<pre><code>             Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+        2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+        2011, 2012, 2013
+        by Larry Wall and others
+    
+                            All rights reserved.
+    
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of either:
+    
+        a) the GNU General Public License as published by the Free
+        Software Foundation; either version 1, or (at your option) any
+        later version, or
+    
+        b) the &quot;Artistic License&quot; which comes with this Kit.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+    the GNU General Public License or the Artistic License for more details.
+    
+    You should have received a copy of the Artistic License with this
+    Kit, in the file named &quot;Artistic&quot;.  If not, I&#39;ll be glad to provide one.
+    
+    You should also have received a copy of the GNU General Public License
+    along with this program in the file named &quot;Copying&quot;. If not, write to the 
+    Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+    MA 02110-1301, USA or visit their web page on the internet at
+    http://www.gnu.org/copyleft/gpl.html.
+    
+    For those of you that choose to use the GNU General Public License,
+    my interpretation of the GNU General Public License is that no Perl
+    script falls under the terms of the GPL unless you explicitly put
+    said script under the terms of the GPL yourself.  Furthermore, any
+    object code linked with perl does not automatically fall under the
+    terms of the GPL, provided such object code only adds definitions
+    of subroutines and variables, and does not otherwise impair the
+    resulting interpreter from executing any standard Perl script.  I
+    consider linking in C subroutines in this manner to be the moral
+    equivalent of defining subroutines in the Perl language itself.  You
+    may sell such an object file as proprietary provided that you provide
+    or offer to provide the Perl source, as specified by the GNU General
+    Public License.  (This is merely an alternate way of specifying input
+    to the program.)  You may also sell a binary produced by the dumping of
+    a running Perl script that belongs to you, provided that you provide or
+    offer to provide the Perl source as specified by the GPL.  (The
+    fact that a Perl interpreter and your code are in the same binary file
+    is, in this case, a form of mere aggregation.)  This is my interpretation
+    of the GPL.  If you still have concerns or difficulties understanding
+    my intent, feel free to contact me.  Of course, the Artistic License
+    spells all this out for your protection, so you may prefer to use that.</code></pre>
+
+
+</body>
+
+</html>
+
+

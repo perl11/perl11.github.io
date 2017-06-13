@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Tie">Tie</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXPORTS">EXPORTS</a></li>
+  <li><a href="#DIAGNOSTICS">DIAGNOSTICS</a>
+    <ul>
+      <li><a href="#sdbm-store-returned--1-errno-22-key-...-at">sdbm store returned -1, errno 22, key &quot;...&quot; at ...</a></li>
+    </ul>
+  </li>
+  <li><a href="#BUGS-AND-WARNINGS">BUGS AND WARNINGS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>SDBM_File - Tied access to sdbm files</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use Fcntl;   # For O_RDWR, O_CREAT, etc.
+ use SDBM_File;
+
+ tie(%h, &#39;SDBM_File&#39;, &#39;filename&#39;, O_RDWR|O_CREAT, 0666)
+   or die &quot;Couldn&#39;t tie SDBM file &#39;filename&#39;: $!; aborting&quot;;
+
+ # Now read and change the hash
+ $h{newkey} = newvalue;
+ print $h{oldkey}; 
+ ...
+
+ untie %h;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><code>SDBM_File</code> establishes a connection between a Perl hash variable and a file in SDBM_File format. You can manipulate the data in the file just as if it were in a Perl hash, but when your program exits, the data will remain in the file, to be used the next time your program runs.</p>
+
+<h2 id="Tie">Tie</h2>
+
+<p>Use <code>SDBM_File</code> with the Perl built-in <code>tie</code> function to establish the connection between the variable and the file.</p>
+
+<pre><code>    tie %hash, &#39;SDBM_File&#39;, $basename, $modeflags, $perms;
+
+    tie %hash, &#39;SDBM_File&#39;, $dirfile,  $modeflags, $perms, $pagfilename;</code></pre>
+
+<p><code>$basename</code> is the base filename for the database. The database is two files with &quot;.dir&quot; and &quot;.pag&quot; extensions appended to <code>$basename</code>,</p>
+
+<pre><code>    $basename.dir     (or .sdbm_dir on VMS, per DIRFEXT constant)
+    $basename.pag</code></pre>
+
+<p>The two filenames can also be given separately in full as <code>$dirfile</code> and <code>$pagfilename</code>. This suits for two files without &quot;.dir&quot; and &quot;.pag&quot; extensions, perhaps for example two files from <a href="/cperl/lib/File/Temp.html">File::Temp</a>.</p>
+
+<p><code>$modeflags</code> can be the following constants from the <code>Fcntl</code> module (in the style of the <a href="http://man.he.net/man2/open">open(2)</a> system call),</p>
+
+<pre><code>    O_RDONLY          read-only access
+    O_WRONLY          write-only access
+    O_RDWR            read and write access</code></pre>
+
+<p>If you want to create the file if it does not already exist then bitwise-OR (<code>|</code>) <code>O_CREAT</code> too. If you omit <code>O_CREAT</code> and the database does not already exist then the <code>tie</code> call will fail.</p>
+
+<pre><code>    O_CREAT           create database if doesn&#39;t already exist</code></pre>
+
+<p><code>$perms</code> is the file permissions bits to use if new database files are created. This parameter is mandatory even when not creating a new database. The permissions will be reduced by the user&#39;s umask so the usual value here would be 0666, or if some very private data then 0600. (See <a href="/cperl/perlfunc.html#umask">&quot;umask&quot; in perlfunc</a>.)</p>
+
+<h1 id="EXPORTS">EXPORTS</h1>
+
+<p>SDBM_File optionally exports the following constants:</p>
+
+<ul>
+
+<li><p><code>PAGFEXT</code> - the extension used for the page file, usually <code>.pag</code>.</p>
+
+</li>
+<li><p><code>DIRFEXT</code> - the extension used for the directory file, <code>.dir</code> everywhere but VMS, where it is <code>.sdbm_dir</code>.</p>
+
+</li>
+<li><p><code>PAIRMAX</code> - the maximum size of a stored hash entry, including the length of both the key and value.</p>
+
+</li>
+</ul>
+
+<p>These constants can also be used with fully qualified names, eg. <code>SDBM_File::PAGFEXT</code>.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>On failure, the <code>tie</code> call returns an undefined value and probably sets <code>$!</code> to contain the reason the file could not be tied.</p>
+
+<h2 id="sdbm-store-returned--1-errno-22-key-...-at"><code>sdbm store returned -1, errno 22, key &quot;...&quot; at ...</code></h2>
+
+<p>This warning is emitted when you try to store a key or a value that is too long. It means that the change was not recorded in the database. See BUGS AND WARNINGS below.</p>
+
+<h1 id="BUGS-AND-WARNINGS">BUGS AND WARNINGS</h1>
+
+<p>There are a number of limits on the size of the data that you can store in the SDBM file. The most important is that the length of a key, plus the length of its associated value, may not exceed 1008 bytes.</p>
+
+<p>See <a href="/cperl/perlfunc.html#tie">&quot;tie&quot; in perlfunc</a>, <a href="/cperl/perldbmfilter.html">perldbmfilter</a>, <a href="/cperl/lib/Fcntl.html">Fcntl</a></p>
+
+
+</body>
+
+</html>
+
+

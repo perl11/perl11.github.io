@@ -1,0 +1,305 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#Behind-The-Scenes">Behind The Scenes</a></li>
+      <li><a href="#Limitations">Limitations</a></li>
+      <li><a href="#Input-File-Glob">Input File Glob</a></li>
+      <li><a href="#Output-File-Glob">Output File Glob</a></li>
+      <li><a href="#Returned-Data">Returned Data</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a>
+    <ul>
+      <li><a href="#A-Rename-script">A Rename script</a></li>
+      <li><a href="#A-few-example-globmaps">A few example globmaps</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>File::GlobMapper - Extend File Glob to Allow Input and Output Files</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use File::GlobMapper qw( globmap );
+
+    my $aref = globmap $input =&gt; $output
+        or die $File::GlobMapper::Error ;
+
+    my $gm = new File::GlobMapper $input =&gt; $output
+        or die $File::GlobMapper::Error ;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module needs Perl5.005 or better.</p>
+
+<p>This module takes the existing <code>File::Glob</code> module as a starting point and extends it to allow new filenames to be derived from the files matched by <code>File::Glob</code>.</p>
+
+<p>This can be useful when carrying out batch operations on multiple files that have both an input filename and output filename and the output file can be derived from the input filename. Examples of operations where this can be useful include, file renaming, file copying and file compression.</p>
+
+<h2 id="Behind-The-Scenes">Behind The Scenes</h2>
+
+<p>To help explain what <code>File::GlobMapper</code> does, consider what code you would write if you wanted to rename all files in the current directory that ended in <code>.tar.gz</code> to <code>.tgz</code>. So say these files are in the current directory</p>
+
+<pre><code>    alpha.tar.gz
+    beta.tar.gz
+    gamma.tar.gz</code></pre>
+
+<p>and they need renamed to this</p>
+
+<pre><code>    alpha.tgz
+    beta.tgz
+    gamma.tgz</code></pre>
+
+<p>Below is a possible implementation of a script to carry out the rename (error cases have been omitted)</p>
+
+<pre><code>    foreach my $old ( glob &quot;*.tar.gz&quot; )
+    {
+        my $new = $old;
+        $new =~ s#(.*)\.tar\.gz$#$1.tgz# ;
+
+        rename $old =&gt; $new 
+            or die &quot;Cannot rename &#39;$old&#39; to &#39;$new&#39;: $!\n;
+    }</code></pre>
+
+<p>Notice that a file glob pattern <code>*.tar.gz</code> was used to match the <code>.tar.gz</code> files, then a fairly similar regular expression was used in the substitute to allow the new filename to be created.</p>
+
+<p>Given that the file glob is just a cut-down regular expression and that it has already done a lot of the hard work in pattern matching the filenames, wouldn&#39;t it be handy to be able to use the patterns in the fileglob to drive the new filename?</p>
+
+<p>Well, that&#39;s <i>exactly</i> what <code>File::GlobMapper</code> does.</p>
+
+<p>Here is same snippet of code rewritten using <code>globmap</code></p>
+
+<pre><code>    for my $pair (globmap &#39;&lt;*.tar.gz&gt;&#39; =&gt; &#39;&lt;#1.tgz&gt;&#39; )
+    {
+        my ($from, $to) = @$pair;
+        rename $from =&gt; $to 
+            or die &quot;Cannot rename &#39;$old&#39; to &#39;$new&#39;: $!\n;
+    }</code></pre>
+
+<p>So how does it work?</p>
+
+<p>Behind the scenes the <code>globmap</code> function does a combination of a file glob to match existing filenames followed by a substitute to create the new filenames.</p>
+
+<p>Notice how both parameters to <code>globmap</code> are strings that are delimited by &lt;&gt;. This is done to make them look more like file globs - it is just syntactic sugar, but it can be handy when you want the strings to be visually distinctive. The enclosing &lt;&gt; are optional, so you don&#39;t have to use them - in fact the first thing globmap will do is remove these delimiters if they are present.</p>
+
+<p>The first parameter to <code>globmap</code>, <code>*.tar.gz</code>, is an <i>Input File Glob</i>. Once the enclosing &quot;&lt; ... &gt;&quot; is removed, this is passed (more or less) unchanged to <code>File::Glob</code> to carry out a file match.</p>
+
+<p>Next the fileglob <code>*.tar.gz</code> is transformed behind the scenes into a full Perl regular expression, with the additional step of wrapping each transformed wildcard metacharacter sequence in parenthesis.</p>
+
+<p>In this case the input fileglob <code>*.tar.gz</code> will be transformed into this Perl regular expression</p>
+
+<pre><code>    ([^/]*)\.tar\.gz</code></pre>
+
+<p>Wrapping with parenthesis allows the wildcard parts of the Input File Glob to be referenced by the second parameter to <code>globmap</code>, <code>#1.tgz</code>, the <i>Output File Glob</i>. This parameter operates just like the replacement part of a substitute command. The difference is that the <code>#1</code> syntax is used to reference sub-patterns matched in the input fileglob, rather than the <code>$1</code> syntax that is used with perl regular expressions. In this case <code>#1</code> is used to refer to the text matched by the <code>*</code> in the Input File Glob. This makes it easier to use this module where the parameters to <code>globmap</code> are typed at the command line.</p>
+
+<p>The final step involves passing each filename matched by the <code>*.tar.gz</code> file glob through the derived Perl regular expression in turn and expanding the output fileglob using it.</p>
+
+<p>The end result of all this is a list of pairs of filenames. By default that is what is returned by <code>globmap</code>. In this example the data structure returned will look like this</p>
+
+<pre><code>     ( [&#39;alpha.tar.gz&#39; =&gt; &#39;alpha.tgz&#39;],
+       [&#39;beta.tar.gz&#39;  =&gt; &#39;beta.tgz&#39; ],
+       [&#39;gamma.tar.gz&#39; =&gt; &#39;gamma.tgz&#39;]
+     )</code></pre>
+
+<p>Each pair is an array reference with two elements - namely the <i>from</i> filename, that <code>File::Glob</code> has matched, and a <i>to</i> filename that is derived from the <i>from</i> filename.</p>
+
+<h2 id="Limitations">Limitations</h2>
+
+<p><code>File::GlobMapper</code> has been kept simple deliberately, so it isn&#39;t intended to solve all filename mapping operations. Under the hood <code>File::Glob</code> (or for older versions of Perl, <code>File::BSDGlob</code>) is used to match the files, so you will never have the flexibility of full Perl regular expression.</p>
+
+<h2 id="Input-File-Glob">Input File Glob</h2>
+
+<p>The syntax for an Input FileGlob is identical to <code>File::Glob</code>, except for the following</p>
+
+<ol>
+
+<li><p>No nested {}</p>
+
+</li>
+<li><p>Whitespace does not delimit fileglobs.</p>
+
+</li>
+<li><p>The use of parenthesis can be used to capture parts of the input filename.</p>
+
+</li>
+<li><p>If an Input glob matches the same file more than once, only the first will be used.</p>
+
+</li>
+</ol>
+
+<p>The syntax</p>
+
+<dl>
+
+<dt id="pod"><b>~</b></dt>
+<dd>
+
+</dd>
+<dt id="user"><b>~user</b></dt>
+<dd>
+
+</dd>
+<dt id="pod1"><b>.</b></dt>
+<dd>
+
+<p>Matches a literal &#39;.&#39;. Equivalent to the Perl regular expression</p>
+
+<pre><code>    \.</code></pre>
+
+</dd>
+<dt id="pod2"><b>*</b></dt>
+<dd>
+
+<p>Matches zero or more characters, except &#39;/&#39;. Equivalent to the Perl regular expression</p>
+
+<pre><code>    [^/]*</code></pre>
+
+</dd>
+<dt id="pod3"><b>?</b></dt>
+<dd>
+
+<p>Matches zero or one character, except &#39;/&#39;. Equivalent to the Perl regular expression</p>
+
+<pre><code>    [^/]?</code></pre>
+
+</dd>
+<dt id="pod4"><b>\</b></dt>
+<dd>
+
+<p>Backslash is used, as usual, to escape the next character.</p>
+
+</dd>
+<dt id="pod5"><b>[]</b></dt>
+<dd>
+
+<p>Character class.</p>
+
+</dd>
+<dt id="pod6"><b>{,}</b></dt>
+<dd>
+
+<p>Alternation</p>
+
+</dd>
+<dt id="pod7"><b>()</b></dt>
+<dd>
+
+<p>Capturing parenthesis that work just like perl</p>
+
+</dd>
+</dl>
+
+<p>Any other character it taken literally.</p>
+
+<h2 id="Output-File-Glob">Output File Glob</h2>
+
+<p>The Output File Glob is a normal string, with 2 glob-like features.</p>
+
+<p>The first is the &#39;*&#39; metacharacter. This will be replaced by the complete filename matched by the input file glob. So</p>
+
+<pre><code>    *.c *.Z</code></pre>
+
+<p>The second is</p>
+
+<p>Output FileGlobs take the</p>
+
+<dl>
+
+<dt id="pod8">&quot;*&quot;</dt>
+<dd>
+
+<p>The &quot;*&quot; character will be replaced with the complete input filename.</p>
+
+</dd>
+<dt id="pod-1">#1</dt>
+<dd>
+
+<p>Patterns of the form /#\d/ will be replaced with the</p>
+
+</dd>
+</dl>
+
+<h2 id="Returned-Data">Returned Data</h2>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<h2 id="A-Rename-script">A Rename script</h2>
+
+<p>Below is a simple &quot;rename&quot; script that uses <code>globmap</code> to determine the source and destination filenames.</p>
+
+<pre><code>    use File::GlobMapper qw(globmap) ;
+    use File::Copy;
+
+    die &quot;rename: Usage rename &#39;from&#39; &#39;to&#39;\n&quot;
+        unless @ARGV == 2 ;
+
+    my $fromGlob = shift @ARGV;
+    my $toGlob   = shift @ARGV;
+
+    my $pairs = globmap($fromGlob, $toGlob)
+        or die $File::GlobMapper::Error;
+
+    for my $pair (@$pairs)
+    {
+        my ($from, $to) = @$pair;
+        move $from =&gt; $to ;
+    }</code></pre>
+
+<p>Here is an example that renames all c files to cpp.</p>
+
+<pre><code>    $ rename &#39;*.c&#39; &#39;#1.cpp&#39;</code></pre>
+
+<h2 id="A-few-example-globmaps">A few example globmaps</h2>
+
+<p>Below are a few examples of globmaps</p>
+
+<p>To copy all your .c file to a backup directory</p>
+
+<pre><code>    &#39;&lt;/my/home/*.c&gt;&#39;    &#39;&lt;/my/backup/#1.c&gt;&#39;</code></pre>
+
+<p>If you want to compress all</p>
+
+<pre><code>    &#39;&lt;/my/home/*.[ch]&gt;&#39;    &#39;&lt;*.gz&gt;&#39;</code></pre>
+
+<p>To uncompress</p>
+
+<pre><code>    &#39;&lt;/my/home/*.[ch].gz&gt;&#39;    &#39;&lt;/my/home/#1.#2&gt;&#39;</code></pre>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/File/Glob.html">File::Glob</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>The <i>File::GlobMapper</i> module was written by Paul Marquess, <i>pmqs@cpan.org</i>.</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (c) 2005 Paul Marquess. All rights reserved. This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

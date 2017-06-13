@@ -1,0 +1,252 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#TO-DO">TO DO</a></li>
+  <li><a href="#HISTORY">HISTORY</a></li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>ExtUtils::CBuilder - Compile and link C code for Perl modules</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use ExtUtils::CBuilder;
+
+  my $b = ExtUtils::CBuilder-&gt;new(%options);
+  $obj_file = $b-&gt;compile(source =&gt; &#39;MyModule.c&#39;);
+  $lib_file = $b-&gt;link(objects =&gt; $obj_file);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module can build the C portions of Perl modules by invoking the appropriate compilers and linkers in a cross-platform manner. It was motivated by the <code>Module::Build</code> project, but may be useful for other purposes as well. However, it is <i>not</i> intended as a general cross-platform interface to all your C building needs. That would have been a much more ambitious goal!</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="new">new</dt>
+<dd>
+
+<p>Returns a new <code>ExtUtils::CBuilder</code> object. A <code>config</code> parameter lets you override <code>Config.pm</code> settings for all operations performed by the object, as in the following example:</p>
+
+<pre><code>  # Use a different compiler than Config.pm says
+  my $b = ExtUtils::CBuilder-&gt;new( config =&gt;
+                                   { ld =&gt; &#39;gcc&#39; } );</code></pre>
+
+<p>A <code>quiet</code> parameter tells <code>CBuilder</code> to not print its <code>system()</code> commands before executing them:</p>
+
+<pre><code>  # Be quieter than normal
+  my $b = ExtUtils::CBuilder-&gt;new( quiet =&gt; 1 );</code></pre>
+
+</dd>
+<dt id="have_compiler">have_compiler</dt>
+<dd>
+
+<p>Returns true if the current system has a working C compiler and linker, false otherwise. To determine this, we actually compile and link a sample C library. The sample will be compiled in the system tempdir or, if that fails for some reason, in the current directory.</p>
+
+</dd>
+<dt id="have_cplusplus">have_cplusplus</dt>
+<dd>
+
+<p>Just like have_compiler but for C++ instead of C.</p>
+
+</dd>
+<dt id="compile">compile</dt>
+<dd>
+
+<p>Compiles a C source file and produces an object file. The name of the object file is returned. The source file is specified in a <code>source</code> parameter, which is required; the other parameters listed below are optional.</p>
+
+<dl>
+
+<dt id="object_file"><code>object_file</code></dt>
+<dd>
+
+<p>Specifies the name of the output file to create. Otherwise the <code>object_file()</code> method will be consulted, passing it the name of the <code>source</code> file.</p>
+
+</dd>
+<dt id="include_dirs"><code>include_dirs</code></dt>
+<dd>
+
+<p>Specifies any additional directories in which to search for header files. May be given as a string indicating a single directory, or as a list reference indicating multiple directories.</p>
+
+</dd>
+<dt id="extra_compiler_flags"><code>extra_compiler_flags</code></dt>
+<dd>
+
+<p>Specifies any additional arguments to pass to the compiler. Should be given as a list reference containing the arguments individually, or if this is not possible, as a string containing all the arguments together.</p>
+
+</dd>
+<dt id="C"><code>C++</code></dt>
+<dd>
+
+<p>Specifies that the source file is a C++ source file and sets appropriate compiler flags</p>
+
+</dd>
+</dl>
+
+<p>The operation of this method is also affected by the <code>archlibexp</code>, <code>cccdlflags</code>, <code>ccflags</code>, <code>optimize</code>, and <code>cc</code> entries in <code>Config.pm</code>.</p>
+
+</dd>
+<dt id="link">link</dt>
+<dd>
+
+<p>Invokes the linker to produce a library file from object files. In scalar context, the name of the library file is returned. In list context, the library file and any temporary files created are returned. A required <code>objects</code> parameter contains the name of the object files to process, either in a string (for one object file) or list reference (for one or more files). The following parameters are optional:</p>
+
+<dl>
+
+<dt id="lib_file">lib_file</dt>
+<dd>
+
+<p>Specifies the name of the output library file to create. Otherwise the <code>lib_file()</code> method will be consulted, passing it the name of the first entry in <code>objects</code>.</p>
+
+</dd>
+<dt id="module_name">module_name</dt>
+<dd>
+
+<p>Specifies the name of the Perl module that will be created by linking. On platforms that need to do prelinking (Win32, OS/2, etc.) this is a required parameter.</p>
+
+</dd>
+<dt id="extra_linker_flags">extra_linker_flags</dt>
+<dd>
+
+<p>Any additional flags you wish to pass to the linker.</p>
+
+</dd>
+</dl>
+
+<p>On platforms where <code>need_prelink()</code> returns true, <code>prelink()</code> will be called automatically.</p>
+
+<p>The operation of this method is also affected by the <code>lddlflags</code>, <code>shrpenv</code>, and <code>ld</code> entries in <code>Config.pm</code>.</p>
+
+</dd>
+<dt id="link_executable">link_executable</dt>
+<dd>
+
+<p>Invokes the linker to produce an executable file from object files. In scalar context, the name of the executable file is returned. In list context, the executable file and any temporary files created are returned. A required <code>objects</code> parameter contains the name of the object files to process, either in a string (for one object file) or list reference (for one or more files). The optional parameters are the same as <code>link</code> with exception for</p>
+
+<dl>
+
+<dt id="exe_file">exe_file</dt>
+<dd>
+
+<p>Specifies the name of the output executable file to create. Otherwise the <code>exe_file()</code> method will be consulted, passing it the name of the first entry in <code>objects</code>.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="object_file1">object_file</dt>
+<dd>
+
+<pre><code> my $object_file = $b-&gt;object_file($source_file);</code></pre>
+
+<p>Converts the name of a C source file to the most natural name of an output object file to create from it. For instance, on Unix the source file <i>foo.c</i> would result in the object file <i>foo.o</i>.</p>
+
+</dd>
+<dt id="lib_file1">lib_file</dt>
+<dd>
+
+<pre><code> my $lib_file = $b-&gt;lib_file($object_file);</code></pre>
+
+<p>Converts the name of an object file to the most natural name of a output library file to create from it. For instance, on Mac OS X the object file <i>foo.o</i> would result in the library file <i>foo.bundle</i>.</p>
+
+</dd>
+<dt id="exe_file1">exe_file</dt>
+<dd>
+
+<pre><code> my $exe_file = $b-&gt;exe_file($object_file);</code></pre>
+
+<p>Converts the name of an object file to the most natural name of an executable file to create from it. For instance, on Mac OS X the object file <i>foo.o</i> would result in the executable file <i>foo</i>, and on Windows it would result in <i>foo.exe</i>.</p>
+
+</dd>
+<dt id="prelink">prelink</dt>
+<dd>
+
+<p>On certain platforms like Win32, OS/2, VMS, and AIX, it is necessary to perform some actions before invoking the linker. The <code>ExtUtils::Mksymlists</code> module does this, writing files used by the linker during the creation of shared libraries for dynamic extensions. The names of any files written will be returned as a list.</p>
+
+<p>Several parameters correspond to <code>ExtUtils::Mksymlists::Mksymlists()</code> options, as follows:</p>
+
+<pre><code>    Mksymlists()   prelink()          type
+   -------------|-------------------|-------------------
+    NAME        |  dl_name          | string (required)
+    DLBASE      |  dl_base          | string
+    FILE        |  dl_file          | string
+    DL_VARS     |  dl_vars          | array reference
+    DL_FUNCS    |  dl_funcs         | hash reference
+    FUNCLIST    |  dl_func_list     | array reference
+    IMPORTS     |  dl_imports       | hash reference
+    VERSION     |  dl_version       | string</code></pre>
+
+<p>Please see the documentation for <code>ExtUtils::Mksymlists</code> for the details of what these parameters do.</p>
+
+</dd>
+<dt id="need_prelink">need_prelink</dt>
+<dd>
+
+<p>Returns true on platforms where <code>prelink()</code> should be called during linking, and false otherwise.</p>
+
+</dd>
+<dt id="extra_link_args_after_prelink">extra_link_args_after_prelink</dt>
+<dd>
+
+<p>Returns list of extra arguments to give to the link command; the arguments are the same as for prelink(), with addition of array reference to the results of prelink(); this reference is indexed by key <code>prelink_res</code>.</p>
+
+</dd>
+</dl>
+
+<h1 id="TO-DO">TO DO</h1>
+
+<p>Currently this has only been tested on Unix and doesn&#39;t contain any of the Windows-specific code from the <code>Module::Build</code> project. I&#39;ll do that next.</p>
+
+<h1 id="HISTORY">HISTORY</h1>
+
+<p>This module is an outgrowth of the <code>Module::Build</code> project, to which there have been many contributors. Notably, Randy W. Sims submitted lots of code to support 3 compilers on Windows and helped with various other platform-specific issues. Ilya Zakharevich has contributed fixes for OS/2; John E. Malmberg and Peter Prymmer have done likewise for VMS.</p>
+
+<h1 id="SUPPORT">SUPPORT</h1>
+
+<p>ExtUtils::CBuilder is maintained as part of the Perl 5 core. Please submit any bug reports via the <i>perlbug</i> tool included with Perl 5. Bug reports will be included in the Perl 5 ticket system at <a href="http://rt.perl.org">http://rt.perl.org</a>.</p>
+
+<p>The Perl 5 source code is available at &lt;http://perl5.git.perl.org/perl.git&gt; and ExtUtils-CBuilder may be found in the <i>dist/ExtUtils-CBuilder</i> directory of the repository.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Ken Williams, kwilliams@cpan.org</p>
+
+<p>Additional contributions by The Perl 5 Porters.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright (c) 2003-2005 Ken Williams. All rights reserved.</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>perl(1), Module::Build(3)</p>
+
+
+</body>
+
+</html>
+
+

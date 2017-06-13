@@ -1,0 +1,530 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#VERSION">VERSION</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#Class-Methods">Class Methods</a>
+        <ul>
+          <li><a href="#new">new</a></li>
+        </ul>
+      </li>
+      <li><a href="#Instance-Methods">Instance Methods</a>
+        <ul>
+          <li><a href="#runtests">runtests</a></li>
+          <li><a href="#summary">summary</a></li>
+          <li><a href="#aggregate_tests">aggregate_tests</a></li>
+          <li><a href="#make_scheduler">make_scheduler</a></li>
+          <li><a href="#jobs">jobs</a></li>
+          <li><a href="#make_parser">make_parser</a></li>
+          <li><a href="#finish_parser">finish_parser</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#CONFIGURING">CONFIGURING</a>
+    <ul>
+      <li><a href="#Plugins">Plugins</a></li>
+      <li><a href="#Module::Build">Module::Build</a></li>
+      <li><a href="#ExtUtils::MakeMaker">ExtUtils::MakeMaker</a></li>
+      <li><a href="#prove">prove</a></li>
+    </ul>
+  </li>
+  <li><a href="#WRITING-PLUGINS">WRITING PLUGINS</a></li>
+  <li><a href="#SUBCLASSING">SUBCLASSING</a>
+    <ul>
+      <li><a href="#Methods">Methods</a></li>
+    </ul>
+  </li>
+  <li><a href="#REPLACING">REPLACING</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>TAP::Harness - Run test scripts with statistics</p>
+
+<h1 id="VERSION">VERSION</h1>
+
+<p>Version 3.39</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This is a simple test harness which allows tests to be run and results automatically aggregated and output to STDOUT.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use TAP::Harness;
+ my $harness = TAP::Harness-&gt;new( \%args );
+ $harness-&gt;runtests(@tests);</code></pre>
+
+<h1 id="METHODS">METHODS</h1>
+
+<h2 id="Class-Methods">Class Methods</h2>
+
+<h3 id="new"><code>new</code></h3>
+
+<pre><code> my %args = (
+    verbosity =&gt; 1,
+    lib     =&gt; [ &#39;lib&#39;, &#39;blib/lib&#39;, &#39;blib/arch&#39; ],
+ )
+ my $harness = TAP::Harness-&gt;new( \%args );</code></pre>
+
+<p>The constructor returns a new <code>TAP::Harness</code> object. It accepts an optional hashref whose allowed keys are:</p>
+
+<ul>
+
+<li><p><code>verbosity</code></p>
+
+<p>Set the verbosity level:</p>
+
+<pre><code>     1   verbose        Print individual test results to STDOUT.
+     0   normal
+    -1   quiet          Suppress some test output (mostly failures 
+                        while tests are running).
+    -2   really quiet   Suppress everything but the tests summary.
+    -3   silent         Suppress everything.</code></pre>
+
+</li>
+<li><p><code>timer</code></p>
+
+<p>Append run time for each test to output. Uses <a href="/cperl/lib/Time/HiRes.html">Time::HiRes</a> if available.</p>
+
+</li>
+<li><p><code>failures</code></p>
+
+<p>Show test failures (this is a no-op if <code>verbose</code> is selected).</p>
+
+</li>
+<li><p><code>comments</code></p>
+
+<p>Show test comments (this is a no-op if <code>verbose</code> is selected).</p>
+
+</li>
+<li><p><code>show_count</code></p>
+
+<p>Update the running test count during testing.</p>
+
+</li>
+<li><p><code>normalize</code></p>
+
+<p>Set to a true value to normalize the TAP that is emitted in verbose modes.</p>
+
+</li>
+<li><p><code>lib</code></p>
+
+<p>Accepts a scalar value or array ref of scalar values indicating which paths to allowed libraries should be included if Perl tests are executed. Naturally, this only makes sense in the context of tests written in Perl.</p>
+
+</li>
+<li><p><code>switches</code></p>
+
+<p>Accepts a scalar value or array ref of scalar values indicating which switches should be included if Perl tests are executed. Naturally, this only makes sense in the context of tests written in Perl.</p>
+
+</li>
+<li><p><code>test_args</code></p>
+
+<p>A reference to an <code>@INC</code> style array of arguments to be passed to each test program.</p>
+
+<pre><code>  test_args =&gt; [&#39;foo&#39;, &#39;bar&#39;],</code></pre>
+
+<p>if you want to pass different arguments to each test then you should pass a hash of arrays, keyed by the alias for each test:</p>
+
+<pre><code>  test_args =&gt; {
+    my_test    =&gt; [&#39;foo&#39;, &#39;bar&#39;],
+    other_test =&gt; [&#39;baz&#39;],
+  }</code></pre>
+
+</li>
+<li><p><code>color</code></p>
+
+<p>Attempt to produce color output.</p>
+
+</li>
+<li><p><code>exec</code></p>
+
+<p>Typically, Perl tests are run through this. However, anything which spits out TAP is fine. You can use this argument to specify the name of the program (and optional switches) to run your tests with:</p>
+
+<pre><code>  exec =&gt; [&#39;/usr/bin/ruby&#39;, &#39;-w&#39;]</code></pre>
+
+<p>You can also pass a subroutine reference in order to determine and return the proper program to run based on a given test script. The subroutine reference should expect the TAP::Harness object itself as the first argument, and the file name as the second argument. It should return an array reference containing the command to be run and including the test file name. It can also simply return <code>undef</code>, in which case TAP::Harness will fall back on executing the test script in Perl:</p>
+
+<pre><code>    exec =&gt; sub {
+        my ( $harness, $test_file ) = @_;
+
+        # Let Perl tests run.
+        return undef if $test_file =~ /[.]t$/;
+        return [ qw( /usr/bin/ruby -w ), $test_file ]
+          if $test_file =~ /[.]rb$/;
+      }</code></pre>
+
+<p>If the subroutine returns a scalar with a newline or a filehandle, it will be interpreted as raw TAP or as a TAP stream, respectively.</p>
+
+</li>
+<li><p><code>merge</code></p>
+
+<p>If <code>merge</code> is true the harness will create parsers that merge STDOUT and STDERR together for any processes they start.</p>
+
+</li>
+<li><p><code>sources</code></p>
+
+<p><i>NEW to 3.18</i>.</p>
+
+<p>If set, <code>sources</code> must be a hashref containing the names of the <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>s to load and/or configure. The values are a hash of configuration that will be accessible to the source handlers via <a href="/cperl/lib/TAP/Parser/Source.html#config_for">&quot;config_for&quot; in TAP::Parser::Source</a>.</p>
+
+<p>For example:</p>
+
+<pre><code>  sources =&gt; {
+    Perl =&gt; { exec =&gt; &#39;/path/to/custom/perl&#39; },
+    File =&gt; { extensions =&gt; [ &#39;.tap&#39;, &#39;.txt&#39; ] },
+    MyCustom =&gt; { some =&gt; &#39;config&#39; },
+  }</code></pre>
+
+<p>The <code>sources</code> parameter affects how <code>source</code>, <code>tap</code> and <code>exec</code> parameters are handled.</p>
+
+<p>For more details, see the <code>sources</code> parameter in <a href="/cperl/lib/TAP/Parser.html#new">&quot;new&quot; in TAP::Parser</a>, <a href="/cperl/lib/TAP/Parser/Source.html">TAP::Parser::Source</a>, and <a href="/cperl/lib/TAP/Parser/IteratorFactory.html">TAP::Parser::IteratorFactory</a>.</p>
+
+</li>
+<li><p><code>aggregator_class</code></p>
+
+<p>The name of the class to use to aggregate test results. The default is <a href="/cperl/lib/TAP/Parser/Aggregator.html">TAP::Parser::Aggregator</a>.</p>
+
+</li>
+<li><p><code>version</code></p>
+
+<p><i>NEW to 3.22</i>.</p>
+
+<p>Assume this TAP version for <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> instead of default TAP version 12.</p>
+
+</li>
+<li><p><code>formatter_class</code></p>
+
+<p>The name of the class to use to format output. The default is <a href="/cperl/lib/TAP/Formatter/Console.html">TAP::Formatter::Console</a>, or <a href="/cperl/lib/TAP/Formatter/File.html">TAP::Formatter::File</a> if the output isn&#39;t a TTY.</p>
+
+</li>
+<li><p><code>multiplexer_class</code></p>
+
+<p>The name of the class to use to multiplex tests during parallel testing. The default is <a href="/cperl/lib/TAP/Parser/Multiplexer.html">TAP::Parser::Multiplexer</a>.</p>
+
+</li>
+<li><p><code>parser_class</code></p>
+
+<p>The name of the class to use to parse TAP. The default is <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a>.</p>
+
+</li>
+<li><p><code>scheduler_class</code></p>
+
+<p>The name of the class to use to schedule test execution. The default is <a href="/cperl/lib/TAP/Parser/Scheduler.html">TAP::Parser::Scheduler</a>.</p>
+
+</li>
+<li><p><code>formatter</code></p>
+
+<p>If set <code>formatter</code> must be an object that is capable of formatting the TAP output. See <a href="/cperl/lib/TAP/Formatter/Console.html">TAP::Formatter::Console</a> for an example.</p>
+
+</li>
+<li><p><code>errors</code></p>
+
+<p>If parse errors are found in the TAP output, a note of this will be made in the summary report. To see all of the parse errors, set this argument to true:</p>
+
+<pre><code>  errors =&gt; 1</code></pre>
+
+</li>
+<li><p><code>directives</code></p>
+
+<p>If set to a true value, only test results with directives will be displayed. This overrides other settings such as <code>verbose</code> or <code>failures</code>.</p>
+
+</li>
+<li><p><code>ignore_exit</code></p>
+
+<p>If set to a true value instruct <code>TAP::Parser</code> to ignore exit and wait status from test scripts.</p>
+
+</li>
+<li><p><code>jobs</code></p>
+
+<p>The maximum number of parallel tests to run at any time. Which tests can be run in parallel is controlled by <code>rules</code>. The default is to run only one test at a time.</p>
+
+</li>
+<li><p><code>rules</code></p>
+
+<p>A reference to a hash of rules that control which tests may be executed in parallel. If no rules are declared and <a href="/cperl/lib/CPAN/Meta/YAML.html">CPAN::Meta::YAML</a> is available, <code>TAP::Harness</code> attempts to load rules from a YAML file specified by the <code>rulesfile</code> parameter. If no rules file exists, the default is for all tests to be eligible to be run in parallel.</p>
+
+<p>Here some simple examples. For the full details of the data structure and the related glob-style pattern matching, see <a href="/cperl/lib/TAP/Parser/Scheduler.html#Rules-data-structure">&quot;Rules data structure&quot; in TAP::Parser::Scheduler</a>.</p>
+
+<pre><code>    # Run all tests in sequence, except those starting with &quot;p&quot;
+    $harness-&gt;rules({
+        par =&gt; &#39;t/p*.t&#39;
+    });
+
+    # Equivalent YAML file
+    ---
+    par: t/p*.t
+
+    # Run all tests in parallel, except those starting with &quot;p&quot;
+    $harness-&gt;rules({
+        seq =&gt; [
+                  { seq =&gt; &#39;t/p*.t&#39; },
+                  { par =&gt; &#39;**&#39;     },
+               ],
+    });
+
+    # Equivalent YAML file
+    ---
+    seq:
+        - seq: t/p*.t
+        - par: **
+
+    # Run some  startup tests in sequence, then some parallel tests than some
+    # teardown tests in sequence.
+    $harness-&gt;rules({
+        seq =&gt; [
+            { seq =&gt; &#39;t/startup/*.t&#39; },
+            { par =&gt; [&#39;t/a/*.t&#39;,&#39;t/b/*.t&#39;,&#39;t/c/*.t&#39;], }
+            { seq =&gt; &#39;t/shutdown/*.t&#39; },
+        ],
+
+    });
+
+    # Equivalent YAML file
+    ---
+    seq:
+        - seq: t/startup/*.t
+        - par:
+            - t/a/*.t
+            - t/b/*.t
+            - t/c/*.t
+        - seq: t/shutdown/*.t</code></pre>
+
+<p>This is an experimental feature and the interface may change.</p>
+
+</li>
+<li><p><code>rulesfiles</code></p>
+
+<p>This specifies where to find a YAML file of test scheduling rules. If not provided, it looks for a default file to use. It first checks for a file given in the <code>HARNESS_RULESFILE</code> environment variable, then it checks for <i>testrules.yml</i> and then <i>t/testrules.yml</i>.</p>
+
+</li>
+<li><p><code>stdout</code></p>
+
+<p>A filehandle for catching standard output.</p>
+
+</li>
+<li><p><code>trap</code></p>
+
+<p>Attempt to print summary information if run is interrupted by SIGINT (Ctrl-C).</p>
+
+</li>
+</ul>
+
+<p>Any keys for which the value is <code>undef</code> will be ignored.</p>
+
+<h2 id="Instance-Methods">Instance Methods</h2>
+
+<h3 id="runtests"><code>runtests</code></h3>
+
+<pre><code>    $harness-&gt;runtests(@tests);</code></pre>
+
+<p>Accepts an array of <code>@tests</code> to be run. This should generally be the names of test files, but this is not required. Each element in <code>@tests</code> will be passed to <code>TAP::Parser::new()</code> as a <code>source</code>. See <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> for more information.</p>
+
+<p>It is possible to provide aliases that will be displayed in place of the test name by supplying the test as a reference to an array containing <code>[ $test, $alias ]</code>:</p>
+
+<pre><code>    $harness-&gt;runtests( [ &#39;t/foo.t&#39;, &#39;Foo Once&#39; ],
+                        [ &#39;t/foo.t&#39;, &#39;Foo Twice&#39; ] );</code></pre>
+
+<p>Normally it is an error to attempt to run the same test twice. Aliases allow you to overcome this limitation by giving each run of the test a unique name.</p>
+
+<p>Tests will be run in the order found.</p>
+
+<p>If the environment variable <code>PERL_TEST_HARNESS_DUMP_TAP</code> is defined it should name a directory into which a copy of the raw TAP for each test will be written. TAP is written to files named for each test. Subdirectories will be created as needed.</p>
+
+<p>Returns a <a href="/cperl/lib/TAP/Parser/Aggregator.html">TAP::Parser::Aggregator</a> containing the test results.</p>
+
+<h3 id="summary"><code>summary</code></h3>
+
+<pre><code>  $harness-&gt;summary( $aggregator );</code></pre>
+
+<p>Output the summary for a <a href="/cperl/lib/TAP/Parser/Aggregator.html">TAP::Parser::Aggregator</a>.</p>
+
+<h3 id="aggregate_tests"><code>aggregate_tests</code></h3>
+
+<pre><code>  $harness-&gt;aggregate_tests( $aggregate, @tests );</code></pre>
+
+<p>Run the named tests and display a summary of result. Tests will be run in the order found.</p>
+
+<p>Test results will be added to the supplied <a href="/cperl/lib/TAP/Parser/Aggregator.html">TAP::Parser::Aggregator</a>. <code>aggregate_tests</code> may be called multiple times to run several sets of tests. Multiple <code>Test::Harness</code> instances may be used to pass results to a single aggregator so that different parts of a complex test suite may be run using different <code>TAP::Harness</code> settings. This is useful, for example, in the case where some tests should run in parallel but others are unsuitable for parallel execution.</p>
+
+<pre><code>    my $formatter   = TAP::Formatter::Console-&gt;new;
+    my $ser_harness = TAP::Harness-&gt;new( { formatter =&gt; $formatter } );
+    my $par_harness = TAP::Harness-&gt;new(
+        {   formatter =&gt; $formatter,
+            jobs      =&gt; 9
+        }
+    );
+    my $aggregator = TAP::Parser::Aggregator-&gt;new;
+
+    $aggregator-&gt;start();
+    $ser_harness-&gt;aggregate_tests( $aggregator, @ser_tests );
+    $par_harness-&gt;aggregate_tests( $aggregator, @par_tests );
+    $aggregator-&gt;stop();
+    $formatter-&gt;summary($aggregator);</code></pre>
+
+<p>Note that for simpler testing requirements it will often be possible to replace the above code with a single call to <code>runtests</code>.</p>
+
+<p>Each element of the <code>@tests</code> array is either:</p>
+
+<ul>
+
+<li><p>the source name of a test to run</p>
+
+</li>
+<li><p>a reference to a [ source name, display name ] array</p>
+
+</li>
+</ul>
+
+<p>In the case of a perl test suite, typically <i>source names</i> are simply the file names of the test scripts to run.</p>
+
+<p>When you supply a separate display name it becomes possible to run a test more than once; the display name is effectively the alias by which the test is known inside the harness. The harness doesn&#39;t care if it runs the same test more than once when each invocation uses a different name.</p>
+
+<h3 id="make_scheduler"><code>make_scheduler</code></h3>
+
+<p>Called by the harness when it needs to create a <a href="/cperl/lib/TAP/Parser/Scheduler.html">TAP::Parser::Scheduler</a>. Override in a subclass to provide an alternative scheduler. <code>make_scheduler</code> is passed the list of tests that was passed to <code>aggregate_tests</code>.</p>
+
+<h3 id="jobs"><code>jobs</code></h3>
+
+<p>Gets or sets the number of concurrent test runs the harness is handling. By default, this value is 1 -- for parallel testing, this should be set higher.</p>
+
+<h3 id="make_parser"><code>make_parser</code></h3>
+
+<p>Make a new parser and display formatter session. Typically used and/or overridden in subclasses.</p>
+
+<pre><code>    my ( $parser, $session ) = $harness-&gt;make_parser;</code></pre>
+
+<h3 id="finish_parser"><code>finish_parser</code></h3>
+
+<p>Terminate use of a parser. Typically used and/or overridden in subclasses. The parser isn&#39;t destroyed as a result of this.</p>
+
+<h1 id="CONFIGURING">CONFIGURING</h1>
+
+<p><code>TAP::Harness</code> is designed to be easy to configure.</p>
+
+<h2 id="Plugins">Plugins</h2>
+
+<p><code>TAP::Parser</code> plugins let you change the way TAP is <i>input</i> to and <i>output</i> from the parser.</p>
+
+<p><a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>s handle TAP <i>input</i>. You can configure them and load custom handlers using the <code>sources</code> parameter to <a href="#new">&quot;new&quot;</a>.</p>
+
+<p><a>TAP::Formatter</a>s handle TAP <i>output</i>. You can load custom formatters by using the <code>formatter_class</code> parameter to <a href="#new">&quot;new&quot;</a>. To configure a formatter, you currently need to instantiate it outside of <a href="/cperl/lib/TAP/Harness.html">TAP::Harness</a> and pass it in with the <code>formatter</code> parameter to <a href="#new">&quot;new&quot;</a>. This <i>may</i> be addressed by adding a <i>formatters</i> parameter to <a href="#new">&quot;new&quot;</a> in the future.</p>
+
+<h2 id="Module::Build"><code>Module::Build</code></h2>
+
+<p><a>Module::Build</a> version <code>0.30</code> supports <code>TAP::Harness</code>.</p>
+
+<p>To load <code>TAP::Harness</code> plugins, you&#39;ll need to use the <code>tap_harness_args</code> parameter to <code>new</code>, typically from your <code>Build.PL</code>. For example:</p>
+
+<pre><code>  Module::Build-&gt;new(
+      module_name        =&gt; &#39;MyApp&#39;,
+      test_file_exts     =&gt; [qw(.t .tap .txt)],
+      use_tap_harness    =&gt; 1,
+      tap_harness_args   =&gt; {
+          sources =&gt; {
+              MyCustom =&gt; {},
+              File =&gt; {
+                  extensions =&gt; [&#39;.tap&#39;, &#39;.txt&#39;],
+              },
+          },
+          formatter_class =&gt; &#39;TAP::Formatter::HTML&#39;,
+      },
+      build_requires     =&gt; {
+          &#39;Module::Build&#39; =&gt; &#39;0.30&#39;,
+          &#39;TAP::Harness&#39;  =&gt; &#39;3.18&#39;,
+      },
+  )-&gt;create_build_script;</code></pre>
+
+<p>See <a href="#new">&quot;new&quot;</a></p>
+
+<h2 id="ExtUtils::MakeMaker"><code>ExtUtils::MakeMaker</code></h2>
+
+<p><a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a> does not support <a href="/cperl/lib/TAP/Harness.html">TAP::Harness</a> out-of-the-box.</p>
+
+<h2 id="prove"><code>prove</code></h2>
+
+<p><a>prove</a> supports <code>TAP::Harness</code> plugins, and has a plugin system of its own. See <a>&quot;FORMATTERS&quot; in prove</a>, <a>&quot;SOURCE HANDLERS&quot; in prove</a> and <a href="/cperl/lib/App/Prove.html">App::Prove</a> for more details.</p>
+
+<h1 id="WRITING-PLUGINS">WRITING PLUGINS</h1>
+
+<p>If you can&#39;t configure <code>TAP::Harness</code> to do what you want, and you can&#39;t find an existing plugin, consider writing one.</p>
+
+<p>The two primary use cases supported by <a href="/cperl/lib/TAP/Harness.html">TAP::Harness</a> for plugins are <i>input</i> and <i>output</i>:</p>
+
+<dl>
+
+<dt id="Customize-how-TAP-gets-into-the-parser">Customize how TAP gets into the parser</dt>
+<dd>
+
+<p>To do this, you can either extend an existing <a href="/cperl/lib/TAP/Parser/SourceHandler.html">TAP::Parser::SourceHandler</a>, or write your own. It&#39;s a pretty simple API, and they can be loaded and configured using the <code>sources</code> parameter to <a href="#new">&quot;new&quot;</a>.</p>
+
+</dd>
+<dt id="Customize-how-TAP-results-are-output-from-the-parser">Customize how TAP results are output from the parser</dt>
+<dd>
+
+<p>To do this, you can either extend an existing <a>TAP::Formatter</a>, or write your own. Writing formatters are a bit more involved than writing a <i>SourceHandler</i>, as you&#39;ll need to understand the <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> API. A good place to start is by understanding how <a href="#aggregate_tests">&quot;aggregate_tests&quot;</a> works.</p>
+
+<p>Custom formatters can be loaded configured using the <code>formatter_class</code> parameter to <a href="#new">&quot;new&quot;</a>.</p>
+
+</dd>
+</dl>
+
+<h1 id="SUBCLASSING">SUBCLASSING</h1>
+
+<p>If you can&#39;t configure <code>TAP::Harness</code> to do exactly what you want, and writing a plugin isn&#39;t an option, consider extending it. It is designed to be (mostly) easy to subclass, though the cases when sub-classing is necessary should be few and far between.</p>
+
+<h2 id="Methods">Methods</h2>
+
+<p>The following methods are ones you may wish to override if you want to subclass <code>TAP::Harness</code>.</p>
+
+<dl>
+
+<dt id="new1"><a href="#new">&quot;new&quot;</a></dt>
+<dd>
+
+</dd>
+<dt id="runtests1"><a href="#runtests">&quot;runtests&quot;</a></dt>
+<dd>
+
+</dd>
+<dt id="summary1"><a href="#summary">&quot;summary&quot;</a></dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="REPLACING">REPLACING</h1>
+
+<p>If you like the <code>prove</code> utility and <a href="/cperl/lib/TAP/Parser.html">TAP::Parser</a> but you want your own harness, all you need to do is write one and provide <code>new</code> and <code>runtests</code> methods. Then you can use the <code>prove</code> utility like so:</p>
+
+<pre><code> prove --harness My::Test::Harness</code></pre>
+
+<p>Note that while <code>prove</code> accepts a list of tests (or things to be tested), <code>new</code> has a fairly rich set of arguments. You&#39;ll probably want to read over this code carefully to see how all of them are being used.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Test/Harness.html">Test::Harness</a></p>
+
+
+</body>
+
+</html>
+
+

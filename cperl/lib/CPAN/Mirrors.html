@@ -1,0 +1,174 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>CPAN::Mirrors - Get CPAN mirror information and select a fast one</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use CPAN::Mirrors;
+
+    my $mirrors = CPAN::Mirrors-&gt;new( $mirrored_by_file );
+
+    my $seen = {};
+
+    my $best_continent = $mirrors-&gt;find_best_continents( { seen =&gt; $seen } );
+    my @mirrors        = $mirrors-&gt;get_mirrors_by_continents( $best_continent );
+
+    my $callback = sub {
+        my( $m ) = @_;
+        printf &quot;%s = %s\n&quot;, $m-&gt;hostname, $m-&gt;rtt
+        };
+    $mirrors-&gt;get_mirrors_timings( \@mirrors, $seen, $callback );
+
+    @mirrors = sort { $a-&gt;rtt &lt;=&gt; $b-&gt;rtt } @mirrors;
+
+    print &quot;Best mirrors are &quot;, map( { $_-&gt;rtt } @mirrors[0..3] ), &quot;\n&quot;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<dl>
+
+<dt id="new-LOCAL_FILE_NAME">new( LOCAL_FILE_NAME )</dt>
+<dd>
+
+<p>Create a new CPAN::Mirrors object from LOCAL_FILE_NAME. This file should look like that in http://www.cpan.org/MIRRORED.BY .</p>
+
+</dd>
+<dt id="continents">continents()</dt>
+<dd>
+
+<p>Return a list of continents based on those defined in <i>MIRRORED.BY</i>.</p>
+
+</dd>
+<dt id="countries-CONTINENTS">countries( [CONTINENTS] )</dt>
+<dd>
+
+<p>Return a list of countries based on those defined in <i>MIRRORED.BY</i>. It only returns countries for the continents you specify (as defined in <code>continents</code>). If you don&#39;t specify any continents, it returns all of the countries listed in <i>MIRRORED.BY</i>.</p>
+
+</dd>
+<dt id="mirrors-COUNTRIES">mirrors( [COUNTRIES] )</dt>
+<dd>
+
+<p>Return a list of mirrors based on those defined in <i>MIRRORED.BY</i>. It only returns mirrors for the countries you specify (as defined in <code>countries</code>). If you don&#39;t specify any countries, it returns all of the mirrors listed in <i>MIRRORED.BY</i>.</p>
+
+</dd>
+<dt id="get_mirrors_by_countries-COUNTRIES">get_mirrors_by_countries( [COUNTRIES] )</dt>
+<dd>
+
+<p>A more sensible synonym for mirrors.</p>
+
+</dd>
+<dt id="get_mirrors_by_continents-CONTINENTS">get_mirrors_by_continents( [CONTINENTS] )</dt>
+<dd>
+
+<p>Return a list of mirrors for all of continents you specify. If you don&#39;t specify any continents, it returns all of the mirrors.</p>
+
+<p>You can specify a single continent or an array reference of continents.</p>
+
+</dd>
+<dt id="get_countries_by_continents-CONTINENTS">get_countries_by_continents( [CONTINENTS] )</dt>
+<dd>
+
+<p>A more sensible synonym for countries.</p>
+
+</dd>
+<dt id="default_mirror">default_mirror</dt>
+<dd>
+
+<p>Returns the default mirror, http://www.cpan.org/ . This mirror uses dynamic DNS to give a close mirror.</p>
+
+</dd>
+<dt id="best_mirrors">best_mirrors</dt>
+<dd>
+
+<p><code>best_mirrors</code> checks for the best mirrors based on the list of continents you pass, or, without that, all continents, as defined by <code>CPAN::Mirrored::By</code>. It pings each mirror, up to the value of <code>how_many</code>. In list context, it returns up to <code>how_many</code> mirror. In scalar context, it returns the single best mirror.</p>
+
+<p>Arguments</p>
+
+<pre><code>    how_many   - the number of mirrors to return. Default: 1
+    callback   - a callback for find_best_continents
+    verbose    - true or false on all the whining and moaning. Default: false
+    continents - an array ref of the continents to check</code></pre>
+
+<p>If you don&#39;t specify the continents, <code>best_mirrors</code> calls <code>find_best_continents</code> to get the list of continents to check.</p>
+
+<p>If you don&#39;t have <a href="/cperl/lib/Net/Ping.html">Net::Ping</a> v2.13 or later, needed for timings, this returns the default mirror.</p>
+
+</dd>
+<dt id="get_n_random_mirrors_by_continents-N-CONTINENTS">get_n_random_mirrors_by_continents( N, [CONTINENTS] )</dt>
+<dd>
+
+<p>Returns up to N random mirrors for the specified continents. Specify the continents as an array reference.</p>
+
+</dd>
+<dt id="get_mirrors_timings-MIRROR_LIST-SEEN-CALLBACK">get_mirrors_timings( MIRROR_LIST, SEEN, CALLBACK );</dt>
+<dd>
+
+<p>Pings the listed mirrors and returns a list of mirrors sorted in ascending ping times.</p>
+
+<p><code>MIRROR_LIST</code> is an anonymous array of <code>CPAN::Mirrored::By</code> objects to ping.</p>
+
+<p>The optional argument <code>SEEN</code> is a hash reference used to track the mirrors you&#39;ve already pinged.</p>
+
+<p>The optional argument <code>CALLBACK</code> is a subroutine reference to call after each ping. It gets the <code>CPAN::Mirrored::By</code> object after each ping.</p>
+
+</dd>
+<dt id="find_best_continents-HASH_REF">find_best_continents( HASH_REF );</dt>
+<dd>
+
+<p><code>find_best_continents</code> goes through each continent and pings <code>N</code> random mirrors on that continent. It then orders the continents by ascending median ping time. In list context, it returns the ordered list of continent. In scalar context, it returns the same list as an anonymous array.</p>
+
+<p>Arguments:</p>
+
+<pre><code>    n        - the number of hosts to ping for each continent. Default: 3
+    seen     - a hashref of cached hostname ping times
+    verbose  - true or false for noisy or quiet. Default: false
+    callback - a subroutine to run after each ping.
+    ping_cache_limit - how long, in seconds, to reuse previous ping times.
+        Default: 1 day</code></pre>
+
+<p>The <code>seen</code> hash has hostnames as keys and anonymous arrays as values. The anonymous array is a triplet of a <code>CPAN::Mirrored::By</code> object, a ping time, and the epoch time for the measurement.</p>
+
+<p>The callback subroutine gets the <code>CPAN::Mirrored::By</code> object, the ping time, and measurement time (the same things in the <code>seen</code> hashref) as arguments. <code>find_best_continents</code> doesn&#39;t care what the callback does and ignores the return value.</p>
+
+<p>With a low value for <code>N</code>, a single mirror might skew the results enough to choose a worse continent. If you have that problem, try a larger value.</p>
+
+</dd>
+</dl>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Andreas Koenig <code>&lt;andk@cpan.org&gt;</code>, David Golden <code>&lt;dagolden@cpan.org&gt;</code>, brian d foy <code>&lt;bdfoy@cpan.org&gt;</code></p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>See <a href="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</a></p>
+
+
+</body>
+
+</html>
+
+

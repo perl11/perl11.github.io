@@ -1,0 +1,794 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Functional-Interface">Functional Interface</a>
+    <ul>
+      <li><a href="#unzip-input_filename_or_reference-output_filename_or_reference-OPTS">unzip $input_filename_or_reference =&gt; $output_filename_or_reference [, OPTS]</a>
+        <ul>
+          <li><a href="#The-input_filename_or_reference-parameter">The $input_filename_or_reference parameter</a></li>
+          <li><a href="#The-output_filename_or_reference-parameter">The $output_filename_or_reference parameter</a></li>
+        </ul>
+      </li>
+      <li><a href="#Notes">Notes</a></li>
+      <li><a href="#Optional-Parameters">Optional Parameters</a></li>
+      <li><a href="#Examples">Examples</a></li>
+    </ul>
+  </li>
+  <li><a href="#OO-Interface">OO Interface</a>
+    <ul>
+      <li><a href="#Constructor">Constructor</a></li>
+      <li><a href="#Constructor-Options">Constructor Options</a></li>
+      <li><a href="#Examples1">Examples</a></li>
+    </ul>
+  </li>
+  <li><a href="#Methods">Methods</a>
+    <ul>
+      <li><a href="#read">read</a></li>
+      <li><a href="#read1">read</a></li>
+      <li><a href="#getline">getline</a></li>
+      <li><a href="#getc">getc</a></li>
+      <li><a href="#ungetc">ungetc</a></li>
+      <li><a href="#inflateSync">inflateSync</a></li>
+      <li><a href="#getHeaderInfo">getHeaderInfo</a></li>
+      <li><a href="#tell">tell</a></li>
+      <li><a href="#eof">eof</a></li>
+      <li><a href="#seek">seek</a></li>
+      <li><a href="#binmode">binmode</a></li>
+      <li><a href="#opened">opened</a></li>
+      <li><a href="#autoflush">autoflush</a></li>
+      <li><a href="#input_line_number">input_line_number</a></li>
+      <li><a href="#fileno">fileno</a></li>
+      <li><a href="#close">close</a></li>
+      <li><a href="#nextStream">nextStream</a></li>
+      <li><a href="#trailingData">trailingData</a></li>
+    </ul>
+  </li>
+  <li><a href="#Importing">Importing</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a>
+    <ul>
+      <li><a href="#Working-with-Net::FTP">Working with Net::FTP</a></li>
+      <li><a href="#Walking-through-a-zip-file">Walking through a zip file</a></li>
+      <li><a href="#Unzipping-a-complete-zip-file-to-disk">Unzipping a complete zip file to disk</a></li>
+    </ul>
+  </li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#MODIFICATION-HISTORY">MODIFICATION HISTORY</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>IO::Uncompress::Unzip - Read zip files/buffers</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+
+    my $status = unzip $input =&gt; $output [,OPTS]
+        or die &quot;unzip failed: $UnzipError\n&quot;;
+
+    my $z = new IO::Uncompress::Unzip $input [OPTS] 
+        or die &quot;unzip failed: $UnzipError\n&quot;;
+
+    $status = $z-&gt;read($buffer)
+    $status = $z-&gt;read($buffer, $length)
+    $status = $z-&gt;read($buffer, $length, $offset)
+    $line = $z-&gt;getline()
+    $char = $z-&gt;getc()
+    $char = $z-&gt;ungetc()
+    $char = $z-&gt;opened()
+
+    $status = $z-&gt;inflateSync()
+
+    $data = $z-&gt;trailingData()
+    $status = $z-&gt;nextStream()
+    $data = $z-&gt;getHeaderInfo()
+    $z-&gt;tell()
+    $z-&gt;seek($position, $whence)
+    $z-&gt;binmode()
+    $z-&gt;fileno()
+    $z-&gt;eof()
+    $z-&gt;close()
+
+    $UnzipError ;
+
+    # IO::File mode
+
+    &lt;$z&gt;
+    read($z, $buffer);
+    read($z, $buffer, $length);
+    read($z, $buffer, $length, $offset);
+    tell($z)
+    seek($z, $position, $whence)
+    binmode($z)
+    fileno($z)
+    eof($z)
+    close($z)</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides a Perl interface that allows the reading of zlib files/buffers.</p>
+
+<p>For writing zip files/buffers, see the companion module IO::Compress::Zip.</p>
+
+<h1 id="Functional-Interface">Functional Interface</h1>
+
+<p>A top-level function, <code>unzip</code>, is provided to carry out &quot;one-shot&quot; uncompression between buffers and/or files. For finer control over the uncompression process, see the <a href="#OO-Interface">&quot;OO Interface&quot;</a> section.</p>
+
+<pre><code>    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+
+    unzip $input_filename_or_reference =&gt; $output_filename_or_reference [,OPTS] 
+        or die &quot;unzip failed: $UnzipError\n&quot;;</code></pre>
+
+<p>The functional interface needs Perl5.005 or better.</p>
+
+<h2 id="unzip-input_filename_or_reference-output_filename_or_reference-OPTS">unzip $input_filename_or_reference =&gt; $output_filename_or_reference [, OPTS]</h2>
+
+<p><code>unzip</code> expects at least two parameters, <code>$input_filename_or_reference</code> and <code>$output_filename_or_reference</code>.</p>
+
+<h3 id="The-input_filename_or_reference-parameter">The <code>$input_filename_or_reference</code> parameter</h3>
+
+<p>The parameter, <code>$input_filename_or_reference</code>, is used to define the source of the compressed data.</p>
+
+<p>It can take one of the following forms:</p>
+
+<dl>
+
+<dt id="A-filename">A filename</dt>
+<dd>
+
+<p>If the &lt;$input_filename_or_reference&gt; parameter is a simple scalar, it is assumed to be a filename. This file will be opened for reading and the input data will be read from it.</p>
+
+</dd>
+<dt id="A-filehandle">A filehandle</dt>
+<dd>
+
+<p>If the <code>$input_filename_or_reference</code> parameter is a filehandle, the input data will be read from it. The string &#39;-&#39; can be used as an alias for standard input.</p>
+
+</dd>
+<dt id="A-scalar-reference">A scalar reference</dt>
+<dd>
+
+<p>If <code>$input_filename_or_reference</code> is a scalar reference, the input data will be read from <code>$$input_filename_or_reference</code>.</p>
+
+</dd>
+<dt id="An-array-reference">An array reference</dt>
+<dd>
+
+<p>If <code>$input_filename_or_reference</code> is an array reference, each element in the array must be a filename.</p>
+
+<p>The input data will be read from each file in turn.</p>
+
+<p>The complete array will be walked to ensure that it only contains valid filenames before any data is uncompressed.</p>
+
+</dd>
+<dt id="An-Input-FileGlob-string">An Input FileGlob string</dt>
+<dd>
+
+<p>If <code>$input_filename_or_reference</code> is a string that is delimited by the characters &quot;&lt;&quot; and &quot;&gt;&quot; <code>unzip</code> will assume that it is an <i>input fileglob string</i>. The input is the list of files that match the fileglob.</p>
+
+<p>See <a href="/cperl/lib/File/GlobMapper.html">File::GlobMapper</a> for more details.</p>
+
+</dd>
+</dl>
+
+<p>If the <code>$input_filename_or_reference</code> parameter is any other type, <code>undef</code> will be returned.</p>
+
+<h3 id="The-output_filename_or_reference-parameter">The <code>$output_filename_or_reference</code> parameter</h3>
+
+<p>The parameter <code>$output_filename_or_reference</code> is used to control the destination of the uncompressed data. This parameter can take one of these forms.</p>
+
+<dl>
+
+<dt id="A-filename1">A filename</dt>
+<dd>
+
+<p>If the <code>$output_filename_or_reference</code> parameter is a simple scalar, it is assumed to be a filename. This file will be opened for writing and the uncompressed data will be written to it.</p>
+
+</dd>
+<dt id="A-filehandle1">A filehandle</dt>
+<dd>
+
+<p>If the <code>$output_filename_or_reference</code> parameter is a filehandle, the uncompressed data will be written to it. The string &#39;-&#39; can be used as an alias for standard output.</p>
+
+</dd>
+<dt id="A-scalar-reference1">A scalar reference</dt>
+<dd>
+
+<p>If <code>$output_filename_or_reference</code> is a scalar reference, the uncompressed data will be stored in <code>$$output_filename_or_reference</code>.</p>
+
+</dd>
+<dt id="An-Array-Reference">An Array Reference</dt>
+<dd>
+
+<p>If <code>$output_filename_or_reference</code> is an array reference, the uncompressed data will be pushed onto the array.</p>
+
+</dd>
+<dt id="An-Output-FileGlob">An Output FileGlob</dt>
+<dd>
+
+<p>If <code>$output_filename_or_reference</code> is a string that is delimited by the characters &quot;&lt;&quot; and &quot;&gt;&quot; <code>unzip</code> will assume that it is an <i>output fileglob string</i>. The output is the list of files that match the fileglob.</p>
+
+<p>When <code>$output_filename_or_reference</code> is an fileglob string, <code>$input_filename_or_reference</code> must also be a fileglob string. Anything else is an error.</p>
+
+<p>See <a href="/cperl/lib/File/GlobMapper.html">File::GlobMapper</a> for more details.</p>
+
+</dd>
+</dl>
+
+<p>If the <code>$output_filename_or_reference</code> parameter is any other type, <code>undef</code> will be returned.</p>
+
+<h2 id="Notes">Notes</h2>
+
+<p>When <code>$input_filename_or_reference</code> maps to multiple compressed files/buffers and <code>$output_filename_or_reference</code> is a single file/buffer, after uncompression <code>$output_filename_or_reference</code> will contain a concatenation of all the uncompressed data from each of the input files/buffers.</p>
+
+<h2 id="Optional-Parameters">Optional Parameters</h2>
+
+<p>Unless specified below, the optional parameters for <code>unzip</code>, <code>OPTS</code>, are the same as those used with the OO interface defined in the <a href="#Constructor-Options">&quot;Constructor Options&quot;</a> section below.</p>
+
+<dl>
+
+<dt id="AutoClose-0-1"><code>AutoClose =&gt; 0|1</code></dt>
+<dd>
+
+<p>This option applies to any input or output data streams to <code>unzip</code> that are filehandles.</p>
+
+<p>If <code>AutoClose</code> is specified, and the value is true, it will result in all input and/or output filehandles being closed once <code>unzip</code> has completed.</p>
+
+<p>This parameter defaults to 0.</p>
+
+</dd>
+<dt id="BinModeOut-0-1"><code>BinModeOut =&gt; 0|1</code></dt>
+<dd>
+
+<p>When writing to a file or filehandle, set <code>binmode</code> before writing to the file.</p>
+
+<p>Defaults to 0.</p>
+
+</dd>
+<dt id="Append-0-1"><code>Append =&gt; 0|1</code></dt>
+<dd>
+
+<p>The behaviour of this option is dependent on the type of output data stream.</p>
+
+<ul>
+
+<li><p>A Buffer</p>
+
+<p>If <code>Append</code> is enabled, all uncompressed data will be append to the end of the output buffer. Otherwise the output buffer will be cleared before any uncompressed data is written to it.</p>
+
+</li>
+<li><p>A Filename</p>
+
+<p>If <code>Append</code> is enabled, the file will be opened in append mode. Otherwise the contents of the file, if any, will be truncated before any uncompressed data is written to it.</p>
+
+</li>
+<li><p>A Filehandle</p>
+
+<p>If <code>Append</code> is enabled, the filehandle will be positioned to the end of the file via a call to <code>seek</code> before any uncompressed data is written to it. Otherwise the file pointer will not be moved.</p>
+
+</li>
+</ul>
+
+<p>When <code>Append</code> is specified, and set to true, it will <i>append</i> all uncompressed data to the output data stream.</p>
+
+<p>So when the output is a filehandle it will carry out a seek to the eof before writing any uncompressed data. If the output is a filename, it will be opened for appending. If the output is a buffer, all uncompressed data will be appended to the existing buffer.</p>
+
+<p>Conversely when <code>Append</code> is not specified, or it is present and is set to false, it will operate as follows.</p>
+
+<p>When the output is a filename, it will truncate the contents of the file before writing any uncompressed data. If the output is a filehandle its position will not be changed. If the output is a buffer, it will be wiped before any uncompressed data is output.</p>
+
+<p>Defaults to 0.</p>
+
+</dd>
+<dt id="MultiStream-0-1"><code>MultiStream =&gt; 0|1</code></dt>
+<dd>
+
+<p>If the input file/buffer contains multiple compressed data streams, this option will uncompress the whole lot as a single data stream.</p>
+
+<p>Defaults to 0.</p>
+
+</dd>
+<dt id="TrailingData-scalar"><code>TrailingData =&gt; $scalar</code></dt>
+<dd>
+
+<p>Returns the data, if any, that is present immediately after the compressed data stream once uncompression is complete.</p>
+
+<p>This option can be used when there is useful information immediately following the compressed data stream, and you don&#39;t know the length of the compressed data stream.</p>
+
+<p>If the input is a buffer, <code>trailingData</code> will return everything from the end of the compressed data stream to the end of the buffer.</p>
+
+<p>If the input is a filehandle, <code>trailingData</code> will return the data that is left in the filehandle input buffer once the end of the compressed data stream has been reached. You can then use the filehandle to read the rest of the input file.</p>
+
+<p>Don&#39;t bother using <code>trailingData</code> if the input is a filename.</p>
+
+<p>If you know the length of the compressed data stream before you start uncompressing, you can avoid having to use <code>trailingData</code> by setting the <code>InputLength</code> option.</p>
+
+</dd>
+</dl>
+
+<h2 id="Examples">Examples</h2>
+
+<p>Say you have a zip file, <code>file1.zip</code>, that only contains a single member, you can read it and write the uncompressed data to the file <code>file1.txt</code> like this.</p>
+
+<pre><code>    use strict ;
+    use warnings ;
+    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+
+    my $input = &quot;file1.zip&quot;;
+    my $output = &quot;file1.txt&quot;;
+    unzip $input =&gt; $output
+        or die &quot;unzip failed: $UnzipError\n&quot;;</code></pre>
+
+<p>If you have a zip file that contains multiple members and want to read a specific member from the file, say <code>&quot;data1&quot;</code>, use the <code>Name</code> option</p>
+
+<pre><code>    use strict ;
+    use warnings ;
+    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+
+    my $input = &quot;file1.zip&quot;;
+    my $output = &quot;file1.txt&quot;;
+    unzip $input =&gt; $output, Name =&gt; &quot;data1&quot;
+        or die &quot;unzip failed: $UnzipError\n&quot;;</code></pre>
+
+<p>Alternatively, if you want to read the <code>&quot;data1&quot;</code> member into memory, use a scalar reference for the <code>output</code> parameter.</p>
+
+<pre><code>    use strict ;
+    use warnings ;
+    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+
+    my $input = &quot;file1.zip&quot;;
+    my $output ;
+    unzip $input =&gt; \$output, Name =&gt; &quot;data1&quot;
+        or die &quot;unzip failed: $UnzipError\n&quot;;
+    # $output now contains the uncompressed data</code></pre>
+
+<p>To read from an existing Perl filehandle, <code>$input</code>, and write the uncompressed data to a buffer, <code>$buffer</code>.</p>
+
+<pre><code>    use strict ;
+    use warnings ;
+    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;
+    use IO::File ;
+
+    my $input = new IO::File &quot;&lt;file1.zip&quot;
+        or die &quot;Cannot open &#39;file1.zip&#39;: $!\n&quot; ;
+    my $buffer ;
+    unzip $input =&gt; \$buffer 
+        or die &quot;unzip failed: $UnzipError\n&quot;;</code></pre>
+
+<h1 id="OO-Interface">OO Interface</h1>
+
+<h2 id="Constructor">Constructor</h2>
+
+<p>The format of the constructor for IO::Uncompress::Unzip is shown below</p>
+
+<pre><code>    my $z = new IO::Uncompress::Unzip $input [OPTS]
+        or die &quot;IO::Uncompress::Unzip failed: $UnzipError\n&quot;;</code></pre>
+
+<p>Returns an <code>IO::Uncompress::Unzip</code> object on success and undef on failure. The variable <code>$UnzipError</code> will contain an error message on failure.</p>
+
+<p>If you are running Perl 5.005 or better the object, <code>$z</code>, returned from IO::Uncompress::Unzip can be used exactly like an <a href="/cperl/lib/IO/File.html">IO::File</a> filehandle. This means that all normal input file operations can be carried out with <code>$z</code>. For example, to read a line from a compressed file/buffer you can use either of these forms</p>
+
+<pre><code>    $line = $z-&gt;getline();
+    $line = &lt;$z&gt;;</code></pre>
+
+<p>The mandatory parameter <code>$input</code> is used to determine the source of the compressed data. This parameter can take one of three forms.</p>
+
+<dl>
+
+<dt id="A-filename2">A filename</dt>
+<dd>
+
+<p>If the <code>$input</code> parameter is a scalar, it is assumed to be a filename. This file will be opened for reading and the compressed data will be read from it.</p>
+
+</dd>
+<dt id="A-filehandle2">A filehandle</dt>
+<dd>
+
+<p>If the <code>$input</code> parameter is a filehandle, the compressed data will be read from it. The string &#39;-&#39; can be used as an alias for standard input.</p>
+
+</dd>
+<dt id="A-scalar-reference2">A scalar reference</dt>
+<dd>
+
+<p>If <code>$input</code> is a scalar reference, the compressed data will be read from <code>$$input</code>.</p>
+
+</dd>
+</dl>
+
+<h2 id="Constructor-Options">Constructor Options</h2>
+
+<p>The option names defined below are case insensitive and can be optionally prefixed by a &#39;-&#39;. So all of the following are valid</p>
+
+<pre><code>    -AutoClose
+    -autoclose
+    AUTOCLOSE
+    autoclose</code></pre>
+
+<p>OPTS is a combination of the following options:</p>
+
+<dl>
+
+<dt id="Name-membername"><code>Name =&gt; &quot;membername&quot;</code></dt>
+<dd>
+
+<p>Open &quot;membername&quot; from the zip file for reading.</p>
+
+</dd>
+<dt id="AutoClose-0-11"><code>AutoClose =&gt; 0|1</code></dt>
+<dd>
+
+<p>This option is only valid when the <code>$input</code> parameter is a filehandle. If specified, and the value is true, it will result in the file being closed once either the <code>close</code> method is called or the IO::Uncompress::Unzip object is destroyed.</p>
+
+<p>This parameter defaults to 0.</p>
+
+</dd>
+<dt id="MultiStream-0-11"><code>MultiStream =&gt; 0|1</code></dt>
+<dd>
+
+<p>Treats the complete zip file/buffer as a single compressed data stream. When reading in multi-stream mode each member of the zip file/buffer will be uncompressed in turn until the end of the file/buffer is encountered.</p>
+
+<p>This parameter defaults to 0.</p>
+
+</dd>
+<dt id="Prime-string"><code>Prime =&gt; $string</code></dt>
+<dd>
+
+<p>This option will uncompress the contents of <code>$string</code> before processing the input file/buffer.</p>
+
+<p>This option can be useful when the compressed data is embedded in another file/data structure and it is not possible to work out where the compressed data begins without having to read the first few bytes. If this is the case, the uncompression can be <i>primed</i> with these bytes using this option.</p>
+
+</dd>
+<dt id="Transparent-0-1"><code>Transparent =&gt; 0|1</code></dt>
+<dd>
+
+<p>If this option is set and the input file/buffer is not compressed data, the module will allow reading of it anyway.</p>
+
+<p>In addition, if the input file/buffer does contain compressed data and there is non-compressed data immediately following it, setting this option will make this module treat the whole file/buffer as a single data stream.</p>
+
+<p>This option defaults to 1.</p>
+
+</dd>
+<dt id="BlockSize-num"><code>BlockSize =&gt; $num</code></dt>
+<dd>
+
+<p>When reading the compressed input data, IO::Uncompress::Unzip will read it in blocks of <code>$num</code> bytes.</p>
+
+<p>This option defaults to 4096.</p>
+
+</dd>
+<dt id="InputLength-size"><code>InputLength =&gt; $size</code></dt>
+<dd>
+
+<p>When present this option will limit the number of compressed bytes read from the input file/buffer to <code>$size</code>. This option can be used in the situation where there is useful data directly after the compressed data stream and you know beforehand the exact length of the compressed data stream.</p>
+
+<p>This option is mostly used when reading from a filehandle, in which case the file pointer will be left pointing to the first byte directly after the compressed data stream.</p>
+
+<p>This option defaults to off.</p>
+
+</dd>
+<dt id="Append-0-11"><code>Append =&gt; 0|1</code></dt>
+<dd>
+
+<p>This option controls what the <code>read</code> method does with uncompressed data.</p>
+
+<p>If set to 1, all uncompressed data will be appended to the output parameter of the <code>read</code> method.</p>
+
+<p>If set to 0, the contents of the output parameter of the <code>read</code> method will be overwritten by the uncompressed data.</p>
+
+<p>Defaults to 0.</p>
+
+</dd>
+<dt id="Strict-0-1"><code>Strict =&gt; 0|1</code></dt>
+<dd>
+
+<p>This option controls whether the extra checks defined below are used when carrying out the decompression. When Strict is on, the extra tests are carried out, when Strict is off they are not.</p>
+
+<p>The default for this option is off.</p>
+
+</dd>
+</dl>
+
+<h2 id="Examples1">Examples</h2>
+
+<p>TODO</p>
+
+<h1 id="Methods">Methods</h1>
+
+<h2 id="read">read</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $status = $z-&gt;read($buffer)</code></pre>
+
+<p>Reads a block of compressed data (the size of the compressed block is determined by the <code>Buffer</code> option in the constructor), uncompresses it and writes any uncompressed data into <code>$buffer</code>. If the <code>Append</code> parameter is set in the constructor, the uncompressed data will be appended to the <code>$buffer</code> parameter. Otherwise <code>$buffer</code> will be overwritten.</p>
+
+<p>Returns the number of uncompressed bytes written to <code>$buffer</code>, zero if eof or a negative number on error.</p>
+
+<h2 id="read1">read</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $status = $z-&gt;read($buffer, $length)
+    $status = $z-&gt;read($buffer, $length, $offset)
+
+    $status = read($z, $buffer, $length)
+    $status = read($z, $buffer, $length, $offset)</code></pre>
+
+<p>Attempt to read <code>$length</code> bytes of uncompressed data into <code>$buffer</code>.</p>
+
+<p>The main difference between this form of the <code>read</code> method and the previous one, is that this one will attempt to return <i>exactly</i> <code>$length</code> bytes. The only circumstances that this function will not is if end-of-file or an IO error is encountered.</p>
+
+<p>Returns the number of uncompressed bytes written to <code>$buffer</code>, zero if eof or a negative number on error.</p>
+
+<h2 id="getline">getline</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $line = $z-&gt;getline()
+    $line = &lt;$z&gt;</code></pre>
+
+<p>Reads a single line.</p>
+
+<p>This method fully supports the use of the variable <code>$/</code> (or <code>$INPUT_RECORD_SEPARATOR</code> or <code>$RS</code> when <code>English</code> is in use) to determine what constitutes an end of line. Paragraph mode, record mode and file slurp mode are all supported.</p>
+
+<h2 id="getc">getc</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $char = $z-&gt;getc()</code></pre>
+
+<p>Read a single character.</p>
+
+<h2 id="ungetc">ungetc</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $char = $z-&gt;ungetc($string)</code></pre>
+
+<h2 id="inflateSync">inflateSync</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $status = $z-&gt;inflateSync()</code></pre>
+
+<p>TODO</p>
+
+<h2 id="getHeaderInfo">getHeaderInfo</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $hdr  = $z-&gt;getHeaderInfo();
+    @hdrs = $z-&gt;getHeaderInfo();</code></pre>
+
+<p>This method returns either a hash reference (in scalar context) or a list or hash references (in array context) that contains information about each of the header fields in the compressed data stream(s).</p>
+
+<h2 id="tell">tell</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $z-&gt;tell()
+    tell $z</code></pre>
+
+<p>Returns the uncompressed file offset.</p>
+
+<h2 id="eof">eof</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $z-&gt;eof();
+    eof($z);</code></pre>
+
+<p>Returns true if the end of the compressed input stream has been reached.</p>
+
+<h2 id="seek">seek</h2>
+
+<pre><code>    $z-&gt;seek($position, $whence);
+    seek($z, $position, $whence);</code></pre>
+
+<p>Provides a sub-set of the <code>seek</code> functionality, with the restriction that it is only legal to seek forward in the input file/buffer. It is a fatal error to attempt to seek backward.</p>
+
+<p>Note that the implementation of <code>seek</code> in this module does not provide true random access to a compressed file/buffer. It works by uncompressing data from the current offset in the file/buffer until it reaches the uncompressed offset specified in the parameters to <code>seek</code>. For very small files this may be acceptable behaviour. For large files it may cause an unacceptable delay.</p>
+
+<p>The <code>$whence</code> parameter takes one the usual values, namely SEEK_SET, SEEK_CUR or SEEK_END.</p>
+
+<p>Returns 1 on success, 0 on failure.</p>
+
+<h2 id="binmode">binmode</h2>
+
+<p>Usage is</p>
+
+<pre><code>    $z-&gt;binmode
+    binmode $z ;</code></pre>
+
+<p>This is a noop provided for completeness.</p>
+
+<h2 id="opened">opened</h2>
+
+<pre><code>    $z-&gt;opened()</code></pre>
+
+<p>Returns true if the object currently refers to a opened file/buffer.</p>
+
+<h2 id="autoflush">autoflush</h2>
+
+<pre><code>    my $prev = $z-&gt;autoflush()
+    my $prev = $z-&gt;autoflush(EXPR)</code></pre>
+
+<p>If the <code>$z</code> object is associated with a file or a filehandle, this method returns the current autoflush setting for the underlying filehandle. If <code>EXPR</code> is present, and is non-zero, it will enable flushing after every write/print operation.</p>
+
+<p>If <code>$z</code> is associated with a buffer, this method has no effect and always returns <code>undef</code>.</p>
+
+<p><b>Note</b> that the special variable <code>$|</code> <b>cannot</b> be used to set or retrieve the autoflush setting.</p>
+
+<h2 id="input_line_number">input_line_number</h2>
+
+<pre><code>    $z-&gt;input_line_number()
+    $z-&gt;input_line_number(EXPR)</code></pre>
+
+<p>Returns the current uncompressed line number. If <code>EXPR</code> is present it has the effect of setting the line number. Note that setting the line number does not change the current position within the file/buffer being read.</p>
+
+<p>The contents of <code>$/</code> are used to determine what constitutes a line terminator.</p>
+
+<h2 id="fileno">fileno</h2>
+
+<pre><code>    $z-&gt;fileno()
+    fileno($z)</code></pre>
+
+<p>If the <code>$z</code> object is associated with a file or a filehandle, <code>fileno</code> will return the underlying file descriptor. Once the <code>close</code> method is called <code>fileno</code> will return <code>undef</code>.</p>
+
+<p>If the <code>$z</code> object is associated with a buffer, this method will return <code>undef</code>.</p>
+
+<h2 id="close">close</h2>
+
+<pre><code>    $z-&gt;close() ;
+    close $z ;</code></pre>
+
+<p>Closes the output file/buffer.</p>
+
+<p>For most versions of Perl this method will be automatically invoked if the IO::Uncompress::Unzip object is destroyed (either explicitly or by the variable with the reference to the object going out of scope). The exceptions are Perl versions 5.005 through 5.00504 and 5.8.0. In these cases, the <code>close</code> method will be called automatically, but not until global destruction of all live objects when the program is terminating.</p>
+
+<p>Therefore, if you want your scripts to be able to run on all versions of Perl, you should call <code>close</code> explicitly and not rely on automatic closing.</p>
+
+<p>Returns true on success, otherwise 0.</p>
+
+<p>If the <code>AutoClose</code> option has been enabled when the IO::Uncompress::Unzip object was created, and the object is associated with a file, the underlying file will also be closed.</p>
+
+<h2 id="nextStream">nextStream</h2>
+
+<p>Usage is</p>
+
+<pre><code>    my $status = $z-&gt;nextStream();</code></pre>
+
+<p>Skips to the next compressed data stream in the input file/buffer. If a new compressed data stream is found, the eof marker will be cleared and <code>$.</code> will be reset to 0.</p>
+
+<p>Returns 1 if a new stream was found, 0 if none was found, and -1 if an error was encountered.</p>
+
+<h2 id="trailingData">trailingData</h2>
+
+<p>Usage is</p>
+
+<pre><code>    my $data = $z-&gt;trailingData();</code></pre>
+
+<p>Returns the data, if any, that is present immediately after the compressed data stream once uncompression is complete. It only makes sense to call this method once the end of the compressed data stream has been encountered.</p>
+
+<p>This option can be used when there is useful information immediately following the compressed data stream, and you don&#39;t know the length of the compressed data stream.</p>
+
+<p>If the input is a buffer, <code>trailingData</code> will return everything from the end of the compressed data stream to the end of the buffer.</p>
+
+<p>If the input is a filehandle, <code>trailingData</code> will return the data that is left in the filehandle input buffer once the end of the compressed data stream has been reached. You can then use the filehandle to read the rest of the input file.</p>
+
+<p>Don&#39;t bother using <code>trailingData</code> if the input is a filename.</p>
+
+<p>If you know the length of the compressed data stream before you start uncompressing, you can avoid having to use <code>trailingData</code> by setting the <code>InputLength</code> option in the constructor.</p>
+
+<h1 id="Importing">Importing</h1>
+
+<p>No symbolic constants are required by this IO::Uncompress::Unzip at present.</p>
+
+<dl>
+
+<dt id="all">:all</dt>
+<dd>
+
+<p>Imports <code>unzip</code> and <code>$UnzipError</code>. Same as doing this</p>
+
+<pre><code>    use IO::Uncompress::Unzip qw(unzip $UnzipError) ;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<h2 id="Working-with-Net::FTP">Working with Net::FTP</h2>
+
+<p>See <a href="/cperl/lib/IO/Compress/FAQ.html#Compressed-files-and-Net::FTP">IO::Compress::FAQ</a></p>
+
+<h2 id="Walking-through-a-zip-file">Walking through a zip file</h2>
+
+<p>The code below can be used to traverse a zip file, one compressed data stream at a time.</p>
+
+<pre><code>    use IO::Uncompress::Unzip qw($UnzipError);
+
+    my $zipfile = &quot;somefile.zip&quot;;
+    my $u = new IO::Uncompress::Unzip $zipfile
+        or die &quot;Cannot open $zipfile: $UnzipError&quot;;
+
+    my $status;
+    for ($status = 1; $status &gt; 0; $status = $u-&gt;nextStream())
+    {
+ 
+        my $name = $u-&gt;getHeaderInfo()-&gt;{Name};
+        warn &quot;Processing member $name\n&quot; ;
+
+        my $buff;
+        while (($status = $u-&gt;read($buff)) &gt; 0) {
+            # Do something here
+        }
+
+        last if $status &lt; 0;
+    }
+
+    die &quot;Error processing $zipfile: $!\n&quot;
+        if $status &lt; 0 ;</code></pre>
+
+<p>Each individual compressed data stream is read until the logical end-of-file is reached. Then <code>nextStream</code> is called. This will skip to the start of the next compressed data stream and clear the end-of-file flag.</p>
+
+<p>It is also worth noting that <code>nextStream</code> can be called at any time -- you don&#39;t have to wait until you have exhausted a compressed data stream before skipping to the next one.</p>
+
+<h2 id="Unzipping-a-complete-zip-file-to-disk">Unzipping a complete zip file to disk</h2>
+
+<p>Daniel S. Sterling has written a script that uses <code>IO::Uncompress::UnZip</code> to read a zip file and unzip its contents to disk.</p>
+
+<p>The script is available from <a href="https://gist.github.com/eqhmcow/5389877">https://gist.github.com/eqhmcow/5389877</a></p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/lib/Compress/Zlib.html">Compress::Zlib</a>, <a href="/cperl/lib/IO/Compress/Gzip.html">IO::Compress::Gzip</a>, <a href="/cperl/lib/IO/Uncompress/Gunzip.html">IO::Uncompress::Gunzip</a>, <a href="/cperl/lib/IO/Compress/Deflate.html">IO::Compress::Deflate</a>, <a href="/cperl/lib/IO/Uncompress/Inflate.html">IO::Uncompress::Inflate</a>, <a href="/cperl/lib/IO/Compress/RawDeflate.html">IO::Compress::RawDeflate</a>, <a href="/cperl/lib/IO/Uncompress/RawInflate.html">IO::Uncompress::RawInflate</a>, <a href="/cperl/lib/IO/Compress/Bzip2.html">IO::Compress::Bzip2</a>, <a href="/cperl/lib/IO/Uncompress/Bunzip2.html">IO::Uncompress::Bunzip2</a>, <a>IO::Compress::Lzma</a>, <a>IO::Uncompress::UnLzma</a>, <a>IO::Compress::Xz</a>, <a>IO::Uncompress::UnXz</a>, <a>IO::Compress::Lzop</a>, <a>IO::Uncompress::UnLzop</a>, <a>IO::Compress::Lzf</a>, <a>IO::Uncompress::UnLzf</a>, <a href="/cperl/lib/IO/Uncompress/AnyInflate.html">IO::Uncompress::AnyInflate</a>, <a href="/cperl/lib/IO/Uncompress/AnyUncompress.html">IO::Uncompress::AnyUncompress</a></p>
+
+<p><a href="/cperl/lib/IO/Compress/FAQ.html">IO::Compress::FAQ</a></p>
+
+<p><a href="/cperl/lib/File/GlobMapper.html">File::GlobMapper</a>, <a>Archive::Zip</a>, <a href="/cperl/lib/Archive/Tar.html">Archive::Tar</a>, <a href="/cperl/lib/IO/Zlib.html">IO::Zlib</a></p>
+
+<p>For RFC 1950, 1951 and 1952 see <a href="http://www.faqs.org/rfcs/rfc1950.html">http://www.faqs.org/rfcs/rfc1950.html</a>, <a href="http://www.faqs.org/rfcs/rfc1951.html">http://www.faqs.org/rfcs/rfc1951.html</a> and <a href="http://www.faqs.org/rfcs/rfc1952.html">http://www.faqs.org/rfcs/rfc1952.html</a></p>
+
+<p>The <i>zlib</i> compression library was written by Jean-loup Gailly <code>gzip@prep.ai.mit.edu</code> and Mark Adler <code>madler@alumni.caltech.edu</code>.</p>
+
+<p>The primary site for the <i>zlib</i> compression library is <a href="http://www.zlib.org">http://www.zlib.org</a>.</p>
+
+<p>The primary site for gzip is <a href="http://www.gzip.org">http://www.gzip.org</a>.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>This module was written by Paul Marquess, <code>pmqs@cpan.org</code>.</p>
+
+<h1 id="MODIFICATION-HISTORY">MODIFICATION HISTORY</h1>
+
+<p>See the Changes file.</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (c) 2005-2017 Paul Marquess. All rights reserved.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

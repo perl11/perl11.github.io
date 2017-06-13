@@ -1,0 +1,478 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#REPLACING-IO::Socket-DEFAULT-BEHAVIOUR">REPLACING IO::Socket DEFAULT BEHAVIOUR</a></li>
+  <li><a href="#CONSTRUCTORS">CONSTRUCTORS</a>
+    <ul>
+      <li><a href="#sock-IO::Socket::IP-new-args">$sock = IO::Socket::IP-&gt;new( %args )</a></li>
+      <li><a href="#sock-IO::Socket::IP-new-peeraddr">$sock = IO::Socket::IP-&gt;new( $peeraddr )</a></li>
+    </ul>
+  </li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#host-service-sock-sockhost_service-numeric">( $host, $service ) = $sock-&gt;sockhost_service( $numeric )</a></li>
+      <li><a href="#addr-sock-sockhost">$addr = $sock-&gt;sockhost</a></li>
+      <li><a href="#port-sock-sockport">$port = $sock-&gt;sockport</a></li>
+      <li><a href="#host-sock-sockhostname">$host = $sock-&gt;sockhostname</a></li>
+      <li><a href="#service-sock-sockservice">$service = $sock-&gt;sockservice</a></li>
+      <li><a href="#addr-sock-sockaddr">$addr = $sock-&gt;sockaddr</a></li>
+      <li><a href="#host-service-sock-peerhost_service-numeric">( $host, $service ) = $sock-&gt;peerhost_service( $numeric )</a></li>
+      <li><a href="#addr-sock-peerhost">$addr = $sock-&gt;peerhost</a></li>
+      <li><a href="#port-sock-peerport">$port = $sock-&gt;peerport</a></li>
+      <li><a href="#host-sock-peerhostname">$host = $sock-&gt;peerhostname</a></li>
+      <li><a href="#service-sock-peerservice">$service = $sock-&gt;peerservice</a></li>
+      <li><a href="#addr-peer-peeraddr">$addr = $peer-&gt;peeraddr</a></li>
+      <li><a href="#inet-sock-as_inet">$inet = $sock-&gt;as_inet</a></li>
+    </ul>
+  </li>
+  <li><a href="#NON-BLOCKING">NON-BLOCKING</a></li>
+  <li><a href="#PeerHost-AND-LocalHost-PARSING">PeerHost AND LocalHost PARSING</a>
+    <ul>
+      <li><a href="#host-port-IO::Socket::IP-split_addr-addr">( $host, $port ) = IO::Socket::IP-&gt;split_addr( $addr )</a></li>
+      <li><a href="#addr-IO::Socket::IP-join_addr-host-port">$addr = IO::Socket::IP-&gt;join_addr( $host, $port )</a></li>
+    </ul>
+  </li>
+  <li><a href="#IO::Socket::INET-INCOMPATIBILITES">IO::Socket::INET INCOMPATIBILITES</a></li>
+  <li><a href="#TODO">TODO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p><code>IO::Socket::IP</code> - Family-neutral IP socket supporting both IPv4 and IPv6</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use IO::Socket::IP;
+
+ my $sock = IO::Socket::IP-&gt;new(
+    PeerHost =&gt; &quot;www.google.com&quot;,
+    PeerPort =&gt; &quot;http&quot;,
+    Type     =&gt; SOCK_STREAM,
+ ) or die &quot;Cannot construct socket - $@&quot;;
+
+ my $familyname = ( $sock-&gt;sockdomain == PF_INET6 ) ? &quot;IPv6&quot; :
+                  ( $sock-&gt;sockdomain == PF_INET  ) ? &quot;IPv4&quot; :
+                                                      &quot;unknown&quot;;
+
+ printf &quot;Connected to google via %s\n&quot;, $familyname;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides a protocol-independent way to use IPv4 and IPv6 sockets, intended as a replacement for <a href="/cperl/lib/IO/Socket/INET.html">IO::Socket::INET</a>. Most constructor arguments and methods are provided in a backward-compatible way. For a list of known differences, see the <code>IO::Socket::INET</code> INCOMPATIBILITES section below.</p>
+
+<p>It uses the <code>getaddrinfo(3)</code> function to convert hostnames and service names or port numbers into sets of possible addresses to connect to or listen on. This allows it to work for IPv6 where the system supports it, while still falling back to IPv4-only on systems which don&#39;t.</p>
+
+<h1 id="REPLACING-IO::Socket-DEFAULT-BEHAVIOUR">REPLACING <code>IO::Socket</code> DEFAULT BEHAVIOUR</h1>
+
+<p>By placing <code>-register</code> in the import list, <a href="/cperl/lib/IO/Socket.html">IO::Socket</a> uses <code>IO::Socket::IP</code> rather than <code>IO::Socket::INET</code> as the class that handles <code>PF_INET</code>. <code>IO::Socket</code> will also use <code>IO::Socket::IP</code> rather than <code>IO::Socket::INET6</code> to handle <code>PF_INET6</code>, provided that the <code>AF_INET6</code> constant is available.</p>
+
+<p>Changing <code>IO::Socket</code>&#39;s default behaviour means that calling the <code>IO::Socket</code> constructor with either <code>PF_INET</code> or <code>PF_INET6</code> as the <code>Domain</code> parameter will yield an <code>IO::Socket::IP</code> object.</p>
+
+<pre><code> use IO::Socket::IP -register;
+
+ my $sock = IO::Socket-&gt;new(
+    Domain    =&gt; PF_INET6,
+    LocalHost =&gt; &quot;::1&quot;,
+    Listen    =&gt; 1,
+ ) or die &quot;Cannot create socket - $@\n&quot;;
+
+ print &quot;Created a socket of type &quot; . ref($sock) . &quot;\n&quot;;</code></pre>
+
+<p>Note that <code>-register</code> is a global setting that applies to the entire program; it cannot be applied only for certain callers, removed, or limited by lexical scope.</p>
+
+<h1 id="CONSTRUCTORS">CONSTRUCTORS</h1>
+
+<h2 id="sock-IO::Socket::IP-new-args">$sock = IO::Socket::IP-&gt;new( %args )</h2>
+
+<p>Creates a new <code>IO::Socket::IP</code> object, containing a newly created socket handle according to the named arguments passed. The recognised arguments are:</p>
+
+<dl>
+
+<dt id="PeerHost-STRING">PeerHost =&gt; STRING</dt>
+<dd>
+
+</dd>
+<dt id="PeerService-STRING">PeerService =&gt; STRING</dt>
+<dd>
+
+<p>Hostname and service name for the peer to <code>connect()</code> to. The service name may be given as a port number, as a decimal string.</p>
+
+</dd>
+<dt id="PeerAddr-STRING">PeerAddr =&gt; STRING</dt>
+<dd>
+
+</dd>
+<dt id="PeerPort-STRING">PeerPort =&gt; STRING</dt>
+<dd>
+
+<p>For symmetry with the accessor methods and compatibility with <code>IO::Socket::INET</code>, these are accepted as synonyms for <code>PeerHost</code> and <code>PeerService</code> respectively.</p>
+
+</dd>
+<dt id="PeerAddrInfo-ARRAY">PeerAddrInfo =&gt; ARRAY</dt>
+<dd>
+
+<p>Alternate form of specifying the peer to <code>connect()</code> to. This should be an array of the form returned by <code>Socket::getaddrinfo</code>.</p>
+
+<p>This parameter takes precedence over the <code>Peer*</code>, <code>Family</code>, <code>Type</code> and <code>Proto</code> arguments.</p>
+
+</dd>
+<dt id="LocalHost-STRING">LocalHost =&gt; STRING</dt>
+<dd>
+
+</dd>
+<dt id="LocalService-STRING">LocalService =&gt; STRING</dt>
+<dd>
+
+<p>Hostname and service name for the local address to <code>bind()</code> to.</p>
+
+</dd>
+<dt id="LocalAddr-STRING">LocalAddr =&gt; STRING</dt>
+<dd>
+
+</dd>
+<dt id="LocalPort-STRING">LocalPort =&gt; STRING</dt>
+<dd>
+
+<p>For symmetry with the accessor methods and compatibility with <code>IO::Socket::INET</code>, these are accepted as synonyms for <code>LocalHost</code> and <code>LocalService</code> respectively.</p>
+
+</dd>
+<dt id="LocalAddrInfo-ARRAY">LocalAddrInfo =&gt; ARRAY</dt>
+<dd>
+
+<p>Alternate form of specifying the local address to <code>bind()</code> to. This should be an array of the form returned by <code>Socket::getaddrinfo</code>.</p>
+
+<p>This parameter takes precedence over the <code>Local*</code>, <code>Family</code>, <code>Type</code> and <code>Proto</code> arguments.</p>
+
+</dd>
+<dt id="Family-INT">Family =&gt; INT</dt>
+<dd>
+
+<p>The address family to pass to <code>getaddrinfo</code> (e.g. <code>AF_INET</code>, <code>AF_INET6</code>). Normally this will be left undefined, and <code>getaddrinfo</code> will search using any address family supported by the system.</p>
+
+</dd>
+<dt id="Type-INT">Type =&gt; INT</dt>
+<dd>
+
+<p>The socket type to pass to <code>getaddrinfo</code> (e.g. <code>SOCK_STREAM</code>, <code>SOCK_DGRAM</code>). Normally defined by the caller; if left undefined <code>getaddrinfo</code> may attempt to infer the type from the service name.</p>
+
+</dd>
+<dt id="Proto-STRING-or-INT">Proto =&gt; STRING or INT</dt>
+<dd>
+
+<p>The IP protocol to use for the socket (e.g. <code>&#39;tcp&#39;</code>, <code>IPPROTO_TCP</code>, <code>&#39;udp&#39;</code>,<code>IPPROTO_UDP</code>). Normally this will be left undefined, and either <code>getaddrinfo</code> or the kernel will choose an appropriate value. May be given either in string name or numeric form.</p>
+
+</dd>
+<dt id="GetAddrInfoFlags-INT">GetAddrInfoFlags =&gt; INT</dt>
+<dd>
+
+<p>More flags to pass to the <code>getaddrinfo()</code> function. If not supplied, a default of <code>AI_ADDRCONFIG</code> will be used.</p>
+
+<p>These flags will be combined with <code>AI_PASSIVE</code> if the <code>Listen</code> argument is given. For more information see the documentation about <code>getaddrinfo()</code> in the <a href="/cperl/lib/Socket.html">Socket</a> module.</p>
+
+</dd>
+<dt id="Listen-INT">Listen =&gt; INT</dt>
+<dd>
+
+<p>If defined, puts the socket into listening mode where new connections can be accepted using the <code>accept</code> method. The value given is used as the <code>listen(2)</code> queue size.</p>
+
+</dd>
+<dt id="ReuseAddr-BOOL">ReuseAddr =&gt; BOOL</dt>
+<dd>
+
+<p>If true, set the <code>SO_REUSEADDR</code> sockopt</p>
+
+</dd>
+<dt id="ReusePort-BOOL">ReusePort =&gt; BOOL</dt>
+<dd>
+
+<p>If true, set the <code>SO_REUSEPORT</code> sockopt (not all OSes implement this sockopt)</p>
+
+</dd>
+<dt id="Broadcast-BOOL">Broadcast =&gt; BOOL</dt>
+<dd>
+
+<p>If true, set the <code>SO_BROADCAST</code> sockopt</p>
+
+</dd>
+<dt id="Sockopts-ARRAY">Sockopts =&gt; ARRAY</dt>
+<dd>
+
+<p>An optional array of other socket options to apply after the three listed above. The value is an ARRAY containing 2- or 3-element ARRAYrefs. Each inner array relates to a single option, giving the level and option name, and an optional value. If the value element is missing, it will be given the value of a platform-sized integer 1 constant (i.e. suitable to enable most of the common boolean options).</p>
+
+<p>For example, both options given below are equivalent to setting <code>ReuseAddr</code>.</p>
+
+<pre><code> Sockopts =&gt; [
+    [ SOL_SOCKET, SO_REUSEADDR ],
+    [ SOL_SOCKET, SO_REUSEADDR, pack( &quot;i&quot;, 1 ) ],
+ ]</code></pre>
+
+</dd>
+<dt id="V6Only-BOOL">V6Only =&gt; BOOL</dt>
+<dd>
+
+<p>If defined, set the <code>IPV6_V6ONLY</code> sockopt when creating <code>PF_INET6</code> sockets to the given value. If true, a listening-mode socket will only listen on the <code>AF_INET6</code> addresses; if false it will also accept connections from <code>AF_INET</code> addresses.</p>
+
+<p>If not defined, the socket option will not be changed, and default value set by the operating system will apply. For repeatable behaviour across platforms it is recommended this value always be defined for listening-mode sockets.</p>
+
+<p>Note that not all platforms support disabling this option. Some, at least OpenBSD and MirBSD, will fail with <code>EINVAL</code> if you attempt to disable it. To determine whether it is possible to disable, you may use the class method</p>
+
+<pre><code> if( IO::Socket::IP-&gt;CAN_DISABLE_V6ONLY ) {
+    ...
+ }
+ else {
+    ...
+ }</code></pre>
+
+<p>If your platform does not support disabling this option but you still want to listen for both <code>AF_INET</code> and <code>AF_INET6</code> connections you will have to create two listening sockets, one bound to each protocol.</p>
+
+</dd>
+<dt id="MultiHomed">MultiHomed</dt>
+<dd>
+
+<p>This <code>IO::Socket::INET</code>-style argument is ignored, except if it is defined but false. See the <code>IO::Socket::INET</code> INCOMPATIBILITES section below.</p>
+
+<p>However, the behaviour it enables is always performed by <code>IO::Socket::IP</code>.</p>
+
+</dd>
+<dt id="Blocking-BOOL">Blocking =&gt; BOOL</dt>
+<dd>
+
+<p>If defined but false, the socket will be set to non-blocking mode. Otherwise it will default to blocking mode. See the NON-BLOCKING section below for more detail.</p>
+
+</dd>
+<dt id="Timeout-NUM">Timeout =&gt; NUM</dt>
+<dd>
+
+<p>If defined, gives a maximum time in seconds to block per <code>connect()</code> call when in blocking mode. If missing, no timeout is applied other than that provided by the underlying operating system. When in non-blocking mode this parameter is ignored.</p>
+
+<p>Note that if the hostname resolves to multiple address candidates, the same timeout will apply to each connection attempt individually, rather than to the operation as a whole. Further note that the timeout does not apply to the initial hostname resolve operation, if connecting by hostname.</p>
+
+<p>This behviour is copied inspired by <code>IO::Socket::INET</code>; for more fine grained control over connection timeouts, consider performing a nonblocking connect directly.</p>
+
+</dd>
+</dl>
+
+<p>If neither <code>Type</code> nor <code>Proto</code> hints are provided, a default of <code>SOCK_STREAM</code> and <code>IPPROTO_TCP</code> respectively will be set, to maintain compatibility with <code>IO::Socket::INET</code>. Other named arguments that are not recognised are ignored.</p>
+
+<p>If neither <code>Family</code> nor any hosts or addresses are passed, nor any <code>*AddrInfo</code>, then the constructor has no information on which to decide a socket family to create. In this case, it performs a <code>getaddinfo</code> call with the <code>AI_ADDRCONFIG</code> flag, no host name, and a service name of <code>&quot;0&quot;</code>, and uses the family of the first returned result.</p>
+
+<p>If the constructor fails, it will set <code>$@</code> to an appropriate error message; this may be from <code>$!</code> or it may be some other string; not every failure necessarily has an associated <code>errno</code> value.</p>
+
+<h2 id="sock-IO::Socket::IP-new-peeraddr">$sock = IO::Socket::IP-&gt;new( $peeraddr )</h2>
+
+<p>As a special case, if the constructor is passed a single argument (as opposed to an even-sized list of key/value pairs), it is taken to be the value of the <code>PeerAddr</code> parameter. This is parsed in the same way, according to the behaviour given in the <code>PeerHost</code> AND <code>LocalHost</code> PARSING section below.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<p>As well as the following methods, this class inherits all the methods in <a href="/cperl/lib/IO/Socket.html">IO::Socket</a> and <a href="/cperl/lib/IO/Handle.html">IO::Handle</a>.</p>
+
+<h2 id="host-service-sock-sockhost_service-numeric">( $host, $service ) = $sock-&gt;sockhost_service( $numeric )</h2>
+
+<p>Returns the hostname and service name of the local address (that is, the socket address given by the <code>sockname</code> method).</p>
+
+<p>If <code>$numeric</code> is true, these will be given in numeric form rather than being resolved into names.</p>
+
+<p>The following four convenience wrappers may be used to obtain one of the two values returned here. If both host and service names are required, this method is preferable to the following wrappers, because it will call <code>getnameinfo(3)</code> only once.</p>
+
+<h2 id="addr-sock-sockhost">$addr = $sock-&gt;sockhost</h2>
+
+<p>Return the numeric form of the local address as a textual representation</p>
+
+<h2 id="port-sock-sockport">$port = $sock-&gt;sockport</h2>
+
+<p>Return the numeric form of the local port number</p>
+
+<h2 id="host-sock-sockhostname">$host = $sock-&gt;sockhostname</h2>
+
+<p>Return the resolved name of the local address</p>
+
+<h2 id="service-sock-sockservice">$service = $sock-&gt;sockservice</h2>
+
+<p>Return the resolved name of the local port number</p>
+
+<h2 id="addr-sock-sockaddr">$addr = $sock-&gt;sockaddr</h2>
+
+<p>Return the local address as a binary octet string</p>
+
+<h2 id="host-service-sock-peerhost_service-numeric">( $host, $service ) = $sock-&gt;peerhost_service( $numeric )</h2>
+
+<p>Returns the hostname and service name of the peer address (that is, the socket address given by the <code>peername</code> method), similar to the <code>sockhost_service</code> method.</p>
+
+<p>The following four convenience wrappers may be used to obtain one of the two values returned here. If both host and service names are required, this method is preferable to the following wrappers, because it will call <code>getnameinfo(3)</code> only once.</p>
+
+<h2 id="addr-sock-peerhost">$addr = $sock-&gt;peerhost</h2>
+
+<p>Return the numeric form of the peer address as a textual representation</p>
+
+<h2 id="port-sock-peerport">$port = $sock-&gt;peerport</h2>
+
+<p>Return the numeric form of the peer port number</p>
+
+<h2 id="host-sock-peerhostname">$host = $sock-&gt;peerhostname</h2>
+
+<p>Return the resolved name of the peer address</p>
+
+<h2 id="service-sock-peerservice">$service = $sock-&gt;peerservice</h2>
+
+<p>Return the resolved name of the peer port number</p>
+
+<h2 id="addr-peer-peeraddr">$addr = $peer-&gt;peeraddr</h2>
+
+<p>Return the peer address as a binary octet string</p>
+
+<h2 id="inet-sock-as_inet">$inet = $sock-&gt;as_inet</h2>
+
+<p>Returns a new <a href="/cperl/lib/IO/Socket/INET.html">IO::Socket::INET</a> instance wrapping the same filehandle. This may be useful in cases where it is required, for backward-compatibility, to have a real object of <code>IO::Socket::INET</code> type instead of <code>IO::Socket::IP</code>. The new object will wrap the same underlying socket filehandle as the original, so care should be taken not to continue to use both objects concurrently. Ideally the original <code>$sock</code> should be discarded after this method is called.</p>
+
+<p>This method checks that the socket domain is <code>PF_INET</code> and will throw an exception if it isn&#39;t.</p>
+
+<h1 id="NON-BLOCKING">NON-BLOCKING</h1>
+
+<p>If the constructor is passed a defined but false value for the <code>Blocking</code> argument then the socket is put into non-blocking mode. When in non-blocking mode, the socket will not be set up by the time the constructor returns, because the underlying <code>connect(2)</code> syscall would otherwise have to block.</p>
+
+<p>The non-blocking behaviour is an extension of the <code>IO::Socket::INET</code> API, unique to <code>IO::Socket::IP</code>, because the former does not support multi-homed non-blocking connect.</p>
+
+<p>When using non-blocking mode, the caller must repeatedly check for writeability on the filehandle (for instance using <code>select</code> or <code>IO::Poll</code>). Each time the filehandle is ready to write, the <code>connect</code> method must be called, with no arguments. Note that some operating systems, most notably <code>MSWin32</code> do not report a <code>connect()</code> failure using write-ready; so you must also <code>select()</code> for exceptional status.</p>
+
+<p>While <code>connect</code> returns false, the value of <code>$!</code> indicates whether it should be tried again (by being set to the value <code>EINPROGRESS</code>, or <code>EWOULDBLOCK</code> on MSWin32), or whether a permanent error has occurred (e.g. <code>ECONNREFUSED</code>).</p>
+
+<p>Once the socket has been connected to the peer, <code>connect</code> will return true and the socket will now be ready to use.</p>
+
+<p>Note that calls to the platform&#39;s underlying <code>getaddrinfo(3)</code> function may block. If <code>IO::Socket::IP</code> has to perform this lookup, the constructor will block even when in non-blocking mode.</p>
+
+<p>To avoid this blocking behaviour, the caller should pass in the result of such a lookup using the <code>PeerAddrInfo</code> or <code>LocalAddrInfo</code> arguments. This can be achieved by using <a>Net::LibAsyncNS</a>, or the <code>getaddrinfo(3)</code> function can be called in a child process.</p>
+
+<pre><code> use IO::Socket::IP;
+ use Errno qw( EINPROGRESS EWOULDBLOCK );
+
+ my @peeraddrinfo = ... # Caller must obtain the getaddinfo result here
+
+ my $socket = IO::Socket::IP-&gt;new(
+    PeerAddrInfo =&gt; \@peeraddrinfo,
+    Blocking     =&gt; 0,
+ ) or die &quot;Cannot construct socket - $@&quot;;
+
+ while( !$socket-&gt;connect and ( $! == EINPROGRESS || $! == EWOULDBLOCK ) ) {
+    my $wvec = &#39;&#39;;
+    vec( $wvec, fileno $socket, 1 ) = 1;
+    my $evec = &#39;&#39;;
+    vec( $evec, fileno $socket, 1 ) = 1;
+
+    select( undef, $wvec, $evec, undef ) or die &quot;Cannot select - $!&quot;;
+ }
+
+ die &quot;Cannot connect - $!&quot; if $!;
+
+ ...</code></pre>
+
+<p>The example above uses <code>select()</code>, but any similar mechanism should work analogously. <code>IO::Socket::IP</code> takes care when creating new socket filehandles to preserve the actual file descriptor number, so such techniques as <code>poll</code> or <code>epoll</code> should be transparent to its reallocation of a different socket underneath, perhaps in order to switch protocol family between <code>PF_INET</code> and <code>PF_INET6</code>.</p>
+
+<p>For another example using <code>IO::Poll</code> and <code>Net::LibAsyncNS</code>, see the <i>examples/nonblocking_libasyncns.pl</i> file in the module distribution.</p>
+
+<h1 id="PeerHost-AND-LocalHost-PARSING"><code>PeerHost</code> AND <code>LocalHost</code> PARSING</h1>
+
+<p>To support the <code>IO::Socket::INET</code> API, the host and port information may be passed in a single string rather than as two separate arguments.</p>
+
+<p>If either <code>LocalHost</code> or <code>PeerHost</code> (or their <code>...Addr</code> synonyms) have any of the following special forms then special parsing is applied.</p>
+
+<p>The value of the <code>...Host</code> argument will be split to give both the hostname and port (or service name):</p>
+
+<pre><code> hostname.example.org:http    # Host name
+ 192.0.2.1:80                 # IPv4 address
+ [2001:db8::1]:80             # IPv6 address</code></pre>
+
+<p>In each case, the port or service name (e.g. <code>80</code>) is passed as the <code>LocalService</code> or <code>PeerService</code> argument.</p>
+
+<p>Either of <code>LocalService</code> or <code>PeerService</code> (or their <code>...Port</code> synonyms) can be either a service name, a decimal number, or a string containing both a service name and number, in a form such as</p>
+
+<pre><code> http(80)</code></pre>
+
+<p>In this case, the name (<code>http</code>) will be tried first, but if the resolver does not understand it then the port number (<code>80</code>) will be used instead.</p>
+
+<p>If the <code>...Host</code> argument is in this special form and the corresponding <code>...Service</code> or <code>...Port</code> argument is also defined, the one parsed from the <code>...Host</code> argument will take precedence and the other will be ignored.</p>
+
+<h2 id="host-port-IO::Socket::IP-split_addr-addr">( $host, $port ) = IO::Socket::IP-&gt;split_addr( $addr )</h2>
+
+<p>Utility method that provides the parsing functionality described above. Returns a 2-element list, containing either the split hostname and port description if it could be parsed, or the given address and <code>undef</code> if it was not recognised.</p>
+
+<pre><code> IO::Socket::IP-&gt;split_addr( &quot;hostname:http&quot; )
+                              # ( &quot;hostname&quot;,  &quot;http&quot; )
+
+ IO::Socket::IP-&gt;split_addr( &quot;192.0.2.1:80&quot; )
+                              # ( &quot;192.0.2.1&quot;, &quot;80&quot;   )
+
+ IO::Socket::IP-&gt;split_addr( &quot;[2001:db8::1]:80&quot; )
+                              # ( &quot;2001:db8::1&quot;, &quot;80&quot; )
+
+ IO::Socket::IP-&gt;split_addr( &quot;something.else&quot; )
+                              # ( &quot;something.else&quot;, undef )</code></pre>
+
+<h2 id="addr-IO::Socket::IP-join_addr-host-port">$addr = IO::Socket::IP-&gt;join_addr( $host, $port )</h2>
+
+<p>Utility method that performs the reverse of <code>split_addr</code>, returning a string formed by joining the specified host address and port number. The host address will be wrapped in <code>[]</code> brackets if required (because it is a raw IPv6 numeric address).</p>
+
+<p>This can be especially useful when combined with the <code>sockhost_service</code> or <code>peerhost_service</code> methods.</p>
+
+<pre><code> say &quot;Connected to &quot;, IO::Socket::IP-&gt;join_addr( $sock-&gt;peerhost_service );</code></pre>
+
+<h1 id="IO::Socket::INET-INCOMPATIBILITES"><code>IO::Socket::INET</code> INCOMPATIBILITES</h1>
+
+<ul>
+
+<li><p>The behaviour enabled by <code>MultiHomed</code> is in fact implemented by <code>IO::Socket::IP</code> as it is required to correctly support searching for a useable address from the results of the <code>getaddrinfo(3)</code> call. The constructor will ignore the value of this argument, except if it is defined but false. An exception is thrown in this case, because that would request it disable the <code>getaddrinfo(3)</code> search behaviour in the first place.</p>
+
+</li>
+<li><p><code>IO::Socket::IP</code> implements both the <code>Blocking</code> and <code>Timeout</code> parameters, but it implements the interaction of both in a different way.</p>
+
+<p>In <code>::INET</code>, supplying a timeout overrides the non-blocking behaviour, meaning that the <code>connect()</code> operation will still block despite that the caller asked for a non-blocking socket. This is not explicitly specified in its documentation, nor does this author believe that is a useful behaviour - it appears to come from a quirk of implementation.</p>
+
+<p>In <code>::IP</code> therefore, the <code>Blocking</code> parameter takes precedence - if a non-blocking socket is requested, no operation will block. The <code>Timeout</code> parameter here simply defines the maximum time that a blocking <code>connect()</code> call will wait, if it blocks at all.</p>
+
+<p>In order to specifically obtain the &quot;blocking connect then non-blocking send and receive&quot; behaviour of specifying this combination of options to <code>::INET</code> when using <code>::IP</code>, perform first a blocking connect, then afterwards turn the socket into nonblocking mode.</p>
+
+<pre><code> my $sock = IO::Socket::IP-&gt;new(
+    PeerHost =&gt; $peer,
+    Timeout =&gt; 20,
+ ) or die &quot;Cannot connect - $@&quot;;
+
+ $sock-&gt;blocking( 0 );</code></pre>
+
+<p>This code will behave identically under both <code>IO::Socket::INET</code> and <code>IO::Socket::IP</code>.</p>
+
+</li>
+</ul>
+
+<h1 id="TODO">TODO</h1>
+
+<ul>
+
+<li><p>Investigate whether <code>POSIX::dup2</code> upsets BSD&#39;s <code>kqueue</code> watchers, and if so, consider what possible workarounds might be applied.</p>
+
+</li>
+</ul>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Paul Evans &lt;leonerd@leonerd.org.uk&gt;</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,624 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#FUNCTIONS">FUNCTIONS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#The-Inside-out-Technique">The Inside-out Technique</a></li>
+      <li><a href="#Problems-of-Inside-out">Problems of Inside-out</a></li>
+      <li><a href="#Solutions">Solutions</a></li>
+      <li><a href="#More-Problems">More Problems</a></li>
+      <li><a href="#The-Generic-Object">The Generic Object</a></li>
+      <li><a href="#How-to-use-Field-Hashes">How to use Field Hashes</a></li>
+      <li><a href="#Garbage-Collected-Hashes">Garbage-Collected Hashes</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLES">EXAMPLES</a>
+    <ul>
+      <li><a href="#Example-1">Example 1</a></li>
+      <li><a href="#Example-2">Example 2</a></li>
+    </ul>
+  </li>
+  <li><a href="#GUTS">GUTS</a>
+    <ul>
+      <li><a href="#The-PERL_MAGIC_uvar-interface-for-hashes">The PERL_MAGIC_uvar interface for hashes</a></li>
+      <li><a href="#Weakrefs-call-uvar-magic">Weakrefs call uvar magic</a></li>
+      <li><a href="#How-field-hashes-work">How field hashes work</a></li>
+      <li><a href="#Internal-function-Hash::Util::FieldHash::_fieldhash">Internal function Hash::Util::FieldHash::_fieldhash</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Hash::Util::FieldHash - Support for Inside-Out Classes</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  ### Create fieldhashes
+  use Hash::Util qw(fieldhash fieldhashes);
+
+  # Create a single field hash
+  fieldhash my %foo;
+
+  # Create three at once...
+  fieldhashes \ my(%foo, %bar, %baz);
+  # ...or any number
+  fieldhashes @hashrefs;
+
+  ### Create an idhash and register it for garbage collection
+  use Hash::Util::FieldHash qw(idhash register);
+  idhash my %name;
+  my $object = \ do { my $o };
+  # register the idhash for garbage collection with $object
+  register($object, \ %name);
+  # the following entry will be deleted when $object goes out of scope
+  $name{$object} = &#39;John Doe&#39;;
+
+  ### Register an ordinary hash for garbage collection
+  use Hash::Util::FieldHash qw(id register);
+  my %name;
+  my $object = \ do { my $o };
+  # register the hash %name for garbage collection of $object&#39;s id
+  register $object, \ %name;
+  # the following entry will be deleted when $object goes out of scope
+  $name{id $object} = &#39;John Doe&#39;;</code></pre>
+
+<h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<p><code>Hash::Util::FieldHash</code> offers a number of functions in support of <a href="#The-Inside-out-Technique">&quot;The Inside-out Technique&quot;</a> of class construction.</p>
+
+<dl>
+
+<dt id="id">id</dt>
+<dd>
+
+<pre><code>    id($obj)</code></pre>
+
+<p>Returns the reference address of a reference $obj. If $obj is not a reference, returns $obj.</p>
+
+<p>This function is a stand-in replacement for <a href="/cperl/lib/Scalar/Util.html#refaddr">Scalar::Util::refaddr</a>, that is, it returns the reference address of its argument as a numeric value. The only difference is that <code>refaddr()</code> returns <code>undef</code> when given a non-reference while <code>id()</code> returns its argument unchanged.</p>
+
+<p><code>id()</code> also uses a caching technique that makes it faster when the id of an object is requested often, but slower if it is needed only once or twice.</p>
+
+</dd>
+<dt id="id_2obj">id_2obj</dt>
+<dd>
+
+<pre><code>    $obj = id_2obj($id)</code></pre>
+
+<p>If <code>$id</code> is the id of a registered object (see <a href="#register">&quot;register&quot;</a>), returns the object, otherwise an undefined value. For registered objects this is the inverse function of <code>id()</code>.</p>
+
+</dd>
+<dt id="register">register</dt>
+<dd>
+
+<pre><code>    register($obj)
+    register($obj, @hashrefs)</code></pre>
+
+<p>In the first form, registers an object to work with for the function <code>id_2obj()</code>. In the second form, it additionally marks the given hashrefs down for garbage collection. This means that when the object goes out of scope, any entries in the given hashes under the key of <code>id($obj)</code> will be deleted from the hashes.</p>
+
+<p>It is a fatal error to register a non-reference $obj. Any non-hashrefs among the following arguments are silently ignored.</p>
+
+<p>It is <i>not</i> an error to register the same object multiple times with varying sets of hashrefs. Any hashrefs that are not registered yet will be added, others ignored.</p>
+
+<p>Registry also implies thread support. When a new thread is created, all references are replaced with new ones, including all objects. If a hash uses the reference address of an object as a key, that connection would be broken. With a registered object, its id will be updated in all hashes registered with it.</p>
+
+</dd>
+<dt id="idhash">idhash</dt>
+<dd>
+
+<pre><code>    idhash my %hash</code></pre>
+
+<p>Makes an idhash from the argument, which must be a hash.</p>
+
+<p>An <i>idhash</i> works like a normal hash, except that it stringifies a <i>reference used as a key</i> differently. A reference is stringified as if the <code>id()</code> function had been invoked on it, that is, its reference address in decimal is used as the key.</p>
+
+</dd>
+<dt id="idhashes">idhashes</dt>
+<dd>
+
+<pre><code>    idhashes \ my(%hash, %gnash, %trash)
+    idhashes \ @hashrefs</code></pre>
+
+<p>Creates many idhashes from its hashref arguments. Returns those arguments that could be converted or their number in scalar context.</p>
+
+</dd>
+<dt id="fieldhash">fieldhash</dt>
+<dd>
+
+<pre><code>    fieldhash %hash;</code></pre>
+
+<p>Creates a single fieldhash. The argument must be a hash. Returns a reference to the given hash if successful, otherwise nothing.</p>
+
+<p>A <i>fieldhash</i> is, in short, an idhash with auto-registry. When an object (or, indeed, any reference) is used as a fieldhash key, the fieldhash is automatically registered for garbage collection with the object, as if <code>register $obj, \ %fieldhash</code> had been called.</p>
+
+</dd>
+<dt id="fieldhashes">fieldhashes</dt>
+<dd>
+
+<pre><code>    fieldhashes @hashrefs;</code></pre>
+
+<p>Creates any number of field hashes. Arguments must be hash references. Returns the converted hashrefs in list context, their number in scalar context.</p>
+
+</dd>
+</dl>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>A word on terminology: I shall use the term <i>field</i> for a scalar piece of data that a class associates with an object. Other terms that have been used for this concept are &quot;object variable&quot;, &quot;(object) property&quot;, &quot;(object) attribute&quot; and more. Especially &quot;attribute&quot; has some currency among Perl programmer, but that clashes with the <code>attributes</code> pragma. The term &quot;field&quot; also has some currency in this sense and doesn&#39;t seem to conflict with other Perl terminology.</p>
+
+<p>In Perl, an object is a blessed reference. The standard way of associating data with an object is to store the data inside the object&#39;s body, that is, the piece of data pointed to by the reference.</p>
+
+<p>In consequence, if two or more classes want to access an object they <i>must</i> agree on the type of reference and also on the organization of data within the object body. Failure to agree on the type results in immediate death when the wrong method tries to access an object. Failure to agree on data organization may lead to one class trampling over the data of another.</p>
+
+<p>This object model leads to a tight coupling between subclasses. If one class wants to inherit from another (and both classes access object data), the classes must agree about implementation details. Inheritance can only be used among classes that are maintained together, in a single source or not.</p>
+
+<p>In particular, it is not possible to write general-purpose classes in this technique, classes that can advertise themselves as &quot;Put me on your @ISA list and use my methods&quot;. If the other class has different ideas about how the object body is used, there is trouble.</p>
+
+<p>For reference <code>Name_hash</code> in <a href="#Example-1">&quot;Example 1&quot;</a> shows the standard implementation of a simple class <code>Name</code> in the well-known hash based way. It also demonstrates the predictable failure to construct a common subclass <code>NamedFile</code> of <code>Name</code> and the class <code>IO::File</code> (whose objects <i>must</i> be globrefs).</p>
+
+<p>Thus, techniques are of interest that store object data <i>not</i> in the object body but some other place.</p>
+
+<h2 id="The-Inside-out-Technique">The Inside-out Technique</h2>
+
+<p>With <i>inside-out</i> classes, each class declares a (typically lexical) hash for each field it wants to use. The reference address of an object is used as the hash key. By definition, the reference address is unique to each object so this guarantees a place for each field that is private to the class and unique to each object. See <code>Name_id</code> in <a href="#Example-1">&quot;Example 1&quot;</a> for a simple example.</p>
+
+<p>In comparison to the standard implementation where the object is a hash and the fields correspond to hash keys, here the fields correspond to hashes, and the object determines the hash key. Thus the hashes appear to be turned <i>inside out</i>.</p>
+
+<p>The body of an object is never examined by an inside-out class, only its reference address is used. This allows for the body of an actual object to be <i>anything at all</i> while the object methods of the class still work as designed. This is a key feature of inside-out classes.</p>
+
+<h2 id="Problems-of-Inside-out">Problems of Inside-out</h2>
+
+<p>Inside-out classes give us freedom of inheritance, but as usual there is a price.</p>
+
+<p>Most obviously, there is the necessity of retrieving the reference address of an object for each data access. It&#39;s a minor inconvenience, but it does clutter the code.</p>
+
+<p>More important (and less obvious) is the necessity of garbage collection. When a normal object dies, anything stored in the object body is garbage-collected by perl. With inside-out objects, Perl knows nothing about the data stored in field hashes by a class, but these must be deleted when the object goes out of scope. Thus the class must provide a <code>DESTROY</code> method to take care of that.</p>
+
+<p>In the presence of multiple classes it can be non-trivial to make sure that every relevant destructor is called for every object. Perl calls the first one it finds on the inheritance tree (if any) and that&#39;s it.</p>
+
+<p>A related issue is thread-safety. When a new thread is created, the Perl interpreter is cloned, which implies that all reference addresses in use will be replaced with new ones. Thus, if a class tries to access a field of a cloned object its (cloned) data will still be stored under the now invalid reference address of the original in the parent thread. A general <code>CLONE</code> method must be provided to re-establish the association.</p>
+
+<h2 id="Solutions">Solutions</h2>
+
+<p><code>Hash::Util::FieldHash</code> addresses these issues on several levels.</p>
+
+<p>The <code>id()</code> function is provided in addition to the existing <code>Scalar::Util::refaddr()</code>. Besides its short name it can be a little faster under some circumstances (and a bit slower under others). Benchmark if it matters. The working of <code>id()</code> also allows the use of the class name as a <i>generic object</i> as described <a href="#The-Generic-Object">further down</a>.</p>
+
+<p>The <code>id()</code> function is incorporated in <i>id hashes</i> in the sense that it is called automatically on every key that is used with the hash. No explicit call is necessary.</p>
+
+<p>The problems of garbage collection and thread safety are both addressed by the function <code>register()</code>. It registers an object together with any number of hashes. Registry means that when the object dies, an entry in any of the hashes under the reference address of this object will be deleted. This guarantees garbage collection in these hashes. It also means that on thread cloning the object&#39;s entries in registered hashes will be replaced with updated entries whose key is the cloned object&#39;s reference address. Thus the object-data association becomes thread-safe.</p>
+
+<p>Object registry is best done when the object is initialized for use with a class. That way, garbage collection and thread safety are established for every object and every field that is initialized.</p>
+
+<p>Finally, <i>field hashes</i> incorporate all these functions in one package. Besides automatically calling the <code>id()</code> function on every object used as a key, the object is registered with the field hash on first use. Classes based on field hashes are fully garbage-collected and thread safe without further measures.</p>
+
+<h2 id="More-Problems">More Problems</h2>
+
+<p>Another problem that occurs with inside-out classes is serialization. Since the object data is not in its usual place, standard routines like <code>Storable::freeze()</code>, <code>Storable::thaw()</code> and <code>Data::Dumper::Dumper()</code> can&#39;t deal with it on their own. Both <code>Data::Dumper</code> and <code>Storable</code> provide the necessary hooks to make things work, but the functions or methods used by the hooks must be provided by each inside-out class.</p>
+
+<p>A general solution to the serialization problem would require another level of registry, one that associates <i>classes</i> and fields. So far, the functions of <code>Hash::Util::FieldHash</code> are unaware of any classes, which I consider a feature. Therefore <code>Hash::Util::FieldHash</code> doesn&#39;t address the serialization problems.</p>
+
+<h2 id="The-Generic-Object">The Generic Object</h2>
+
+<p>Classes based on the <code>id()</code> function (and hence classes based on <code>idhash()</code> and <code>fieldhash()</code>) show a peculiar behavior in that the class name can be used like an object. Specifically, methods that set or read data associated with an object continue to work as class methods, just as if the class name were an object, distinct from all other objects, with its own data. This object may be called the <i>generic object</i> of the class.</p>
+
+<p>This works because field hashes respond to keys that are not references like a normal hash would and use the string offered as the hash key. Thus, if a method is called as a class method, the field hash is presented with the class name instead of an object and blithely uses it as a key. Since the keys of real objects are decimal numbers, there is no conflict and the slot in the field hash can be used like any other. The <code>id()</code> function behaves correspondingly with respect to non-reference arguments.</p>
+
+<p>Two possible uses (besides ignoring the property) come to mind. A singleton class could be implemented this using the generic object. If necessary, an <code>init()</code> method could die or ignore calls with actual objects (references), so only the generic object will ever exist.</p>
+
+<p>Another use of the generic object would be as a template. It is a convenient place to store class-specific defaults for various fields to be used in actual object initialization.</p>
+
+<p>Usually, the feature can be entirely ignored. Calling <i>object methods</i> as <i>class methods</i> normally leads to an error and isn&#39;t used routinely anywhere. It may be a problem that this error isn&#39;t indicated by a class with a generic object.</p>
+
+<h2 id="How-to-use-Field-Hashes">How to use Field Hashes</h2>
+
+<p>Traditionally, the definition of an inside-out class contains a bare block inside which a number of lexical hashes are declared and the basic accessor methods defined, usually through <code>Scalar::Util::refaddr</code>. Further methods may be defined outside this block. There has to be a DESTROY method and, for thread support, a CLONE method.</p>
+
+<p>When field hashes are used, the basic structure remains the same. Each lexical hash will be made a field hash. The call to <code>refaddr</code> can be omitted from the accessor methods. DESTROY and CLONE methods are not necessary.</p>
+
+<p>If you have an existing inside-out class, simply making all hashes field hashes with no other change should make no difference. Through the calls to <code>refaddr</code> or equivalent, the field hashes never get to see a reference and work like normal hashes. Your DESTROY (and CLONE) methods are still needed.</p>
+
+<p>To make the field hashes kick in, it is easiest to redefine <code>refaddr</code> as</p>
+
+<pre><code>    sub refaddr { shift }</code></pre>
+
+<p>instead of importing it from <code>Scalar::Util</code>. It should now be possible to disable DESTROY and CLONE. Note that while it isn&#39;t disabled, DESTROY will be called before the garbage collection of field hashes, so it will be invoked with a functional object and will continue to function.</p>
+
+<p>It is not desirable to import the functions <code>fieldhash</code> and/or <code>fieldhashes</code> into every class that is going to use them. They are only used once to set up the class. When the class is up and running, these functions serve no more purpose.</p>
+
+<p>If there are only a few field hashes to declare, it is simplest to</p>
+
+<pre><code>    use Hash::Util::FieldHash;</code></pre>
+
+<p>early and call the functions qualified:</p>
+
+<pre><code>    Hash::Util::FieldHash::fieldhash my %foo;</code></pre>
+
+<p>Otherwise, import the functions into a convenient package like <code>HUF</code> or, more general, <code>Aux</code></p>
+
+<pre><code>    {
+        package Aux;
+        use Hash::Util::FieldHash &#39;:all&#39;;
+    }</code></pre>
+
+<p>and call</p>
+
+<pre><code>    Aux::fieldhash my %foo;</code></pre>
+
+<p>as needed.</p>
+
+<h2 id="Garbage-Collected-Hashes">Garbage-Collected Hashes</h2>
+
+<p>Garbage collection in a field hash means that entries will &quot;spontaneously&quot; disappear when the object that created them disappears. That must be borne in mind, especially when looping over a field hash. If anything you do inside the loop could cause an object to go out of scope, a random key may be deleted from the hash you are looping over. That can throw the loop iterator, so it&#39;s best to cache a consistent snapshot of the keys and/or values and loop over that. You will still have to check that a cached entry still exists when you get to it.</p>
+
+<p>Garbage collection can be confusing when keys are created in a field hash from normal scalars as well as references. Once a reference is <i>used</i> with a field hash, the entry will be collected, even if it was later overwritten with a plain scalar key (every positive integer is a candidate). This is true even if the original entry was deleted in the meantime. In fact, deletion from a field hash, and also a test for existence constitute <i>use</i> in this sense and create a liability to delete the entry when the reference goes out of scope. If you happen to create an entry with an identical key from a string or integer, that will be collected instead. Thus, mixed use of references and plain scalars as field hash keys is not entirely supported.</p>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>The examples show a very simple class that implements a <i>name</i>, consisting of a first and last name (no middle initial). The name class has four methods:</p>
+
+<ul>
+
+<li><p><code>init()</code></p>
+
+<p>An object method that initializes the first and last name to its two arguments. If called as a class method, <code>init()</code> creates an object in the given class and initializes that.</p>
+
+</li>
+<li><p><code>first()</code></p>
+
+<p>Retrieve the first name</p>
+
+</li>
+<li><p><code>last()</code></p>
+
+<p>Retrieve the last name</p>
+
+</li>
+<li><p><code>name()</code></p>
+
+<p>Retrieve the full name, the first and last name joined by a blank.</p>
+
+</li>
+</ul>
+
+<p>The examples show this class implemented with different levels of support by <code>Hash::Util::FieldHash</code>. All supported combinations are shown. The difference between implementations is often quite small. The implementations are:</p>
+
+<ul>
+
+<li><p><code>Name_hash</code></p>
+
+<p>A conventional (not inside-out) implementation where an object is a hash that stores the field values, without support by <code>Hash::Util::FieldHash</code>. This implementation doesn&#39;t allow arbitrary inheritance.</p>
+
+</li>
+<li><p><code>Name_id</code></p>
+
+<p>Inside-out implementation based on the <code>id()</code> function. It needs a <code>DESTROY</code> method. For thread support a <code>CLONE</code> method (not shown) would also be needed. Instead of <code>Hash::Util::FieldHash::id()</code> the function <code>Scalar::Util::refaddr</code> could be used with very little functional difference. This is the basic pattern of an inside-out class.</p>
+
+</li>
+<li><p><code>Name_idhash</code></p>
+
+<p>Idhash-based inside-out implementation. Like <code>Name_id</code> it needs a <code>DESTROY</code> method and would need <code>CLONE</code> for thread support.</p>
+
+</li>
+<li><p><code>Name_id_reg</code></p>
+
+<p>Inside-out implementation based on the <code>id()</code> function with explicit object registry. No destructor is needed and objects are thread safe.</p>
+
+</li>
+<li><p><code>Name_idhash_reg</code></p>
+
+<p>Idhash-based inside-out implementation with explicit object registry. No destructor is needed and objects are thread safe.</p>
+
+</li>
+<li><p><code>Name_fieldhash</code></p>
+
+<p>FieldHash-based inside-out implementation. Object registry happens automatically. No destructor is needed and objects are thread safe.</p>
+
+</li>
+</ul>
+
+<p>These examples are realized in the code below, which could be copied to a file <i>Example.pm</i>.</p>
+
+<h2 id="Example-1">Example 1</h2>
+
+<pre><code>    use strict; use warnings;
+
+    {
+        package Name_hash;  # standard implementation: the
+                            # object is a hash
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless {}, $obj unless ref $obj;
+            $obj-&gt;{ first} = $first;
+            $obj-&gt;{ last} = $last;
+            $obj;
+        }
+
+        sub first { shift()-&gt;{ first} }
+        sub last { shift()-&gt;{ last} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+
+    }
+
+    {
+        package Name_id;
+        use Hash::Util::FieldHash qw(id);
+
+        my (%first, %last);
+
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless \ my $o, $obj unless ref $obj;
+            $first{ id $obj} = $first;
+            $last{ id $obj} = $last;
+            $obj;
+        }
+
+        sub first { $first{ id shift()} }
+        sub last { $last{ id shift()} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+
+        sub DESTROY {
+            my $id = id shift;
+            delete $first{ $id};
+            delete $last{ $id};
+        }
+
+    }
+
+    {
+        package Name_idhash;
+        use Hash::Util::FieldHash;
+
+        Hash::Util::FieldHash::idhashes( \ my (%first, %last) );
+
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless \ my $o, $obj unless ref $obj;
+            $first{ $obj} = $first;
+            $last{ $obj} = $last;
+            $obj;
+        }
+
+        sub first { $first{ shift()} }
+        sub last { $last{ shift()} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+
+        sub DESTROY {
+            my $n = shift;
+            delete $first{ $n};
+            delete $last{ $n};
+        }
+
+    }
+
+    {
+        package Name_id_reg;
+        use Hash::Util::FieldHash qw(id register);
+
+        my (%first, %last);
+
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless \ my $o, $obj unless ref $obj;
+            register( $obj, \ (%first, %last) );
+            $first{ id $obj} = $first;
+            $last{ id $obj} = $last;
+            $obj;
+        }
+
+        sub first { $first{ id shift()} }
+        sub last { $last{ id shift()} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+    }
+
+    {
+        package Name_idhash_reg;
+        use Hash::Util::FieldHash qw(register);
+
+        Hash::Util::FieldHash::idhashes \ my (%first, %last);
+
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless \ my $o, $obj unless ref $obj;
+            register( $obj, \ (%first, %last) );
+            $first{ $obj} = $first;
+            $last{ $obj} = $last;
+            $obj;
+        }
+
+        sub first { $first{ shift()} }
+        sub last { $last{ shift()} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+    }
+
+    {
+        package Name_fieldhash;
+        use Hash::Util::FieldHash;
+
+        Hash::Util::FieldHash::fieldhashes \ my (%first, %last);
+
+        sub init {
+            my $obj = shift;
+            my ($first, $last) = @_;
+            # create an object if called as class method
+            $obj = bless \ my $o, $obj unless ref $obj;
+            $first{ $obj} = $first;
+            $last{ $obj} = $last;
+            $obj;
+        }
+
+        sub first { $first{ shift()} }
+        sub last { $last{ shift()} }
+
+        sub name {
+            my $n = shift;
+            join &#39; &#39; =&gt; $n-&gt;first, $n-&gt;last;
+        }
+    }
+
+    1;</code></pre>
+
+<p>To exercise the various implementations the script <a href="#Example-2">below</a> can be used.</p>
+
+<p>It sets up a class <code>Name</code> that is a mirror of one of the implementation classes <code>Name_hash</code>, <code>Name_id</code>, ..., <code>Name_fieldhash</code>. That determines which implementation is run.</p>
+
+<p>The script first verifies the function of the <code>Name</code> class.</p>
+
+<p>In the second step, the free inheritability of the implementation (or lack thereof) is demonstrated. For this purpose it constructs a class called <code>NamedFile</code> which is a common subclass of <code>Name</code> and the standard class <code>IO::File</code>. This puts inheritability to the test because objects of <code>IO::File</code> <i>must</i> be globrefs. Objects of <code>NamedFile</code> should behave like a file opened for reading and also support the <code>name()</code> method. This class juncture works with exception of the <code>Name_hash</code> implementation, where object initialization fails because of the incompatibility of object bodies.</p>
+
+<h2 id="Example-2">Example 2</h2>
+
+<pre><code>    use strict; use warnings; $| = 1;
+
+    use Example;
+
+    {
+        package Name;
+        use parent &#39;Name_id&#39;;  # define here which implementation to run
+    }
+
+
+    # Verify that the base package works
+    my $n = Name-&gt;init(qw(Albert Einstein));
+    print $n-&gt;name, &quot;\n&quot;;
+    print &quot;\n&quot;;
+
+    # Create a named file handle (See definition below)
+    my $nf = NamedFile-&gt;init(qw(/tmp/x Filomena File));
+    # use as a file handle...
+    for ( 1 .. 3 ) {
+        my $l = &lt;$nf&gt;;
+        print &quot;line $_: $l&quot;;
+    }
+    # ...and as a Name object
+    print &quot;...brought to you by &quot;, $nf-&gt;name, &quot;\n&quot;;
+    exit;
+
+
+    # Definition of NamedFile
+    package NamedFile;
+    use parent &#39;Name&#39;;
+    use parent &#39;IO::File&#39;;
+
+    sub init {
+        my $obj = shift;
+        my ($file, $first, $last) = @_;
+        $obj = $obj-&gt;IO::File::new() unless ref $obj;
+        $obj-&gt;open($file) or die &quot;Can&#39;t read &#39;$file&#39;: $!&quot;;
+        $obj-&gt;Name::init($first, $last);
+    }
+    __END__</code></pre>
+
+<h1 id="GUTS">GUTS</h1>
+
+<p>To make <code>Hash::Util::FieldHash</code> work, there were two changes to <i>perl</i> itself. <code>PERL_MAGIC_uvar</code> was made available for hashes, and weak references now call uvar <code>get</code> magic after a weakref has been cleared. The first feature is used to make field hashes intercept their keys upon access. The second one triggers garbage collection.</p>
+
+<h2 id="The-PERL_MAGIC_uvar-interface-for-hashes">The <code>PERL_MAGIC_uvar</code> interface for hashes</h2>
+
+<p><code>PERL_MAGIC_uvar</code> <i>get</i> magic is called from <code>hv_fetch_common</code> and <code>hv_delete_common</code> through the function <code>hv_magic_uvar_xkey</code>, which defines the interface. The call happens for hashes with &quot;uvar&quot; magic if the <code>ufuncs</code> structure has equal values in the <code>uf_val</code> and <code>uf_set</code> fields. Hashes are unaffected if (and as long as) these fields hold different values.</p>
+
+<p>Upon the call, the <code>mg_obj</code> field will hold the hash key to be accessed. Upon return, the <code>SV*</code> value in <code>mg_obj</code> will be used in place of the original key in the hash access. The integer index value in the first parameter will be the <code>action</code> value from <code>hv_fetch_common</code>, or -1 if the call is from <code>hv_delete_common</code>.</p>
+
+<p>This is a template for a function suitable for the <code>uf_val</code> field in a <code>ufuncs</code> structure for this call. The <code>uf_set</code> and <code>uf_index</code> fields are irrelevant.</p>
+
+<pre><code>    IV watch_key(pTHX_ IV action, SV* field) {
+        MAGIC* mg = mg_find(field, PERL_MAGIC_uvar);
+        SV* keysv = mg-&gt;mg_obj;
+        /* Do whatever you need to.  If you decide to
+           supply a different key newkey, return it like this
+        */
+        sv_2mortal(newkey);
+        mg-&gt;mg_obj = newkey;
+        return 0;
+    }</code></pre>
+
+<h2 id="Weakrefs-call-uvar-magic">Weakrefs call uvar magic</h2>
+
+<p>When a weak reference is stored in an <code>SV</code> that has &quot;uvar&quot; magic, <code>set</code> magic is called after the reference has gone stale. This hook can be used to trigger further garbage-collection activities associated with the referenced object.</p>
+
+<h2 id="How-field-hashes-work">How field hashes work</h2>
+
+<p>The three features of key hashes, <i>key replacement</i>, <i>thread support</i>, and <i>garbage collection</i> are supported by a data structure called the <i>object registry</i>. This is a private hash where every object is stored. An &quot;object&quot; in this sense is any reference (blessed or unblessed) that has been used as a field hash key.</p>
+
+<p>The object registry keeps track of references that have been used as field hash keys. The keys are generated from the reference address like in a field hash (though the registry isn&#39;t a field hash). Each value is a weak copy of the original reference, stored in an <code>SV</code> that is itself magical (<code>PERL_MAGIC_uvar</code> again). The magical structure holds a list (another hash, really) of field hashes that the reference has been used with. When the weakref becomes stale, the magic is activated and uses the list to delete the reference from all field hashes it has been used with. After that, the entry is removed from the object registry itself. Implicitly, that frees the magic structure and the storage it has been using.</p>
+
+<p>Whenever a reference is used as a field hash key, the object registry is checked and a new entry is made if necessary. The field hash is then added to the list of fields this reference has used.</p>
+
+<p>The object registry is also used to repair a field hash after thread cloning. Here, the entire object registry is processed. For every reference found there, the field hashes it has used are visited and the entry is updated.</p>
+
+<h2 id="Internal-function-Hash::Util::FieldHash::_fieldhash">Internal function Hash::Util::FieldHash::_fieldhash</h2>
+
+<pre><code>    # test if %hash is a field hash
+    my $result = _fieldhash \ %hash, 0;
+
+    # make %hash a field hash
+    my $result = _fieldhash \ %hash, 1;</code></pre>
+
+<p><code>_fieldhash</code> is the internal function used to create field hashes. It takes two arguments, a hashref and a mode. If the mode is boolean false, the hash is not changed but tested if it is a field hash. If the hash isn&#39;t a field hash the return value is boolean false. If it is, the return value indicates the mode of field hash. When called with a boolean true mode, it turns the given hash into a field hash of this mode, returning the mode of the created field hash. <code>_fieldhash</code> does not erase the given hash.</p>
+
+<p>Currently there is only one type of field hash, and only the boolean value of the mode makes a difference, but that may change.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Anno Siegel (ANNO) wrote the xs code and the changes in perl proper Jerry Hedden (JDHEDDEN) made it faster</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (C) 2006-2007 by (Anno Siegel)</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself, either Perl version 5.8.7 or, at your option, any later version of Perl 5 you may have available.</p>
+
+
+</body>
+
+</html>
+
+

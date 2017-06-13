@@ -1,0 +1,442 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#WARNING">WARNING</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#OPTIONS">OPTIONS</a>
+    <ul>
+      <li><a href="#Setting-STDIN-and-or-STDOUT-individually">Setting STDIN and/or STDOUT individually</a></li>
+      <li><a href="#The-:locale-sub-pragma">The :locale sub-pragma</a></li>
+    </ul>
+  </li>
+  <li><a href="#CAVEATS">CAVEATS</a>
+    <ul>
+      <li><a href="#SIDE-EFFECTS">SIDE EFFECTS</a></li>
+      <li><a href="#DO-NOT-MIX-MULTIPLE-ENCODINGS">DO NOT MIX MULTIPLE ENCODINGS</a></li>
+      <li><a href="#Prior-to-Perl-v5.22">Prior to Perl v5.22</a></li>
+      <li><a href="#Prior-to-Encode-version-1.87">Prior to Encode version 1.87</a></li>
+      <li><a href="#Prior-to-Perl-v5.8.1">Prior to Perl v5.8.1</a></li>
+    </ul>
+  </li>
+  <li><a href="#EXAMPLE---Greekperl">EXAMPLE - Greekperl</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#HISTORY">HISTORY</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>encoding - allows you to write your script in non-ASCII and non-UTF-8</p>
+
+<h1 id="WARNING">WARNING</h1>
+
+<p>This module has been deprecated since perl v5.18. See <a href="#DESCRIPTION">&quot;DESCRIPTION&quot;</a> and <a href="#BUGS">&quot;BUGS&quot;</a>.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use encoding &quot;greek&quot;;  # Perl like Greek to you?
+  use encoding &quot;euc-jp&quot;; # Jperl!
+
+  # or you can even do this if your shell supports your native encoding
+
+  perl -Mencoding=latin2 -e&#39;...&#39; # Feeling centrally European?
+  perl -Mencoding=euc-kr -e&#39;...&#39; # Or Korean?
+
+  # more control
+
+  # A simple euc-cn =&gt; utf-8 converter
+  use encoding &quot;euc-cn&quot;, STDOUT =&gt; &quot;utf8&quot;;  while(&lt;&gt;){print};
+
+  # &quot;no encoding;&quot; supported
+  no encoding;
+
+  # an alternate way, Filter
+  use encoding &quot;euc-jp&quot;, Filter=&gt;1;
+  # now you can use kanji identifiers -- in euc-jp!
+
+  # encode based on the current locale - specialized purposes only;
+  # fraught with danger!!
+  use encoding &#39;:locale&#39;;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This pragma is used to enable a Perl script to be written in encodings that aren&#39;t strictly ASCII nor UTF-8. It translates all or portions of the Perl program script from a given encoding into UTF-8, and changes the PerlIO layers of <code>STDIN</code> and <code>STDOUT</code> to the encoding specified.</p>
+
+<p>This pragma dates from the days when UTF-8-enabled editors were uncommon. But that was long ago, and the need for it is greatly diminished. That, coupled with the fact that it doesn&#39;t work with threads, along with other problems, (see <a href="#BUGS">&quot;BUGS&quot;</a>) have led to its being deprecated. It is planned to remove this pragma in a future Perl version. New code should be written in UTF-8, and the <code>use utf8</code> pragma used instead (see <a href="/cperl/perluniintro.html">perluniintro</a> and <a href="/cperl/lib/utf8.html">utf8</a> for details). Old code should be converted to UTF-8, via something like the recipe in the <a href="#SYNOPSIS">&quot;SYNOPSIS&quot;</a> (though this simple approach may require manual adjustments afterwards).</p>
+
+<p>If UTF-8 is not an option, it is recommended that one use a simple source filter, such as that provided by <a>Filter::Encoding</a> on CPAN or this pragma&#39;s own <code>Filter</code> option (see below).</p>
+
+<p>The only legitimate use of this pragma is almost certainly just one per file, near the top, with file scope, as the file is likely going to only be written in one encoding. Further restrictions apply in Perls before v5.22 (see <a href="#Prior-to-Perl-v5.22">&quot;Prior to Perl v5.22&quot;</a>).</p>
+
+<p>There are two basic modes of operation (plus turning if off):</p>
+
+<dl>
+
+<dt id="use-encoding-ENCNAME"><code>use encoding [&#39;<i>ENCNAME</i>&#39;] ;</code></dt>
+<dd>
+
+<p>Please note: This mode of operation is no longer supported as of Perl v5.26.</p>
+
+<p>This is the normal operation. It translates various literals encountered in the Perl source file from the encoding <i>ENCNAME</i> into UTF-8, and similarly converts character code points. This is used when the script is a combination of ASCII (for the variable names and punctuation, <i>etc</i>), but the literal data is in the specified encoding.</p>
+
+<p><i>ENCNAME</i> is optional. If omitted, the encoding specified in the environment variable <a href="/cperl/perlrun.html#PERL_ENCODING"><code>PERL_ENCODING</code></a> is used. If this isn&#39;t set, or the resolved-to encoding is not known to <code><a href="/cperl/lib/Encode.html">Encode</a></code>, the error <code>Unknown encoding &#39;<i>ENCNAME</i>&#39;</code> will be thrown.</p>
+
+<p>Starting in Perl v5.8.6 (<code>Encode</code> version 2.0.1), <i>ENCNAME</i> may be the name <code>:locale</code>. This is for very specialized applications, and is documented in <a href="#The-:locale-sub-pragma">&quot;The <code>:locale</code> sub-pragma&quot;</a> below.</p>
+
+<p>The literals that are converted are <code>q//, qq//, qr//, qw///, qx//</code>, and starting in v5.8.1, <code>tr///</code>. Operations that do conversions include <code>chr</code>, <code>ord</code>, <code>utf8::upgrade</code> (but not <code>utf8::downgrade</code>), and <code>chomp</code>.</p>
+
+<p>Also starting in v5.8.1, the <code>DATA</code> pseudo-filehandle is translated from the encoding into UTF-8.</p>
+
+<p>For example, you can write code in EUC-JP as follows:</p>
+
+<pre><code>  my $Rakuda = &quot;\xF1\xD1\xF1\xCC&quot;; # Camel in Kanji
+               #&lt;-char-&gt;&lt;-char-&gt;   # 4 octets
+  s/\bCamel\b/$Rakuda/;</code></pre>
+
+<p>And with <code>use encoding &quot;euc-jp&quot;</code> in effect, it is the same thing as that code in UTF-8:</p>
+
+<pre><code>  my $Rakuda = &quot;\x{99F1}\x{99DD}&quot;; # two Unicode Characters
+  s/\bCamel\b/$Rakuda/;</code></pre>
+
+<p>See <a href="#EXAMPLE">&quot;EXAMPLE&quot;</a> below for a more complete example.</p>
+
+<p>Unless <code>${^UNICODE}</code> (available starting in v5.8.2) exists and is non-zero, the PerlIO layers of <code>STDIN</code> and <code>STDOUT</code> are set to &quot;<code>:encoding(<i>ENCNAME</i>)</code>&quot;. Therefore,</p>
+
+<pre><code>  use encoding &quot;euc-jp&quot;;
+  my $message = &quot;Camel is the symbol of perl.\n&quot;;
+  my $Rakuda = &quot;\xF1\xD1\xF1\xCC&quot;; # Camel in Kanji
+  $message =~ s/\bCamel\b/$Rakuda/;
+  print $message;</code></pre>
+
+<p>will print</p>
+
+<pre><code> &quot;\xF1\xD1\xF1\xCC is the symbol of perl.\n&quot;</code></pre>
+
+<p>not</p>
+
+<pre><code> &quot;\x{99F1}\x{99DD} is the symbol of perl.\n&quot;</code></pre>
+
+<p>You can override this by giving extra arguments; see below.</p>
+
+<p>Note that <code>STDERR</code> WILL NOT be changed, regardless.</p>
+
+<p>Also note that non-STD file handles remain unaffected. Use <code>use open</code> or <code>binmode</code> to change the layers of those.</p>
+
+</dd>
+<dt id="use-encoding-ENCNAME-Filter-1"><code>use encoding <i>ENCNAME</i> Filter=&gt;1;</code></dt>
+<dd>
+
+<p>This operates as above, but the <code>Filter</code> argument with a non-zero value causes the entire script, and not just literals, to be translated from the encoding into UTF-8. This allows identifiers in the source to be in that encoding as well. (Problems may occur if the encoding is not a superset of ASCII; imagine all your semi-colons being translated into something different.) One can use this form to make</p>
+
+<pre><code> ${&quot;\x{4eba}&quot;}++</code></pre>
+
+<p>work. (This is equivalent to <code>$<i>human</i>++</code>, where <i>human</i> is a single Han ideograph).</p>
+
+<p>This effectively means that your source code behaves as if it were written in UTF-8 with <code>&#39;use utf8</code>&#39; in effect. So even if your editor only supports Shift_JIS, for example, you can still try examples in Chapter 15 of <code>Programming Perl, 3rd Ed.</code>.</p>
+
+<p>This option is significantly slower than the other one.</p>
+
+</dd>
+<dt id="no-encoding"><code>no encoding;</code></dt>
+<dd>
+
+<p>Unsets the script encoding. The layers of <code>STDIN</code>, <code>STDOUT</code> are reset to &quot;<code>:raw</code>&quot; (the default unprocessed raw stream of bytes).</p>
+
+</dd>
+</dl>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<h2 id="Setting-STDIN-and-or-STDOUT-individually">Setting <code>STDIN</code> and/or <code>STDOUT</code> individually</h2>
+
+<p>The encodings of <code>STDIN</code> and <code>STDOUT</code> are individually settable by parameters to the pragma:</p>
+
+<pre><code> use encoding &#39;euc-tw&#39;, STDIN =&gt; &#39;greek&#39;  ...;</code></pre>
+
+<p>In this case, you cannot omit the first <i>ENCNAME</i>. <code>STDIN =&gt; undef</code> turns the I/O transcoding completely off for that filehandle.</p>
+
+<p>When <code>${^UNICODE}</code> (available starting in v5.8.2) exists and is non-zero, these options will be completely ignored. See <a href="/cperl/perlvar.html#UNICODE">&quot;<code>${^UNICODE}</code>&quot; in perlvar</a> and <a href="/cperl/perlrun.html#C-number-list">&quot;<code>-C</code>&quot; in perlrun</a> for details.</p>
+
+<h2 id="The-:locale-sub-pragma">The <code>:locale</code> sub-pragma</h2>
+
+<p>Starting in v5.8.6, the encoding name may be <code>:locale</code>. This means that the encoding is taken from the current locale, and not hard-coded by the pragma. Since a script really can only be encoded in exactly one encoding, this option is dangerous. It makes sense only if the script itself is written in ASCII, and all the possible locales that will be in use when the script is executed are supersets of ASCII. That means that the script itself doesn&#39;t get changed, but the I/O handles have the specified encoding added, and the operations like <code>chr</code> and <code>ord</code> use that encoding.</p>
+
+<p>The logic of finding which locale <code>:locale</code> uses is as follows:</p>
+
+<ol>
+
+<li><p>If the platform supports the <code>langinfo(CODESET)</code> interface, the codeset returned is used as the default encoding for the open pragma.</p>
+
+</li>
+<li><p>If 1. didn&#39;t work but we are under the locale pragma, the environment variables <code>LC_ALL</code> and <code>LANG</code> (in that order) are matched for encodings (the part after &quot;<code>.</code>&quot;, if any), and if any found, that is used as the default encoding for the open pragma.</p>
+
+</li>
+<li><p>If 1. and 2. didn&#39;t work, the environment variables <code>LC_ALL</code> and <code>LANG</code> (in that order) are matched for anything looking like UTF-8, and if any found, <code>:utf8</code> is used as the default encoding for the open pragma.</p>
+
+</li>
+</ol>
+
+<p>If your locale environment variables (<code>LC_ALL</code>, <code>LC_CTYPE</code>, <code>LANG</code>) contain the strings &#39;UTF-8&#39; or &#39;UTF8&#39; (case-insensitive matching), the default encoding of your <code>STDIN</code>, <code>STDOUT</code>, and <code>STDERR</code>, and of <b>any subsequent file open</b>, is UTF-8.</p>
+
+<h1 id="CAVEATS">CAVEATS</h1>
+
+<h2 id="SIDE-EFFECTS">SIDE EFFECTS</h2>
+
+<ul>
+
+<li><p>If the <code>encoding</code> pragma is in scope then the lengths returned are calculated from the length of <code>$/</code> in Unicode characters, which is not always the same as the length of <code>$/</code> in the native encoding.</p>
+
+</li>
+<li><p>Without this pragma, if strings operating under byte semantics and strings with Unicode character data are concatenated, the new string will be created by decoding the byte strings as <i>ISO 8859-1 (Latin-1)</i>.</p>
+
+<p>The <b>encoding</b> pragma changes this to use the specified encoding instead. For example:</p>
+
+<pre><code>    use encoding &#39;utf8&#39;;
+    my $string = chr(20000); # a Unicode string
+    utf8::encode($string);   # now it&#39;s a UTF-8 encoded byte string
+    # concatenate with another Unicode string
+    print length($string . chr(20000));</code></pre>
+
+<p>Will print <code>2</code>, because <code>$string</code> is upgraded as UTF-8. Without <code>use encoding &#39;utf8&#39;;</code>, it will print <code>4</code> instead, since <code>$string</code> is three octets when interpreted as Latin-1.</p>
+
+</li>
+</ul>
+
+<h2 id="DO-NOT-MIX-MULTIPLE-ENCODINGS">DO NOT MIX MULTIPLE ENCODINGS</h2>
+
+<p>Notice that only literals (string or regular expression) having only legacy code points are affected: if you mix data like this</p>
+
+<pre><code>    \x{100}\xDF
+    \xDF\x{100}</code></pre>
+
+<p>the data is assumed to be in (Latin 1 and) Unicode, not in your native encoding. In other words, this will match in &quot;greek&quot;:</p>
+
+<pre><code>    &quot;\xDF&quot; =~ /\x{3af}/</code></pre>
+
+<p>but this will not</p>
+
+<pre><code>    &quot;\xDF\x{100}&quot; =~ /\x{3af}\x{100}/</code></pre>
+
+<p>since the <code>\xDF</code> (ISO 8859-7 GREEK SMALL LETTER IOTA WITH TONOS) on the left will <b>not</b> be upgraded to <code>\x{3af}</code> (Unicode GREEK SMALL LETTER IOTA WITH TONOS) because of the <code>\x{100}</code> on the left. You should not be mixing your legacy data and Unicode in the same string.</p>
+
+<p>This pragma also affects encoding of the 0x80..0xFF code point range: normally characters in that range are left as eight-bit bytes (unless they are combined with characters with code points 0x100 or larger, in which case all characters need to become UTF-8 encoded), but if the <code>encoding</code> pragma is present, even the 0x80..0xFF range always gets UTF-8 encoded.</p>
+
+<p>After all, the best thing about this pragma is that you don&#39;t have to resort to \x{....} just to spell your name in a native encoding. So feel free to put your strings in your encoding in quotes and regexes.</p>
+
+<h2 id="Prior-to-Perl-v5.22">Prior to Perl v5.22</h2>
+
+<p>The pragma was a per script, not a per block lexical. Only the last <code>use encoding</code> or <code>no encoding</code> mattered, and it affected <b>the whole script</b>. However, the <code>no encoding</code> pragma was supported and <code>use encoding</code> could appear as many times as you want in a given script (though only the last was effective).</p>
+
+<p>Since the scope wasn&#39;t lexical, other modules&#39; use of <code>chr</code>, <code>ord</code>, <i>etc.</i> were affected. This leads to spooky, incorrect action at a distance that is hard to debug.</p>
+
+<p>This means you would have to be very careful of the load order:</p>
+
+<pre><code>  # called module
+  package Module_IN_BAR;
+  use encoding &quot;bar&quot;;
+  # stuff in &quot;bar&quot; encoding here
+  1;
+
+  # caller script
+  use encoding &quot;foo&quot;
+  use Module_IN_BAR;
+  # surprise! use encoding &quot;bar&quot; is in effect.</code></pre>
+
+<p>The best way to avoid this oddity is to use this pragma RIGHT AFTER other modules are loaded. i.e.</p>
+
+<pre><code>  use Module_IN_BAR;
+  use encoding &quot;foo&quot;;</code></pre>
+
+<h2 id="Prior-to-Encode-version-1.87">Prior to Encode version 1.87</h2>
+
+<ul>
+
+<li><p><code>STDIN</code> and <code>STDOUT</code> were not set under the filter option. And <code>STDIN=&gt;<i>ENCODING</i></code> and <code>STDOUT=&gt;<i>ENCODING</i></code> didn&#39;t work like non-filter version.</p>
+
+</li>
+<li><p><code>use utf8</code> wasn&#39;t implicitly declared so you have to <code>use utf8</code> to do</p>
+
+<pre><code> ${&quot;\x{4eba}&quot;}++</code></pre>
+
+</li>
+</ul>
+
+<h2 id="Prior-to-Perl-v5.8.1">Prior to Perl v5.8.1</h2>
+
+<dl>
+
+<dt id="NON-EUC-doublebyte-encodings">&quot;NON-EUC&quot; doublebyte encodings</dt>
+<dd>
+
+<p>Because perl needs to parse the script before applying this pragma, such encodings as Shift_JIS and Big-5 that may contain <code>&#39;\&#39;</code> (BACKSLASH; <code>\x5c</code>) in the second byte fail because the second byte may accidentally escape the quoting character that follows.</p>
+
+</dd>
+<dt id="tr"><code>tr///</code></dt>
+<dd>
+
+<p>The <b>encoding</b> pragma works by decoding string literals in <code>q//,qq//,qr//,qw///, qx//</code> and so forth. In perl v5.8.0, this does not apply to <code>tr///</code>. Therefore,</p>
+
+<pre><code>  use encoding &#39;euc-jp&#39;;
+  #....
+  $kana =~ tr/\xA4\xA1-\xA4\xF3/\xA5\xA1-\xA5\xF3/;
+  #           -------- -------- -------- --------</code></pre>
+
+<p>Does not work as</p>
+
+<pre><code>  $kana =~ tr/\x{3041}-\x{3093}/\x{30a1}-\x{30f3}/;</code></pre>
+
+<dl>
+
+<dt id="Legend-of-characters-above">Legend of characters above</dt>
+<dd>
+
+<pre><code>  utf8     euc-jp   charnames::viacode()
+  -----------------------------------------
+  \x{3041} \xA4\xA1 HIRAGANA LETTER SMALL A
+  \x{3093} \xA4\xF3 HIRAGANA LETTER N
+  \x{30a1} \xA5\xA1 KATAKANA LETTER SMALL A
+  \x{30f3} \xA5\xF3 KATAKANA LETTER N</code></pre>
+
+</dd>
+</dl>
+
+<p>This counterintuitive behavior has been fixed in perl v5.8.1.</p>
+
+<p>In perl v5.8.0, you can work around this as follows;</p>
+
+<pre><code>  use encoding &#39;euc-jp&#39;;
+  #  ....
+  eval qq{ \$kana =~ tr/\xA4\xA1-\xA4\xF3/\xA5\xA1-\xA5\xF3/ };</code></pre>
+
+<p>Note the <code>tr//</code> expression is surrounded by <code>qq{}</code>. The idea behind this is the same as the classic idiom that makes <code>tr///</code> &#39;interpolate&#39;:</p>
+
+<pre><code>   tr/$from/$to/;            # wrong!
+   eval qq{ tr/$from/$to/ }; # workaround.</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLE---Greekperl">EXAMPLE - Greekperl</h1>
+
+<pre><code>    use encoding &quot;iso 8859-7&quot;;
+
+    # \xDF in ISO 8859-7 (Greek) is \x{3af} in Unicode.
+
+    $a = &quot;\xDF&quot;;
+    $b = &quot;\x{100}&quot;;
+
+    printf &quot;%#x\n&quot;, ord($a); # will print 0x3af, not 0xdf
+
+    $c = $a . $b;
+
+    # $c will be &quot;\x{3af}\x{100}&quot;, not &quot;\x{df}\x{100}&quot;.
+
+    # chr() is affected, and ...
+
+    print &quot;mega\n&quot;  if ord(chr(0xdf)) == 0x3af;
+
+    # ... ord() is affected by the encoding pragma ...
+
+    print &quot;tera\n&quot; if ord(pack(&quot;C&quot;, 0xdf)) == 0x3af;
+
+    # ... as are eq and cmp ...
+
+    print &quot;peta\n&quot; if &quot;\x{3af}&quot; eq  pack(&quot;C&quot;, 0xdf);
+    print &quot;exa\n&quot;  if &quot;\x{3af}&quot; cmp pack(&quot;C&quot;, 0xdf) == 0;
+
+    # ... but pack/unpack C are not affected, in case you still
+    # want to go back to your native encoding
+
+    print &quot;zetta\n&quot; if unpack(&quot;C&quot;, (pack(&quot;C&quot;, 0xdf))) == 0xdf;</code></pre>
+
+<h1 id="BUGS">BUGS</h1>
+
+<dl>
+
+<dt id="Thread-safety">Thread safety</dt>
+<dd>
+
+<p><code>use encoding ...</code> is not thread-safe (i.e., do not use in threaded applications).</p>
+
+</dd>
+<dt id="Cant-be-used-by-more-than-one-module-in-a-single-program">Can&#39;t be used by more than one module in a single program.</dt>
+<dd>
+
+<p>Only one encoding is allowed. If you combine modules in a program that have different encodings, only one will be actually used.</p>
+
+</dd>
+<dt id="Other-modules-using-STDIN-and-STDOUT-get-the-encoded-stream">Other modules using <code>STDIN</code> and <code>STDOUT</code> get the encoded stream</dt>
+<dd>
+
+<p>They may be expecting something completely different.</p>
+
+</dd>
+<dt id="literals-in-regex-that-are-longer-than-127-bytes">literals in regex that are longer than 127 bytes</dt>
+<dd>
+
+<p>For native multibyte encodings (either fixed or variable length), the current implementation of the regular expressions may introduce recoding errors for regular expression literals longer than 127 bytes.</p>
+
+</dd>
+<dt id="EBCDIC">EBCDIC</dt>
+<dd>
+
+<p>The encoding pragma is not supported on EBCDIC platforms.</p>
+
+</dd>
+<dt id="format"><code>format</code></dt>
+<dd>
+
+<p>This pragma doesn&#39;t work well with <code>format</code> because PerlIO does not get along very well with it. When <code>format</code> contains non-ASCII characters it prints funny or gets &quot;wide character warnings&quot;. To understand it, try the code below.</p>
+
+<pre><code>  # Save this one in utf8
+  # replace *non-ascii* with a non-ascii string
+  my $camel;
+  format STDOUT =
+  *non-ascii*@&gt;&gt;&gt;&gt;&gt;&gt;&gt;
+  $camel
+  .
+  $camel = &quot;*non-ascii*&quot;;
+  binmode(STDOUT=&gt;&#39;:encoding(utf8)&#39;); # bang!
+  write;              # funny
+  print $camel, &quot;\n&quot;; # fine</code></pre>
+
+<p>Without binmode this happens to work but without binmode, print() fails instead of write().</p>
+
+<p>At any rate, the very use of <code>format</code> is questionable when it comes to unicode characters since you have to consider such things as character width (i.e. double-width for ideographs) and directions (i.e. BIDI for Arabic and Hebrew).</p>
+
+</dd>
+<dt id="See-also-CAVEATS">See also <a href="#CAVEATS">&quot;CAVEATS&quot;</a></dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="HISTORY">HISTORY</h1>
+
+<p>This pragma first appeared in Perl v5.8.0. It has been enhanced in later releases as specified above.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/Encode.html">Encode</a>, <a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/Filter/Util/Call.html">Filter::Util::Call</a>,</p>
+
+<p>Ch. 15 of <code>Programming Perl (3rd Edition)</code> by Larry Wall, Tom Christiansen, Jon Orwant; O&#39;Reilly &amp; Associates; ISBN 0-596-00027-8</p>
+
+
+</body>
+
+</html>
+
+

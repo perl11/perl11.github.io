@@ -1,0 +1,198 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#conf-myconfig">$conf = myconfig ()</a></li>
+      <li><a href="#conf-plv2hash-text">$conf = plv2hash ($text [, ...])</a></li>
+      <li><a href="#info-summary-conf">$info = summary ([$conf])</a></li>
+      <li><a href="#md5-signature-conf">$md5 = signature ([$conf])</a></li>
+      <li><a href="#The-hash-structure">The hash structure</a></li>
+    </ul>
+  </li>
+  <li><a href="#REASONING">REASONING</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#TODO">TODO</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Config::Perl::V - Structured data retrieval of perl -V output</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use Config::Perl::V;
+
+ my $local_config = Config::Perl::V::myconfig ();
+ print $local_config-&gt;{config}{osname};</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<h2 id="conf-myconfig">$conf = myconfig ()</h2>
+
+<p>This function will collect the data described in <a href="#the-hash-structure">&quot;the hash structure&quot;</a> below, and return that as a hash reference. It optionally accepts an option to include more entries from %ENV. See <a>environment</a> below.</p>
+
+<p>Note that this will not work on uninstalled perls when called with <code>-I/path/to/uninstalled/perl/lib</code>, but it works when that path is in <code>$PERL5LIB</code> or in <code>$PERL5OPT</code>, as paths passed using <code>-I</code> are not known when the <code>-V</code> information is collected.</p>
+
+<h2 id="conf-plv2hash-text">$conf = plv2hash ($text [, ...])</h2>
+
+<p>Convert a sole &#39;perl -V&#39; text block, or list of lines, to a complete myconfig hash. All unknown entries are defaulted.</p>
+
+<h2 id="info-summary-conf">$info = summary ([$conf])</h2>
+
+<p>Return an arbitrary selection of the information. If no <code>$conf</code> is given, <code>myconfig ()</code> is used instead.</p>
+
+<h2 id="md5-signature-conf">$md5 = signature ([$conf])</h2>
+
+<p>Return the MD5 of the info returned by <code>summary ()</code> without the <code>config_args</code> entry.</p>
+
+<p>If <code>Digest::MD5</code> is not available, it return a string with only <code>0</code>&#39;s.</p>
+
+<h2 id="The-hash-structure">The hash structure</h2>
+
+<p>The returned hash consists of 4 parts:</p>
+
+<dl>
+
+<dt id="build">build</dt>
+<dd>
+
+<p>This information is extracted from the second block that is emitted by <code>perl -V</code>, and usually looks something like</p>
+
+<pre><code> Characteristics of this binary (from libperl):
+   Compile-time options: DEBUGGING USE_64_BIT_INT USE_LARGE_FILES
+   Locally applied patches:
+         defined-or
+         MAINT24637
+   Built under linux
+   Compiled at Jun 13 2005 10:44:20
+   @INC:
+     /usr/lib/perl5/5.8.7/i686-linux-64int
+     /usr/lib/perl5/5.8.7
+     /usr/lib/perl5/site_perl/5.8.7/i686-linux-64int
+     /usr/lib/perl5/site_perl/5.8.7
+     /usr/lib/perl5/site_perl
+     .</code></pre>
+
+<p>or</p>
+
+<pre><code> Characteristics of this binary (from libperl):
+   Compile-time options: DEBUGGING MULTIPLICITY
+                         PERL_DONT_CREATE_GVSV PERL_IMPLICIT_CONTEXT
+                         PERL_MALLOC_WRAP PERL_TRACK_MEMPOOL
+                         PERL_USE_SAFE_PUTENV USE_ITHREADS
+                         USE_LARGE_FILES USE_PERLIO
+                         USE_REENTRANT_API
+   Built under linux
+   Compiled at Jan 28 2009 15:26:59</code></pre>
+
+<p>This information is not available anywhere else, including <code>%Config</code>, but it is the information that is only known to the perl binary.</p>
+
+<p>The extracted information is stored in 5 entries in the <code>build</code> hash:</p>
+
+<dl>
+
+<dt id="osname">osname</dt>
+<dd>
+
+<p>This is most likely the same as <code>$Config{osname}</code>, and was the name known when perl was built. It might be different if perl was cross-compiled.</p>
+
+<p>The default for this field, if it cannot be extracted, is to copy <code>$Config{osname}</code>. The two may be differing in casing (OpenBSD vs openbsd).</p>
+
+</dd>
+<dt id="stamp">stamp</dt>
+<dd>
+
+<p>This is the time string for which the perl binary was compiled. The default value is 0.</p>
+
+</dd>
+<dt id="options">options</dt>
+<dd>
+
+<p>This is a hash with all the known defines as keys. The value is either 0, which means unknown or unset, or 1, which means defined.</p>
+
+</dd>
+<dt id="derived">derived</dt>
+<dd>
+
+<p>As some variables are reported by a different name in the output of <code>perl -V</code> than their actual name in <code>%Config</code>, I decided to leave the <code>config</code> entry as close to reality as possible, and put in the entries that might have been guessed by the printed output in a separate block.</p>
+
+</dd>
+<dt id="patches">patches</dt>
+<dd>
+
+<p>This is a list of optionally locally applied patches. Default is an empty list.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="environment">environment</dt>
+<dd>
+
+<p>By default this hash is only filled with the environment variables out of %ENV that start with <code>PERL</code>, but you can pass the <code>env</code> option to myconfig to get more</p>
+
+<pre><code> my $conf = Config::Perl::V::myconfig ({ env =&gt; qr/^ORACLE/ });
+ my $conf = Config::Perl::V::myconfig ([ env =&gt; qr/^ORACLE/ ]);</code></pre>
+
+</dd>
+<dt id="config">config</dt>
+<dd>
+
+<p>This hash is filled with the variables that <code>perl -V</code> fills its report with, and it has the same variables that <code>Config::myconfig</code> returns from <code>%Config</code>.</p>
+
+</dd>
+<dt id="inc">inc</dt>
+<dd>
+
+<p>This is the list of default @INC.</p>
+
+</dd>
+</dl>
+
+<h1 id="REASONING">REASONING</h1>
+
+<p>This module was written to be able to return the configuration for the currently used perl as deeply as needed for the CPANTESTERS framework. Up until now they used the output of myconfig as a single text blob, and so it was missing the vital binary characteristics of the running perl and the optional applied patches.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Please feedback what is wrong</p>
+
+<h1 id="TODO">TODO</h1>
+
+<pre><code> * Implement retrieval functions/methods
+ * Documentation
+ * Error checking
+ * Tests</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>H.Merijn Brand &lt;h.m.brand@xs4all.nl&gt;</p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (C) 2009-2016 H.Merijn Brand</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

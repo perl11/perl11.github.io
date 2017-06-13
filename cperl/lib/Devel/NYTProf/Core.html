@@ -1,0 +1,120 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SUBROUTINE-PROFILER">SUBROUTINE PROFILER</a>
+    <ul>
+      <li><a href="#Before-the-subroutine-call">Before the subroutine call</a></li>
+      <li><a href="#Make-the-subroutine-call">Make the subroutine call</a>
+        <ul>
+          <li><a href="#Calling-a-perl-subroutine">Calling a perl subroutine</a></li>
+          <li><a href="#Calling-an-xsub">Calling an xsub</a></li>
+        </ul>
+      </li>
+      <li><a href="#Completing-the-measurement">Completing the measurement</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Devel::NYTProf::Core - load internals of Devel::NYTProf</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module is not meant to be used directly. See <a href="/cperl/lib/Devel/NYTProf.html">Devel::NYTProf</a>, <a href="/cperl/lib/Devel/NYTProf/Data.html">Devel::NYTProf::Data</a>, and <a>Devel::NYTProf::Reader</a>.</p>
+
+<p>While it&#39;s not meant to be used directly, it is a handy place to document some internals.</p>
+
+<h1 id="SUBROUTINE-PROFILER">SUBROUTINE PROFILER</h1>
+
+<p>The subroutine profiler intercepts the <code>entersub</code> opcode which perl uses to invoke a subroutine, both XS subs (henceforth xsubs) and pure perl subs.</p>
+
+<p>The following sections outline the way the subroutine profiler works:</p>
+
+<h2 id="Before-the-subroutine-call">Before the subroutine call</h2>
+
+<p>The profiler records the current time, the current value of cumulative_subr_secs (as initial_subr_secs), and the current cumulative_overhead_ticks (as initial_overhead_ticks).</p>
+
+<p>The statement profiler measures time at the start and end of processing for each statement (so time spent in the profiler, writing to the file for example, is excluded.) It accumulates the measured overhead into the cumulative_overhead_ticks variable.</p>
+
+<p>In a similar way, the subroutine profiler measures the <i>exclusive</i> time spent in subroutines and accumulates it into the cumulative_subr_secs global.</p>
+
+<h2 id="Make-the-subroutine-call">Make the subroutine call</h2>
+
+<p>The call is made by executing the original perl internal code for the <code>entersub</code> opcode.</p>
+
+<h3 id="Calling-a-perl-subroutine">Calling a perl subroutine</h3>
+
+<p>If the sub being called is a perl sub then when the entersub opcode returns, back into the subroutine profiler, the subroutine has been &#39;entered&#39; but the first opcode of the subroutine hasn&#39;t been executed yet. Crucially though, a new scope has been entered by the entersub opcode.</p>
+
+<p>The subroutine profiler then pushes a destructor onto the context stack. The destructor is effectively just <i>inside</i> the sub, like a <code>local</code>, and so will be triggered when the subroutine exits by <i>any</i> means. Also, because it was the first thing push onto the context stack, it will be triggered <i>after</i> any activity caused by the subroutines scope exiting.</p>
+
+<p>When the destructor is invoked it calls a function which completes the measurement of the time spent in the sub (see below).</p>
+
+<p>In this way the profiling of perl subroutines is very accurate and robust.</p>
+
+<h3 id="Calling-an-xsub">Calling an xsub</h3>
+
+<p>If the sub being called is an xsub, then control doesn&#39;t return from the entersub opcode until the xsub has returned. The profiler detects this and calls the function which completes the measurement of the time spent in the xsub.</p>
+
+<p>So far so good, but there&#39;s a problem. What if the xsub doesn&#39;t return normally but throws an exception instead?</p>
+
+<p>In that case (currently) the profiler acts as if the xsub was never called. Time spent inside the xsub will be allocated to the calling sub.</p>
+
+<h2 id="Completing-the-measurement">Completing the measurement</h2>
+
+<p>The function which completes the timing of a subroutine call does the following:</p>
+
+<p>It calculates the time spent in the statement profiler:</p>
+
+<pre><code>    overhead_ticks  = cumulative_overhead_ticks - initial_overhead_ticks</code></pre>
+
+<p>and subtracts that from the total time spent &#39;inside&#39; the subroutine:</p>
+
+<pre><code>    incl_subr_sec = (time now - time call was made) - overhead_ticks</code></pre>
+
+<p>That gives us an accurate <i>inclusive</i> time. To get the <i>exclusive</i> time it calculates the time spent in subroutines called from the subroutine call we&#39;re measuring:</p>
+
+<pre><code>    called_sub_secs = cumulative_subr_secs - initial_subr_secs</code></pre>
+
+<p>and subtracts that from the incl_subr_sec:</p>
+
+<pre><code>    excl_subr_sec = incl_subr_sec - called_sub_secs</code></pre>
+
+<p>To make that easier to follow, consider a call to a sub that calls no others. In that case cumulative_subr_secs remains unchanged during the call, so called_sub_secs is zero, and excl_subr_sec is the same as incl_subr_sec.</p>
+
+<p>Finally, it adds the exclusive time to the cumulative exclusive time:</p>
+
+<pre><code>    cumulative_subr_secs += excl_subr_sec</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p><b>Tim Bunce</b>, <a href="http://www.tim.bunce.name">http://www.tim.bunce.name</a> and <a href="http://blog.timbunce.org">http://blog.timbunce.org</a></p>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<pre><code>  Copyright (C) 2008, 2009 by Tim Bunce.</code></pre>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself, either Perl version 5.8.8 or, at your option, any later version of Perl 5 you may have available.</p>
+
+
+</body>
+
+</html>
+
+

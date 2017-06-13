@@ -1,0 +1,440 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#use-Filter::Util::Call">use Filter::Util::Call</a></li>
+      <li><a href="#import">import()</a></li>
+      <li><a href="#filter_add">filter_add()</a></li>
+      <li><a href="#filter-and-anonymous-sub">filter() and anonymous sub</a></li>
+    </ul>
+  </li>
+  <li><a href="#LIMITATIONS">LIMITATIONS</a></li>
+  <li><a href="#EXAMPLES">EXAMPLES</a>
+    <ul>
+      <li><a href="#Example-1:-A-simple-filter">Example 1: A simple filter.</a></li>
+      <li><a href="#Example-2:-Using-the-context">Example 2: Using the context</a></li>
+      <li><a href="#Example-3:-Using-the-context-within-the-filter">Example 3: Using the context within the filter</a></li>
+      <li><a href="#Example-4:-Using-filter_del">Example 4: Using filter_del</a></li>
+    </ul>
+  </li>
+  <li><a href="#Filter::Simple">Filter::Simple</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#DATE">DATE</a></li>
+  <li><a href="#LICENSE">LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Filter::Util::Call - Perl Source Filter Utility Module</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use Filter::Util::Call ;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides you with the framework to write <i>Source Filters</i> in Perl.</p>
+
+<p>An alternate interface to Filter::Util::Call is now available. See <a href="/cperl/lib/Filter/Simple.html">Filter::Simple</a> for more details.</p>
+
+<p>A <i>Perl Source Filter</i> is implemented as a Perl module. The structure of the module can take one of two broadly similar formats. To distinguish between them, the first will be referred to as <i>method filter</i> and the second as <i>closure filter</i>.</p>
+
+<p>Here is a skeleton for the <i>method filter</i>:</p>
+
+<pre><code>    package MyFilter ;
+
+    use Filter::Util::Call ;
+
+    sub import
+    {
+        my($type, @arguments) = @_ ;
+        filter_add([]) ;
+    }
+
+    sub filter
+    {
+        my($self) = @_ ;
+        my($status) ;
+
+        $status = filter_read() ;
+        $status ;
+    }
+
+    1 ;</code></pre>
+
+<p>and this is the equivalent skeleton for the <i>closure filter</i>:</p>
+
+<pre><code>    package MyFilter ;
+
+    use Filter::Util::Call ;
+
+    sub import
+    {
+        my($type, @arguments) = @_ ;
+
+        filter_add(
+            sub 
+            {
+                my($status) ;
+                $status = filter_read() ;
+                $status ;
+            } )
+    }
+
+    1 ;</code></pre>
+
+<p>To make use of either of the two filter modules above, place the line below in a Perl source file.</p>
+
+<pre><code>    use MyFilter; </code></pre>
+
+<p>In fact, the skeleton modules shown above are fully functional <i>Source Filters</i>, albeit fairly useless ones. All they does is filter the source stream without modifying it at all.</p>
+
+<p>As you can see both modules have a broadly similar structure. They both make use of the <code>Filter::Util::Call</code> module and both have an <code>import</code> method. The difference between them is that the <i>method filter</i> requires a <i>filter</i> method, whereas the <i>closure filter</i> gets the equivalent of a <i>filter</i> method with the anonymous sub passed to <i>filter_add</i>.</p>
+
+<p>To make proper use of the <i>closure filter</i> shown above you need to have a good understanding of the concept of a <i>closure</i>. See <a href="/cperl/perlref.html">perlref</a> for more details on the mechanics of <i>closures</i>.</p>
+
+<h2 id="use-Filter::Util::Call"><b>use Filter::Util::Call</b></h2>
+
+<p>The following functions are exported by <code>Filter::Util::Call</code>:</p>
+
+<pre><code>    filter_add()
+    filter_read()
+    filter_read_exact()
+    filter_del()</code></pre>
+
+<h2 id="import"><b>import()</b></h2>
+
+<p>The <code>import</code> method is used to create an instance of the filter. It is called indirectly by Perl when it encounters the <code>use MyFilter</code> line in a source file (See <a href="/cperl/perlfunc.html#import">&quot;import&quot; in perlfunc</a> for more details on <code>import</code>).</p>
+
+<p>It will always have at least one parameter automatically passed by Perl - this corresponds to the name of the package. In the example above it will be <code>&quot;MyFilter&quot;</code>.</p>
+
+<p>Apart from the first parameter, import can accept an optional list of parameters. These can be used to pass parameters to the filter. For example:</p>
+
+<pre><code>    use MyFilter qw(a b c) ;</code></pre>
+
+<p>will result in the <code>@_</code> array having the following values:</p>
+
+<pre><code>    @_ [0] =&gt; &quot;MyFilter&quot;
+    @_ [1] =&gt; &quot;a&quot;
+    @_ [2] =&gt; &quot;b&quot;
+    @_ [3] =&gt; &quot;c&quot;</code></pre>
+
+<p>Before terminating, the <code>import</code> function must explicitly install the filter by calling <code>filter_add</code>.</p>
+
+<h2 id="filter_add"><b>filter_add()</b></h2>
+
+<p>The function, <code>filter_add</code>, actually installs the filter. It takes one parameter which should be a reference. The kind of reference used will dictate which of the two filter types will be used.</p>
+
+<p>If a CODE reference is used then a <i>closure filter</i> will be assumed.</p>
+
+<p>If a CODE reference is not used, a <i>method filter</i> will be assumed. In a <i>method filter</i>, the reference can be used to store context information. The reference will be <i>blessed</i> into the package by <code>filter_add</code>, unless the reference was already blessed.</p>
+
+<p>See the filters at the end of this documents for examples of using context information using both <i>method filters</i> and <i>closure filters</i>.</p>
+
+<h2 id="filter-and-anonymous-sub"><b>filter() and anonymous sub</b></h2>
+
+<p>Both the <code>filter</code> method used with a <i>method filter</i> and the anonymous sub used with a <i>closure filter</i> is where the main processing for the filter is done.</p>
+
+<p>The big difference between the two types of filter is that the <i>method filter</i> uses the object passed to the method to store any context data, whereas the <i>closure filter</i> uses the lexical variables that are maintained by the closure.</p>
+
+<p>Note that the single parameter passed to the <i>method filter</i>, <code>$self</code>, is the same reference that was passed to <code>filter_add</code> blessed into the filter&#39;s package. See the example filters later on for details of using <code>$self</code>.</p>
+
+<p>Here is a list of the common features of the anonymous sub and the <code>filter()</code> method.</p>
+
+<dl>
+
+<dt id="pod-_"><b>$_</b></dt>
+<dd>
+
+<p>Although <code>$_</code> doesn&#39;t actually appear explicitly in the sample filters above, it is implicitly used in a number of places.</p>
+
+<p>Firstly, when either <code>filter</code> or the anonymous sub are called, a local copy of <code>$_</code> will automatically be created. It will always contain the empty string at this point.</p>
+
+<p>Next, both <code>filter_read</code> and <code>filter_read_exact</code> will append any source data that is read to the end of <code>$_</code>.</p>
+
+<p>Finally, when <code>filter</code> or the anonymous sub are finished processing, they are expected to return the filtered source using <code>$_</code>.</p>
+
+<p>This implicit use of <code>$_</code> greatly simplifies the filter.</p>
+
+</dd>
+<dt id="status"><b>$status</b></dt>
+<dd>
+
+<p>The status value that is returned by the user&#39;s <code>filter</code> method or anonymous sub and the <code>filter_read</code> and <code>read_exact</code> functions take the same set of values, namely:</p>
+
+<pre><code>    &lt; 0  Error
+    = 0  EOF
+    &gt; 0  OK</code></pre>
+
+</dd>
+<dt id="filter_read-and-filter_read_exact"><b>filter_read</b> and <b>filter_read_exact</b></dt>
+<dd>
+
+<p>These functions are used by the filter to obtain either a line or block from the next filter in the chain or the actual source file if there aren&#39;t any other filters.</p>
+
+<p>The function <code>filter_read</code> takes two forms:</p>
+
+<pre><code>    $status = filter_read() ;
+    $status = filter_read($size) ;</code></pre>
+
+<p>The first form is used to request a <i>line</i>, the second requests a <i>block</i>.</p>
+
+<p>In line mode, <code>filter_read</code> will append the next source line to the end of the <code>$_</code> scalar.</p>
+
+<p>In block mode, <code>filter_read</code> will append a block of data which is &lt;= <code>$size</code> to the end of the <code>$_</code> scalar. It is important to emphasise the that <code>filter_read</code> will not necessarily read a block which is <i>precisely</i> <code>$size</code> bytes.</p>
+
+<p>If you need to be able to read a block which has an exact size, you can use the function <code>filter_read_exact</code>. It works identically to <code>filter_read</code> in block mode, except it will try to read a block which is exactly <code>$size</code> bytes in length. The only circumstances when it will not return a block which is <code>$size</code> bytes long is on EOF or error.</p>
+
+<p>It is <i>very</i> important to check the value of <code>$status</code> after <i>every</i> call to <code>filter_read</code> or <code>filter_read_exact</code>.</p>
+
+</dd>
+<dt id="filter_del"><b>filter_del</b></dt>
+<dd>
+
+<p>The function, <code>filter_del</code>, is used to disable the current filter. It does not affect the running of the filter. All it does is tell Perl not to call filter any more.</p>
+
+<p>See <a href="#Example-4:-Using-filter_del">&quot;Example 4: Using filter_del&quot;</a> for details.</p>
+
+</dd>
+<dt id="real_import"><i>real_import</i></dt>
+<dd>
+
+<p>Internal function which adds the filter, based on the <a>filter_add</a> argument type.</p>
+
+</dd>
+<dt id="unimport"><i>unimport()</i></dt>
+<dd>
+
+<p>May be used to disable a filter, but is rarely needed. See <a>filter_del</a>.</p>
+
+</dd>
+</dl>
+
+<h1 id="LIMITATIONS">LIMITATIONS</h1>
+
+<p>See <a href="/cperl/perlfilter.html#LIMITATIONS">&quot;LIMITATIONS&quot; in perlfilter</a> for an overview of the general problems filtering code in a textual line-level only.</p>
+
+<dl>
+
+<dt id="DATA__-is-ignored">__DATA__ is ignored</dt>
+<dd>
+
+<p>The content from the __DATA__ block is not filtered. This is a serious limitation, e.g. for the <a>Switch</a> module. See <a href="http://search.cpan.org/perldoc?Switch#LIMITATIONS">http://search.cpan.org/perldoc?Switch#LIMITATIONS</a> for more.</p>
+
+</dd>
+<dt id="Max.-codesize-limited-to-32-bit">Max. codesize limited to 32-bit</dt>
+<dd>
+
+<p>Currently internal buffer lengths are limited to 32-bit only.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Here are a few examples which illustrate the key concepts - as such most of them are of little practical use.</p>
+
+<p>The <code>examples</code> sub-directory has copies of all these filters implemented both as <i>method filters</i> and as <i>closure filters</i>.</p>
+
+<h2 id="Example-1:-A-simple-filter">Example 1: A simple filter.</h2>
+
+<p>Below is a <i>method filter</i> which is hard-wired to replace all occurrences of the string <code>&quot;Joe&quot;</code> to <code>&quot;Jim&quot;</code>. Not particularly Useful, but it is the first example and I wanted to keep it simple.</p>
+
+<pre><code>    package Joe2Jim ;
+
+    use Filter::Util::Call ;
+
+    sub import
+    {
+        my($type) = @_ ;
+
+        filter_add(bless []) ;
+    }
+
+    sub filter
+    {
+        my($self) = @_ ;
+        my($status) ;
+
+        s/Joe/Jim/g
+            if ($status = filter_read()) &gt; 0 ;
+        $status ;
+    }
+
+    1 ;</code></pre>
+
+<p>Here is an example of using the filter:</p>
+
+<pre><code>    use Joe2Jim ;
+    print &quot;Where is Joe?\n&quot; ;</code></pre>
+
+<p>And this is what the script above will print:</p>
+
+<pre><code>    Where is Jim?</code></pre>
+
+<h2 id="Example-2:-Using-the-context">Example 2: Using the context</h2>
+
+<p>The previous example was not particularly useful. To make it more general purpose we will make use of the context data and allow any arbitrary <i>from</i> and <i>to</i> strings to be used. This time we will use a <i>closure filter</i>. To reflect its enhanced role, the filter is called <code>Subst</code>.</p>
+
+<pre><code>    package Subst ;
+
+    use Filter::Util::Call ;
+    use Carp ;
+
+    sub import
+    {
+        croak(&quot;usage: use Subst qw(from to)&quot;)
+            unless @_ == 3 ;
+        my ($self, $from, $to) = @_ ;
+        filter_add(
+            sub 
+            {
+                my ($status) ;
+                s/$from/$to/
+                    if ($status = filter_read()) &gt; 0 ;
+                $status ;
+            })
+    }
+    1 ;</code></pre>
+
+<p>and is used like this:</p>
+
+<pre><code>    use Subst qw(Joe Jim) ;
+    print &quot;Where is Joe?\n&quot; ;</code></pre>
+
+<h2 id="Example-3:-Using-the-context-within-the-filter">Example 3: Using the context within the filter</h2>
+
+<p>Here is a filter which a variation of the <code>Joe2Jim</code> filter. As well as substituting all occurrences of <code>&quot;Joe&quot;</code> to <code>&quot;Jim&quot;</code> it keeps a count of the number of substitutions made in the context object.</p>
+
+<p>Once EOF is detected (<code>$status</code> is zero) the filter will insert an extra line into the source stream. When this extra line is executed it will print a count of the number of substitutions actually made. Note that <code>$status</code> is set to <code>1</code> in this case.</p>
+
+<pre><code>    package Count ;
+
+    use Filter::Util::Call ;
+
+    sub filter
+    {
+        my ($self) = @_ ;
+        my ($status) ;
+
+        if (($status = filter_read()) &gt; 0 ) {
+            s/Joe/Jim/g ;
+            ++ $$self ;
+        }
+        elsif ($$self &gt;= 0) { # EOF
+            $_ = &quot;print q[Made ${$self} substitutions\n]&quot; ;
+            $status = 1 ;
+            $$self = -1 ;
+        }
+
+        $status ;
+    }
+
+    sub import
+    {
+        my ($self) = @_ ;
+        my ($count) = 0 ;
+        filter_add(\$count) ;
+    }
+
+    1 ;</code></pre>
+
+<p>Here is a script which uses it:</p>
+
+<pre><code>    use Count ;
+    print &quot;Hello Joe\n&quot; ;
+    print &quot;Where is Joe\n&quot; ;</code></pre>
+
+<p>Outputs:</p>
+
+<pre><code>    Hello Jim
+    Where is Jim
+    Made 2 substitutions</code></pre>
+
+<h2 id="Example-4:-Using-filter_del">Example 4: Using filter_del</h2>
+
+<p>Another variation on a theme. This time we will modify the <code>Subst</code> filter to allow a starting and stopping pattern to be specified as well as the <i>from</i> and <i>to</i> patterns. If you know the <i>vi</i> editor, it is the equivalent of this command:</p>
+
+<pre><code>    :/start/,/stop/s/from/to/</code></pre>
+
+<p>When used as a filter we want to invoke it like this:</p>
+
+<pre><code>    use NewSubst qw(start stop from to) ;</code></pre>
+
+<p>Here is the module.</p>
+
+<pre><code>    package NewSubst ;
+
+    use Filter::Util::Call ;
+    use Carp ;
+
+    sub import
+    {
+        my ($self, $start, $stop, $from, $to) = @_ ;
+        my ($found) = 0 ;
+        croak(&quot;usage: use Subst qw(start stop from to)&quot;)
+            unless @_ == 5 ;
+
+        filter_add( 
+            sub 
+            {
+                my ($status) ;
+
+                if (($status = filter_read()) &gt; 0) {
+
+                    $found = 1
+                        if $found == 0 and /$start/ ;
+
+                    if ($found) {
+                        s/$from/$to/ ;
+                        filter_del() if /$stop/ ;
+                    }
+
+                }
+                $status ;
+            } )
+
+    }
+
+    1 ;</code></pre>
+
+<h1 id="Filter::Simple">Filter::Simple</h1>
+
+<p>If you intend using the Filter::Call functionality, I would strongly recommend that you check out Damian Conway&#39;s excellent Filter::Simple module. Damian&#39;s module provides a much cleaner interface than Filter::Util::Call. Although it doesn&#39;t allow the fine control that Filter::Util::Call does, it should be adequate for the majority of applications. It&#39;s available at</p>
+
+<pre><code>   http://search.cpan.org/dist/Filter-Simple/</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Paul Marquess</p>
+
+<h1 id="DATE">DATE</h1>
+
+<p>26th January 1996</p>
+
+<h1 id="LICENSE">LICENSE</h1>
+
+<p>Copyright (c) 1995-2011 Paul Marquess. All rights reserved. Copyright (c) 2011-2014 Reini Urban. All rights reserved. Copyright (c) 2014-2017 cPanel Inc. All rights reserved.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+
+</body>
+
+</html>
+
+

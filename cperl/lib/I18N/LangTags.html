@@ -1,0 +1,419 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#ABOUT-LOWERCASING">ABOUT LOWERCASING</a></li>
+  <li><a href="#ABOUT-UNICODE-PLAINTEXT-LANGUAGE-TAGS">ABOUT UNICODE PLAINTEXT LANGUAGE TAGS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>I18N::LangTags - functions for dealing with RFC3066-style language tags</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>  use I18N::LangTags();</code></pre>
+
+<p>...or specify whichever of those functions you want to import, like so:</p>
+
+<pre><code>  use I18N::LangTags qw(implicate_supers similarity_language_tag);</code></pre>
+
+<p>All the exportable functions are listed below -- you&#39;re free to import only some, or none at all. By default, none are imported. If you say:</p>
+
+<pre><code>    use I18N::LangTags qw(:ALL)</code></pre>
+
+<p>...then all are exported. (This saves you from having to use something less obvious like <code>use I18N::LangTags qw(/./)</code>.)</p>
+
+<p>If you don&#39;t import any of these functions, assume a <code>&amp;I18N::LangTags::</code> in front of all the function names in the following examples.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Language tags are a formalism, described in RFC 3066 (obsoleting 1766), for declaring what language form (language and possibly dialect) a given chunk of information is in.</p>
+
+<p>This library provides functions for common tasks involving language tags as they are needed in a variety of protocols and applications.</p>
+
+<p>Please see the &quot;See Also&quot; references for a thorough explanation of how to correctly use language tags.</p>
+
+<ul>
+
+<li><p>the function is_language_tag($lang1)</p>
+
+<p>Returns true iff $lang1 is a formally valid language tag.</p>
+
+<pre><code>   is_language_tag(&quot;fr&quot;)            is TRUE
+   is_language_tag(&quot;x-jicarilla&quot;)   is FALSE
+       (Subtags can be 8 chars long at most -- &#39;jicarilla&#39; is 9)
+
+   is_language_tag(&quot;sgn-US&quot;)    is TRUE
+       (That&#39;s American Sign Language)
+
+   is_language_tag(&quot;i-Klikitat&quot;)    is TRUE
+       (True without regard to the fact noone has actually
+        registered Klikitat -- it&#39;s a formally valid tag)
+
+   is_language_tag(&quot;fr-patois&quot;)     is TRUE
+       (Formally valid -- altho descriptively weak!)
+
+   is_language_tag(&quot;Spanish&quot;)       is FALSE
+   is_language_tag(&quot;french-patois&quot;) is FALSE
+       (No good -- first subtag has to match
+        /^([xXiI]|[a-zA-Z]{2,3})$/ -- see RFC3066)
+
+   is_language_tag(&quot;x-borg-prot2532&quot;) is TRUE
+       (Yes, subtags can contain digits, as of RFC3066)</code></pre>
+
+</li>
+<li><p>the function extract_language_tags($whatever)</p>
+
+<p>Returns a list of whatever looks like formally valid language tags in $whatever. Not very smart, so don&#39;t get too creative with what you want to feed it.</p>
+
+<pre><code>  extract_language_tags(&quot;fr, fr-ca, i-mingo&quot;)
+    returns:   (&#39;fr&#39;, &#39;fr-ca&#39;, &#39;i-mingo&#39;)
+
+  extract_language_tags(&quot;It&#39;s like this: I&#39;m in fr -- French!&quot;)
+    returns:   (&#39;It&#39;, &#39;in&#39;, &#39;fr&#39;)
+  (So don&#39;t just feed it any old thing.)</code></pre>
+
+<p>The output is untainted. If you don&#39;t know what tainting is, don&#39;t worry about it.</p>
+
+</li>
+<li><p>the function same_language_tag($lang1, $lang2)</p>
+
+<p>Returns true iff $lang1 and $lang2 are acceptable variant tags representing the same language-form.</p>
+
+<pre><code>   same_language_tag(&#39;x-kadara&#39;, &#39;i-kadara&#39;)  is TRUE
+      (The x/i- alternation doesn&#39;t matter)
+   same_language_tag(&#39;X-KADARA&#39;, &#39;i-kadara&#39;)  is TRUE
+      (...and neither does case)
+   same_language_tag(&#39;en&#39;,       &#39;en-US&#39;)     is FALSE
+      (all-English is not the SAME as US English)
+   same_language_tag(&#39;x-kadara&#39;, &#39;x-kadar&#39;)   is FALSE
+      (these are totally unrelated tags)
+   same_language_tag(&#39;no-bok&#39;,    &#39;nb&#39;)       is TRUE
+      (no-bok is a legacy tag for nb (Norwegian Bokmal))</code></pre>
+
+<p><code>same_language_tag</code> works by just seeing whether <code>encode_language_tag($lang1)</code> is the same as <code>encode_language_tag($lang2)</code>.</p>
+
+<p>(Yes, I know this function is named a bit oddly. Call it historic reasons.)</p>
+
+</li>
+<li><p>the function similarity_language_tag($lang1, $lang2)</p>
+
+<p>Returns an integer representing the degree of similarity between tags $lang1 and $lang2 (the order of which does not matter), where similarity is the number of common elements on the left, without regard to case and to x/i- alternation.</p>
+
+<pre><code>   similarity_language_tag(&#39;fr&#39;, &#39;fr-ca&#39;)           is 1
+      (one element in common)
+   similarity_language_tag(&#39;fr-ca&#39;, &#39;fr-FR&#39;)        is 1
+      (one element in common)
+
+   similarity_language_tag(&#39;fr-CA-joual&#39;,
+                           &#39;fr-CA-PEI&#39;)             is 2
+   similarity_language_tag(&#39;fr-CA-joual&#39;, &#39;fr-CA&#39;)  is 2
+      (two elements in common)
+
+   similarity_language_tag(&#39;x-kadara&#39;, &#39;i-kadara&#39;)  is 1
+      (x/i- doesn&#39;t matter)
+
+   similarity_language_tag(&#39;en&#39;,       &#39;x-kadar&#39;)   is 0
+   similarity_language_tag(&#39;x-kadara&#39;, &#39;x-kadar&#39;)   is 0
+      (unrelated tags -- no similarity)
+
+   similarity_language_tag(&#39;i-cree-syllabic&#39;,
+                           &#39;i-cherokee-syllabic&#39;)   is 0
+      (no B&lt;leftmost&gt; elements in common!)</code></pre>
+
+</li>
+<li><p>the function is_dialect_of($lang1, $lang2)</p>
+
+<p>Returns true iff language tag $lang1 represents a subform of language tag $lang2.</p>
+
+<p><b>Get the order right! It doesn&#39;t work the other way around!</b></p>
+
+<pre><code>   is_dialect_of(&#39;en-US&#39;, &#39;en&#39;)            is TRUE
+     (American English IS a dialect of all-English)
+
+   is_dialect_of(&#39;fr-CA-joual&#39;, &#39;fr-CA&#39;)   is TRUE
+   is_dialect_of(&#39;fr-CA-joual&#39;, &#39;fr&#39;)      is TRUE
+     (Joual is a dialect of (a dialect of) French)
+
+   is_dialect_of(&#39;en&#39;, &#39;en-US&#39;)            is FALSE
+     (all-English is a NOT dialect of American English)
+
+   is_dialect_of(&#39;fr&#39;, &#39;en-CA&#39;)            is FALSE
+
+   is_dialect_of(&#39;en&#39;,    &#39;en&#39;   )         is TRUE
+   is_dialect_of(&#39;en-US&#39;, &#39;en-US&#39;)         is TRUE
+     (B&lt;Note:&gt; these are degenerate cases)
+
+   is_dialect_of(&#39;i-mingo-tom&#39;, &#39;x-Mingo&#39;) is TRUE
+     (the x/i thing doesn&#39;t matter, nor does case)
+
+   is_dialect_of(&#39;nn&#39;, &#39;no&#39;)               is TRUE
+     (because &#39;nn&#39; (New Norse) is aliased to &#39;no-nyn&#39;,
+      as a special legacy case, and &#39;no-nyn&#39; is a
+      subform of &#39;no&#39; (Norwegian))</code></pre>
+
+</li>
+<li><p>the function super_languages($lang1)</p>
+
+<p>Returns a list of language tags that are superordinate tags to $lang1 -- it gets this by removing subtags from the end of $lang1 until nothing (or just &quot;i&quot; or &quot;x&quot;) is left.</p>
+
+<pre><code>   super_languages(&quot;fr-CA-joual&quot;)  is  (&quot;fr-CA&quot;, &quot;fr&quot;)
+
+   super_languages(&quot;en-AU&quot;)  is  (&quot;en&quot;)
+
+   super_languages(&quot;en&quot;)  is  empty-list, ()
+
+   super_languages(&quot;i-cherokee&quot;)  is  empty-list, ()
+    ...not (&quot;i&quot;), which would be illegal as well as pointless.</code></pre>
+
+<p>If $lang1 is not a valid language tag, returns empty-list in a list context, undef in a scalar context.</p>
+
+<p>A notable and rather unavoidable problem with this method: &quot;x-mingo-tom&quot; has an &quot;x&quot; because the whole tag isn&#39;t an IANA-registered tag -- but super_languages(&#39;x-mingo-tom&#39;) is (&#39;x-mingo&#39;) -- which isn&#39;t really right, since &#39;i-mingo&#39; is registered. But this module has no way of knowing that. (But note that same_language_tag(&#39;x-mingo&#39;, &#39;i-mingo&#39;) is TRUE.)</p>
+
+<p>More importantly, you assume <i>at your peril</i> that superordinates of $lang1 are mutually intelligible with $lang1. Consider this carefully.</p>
+
+</li>
+<li><p>the function locale2language_tag($locale_identifier)</p>
+
+<p>This takes a locale name (like &quot;en&quot;, &quot;en_US&quot;, or &quot;en_US.ISO8859-1&quot;) and maps it to a language tag. If it&#39;s not mappable (as with, notably, &quot;C&quot; and &quot;POSIX&quot;), this returns empty-list in a list context, or undef in a scalar context.</p>
+
+<pre><code>   locale2language_tag(&quot;en&quot;) is &quot;en&quot;
+
+   locale2language_tag(&quot;en_US&quot;) is &quot;en-US&quot;
+
+   locale2language_tag(&quot;en_US.ISO8859-1&quot;) is &quot;en-US&quot;
+
+   locale2language_tag(&quot;C&quot;) is undef or ()
+
+   locale2language_tag(&quot;POSIX&quot;) is undef or ()
+
+   locale2language_tag(&quot;POSIX&quot;) is undef or ()</code></pre>
+
+<p>I&#39;m not totally sure that locale names map satisfactorily to language tags. Think REAL hard about how you use this. YOU HAVE BEEN WARNED.</p>
+
+<p>The output is untainted. If you don&#39;t know what tainting is, don&#39;t worry about it.</p>
+
+</li>
+<li><p>the function encode_language_tag($lang1)</p>
+
+<p>This function, if given a language tag, returns an encoding of it such that:</p>
+
+<p>* tags representing different languages never get the same encoding.</p>
+
+<p>* tags representing the same language always get the same encoding.</p>
+
+<p>* an encoding of a formally valid language tag always is a string value that is defined, has length, and is true if considered as a boolean.</p>
+
+<p>Note that the encoding itself is <b>not</b> a formally valid language tag. Note also that you cannot, currently, go from an encoding back to a language tag that it&#39;s an encoding of.</p>
+
+<p>Note also that you <b>must</b> consider the encoded value as atomic; i.e., you should not consider it as anything but an opaque, unanalysable string value. (The internals of the encoding method may change in future versions, as the language tagging standard changes over time.)</p>
+
+<p><code>encode_language_tag</code> returns undef if given anything other than a formally valid language tag.</p>
+
+<p>The reason <code>encode_language_tag</code> exists is because different language tags may represent the same language; this is normally treatable with <code>same_language_tag</code>, but consider this situation:</p>
+
+<p>You have a data file that expresses greetings in different languages. Its format is &quot;[language tag]=[how to say &#39;Hello&#39;]&quot;, like:</p>
+
+<pre><code>          en-US=Hiho
+          fr=Bonjour
+          i-mingo=Hau&#39;</code></pre>
+
+<p>And suppose you write a program that reads that file and then runs as a daemon, answering client requests that specify a language tag and then expect the string that says how to greet in that language. So an interaction looks like:</p>
+
+<pre><code>          greeting-client asks:    fr
+          greeting-server answers: Bonjour</code></pre>
+
+<p>So far so good. But suppose the way you&#39;re implementing this is:</p>
+
+<pre><code>          my %greetings;
+          die unless open(IN, &quot;&lt;&quot;, &quot;in.dat&quot;);
+          while(&lt;IN&gt;) {
+            chomp;
+            next unless /^([^=]+)=(.+)/s;
+            my($lang, $expr) = ($1, $2);
+            $greetings{$lang} = $expr;
+          }
+          close(IN);</code></pre>
+
+<p>at which point %greetings has the contents:</p>
+
+<pre><code>          &quot;en-US&quot;   =&gt; &quot;Hiho&quot;
+          &quot;fr&quot;      =&gt; &quot;Bonjour&quot;
+          &quot;i-mingo&quot; =&gt; &quot;Hau&#39;&quot;</code></pre>
+
+<p>And suppose then that you answer client requests for language $wanted by just looking up $greetings{$wanted}.</p>
+
+<p>If the client asks for &quot;fr&quot;, that will look up successfully in %greetings, to the value &quot;Bonjour&quot;. And if the client asks for &quot;i-mingo&quot;, that will look up successfully in %greetings, to the value &quot;Hau&#39;&quot;.</p>
+
+<p>But if the client asks for &quot;i-Mingo&quot; or &quot;x-mingo&quot;, or &quot;Fr&quot;, then the lookup in %greetings fails. That&#39;s the Wrong Thing.</p>
+
+<p>You could instead do lookups on $wanted with:</p>
+
+<pre><code>          use I18N::LangTags qw(same_language_tag);
+          my $response = &#39;&#39;;
+          foreach my $l2 (keys %greetings) {
+            if(same_language_tag($wanted, $l2)) {
+              $response = $greetings{$l2};
+              last;
+            }
+          }</code></pre>
+
+<p>But that&#39;s rather inefficient. A better way to do it is to start your program with:</p>
+
+<pre><code>          use I18N::LangTags qw(encode_language_tag);
+          my %greetings;
+          die unless open(IN, &quot;&lt;&quot;, &quot;in.dat&quot;);
+          while(&lt;IN&gt;) {
+            chomp;
+            next unless /^([^=]+)=(.+)/s;
+            my($lang, $expr) = ($1, $2);
+            $greetings{
+                        encode_language_tag($lang)
+                      } = $expr;
+          }
+          close(IN);</code></pre>
+
+<p>and then just answer client requests for language $wanted by just looking up</p>
+
+<pre><code>          $greetings{encode_language_tag($wanted)}</code></pre>
+
+<p>And that does the Right Thing.</p>
+
+</li>
+<li><p>the function alternate_language_tags($lang1)</p>
+
+<p>This function, if given a language tag, returns all language tags that are alternate forms of this language tag. (I.e., tags which refer to the same language.) This is meant to handle legacy tags caused by the minor changes in language tag standards over the years; and the x-/i- alternation is also dealt with.</p>
+
+<p>Note that this function does <i>not</i> try to equate new (and never-used, and unusable) ISO639-2 three-letter tags to old (and still in use) ISO639-1 two-letter equivalents -- like &quot;ara&quot; -&gt; &quot;ar&quot; -- because &quot;ara&quot; has <i>never</i> been in use as an Internet language tag, and RFC 3066 stipulates that it never should be, since a shorter tag (&quot;ar&quot;) exists.</p>
+
+<p>Examples:</p>
+
+<pre><code>  alternate_language_tags(&#39;no-bok&#39;)       is (&#39;nb&#39;)
+  alternate_language_tags(&#39;nb&#39;)           is (&#39;no-bok&#39;)
+  alternate_language_tags(&#39;he&#39;)           is (&#39;iw&#39;)
+  alternate_language_tags(&#39;iw&#39;)           is (&#39;he&#39;)
+  alternate_language_tags(&#39;i-hakka&#39;)      is (&#39;zh-hakka&#39;, &#39;x-hakka&#39;)
+  alternate_language_tags(&#39;zh-hakka&#39;)     is (&#39;i-hakka&#39;, &#39;x-hakka&#39;)
+  alternate_language_tags(&#39;en&#39;)           is ()
+  alternate_language_tags(&#39;x-mingo-tom&#39;)  is (&#39;i-mingo-tom&#39;)
+  alternate_language_tags(&#39;x-klikitat&#39;)   is (&#39;i-klikitat&#39;)
+  alternate_language_tags(&#39;i-klikitat&#39;)   is (&#39;x-klikitat&#39;)</code></pre>
+
+<p>This function returns empty-list if given anything other than a formally valid language tag.</p>
+
+</li>
+<li><p>the function @langs = panic_languages(@accept_languages)</p>
+
+<p>This function takes a list of 0 or more language tags that constitute a given user&#39;s Accept-Language list, and returns a list of tags for <i>other</i> (non-super) languages that are probably acceptable to the user, to be used <i>if all else fails</i>.</p>
+
+<p>For example, if a user accepts only &#39;ca&#39; (Catalan) and &#39;es&#39; (Spanish), and the documents/interfaces you have available are just in German, Italian, and Chinese, then the user will most likely want the Italian one (and not the Chinese or German one!), instead of getting nothing. So <code>panic_languages(&#39;ca&#39;, &#39;es&#39;)</code> returns a list containing &#39;it&#39; (Italian).</p>
+
+<p>English (&#39;en&#39;) is <i>always</i> in the return list, but whether it&#39;s at the very end or not depends on the input languages. This function works by consulting an internal table that stipulates what common languages are &quot;close&quot; to each other.</p>
+
+<p>A useful construct you might consider using is:</p>
+
+<pre><code>  @fallbacks = super_languages(@accept_languages);
+  push @fallbacks, panic_languages(
+    @accept_languages, @fallbacks,
+  );</code></pre>
+
+</li>
+<li><p>the function implicate_supers( ...languages... )</p>
+
+<p>This takes a list of strings (which are presumed to be language-tags; strings that aren&#39;t, are ignored); and after each one, this function inserts super-ordinate forms that don&#39;t already appear in the list. The original list, plus these insertions, is returned.</p>
+
+<p>In other words, it takes this:</p>
+
+<pre><code>  pt-br de-DE en-US fr pt-br-janeiro</code></pre>
+
+<p>and returns this:</p>
+
+<pre><code>  pt-br pt de-DE de en-US en fr pt-br-janeiro</code></pre>
+
+<p>This function is most useful in the idiom</p>
+
+<pre><code>  implicate_supers( I18N::LangTags::Detect::detect() );</code></pre>
+
+<p>(See <a href="/cperl/lib/I18N/LangTags/Detect.html">I18N::LangTags::Detect</a>.)</p>
+
+</li>
+<li><p>the function implicate_supers_strictly( ...languages... )</p>
+
+<p>This works like <code>implicate_supers</code> except that the implicated forms are added to the end of the return list.</p>
+
+<p>In other words, implicate_supers_strictly takes a list of strings (which are presumed to be language-tags; strings that aren&#39;t, are ignored) and after the whole given list, it inserts the super-ordinate forms of all given tags, minus any tags that already appear in the input list.</p>
+
+<p>In other words, it takes this:</p>
+
+<pre><code>  pt-br de-DE en-US fr pt-br-janeiro</code></pre>
+
+<p>and returns this:</p>
+
+<pre><code>  pt-br de-DE en-US fr pt-br-janeiro pt de en</code></pre>
+
+<p>The reason this function has &quot;_strictly&quot; in its name is that when you&#39;re processing an Accept-Language list according to the RFCs, if you interpret the RFCs quite strictly, then you would use implicate_supers_strictly, but for normal use (i.e., common-sense use, as far as I&#39;m concerned) you&#39;d use implicate_supers.</p>
+
+</li>
+</ul>
+
+<h1 id="ABOUT-LOWERCASING">ABOUT LOWERCASING</h1>
+
+<p>I&#39;ve considered making all the above functions that output language tags return all those tags strictly in lowercase. Having all your language tags in lowercase does make some things easier. But you might as well just lowercase as you like, or call <code>encode_language_tag($lang1)</code> where appropriate.</p>
+
+<h1 id="ABOUT-UNICODE-PLAINTEXT-LANGUAGE-TAGS">ABOUT UNICODE PLAINTEXT LANGUAGE TAGS</h1>
+
+<p>In some future version of I18N::LangTags, I plan to include support for RFC2482-style language tags -- which are basically just normal language tags with their ASCII characters shifted into Plane 14.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>* <a href="/cperl/lib/I18N/LangTags/List.html">I18N::LangTags::List</a></p>
+
+<p>* RFC 3066, <code>http://www.ietf.org/rfc/rfc3066.txt</code>, &quot;Tags for the Identification of Languages&quot;. (Obsoletes RFC 1766)</p>
+
+<p>* RFC 2277, <code>http://www.ietf.org/rfc/rfc2277.txt</code>, &quot;IETF Policy on Character Sets and Languages&quot;.</p>
+
+<p>* RFC 2231, <code>http://www.ietf.org/rfc/rfc2231.txt</code>, &quot;MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations&quot;.</p>
+
+<p>* RFC 2482, <code>http://www.ietf.org/rfc/rfc2482.txt</code>, &quot;Language Tagging in Unicode Plain Text&quot;.</p>
+
+<p>* Locale::Codes, in <code>http://www.perl.com/CPAN/modules/by-module/Locale/</code></p>
+
+<p>* ISO 639-2, &quot;Codes for the representation of names of languages&quot;, including two-letter and three-letter codes, <code>http://www.loc.gov/standards/iso639-2/php/code_list.php</code></p>
+
+<p>* The IANA list of registered languages (hopefully up-to-date), <code>http://www.iana.org/assignments/language-tags</code></p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright (c) 1998+ Sean M. Burke. All rights reserved.</p>
+
+<p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.</p>
+
+<p>The programs and documentation in this dist are distributed in the hope that they will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose.</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Sean M. Burke <code>sburke@cpan.org</code></p>
+
+
+</body>
+
+</html>
+
+
