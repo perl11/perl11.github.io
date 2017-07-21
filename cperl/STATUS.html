@@ -27,11 +27,9 @@ essentially stopped 2002, use perl6-like development policies, better
 security fixes and maintenance than the upstream p5p perl5, and stop
 the ongoing destruction going on in p5p. See <a href="perlcperl.html">README.cperl</a>.</p>
 
-<p>There's no class keyword yet as this needs proper field and method
-handling, multi-dispatch, aggregate type handling and class
-finalization, which is not yet finished. But classes are user-facing
-types, and type-support is builtin. use base and use fields were
-improved to behave almost like classes.</p>
+<p>Almost perl6-like classes, roles, methods, fields. classes are
+user-facing types, and support for types, restricted stashes and fast
+fields is builtin.</p>
 
 <p>Tested and developed on linux and darwin 64bit. darwin 32bit fails
 on two unrelated core tests (issignaling setpayloadsig + chmod linked in).
@@ -60,12 +58,13 @@ The BSD's and Solaris are only tested before a release.</p>
 <p>All tests pass. CPAN works.
 Some fixes in my <code>rurban/distroprefs</code> repo for certain CPAN modules are needed.</p>
 
-<p>v5.24.0c, v5.24.1c and v5.24.2c have
-<a href="perldelta.html#Known-Problems-fixed-elsewhere">about 24 fixes</a>,
-for problems which are not fixed in perl-5.24.1.  Ditto cperl-5.22.4c
-has about 20 fixes which are not in the latest perl-5.22.3.  Since
-cperl development is about 10x faster than p5p development, and damage
-done within p5p increases, these numbers do increase over time.</p>
+<p>v5.24.0c, v5.24.1c and v5.24.2c
+have <a href="perldelta.html#Known-Problems-fixed-elsewhere">about 24 fixes</a>,
+for problems which are not fixed in perl-5.24.1.  Ditto with 5.26,
+cperl-5.22.4c has about 20 fixes which are not in the latest
+perl-5.22.3.  Since cperl development is about 10x faster than p5p
+development, and damage done within p5p increases, these numbers do
+increase over time.</p>
 
 <p><img src="cperl-m0.png" alt="Memory usage: perl -e0" /></p>
 
@@ -145,8 +144,9 @@ mixed scripts in identifiers.</li>
 <li>length and ref are optimized in boolean context</li>
 <li>UNITCHECK global phase introspection</li>
 <li>base/fields classes behave now like closed cperl classes: The ISA is readonly,
-inheritance checks are performed at compile-time already. More support for
-closed classes, esp. restricted stashes and readonly ISA.</li>
+inheritance checks are performed at compile-time already.</li>
+<li>Support restricted stashes, i.e. closed classes, esp. method lookup, destruction
+and readonly ISA.</li>
 </ul>
 
 <h1>In the latest development releases additionally:</h1>
@@ -156,6 +156,8 @@ closed classes, esp. restricted stashes and readonly ISA.</li>
 <li>enhanced dtrace probes</li>
 <li>support for long path names, > 4096</li>
 <li>support for unicode BOMs, setting the unicode hints</li>
+<li>Fast and proper object orientation. User facing classes. class, role, method,
+multi, has keywords, Mu superclass. Multi dispatch coming soon.</li>
 </ul>
 
 <p>Most of them only would have a chance to be merged upstream if a p5p
@@ -221,7 +223,9 @@ and install it into <code>C:\cperl</code> via the <code>cperl-5.26.0-win64.exe -
 
 <h1>Known bugs</h1>
 
-<p>See the github issues: <a href="https://github.com/perl11/cperl/issues">github.com/perl11/cperl/issues</a></p>
+<p>The -d debugger fails on most signatures.</p>
+
+<p>See the github issues: <a href="https://github.com/perl11/cperl/issues?q=is%3Aissue+is%3Aopen+label%3Abug">github.com/perl11/cperl/issues</a></p>
 
 <p>The following CPAN modules have no patches for 5.26.0c yet:</p>
 
@@ -357,6 +361,20 @@ were rejected and 2 were butchered, i.e. rewritten in a worse way.</p>
 are limited. So they are based on master.</p>
 
 <ul>
+<li><p><a href="https://github.com/perl11/cperl/issues/22">builtin ffi</a></p>
+
+<p><a href="http://github.com/perl11/cperl/commits/smoke/gh22-ffi">code</a></p>
+
+<p>windows: autoinstall of binary libffi missing.
+more convenience methods needed.</p></li>
+<li><p><a href="https://github.com/perl11/cperl/issues/16">smoke/gh16-class</a></p>
+
+<p>See the relevant subtickets:
+compose role methods, use mro on classes, array and hash field syntax
+($obj->array[0], $obj->hash{key}), :before, :after, :around method
+composition, class :native,
+multiple dispatch (fast for binary, slow for mega),
+tiny MOP (Mu, Metamodel::ClassHOW).</p></li>
 <li><p><a href="https://github.com/perl11/cperl/issues/8">bugfix/gh8-cowrefcnt</a></p>
 
 <p><a href="http://github.com/perl11/cperl/commits/bugfix/gh8-cowrefcnt">code</a></p>
@@ -388,7 +406,9 @@ but this doesn't accept valid perl5 syntax then. A blocker.</p></li>
 <p><a href="http://github.com/perl11/cperl/commits/feature/gh102-smallhash">code</a></p>
 
 <p>optimize the speed for small hashes, less keys, inline 3-7 as array.
-esp. needed for the new objects.</p></li>
+esp. needed for the new objects. redis has a limit of 256 (zipmap)
+favoring linear search over hash lookups. with those we could think
+of using hashes again more often. now they are way too slow for everything.</p></li>
 <li><p><a href="https://github.com/perl11/cperl/issues/176">feature/gh176-unexec</a></p>
 
 <p><a href="http://github.com/perl11/cperl/commits/feature/gh176-unexec">code</a></p>
@@ -435,12 +455,6 @@ the question.</p></li>
 
 <p>lots of small attempts, but still too hairy. might need a complete hash table rewrite.
 getting there, but not yet finished for 5.26.</p></li>
-<li><p><a href="https://github.com/perl11/cperl/issues/16">feature/gh16-multi</a></p>
-
-<p><a href="http://github.com/perl11/cperl/commits/feature/gh16-multi">code</a></p>
-
-<p>class, method, multi, has keywords but no dispatch, subtyping and type checks yet.
-in work. HvCLASS merged to master with 5.26.</p></li>
 <li><p>various more hash tables:</p>
 
 <p><a href="http://github.com/perl11/cperl/commits/featurex/gh24-one-word-ahe">featurex/gh24-one-word-ahe</a>, 
@@ -452,12 +466,10 @@ in work. HvCLASS merged to master with 5.26.</p></li>
 
 <ul>
 <li><p><a href="https://github.com/perl11/cperl/issues/220">the jit</a> code: <a href="http://github.com/perl11/cperl/commits/feature/gh220-llvmjit">feature/gh220-llvmjit</a></p></li>
-<li><p>user facing classes, multiple dispatch (fast for binary, slow for mega),
-internal-only pseudohashes.</p></li>
 <li><p><a href="https://github.com/perl11/cperl/issues/261">builtin macros</a></p></li>
-<li><p>builtin ffi</p></li>
+<li><p>linear symbol table (not nested stashes) and optree linearization.</p></li>
 </ul>
 
 <p>--</p>
 
-<p>2017-05-17 rurban</p>
+<p>2017-07-20 rurban</p>

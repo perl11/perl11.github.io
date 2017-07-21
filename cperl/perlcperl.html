@@ -461,7 +461,7 @@
 
 <h2 id="Undo-B-bootstrap-breakage">Undo B bootstrap breakage</h2>
 
-<p><a href="/cperl/lib/B.html">B</a> was changed to <code>use strict</code>, which broke the <a href="/cperl/lib/B/Bytecode.html">B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again. Note that they broke it again with 5.22, and are again refusing to fix it.</p>
+<p><a>B</a> was changed to <code>use strict</code>, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again. Note that they broke it again with 5.22, and are again refusing to fix it.</p>
 
 <h2 id="Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</h2>
 
@@ -495,7 +495,7 @@
 
 <h2 id="strict-names">strict names</h2>
 
-<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use <a href="/cperl/lib/strict.html">strict</a>.</p>
+<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use <a>strict</a>.</p>
 
 <h2 id="TR39-confusable-names">TR39 confusable names</h2>
 
@@ -569,7 +569,7 @@
 
 <p>With PERL_NATIVE_TYPES enabled, most literal constants are stored as native types, native type declarations are a promise not a hint, and the optimizations involves up- and downgrading of data and ops in possible native chains. This leads to much tighter native expressions, with performance and memory gains. (3x less memory, ~3x faster).</p>
 
-<p>For the builtin FFI we will also provide FFI-specific native types, like int32, int64, uint32, uint64 and ptr.</p>
+<p>For the builtin FFI we provide also FFI-specific native types, like int32, int64, uint32, uint64, ptr and more.</p>
 
 <p>See <a href="/cperl/perltypes.html#native-types">&quot;native types&quot; in perltypes</a>.</p>
 
@@ -599,6 +599,18 @@
 <h2 id="const-for-all">:const for all</h2>
 
 <p>Our <code>:const</code> attribute applies to all data types: scalar, arrays, hash, functions, packages + classes. <code>:const</code> hashes should of course be perfect, i.e. optimized to constant-time lookup, eliminating hash collisions.</p>
+
+<p>The following declarations are all compile-time assigned, and allow subsequent constant folding on all usages. I.e. const assignments with all constant rhs values.</p>
+
+<pre><code>    my $i :const = 1;
+    our $i :const = 1;
+    my @a :const = (1);    # also sets the array shaped as int @a[1]
+    my @a :const = (1,2);  # shaped as int @a[2]
+    my @a :const = (0..2); # shaped as int @a[3]</code></pre>
+
+<p>With non-constant right-hand side values the assignment is done at run-time and as thus only writes are caught at compile-time, but constant folding is not available. Hashes are also not yet compile-time assigned.</p>
+
+<p>:const arrays with values of unique types will be optimized to native shaped arrays. See <a href="#Typed-and-shaped-arrays">&quot;Typed and shaped arrays&quot;</a>.</p>
 
 <p>See <a href="/cperl/perltypes.html#const">&quot;:const&quot; in perltypes</a>.</p>
 
@@ -682,13 +694,13 @@
 
 <p>As shared lib: <code>Config</code> and later <code>warnings</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
 
-<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a href="/cperl/lib/Encode.html">Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
+<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a>Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
 
 <p>We need to reduce memory, and want to reduce the size of compiled code by 30%, but in some cases it will be 200%. As builtin or shared library we go to zero startup-time overhead for those modules. With compiled Config alone the memory savings are down to 5.6 levels.</p>
 
 <h3 id="strict-1.11c-as-builtin">strict 1.11c as builtin</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/strict.html">strict</a> is now a builtin module, implemented as XS functions which are always available.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>strict</a> is now a builtin module, implemented as XS functions which are always available.</p>
 
 <p><b>Changes:</b></p>
 
@@ -698,11 +710,13 @@
 
 <h3 id="attributes-0.26_01c-as-builtin">attributes 0.26_01c as builtin</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/attributes.html">attributes</a> is now again a builtin XS module. There&#39;s no need to dynaload it at parse time.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>attributes</a> is now again a builtin XS module. There&#39;s no need to dynaload it at parse time.</p>
 
 <p><i>attributes.pm</i> moved back to <i>lib/attributes.pm</i> and is only provided for documentation and import.</p>
 
 <p><code>CHECK_<i>type</i>_ATTRIBUTES</code> is a new compile-time hook, like a readonly variant of <code>MODIFY_<i>type</i>_ATTRIBUTES</code>, or the compile-time variant of <code>FETCH_<i>type</i>_ATTRIBUTES</code>.</p>
+
+<p>Attribute arguments can now be variables, deferred from compile-time to run-time.</p>
 
 <p>There are several new builtin attributes:</p>
 
@@ -730,7 +744,7 @@
 
 <h3 id="DynaLoader-2.00c-and-XSLoader-as-builtins">DynaLoader 2.00c and XSLoader as builtins</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/DynaLoader.html">DynaLoader</a> and XSLoader have no perl code anymore, <i>DynaLoader.pm</i> was rewritten as <i>dlboot.c</i>.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>DynaLoader</a> and XSLoader have no perl code anymore, <i>DynaLoader.pm</i> was rewritten as <i>dlboot.c</i>.</p>
 
 <p><b>Changes</b>:</p>
 
@@ -740,7 +754,7 @@
 
 <p>Not sure yet about keeping support for <i>.bs</i> hooks and <code>@dl_resolve_using</code>.</p>
 
-<p>The <code>XSLoader::load_file($module, $modlibname, ...)</code> function is new, <a href="/cperl/lib/XSLoader.html">XSLoader</a> is a builtin also. <code>...</code> is passed to the loaded XS function as with <code>XSLoader::load($module, ...)</code>.</p>
+<p>The <code>XSLoader::load_file($module, $modlibname, ...)</code> function is new, <a>XSLoader</a> is a builtin also. <code>...</code> is passed to the loaded XS function as with <code>XSLoader::load($module, ...)</code>.</p>
 
 <h3 id="Config-as-XS-extension">Config as XS extension</h3>
 
@@ -776,7 +790,7 @@
 
 <h3 id="Carp-2.00c-as-builtin">Carp 2.00c as builtin</h3>
 
-<p><a href="/cperl/lib/Carp.html">Carp</a> might be a implemented as builtin XS module. There&#39;s no need to require it. <i>Carp.pm</i> is only provided for documentation, <code>$INC{&#39;Carp.pm&#39;} = &#39;xsutils.c&#39;</code> Many carp function are added to the perl5 API and available to core and extensions.</p>
+<p><a>Carp</a> might be a implemented as builtin XS module. There&#39;s no need to require it. <i>Carp.pm</i> is only provided for documentation, <code>$INC{&#39;Carp.pm&#39;} = &#39;xsutils.c&#39;</code> Many carp function are added to the perl5 API and available to core and extensions.</p>
 
 <p><b>Changes</b>:</p>
 
@@ -848,13 +862,13 @@
 
 <p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not. And we prefer the more natural C-like syntax over the more obscure perl6 syntax.</p>
 
-<p>The alternative syntax would be via a <code>:native</code> attribute, which would allow options, as in <code>sub atoi(str $s) :int :native($libc);</code>.</p>
+<p>The alternative syntax to <code>extern sub</code> is via the <code>:native</code> sub attribute, which does allow options, as in <code>sub atoi(str $s) :int :native($libc);</code>.</p>
 
 <p>Later with a jit in core we would not need the external <i>libffi</i> dependency.</p>
 
 <h2 id="Editor-integration">Editor integration</h2>
 
-<p>With type inference we can provide a much nicer development environment, which also supports the debugger. <b>plsense</b> should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
+<p>With type inference we can provide a much nicer development environment which also supports the debugger. <b>plsense</b> for emacs should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
 
 <h2 id="Jit">Jit</h2>
 
@@ -931,7 +945,7 @@
 
 <p>There&#39;s no <b>MOP</b> (meta-object protocol), but reflection. There&#39;s no need to override the internal behavior of the object system, the dispatch, the class and role layout.</p>
 
-<p>See <a>perlclass</a> (NY)</p>
+<p>See <a href="/cperl/perlclass.html">perlclass</a> (NY)</p>
 
 </dd>
 <dt id="types1"><b>types</b></dt>

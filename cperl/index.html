@@ -25,11 +25,12 @@
       <li><a href="#Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</a></li>
       <li><a href="#Undo-support-for-binary-names">Undo support for binary names</a></li>
       <li><a href="#Warn-on-0shellcode-attempts-for-names">Warn on \0shellcode attempts for names</a></li>
-      <li><a href="#strict-names-NY">strict names (NY)</a></li>
+      <li><a href="#strict-names">strict names</a></li>
       <li><a href="#TR39-confusable-names">TR39 confusable names</a></li>
       <li><a href="#Undo-the-double-readonly-system">Undo the double readonly system</a></li>
       <li><a href="#Fix-the-hashes">Fix the hashes</a></li>
       <li><a href="#Compile-time-attribute-hooks">Compile-time attribute hooks</a></li>
+      <li><a href="#Run-time-attribute-variables">Run-time attribute variables</a></li>
       <li><a href="#coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</a></li>
       <li><a href="#native-unboxed-types:-int-uint-num-str-NY">native unboxed types: int, uint, num, str (NY)</a></li>
       <li><a href="#types">types</a></li>
@@ -69,7 +70,7 @@
   <li><a href="#Longer-term-goals">Longer term goals</a>
     <ul>
       <li><a href="#Faster-functions-and-method-calls">Faster functions and method calls</a></li>
-      <li><a href="#tailcall-eliminiation">tailcall eliminiation</a></li>
+      <li><a href="#tailcall-elimination">tailcall elimination</a></li>
       <li><a href="#Proper-object-system">Proper object system</a></li>
       <li><a href="#Macros">Macros</a></li>
       <li><a href="#libffi-in-core">libffi in core</a></li>
@@ -405,6 +406,8 @@
 
 <pre><code>    sub foometh($self, ...) { func(...) }</code></pre>
 
+<p>In an extern sub declaration, the <code>...</code> denotes varargs as in C.</p>
+
 </dd>
 <dt id="strict-prototype-and-signature-syntax-no-pragmas-required"><b>strict prototype and signature syntax, no pragmas required.</b></dt>
 <dd>
@@ -458,7 +461,7 @@
 
 <h2 id="Undo-B-bootstrap-breakage">Undo B bootstrap breakage</h2>
 
-<p><a href="/cperl/lib/B.html">B</a> was changed to <code>use strict</code>, which broke the <a href="/cperl/lib/B/Bytecode.html">B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again. Note that they broke it again with 5.22, and are again refusing to fix it.</p>
+<p><a>B</a> was changed to <code>use strict</code>, which broke the <a>B::Bytecode</a> compiler performance advantage, adding all compiler internal constants to the emitted bytecode. Reverting this breakage was denied because this developer did not understand the code. It is too bothersome in the long run to maintain our reversion of this breakage over years. It easier to check for <i>usecperl</i> in the compiler to be able to compile to bytecode properly again. Note that they broke it again with 5.22, and are again refusing to fix it.</p>
 
 <h2 id="Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</h2>
 
@@ -490,11 +493,9 @@
 
 <p>cperl has a new &#39;security&#39; warnings category, which bypasses STDERR capture and also tries to log the remote user IP.</p>
 
-<h2 id="strict-names-NY">strict names (NY)</h2>
+<h2 id="strict-names">strict names</h2>
 
-<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use strict.</p>
-
-<p>There&#39;s currently no room for an explicit <code>use strict &#39;names&#39;</code> hint due to a bad strict implementation. But later when we freed some <code>PL_hint</code> bits to hold strict defaults we can add support for that.</p>
+<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use <a>strict</a>.</p>
 
 <h2 id="TR39-confusable-names">TR39 confusable names</h2>
 
@@ -520,9 +521,9 @@
 
 <p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain. This is how you usually implement a slow hash table with linked lists.</p>
 
-<p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem, not by obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
+<p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem in the collision handling, not by obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
 
-<p>Provide a Configure argument to define the hash function: -Dhash_func=FNV1A</p>
+<p>Provide a Configure argument to define the hash function: <code>-Dhash_func=FNV1A</code></p>
 
 <p>Make the load factor definable, and change the default from 100% to 90%, which was tested as superior. Use <code>-Accflags=&#39;-DHV_FILL_RATE=100&#39;</code> for the old behavior.</p>
 
@@ -536,11 +537,15 @@
 
 <p>Provide a special <code>:const</code> hash table type to enable optimizations to perfect hashes. With <code>study %hash</code> you can do the similar costly optimizations on non-const hashes at run-time to allow faster key access.</p>
 
-<p>Added support for restricted hashes, esp. stashes which we need for our class implementation, to detect wrong fields at compile-time already.</p>
+<p>Added support for restricted hashes, esp. stashes which we need for our class implementation, to detect wrong fields at compile-time already. restricted hashes are not properly supported in perl5.</p>
 
 <h2 id="Compile-time-attribute-hooks">Compile-time attribute hooks</h2>
 
-<p>Added a <code>CHECK_SCALAR_ATTRIBUTES</code> callback. Add native <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>, ... attributes for all new core types. This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrite-critical-core-modules-in-C-as-builtins">&quot;Rewrite critical core modules in C as builtins&quot;</a> below.</p>
+<p>Added a <code>CHECK_SCALAR_ATTRIBUTES</code> callback. Add native <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>, ... attributes for all new core types. This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrote-critical-core-modules-in-C-as-builtins">&quot;Rewrote critical core modules in C as builtins&quot;</a> below.</p>
+
+<h2 id="Run-time-attribute-variables">Run-time attribute variables</h2>
+
+<p>cperl defers the <code>attribute-&gt;import</code> call from compile-time to run-time with non-constant attribute arguments. See <a href="http://perl11.org/blog/attributes-args.html">http://perl11.org/blog/attributes-args.html</a>.</p>
 
 <h2 id="coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</h2>
 
@@ -564,7 +569,7 @@
 
 <p>With PERL_NATIVE_TYPES enabled, most literal constants are stored as native types, native type declarations are a promise not a hint, and the optimizations involves up- and downgrading of data and ops in possible native chains. This leads to much tighter native expressions, with performance and memory gains. (3x less memory, ~3x faster).</p>
 
-<p>For the builtin FFI we will also provide FFI-specific native types, like int32, int64, uint32, uint64 and ptr.</p>
+<p>For the builtin FFI we provide also FFI-specific native types, like int32, int64, uint32, uint64, ptr and more.</p>
 
 <p>See <a href="/cperl/perltypes.html#native-types">&quot;native types&quot; in perltypes</a>.</p>
 
@@ -594,6 +599,18 @@
 <h2 id="const-for-all">:const for all</h2>
 
 <p>Our <code>:const</code> attribute applies to all data types: scalar, arrays, hash, functions, packages + classes. <code>:const</code> hashes should of course be perfect, i.e. optimized to constant-time lookup, eliminating hash collisions.</p>
+
+<p>The following declarations are all compile-time assigned, and allow subsequent constant folding on all usages. I.e. const assignments with all constant rhs values.</p>
+
+<pre><code>    my $i :const = 1;
+    our $i :const = 1;
+    my @a :const = (1);    # also sets the array shaped as int @a[1]
+    my @a :const = (1,2);  # shaped as int @a[2]
+    my @a :const = (0..2); # shaped as int @a[3]</code></pre>
+
+<p>With non-constant right-hand side values the assignment is done at run-time and as thus only writes are caught at compile-time, but constant folding is not available. Hashes are also not yet compile-time assigned.</p>
+
+<p>:const arrays with values of unique types will be optimized to native shaped arrays. See <a href="#Typed-and-shaped-arrays">&quot;Typed and shaped arrays&quot;</a>.</p>
 
 <p>See <a href="/cperl/perltypes.html#const">&quot;:const&quot; in perltypes</a>.</p>
 
@@ -633,7 +650,7 @@
 
 <p>Enable faster array access, uniformly typed array values, use less memory (cache friendly), help the type system. See <a href="/cperl/perltypes.html">perltypes</a>.</p>
 
-<p>Type arrays specify the uniform type of the values. Typed arrays with native types use much less memory and provide faster direct access.</p>
+<p>Type arrays specify the uniform type of the values. Typed arrays with native types use much less memory and provide faster direct access. Natively typed arrays allow access and passing as arguments to external C functions.</p>
 
 <p>Shaped arrays define a compile-time constant &quot;shape&quot;, the size, which cannot be changed. All values are pre-initialized.</p>
 
@@ -677,25 +694,29 @@
 
 <p>As shared lib: <code>Config</code> and later <code>warnings</code> and <i>unicode folding tables</i> to save memory, startup time and reduce bloat.</p>
 
-<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a href="/cperl/lib/Encode.html">Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
+<p>Big constant hashes and tables need to be in a shared memory segment, not recompiled for every fork or thread, similar to the <a>Encode</a> tables which are implemented properly. The risc to introduce even more performance regressions by keeping some critical core modules as <i>.pm</i> is too high and broke the compiler too often. Most developers have no idea of the impact of innocently looking additions.</p>
 
 <p>We need to reduce memory, and want to reduce the size of compiled code by 30%, but in some cases it will be 200%. As builtin or shared library we go to zero startup-time overhead for those modules. With compiled Config alone the memory savings are down to 5.6 levels.</p>
 
 <h3 id="strict-1.11c-as-builtin">strict 1.11c as builtin</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/strict.html">strict</a> is now a builtin module, implemented as XS functions which are always available.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>strict</a> is now a builtin module, implemented as XS functions which are always available.</p>
 
 <p><b>Changes:</b></p>
 
 <p><i>strict.pm</i> is only provided for documentation, <code>$INC{&#39;strict.pm&#39;} = &#39;xsutils.c&#39;</code> With a list of wrong tags only the wrong tags are reportyed one-by-one, and not together. All other functionality stays the same.</p>
 
+<p>strict hash two new modes: strict hashpairs and names.</p>
+
 <h3 id="attributes-0.26_01c-as-builtin">attributes 0.26_01c as builtin</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/attributes.html">attributes</a> is now again a builtin XS module. There&#39;s no need to dynaload it at parse time.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>attributes</a> is now again a builtin XS module. There&#39;s no need to dynaload it at parse time.</p>
 
 <p><i>attributes.pm</i> moved back to <i>lib/attributes.pm</i> and is only provided for documentation and import.</p>
 
 <p><code>CHECK_<i>type</i>_ATTRIBUTES</code> is a new compile-time hook, like a readonly variant of <code>MODIFY_<i>type</i>_ATTRIBUTES</code>, or the compile-time variant of <code>FETCH_<i>type</i>_ATTRIBUTES</code>.</p>
+
+<p>Attribute arguments can now be variables, deferred from compile-time to run-time.</p>
 
 <p>There are several new builtin attributes:</p>
 
@@ -705,7 +726,7 @@
 <dd>
 
 </dd>
-<dt id="unsigned-for-all-integer-types-sets-SvIsUV_on-off"><b>:unsigned for all integer types, sets SvIsUV_on|off</b></dt>
+<dt id="unsigned-for-all-integer-types-sets-SvIsUV_on-off"><b>unsigned for all integer types, sets SvIsUV_on|off</b></dt>
 <dd>
 
 </dd>
@@ -715,11 +736,15 @@
 <p>and stored for lexical types and subroutine return types.</p>
 
 </dd>
+<dt id="some-new-FFI-attributes"><b>some new FFI attributes</b></dt>
+<dd>
+
+</dd>
 </dl>
 
 <h3 id="DynaLoader-2.00c-and-XSLoader-as-builtins">DynaLoader 2.00c and XSLoader as builtins</h3>
 
-<p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/DynaLoader.html">DynaLoader</a> and XSLoader have no perl code anymore, <i>DynaLoader.pm</i> was rewritten as <i>dlboot.c</i>.</p>
+<p>Starting with cperl (based on Perl 5.22) <a>DynaLoader</a> and XSLoader have no perl code anymore, <i>DynaLoader.pm</i> was rewritten as <i>dlboot.c</i>.</p>
 
 <p><b>Changes</b>:</p>
 
@@ -729,7 +754,7 @@
 
 <p>Not sure yet about keeping support for <i>.bs</i> hooks and <code>@dl_resolve_using</code>.</p>
 
-<p>The <code>XSLoader::load_file($module, $modlibname, ...)</code> function is new, <a href="/cperl/lib/XSLoader.html">XSLoader</a> is a builtin also. <code>...</code> is passed to the loaded XS function as with <code>XSLoader::load($module, ...)</code>.</p>
+<p>The <code>XSLoader::load_file($module, $modlibname, ...)</code> function is new, <a>XSLoader</a> is a builtin also. <code>...</code> is passed to the loaded XS function as with <code>XSLoader::load($module, ...)</code>.</p>
 
 <h3 id="Config-as-XS-extension">Config as XS extension</h3>
 
@@ -747,7 +772,7 @@
 
 <p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. The compiler is smoked on all smoker platforms (linux 64bit, linux -m32, darwin, windows 32+64bit).</p>
 
-<p>Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
+<p>Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer. <i>.pmc</i> handling has been extended for reflection inside a .pmc, needed for the jit cache.</p>
 
 <p>Maybe include a <code>Data::Compile</code> module to dump only data without all the code to a shared library, and possibly <a href="https://github.com/rurban/Perfect-Hash">Perfect::Hash</a> and a new <i>ph.c</i> to create and optimize readonly hashes, which is needed for the shared XS hashes of Config, warnings and unicode tables.</p>
 
@@ -765,7 +790,7 @@
 
 <h3 id="Carp-2.00c-as-builtin">Carp 2.00c as builtin</h3>
 
-<p><a href="/cperl/lib/Carp.html">Carp</a> might be a implemented as builtin XS module. There&#39;s no need to require it. <i>Carp.pm</i> is only provided for documentation, <code>$INC{&#39;Carp.pm&#39;} = &#39;xsutils.c&#39;</code> Many carp function are added to the perl5 API and available to core and extensions.</p>
+<p><a>Carp</a> might be a implemented as builtin XS module. There&#39;s no need to require it. <i>Carp.pm</i> is only provided for documentation, <code>$INC{&#39;Carp.pm&#39;} = &#39;xsutils.c&#39;</code> Many carp function are added to the perl5 API and available to core and extensions.</p>
 
 <p><b>Changes</b>:</p>
 
@@ -793,7 +818,7 @@
 
 <p>Optionally omit caller, @_, freetmps, exception handler when possible, i.e. no string eval&#39;s are present in the body, the compiler can detect it or the right compiler hint is given.</p>
 
-<h2 id="tailcall-eliminiation">tailcall eliminiation</h2>
+<h2 id="tailcall-elimination">tailcall elimination</h2>
 
 <p>Detect tail positions and replace the call with a fast goto. This needs to be in core, not as external module. Without tailcall elimination handling longer lists leads to stack exhaustion. python did the same mistake as p5p by enforcing a new context for every goto. goto to signatures are now real fast tailcalls.</p>
 
@@ -831,25 +856,25 @@
 
 <p>Declare extern functions and libraries and call them. There&#39;s no need for XS and seperate compilation for most bindings. Not everybody has a compiler, the very same compiler perl was compiled with. libffi is the slowest ffi library, but has the best platform support, as it is integrated with gcc for java jni support.</p>
 
-<pre><code>   extern sub atoi(str $s):int;
-   extern sub itoa(int $s):str;
-   extern sub printf(str $s, ...):void;</code></pre>
+<pre><code>   extern sub atoi(str $s) :int;
+   extern sub itoa(int $s) :str;
+   extern sub printf(str $s, ...);</code></pre>
 
 <p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not. And we prefer the more natural C-like syntax over the more obscure perl6 syntax.</p>
 
-<p>The alternative syntax would be via a <code>:native</code> attribute, which would allow options, as in <code>sub atoi(str $s):int :native($libc);</code>.</p>
+<p>The alternative syntax to <code>extern sub</code> is via the <code>:native</code> sub attribute, which does allow options, as in <code>sub atoi(str $s) :int :native($libc);</code>.</p>
 
-<p>But with the jit in core we would not need the external libffi dependency.</p>
+<p>Later with a jit in core we would not need the external <i>libffi</i> dependency.</p>
 
 <h2 id="Editor-integration">Editor integration</h2>
 
-<p>With type inference we can provide a much nicer development environment, which also supports the debugger. <b>plsense</b> should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
+<p>With type inference we can provide a much nicer development environment which also supports the debugger. <b>plsense</b> for emacs should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
 
 <h2 id="Jit">Jit</h2>
 
 <p>Add a jit for the easiest platforms, and provide dynamic javascript-based optimizations when stacks need to be replaced. Jit&#39;s are a bit overrated. a fast bytecode loop can easily beat a jit and optimizing compiler, see luajit2, <a href="http://www.emulators.com/docs/nx25_nostradamus.htm">http://www.emulators.com/docs/nx25_nostradamus.htm</a> or <a href="http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html">http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html</a></p>
 
-<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations. Currently we are trying a simple llvm based method jit, which kicks in after counting methods and loops (similar to unladen-swallow and pyston), and inlines some <code>pp</code> runtime functions and hereby eliminations to function intro, parameter and return overhead, and then can apply the usual optimizations applied to the bodies without the call overhead.</p>
+<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations. Currently we are trying a simple llvm based method jit, which kicks in after counting methods and loops (similar to unladen-swallow and pyston, just smaller and faster), and inlines some <code>pp</code> runtime functions and hereby eliminations to function intro, parameter and return overhead, and then can apply the usual optimizations applied to the bodies without the call overhead.</p>
 
 <h2 id="Optimize-the-vm-the-runloop">Optimize the vm, the runloop</h2>
 
@@ -920,13 +945,13 @@
 
 <p>There&#39;s no <b>MOP</b> (meta-object protocol), but reflection. There&#39;s no need to override the internal behavior of the object system, the dispatch, the class and role layout.</p>
 
-<p>See <a>perlclass</a> (NY)</p>
+<p>See <a href="/cperl/perlclass.html">perlclass</a> (NY)</p>
 
 </dd>
 <dt id="types1"><b>types</b></dt>
 <dd>
 
-<p>cperl includes builtin coretypes, and later native types, user-defined types and type dispatch, checks, subtype relationships, inference and optimizations on user-defined functions and methods, for XS and PP.</p>
+<p>cperl includes builtin coretypes, native ffi types, user-defined types and type dispatch, checks, subtype relationships, inference and optimizations on user-defined functions and methods, for XS and PP. Later native aggregate types for arrays, hashes and native classes (structs).</p>
 
 <p>See <a href="/cperl/perltypes.html">perltypes</a></p>
 

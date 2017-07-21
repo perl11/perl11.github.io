@@ -1,0 +1,185 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#NEW-KEYWORDS">NEW KEYWORDS</a>
+    <ul>
+      <li><a href="#CLASS">CLASS</a></li>
+      <li><a href="#ROLE">ROLE</a></li>
+      <li><a href="#METHOD">METHOD</a></li>
+    </ul>
+  </li>
+  <li><a href="#MULTI">MULTI</a></li>
+  <li><a href="#HAS">HAS</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perlclass - Modern cperl classes and roles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p>To declare classes and roles:  </p>
+
+<pre><code>    class NAME           { }  # declare a class
+    role NAME            { }  # declare a role
+    class NAME is PARENT { }  # inherit from one or more classes
+    class NAME does ROLE { }  # or roles
+    role NAME is PARENT  { }
+    role NAME does ROLE  { }
+
+    class NAME {
+      has $a;                 # declare a field
+      method new ($a?) {      # not needed, inherited from Mu
+        bless [$a], ref $self ? ref $self : $self;
+      }
+    }
+    class NAME :native {      # native C-struct with 2 native int fields
+      has int $a = 0;         # for the ffi
+      has int $b = 0;
+    }
+
+    class NAME :open {        # allows run-time monkey-patching, adding new methods.
+      has $a = 0;             # disables most compile-time optimizations.
+      has $b = 0;
+    }
+
+    my CLASS $obj = CLASS-&gt;new; # default object constructor
+    $obj-&gt;field;                # the getter method
+    $obj-&gt;field = 1;            # the setter method</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document is a reference to Modern Perl programming in cperl with the introduction of five new builtin keywords: <b>class</b> <b>role</b> <b>method</b> <b>multi</b> <b>has</b>, enabling the features and performance of perl6 object orientation into perl5.</p>
+
+<p>A class or a role is a special package, declared as a block with subroutines, methods and has fields, with dynamic run-time inheritance from parent classes, compile-time composition of roles, but unlike perl6 a class or role is closed by default. I.e. the class namespace and the <code>@ISA</code> and <code>@DOES</code> arrays are readonly. Old open dynamic classes can easily be declared with the old package syntax, but methods and the other new syntax is forbidden there. Only multi subroutines are allowed outside of classes.</p>
+
+<p>Classes define types, and a hierarchy of types. All variables can be optionally typed referring to a class, which can be a builtin class like the coretypes or a user-defined class. See <a href="/cperl/perltypes.html">perltypes</a>. This is the same as in perl6, but fundamentally different to all the naive ad-hoc perl5 OO extensions, which treat types as unnecessary and slow extensions. Types do make cperl faster and safer.</p>
+
+<p>The root of the cperl type hierarchy is <a>Mu</a>, every class is a Mu. The MOP is defined in the <a>Metamodel</a> hierarchy, exactly as in Perl 6.</p>
+
+<h1 id="NEW-KEYWORDS">NEW KEYWORDS</h1>
+
+<h2 id="CLASS">CLASS</h2>
+
+<p>A class is a cperl package with a readonly namespace, readonly <code>@ISA</code> and <code>@DOES</code> arrays for run-time inheritance and compile-time composition, and with compile-time optimized and type-checked fields and methods, subroutines and multi methods or subroutines, i.e. polymorphic dispatch with generics, dispatching on the method types.</p>
+
+<p>It is different from an old package by being declared via <code>use <a>base</a></code> or via the class keyword, and detected by the HvCLASS flag in the stash. Anonymous classes can only be created via the API, either using <a href="/cperl/perlapi.html#class_role">&quot;class_role&quot; in perlapi</a> and <a href="/cperl/perlapi.html#class_role_finalize">&quot;class_role_finalize&quot; in perlapi</a>, or setting <code>HvCLASS_on(STASH)</code> and <code>HvROLE_on(STASH)</code>, or by adding a class and changing the name to a unique one. Dispatch and inheritance works on the classnames, not its pointers.</p>
+
+<p>Classes can inherit from classes via a sequence of <code>is CLASS</code> traits or compose from other roles via <code>does ROLE</code>. Multiple such <code>is</code> or <code>does</code> traits are allowed.</p>
+
+<p>The <b>:native</b> attribute or <b>:repr(CStruct)</b>, <b>:repr(CUnion)</b> enforces natively typed access to the fields, with the same layout as in C. It is used to pass pointers or structs to and from C, e.g. via the <a>ffi</a>. <i>(NYI)</i></p>
+
+<h2 id="ROLE">ROLE</h2>
+
+<p>A role is a special class which can be compile-time composed into other classes or roles via <code>does</code>. All the fields, methods and subroutines are copied into the child class or role.</p>
+
+<p>If a composed method or field already exists, an error is thrown.</p>
+
+<p>Roles can inherit from classes via a sequence of <code>is CLASS</code> traits or compose from roles via <code>does ROLE</code>. Multiple such <code>is</code> or <code>does</code> traits are allowed.</p>
+
+<pre><code>    role MyRole { has $a }
+    class MyClass does MyRole {}
+
+    MyClass-&gt;new-&gt;a = 1; # use the a setter method from MyRole</code></pre>
+
+<h2 id="METHOD">METHOD</h2>
+
+<pre><code>    method NAME (SIGNATURE) :ATTR BLOCK</code></pre>
+
+<p>The signature is optional and defaults to <code>($self)</code>. <code>$self</code> is added automatically to all methods as first signature argument. Using a different invocant than <code>$self</code> is possible via the invocant signature syntax <code>$this:</code>, a <code>:</code> suffix.</p>
+
+<pre><code>    method new ($this:, @inits) { bless [@inits], $this }</code></pre>
+
+<p>The declaration is similar to the old-style <code>sub NAME (SIGNATURE) :method BLOCK</code> declaration, just that with <code>sub :method</code> the <code>$self</code> argument is not automatically added.</p>
+
+<p>Calling a method as subroutine is forbidden, and calling a subroutine with a signature as method is forbidden also. This might bite you with <code>use base</code>, which creates cperl classes. The new <code>method</code> keyword is only parsed inside a role or class. Outside it will try to call a subroutine <code>method</code>, which usually doesn&#39;t exist.</p>
+
+<p>The special constructor methods <code>new</code> and <code>CREATE</code> are provided by <a>Mu</a>. Every method derives from <code>Mu</code>. So if a class doesn&#39;t provide a <code>new</code> method, <code>Mu::new</code> is used, which provides a typed array ref. If a class provides a <code>new</code> or <code>CREATE</code> method, the result must be typed to the given classname, i.e. <code>bless [], $self;</code>, and the fields layout must match the order of declaration, and the helper <code>@FIELDS</code> array and <code>%FIELDS</code> hash must be provided to resolve the field index and pad index of the field.</p>
+
+<h1 id="MULTI">MULTI</h1>
+
+<p>A multi call polymorphically dispatches on all declared types of the method or subroutine argument to the best fit of all declared multi methods or subroutines. The dispatch strategy is left-to-right without backtracking, not smallest distance from all, as e.g. with perl6 or <a href="http://search.cpan.org/dist/Class-Multimethods/">Class::MultiMethods</a>.</p>
+
+<pre><code>    multi method NAME (SIGNATURE) :ATTR BLOCK
+    multi sub NAME (SIGNATURE) :ATTR BLOCK
+    multi NAME (SIGNATURE) :ATTR BLOCK</code></pre>
+
+<p>The new multi keyword is allowed inside and outside of roles or classes. The default <code>$self</code> argument is automatically added for multi methods, as with normal methods.</p>
+
+<p>Internally a multi adds the signature types to the name after a <code>\0</code>.</p>
+
+<h1 id="HAS">HAS</h1>
+
+<p>A class or role field is declared via <code>has TYPE NAME = value;</code>, with the type and the default value being optional, and the name having optional attributes, same as MY variable declarations. Internally inside the class each has field is declared as lexical <code>my</code> variable, and then changed to efficient field accessors in all methods.</p>
+
+<pre><code>   has $NAME;
+   has @ARRAY;
+   has int $i = 0;
+   has int $i :const = 0;</code></pre>
+
+<p>Each field generates an entry into an internal <code>@FIELDS</code> array, used to create the field accessors at compile-time, plus currently a <code>%FIELDS</code> hash entry for run-time access for computed field names, as in <code>use <a>fields</a></code>. Native classes requires mandatory types for each field, the layout will aligned the same as C structs. Fields are always compile-time composed, even with <code>is CLASS</code> inheritance.</p>
+
+<p>Additionally perl6-like default accessors are created, for non-const fields getters and lvalue setter methods, for const fields only getters. You may define you own accessor methods, overriding the defaults.</p>
+
+<p>Inside a class <code>$self-&gt;field</code> is the same as <code>$field</code>. Outside a class the first accessor, the method must be used. If the name is computed or the field is inherited from a parent class the lookup will be dynamic via method inheritance, composed fields from <code>does ROLE</code> compile to direct array accesses in <code>$self</code>.</p>
+
+<p>The compiler converts every typed <code>$self</code> method call on a field to a static compile-time array access via <code>oelemfast</code>, which is the same as <code>aelemfast_lex_u</code>, or to a new dynamic run-time <code>aelem</code> op, which performs the field lookup of the field value. It is not static when the class is open, or the object is not typed.</p>
+
+<pre><code>    my CLASS $obj = new CLASS; # explicit CLASS type for $obj
+    $obj-&gt;field;           # -&gt; $obj-&gt;[0] (via oelemfast $obj, index)
+
+    my $field = &#39;field&#39;;   # computed field name -&gt; dynamic
+    $obj-&gt;$field;          # -&gt; oelem $obj, $field
+
+    my $obj = new CLASS; # type CLASS is inferred to $obj
+    $obj-&gt;field;         # -&gt; $obj-&gt;[0] (via oelemfast $obj, index)
+
+    class OPENCLASS :open {
+      has $field = 1;
+    }
+    my OPENCLASS $obj = new OPENCLASS;
+    $obj-&gt;field;        # calls field($obj)</code></pre>
+
+<p>Additionally, with a typed object the compiler only knows about the fields of the declared type. When you want to access a field in an untyped object , the compiler may not know it&#39;s position in the <code>@FIELDS</code> array at compile-time, so a slower run-time lookup has to be performed. Also an untyped object may change it&#39;s type at run-time, via unexpected side-effects. E.g. the object might get tied, re-blessed or a MOP method may be added.</p>
+
+<pre><code>    class MyBase {
+      has $a = 1;
+    }
+    class MyClass is MyBase :open {
+      has $b = 1;
+    }
+
+    my $o = new MyClass;
+    # ... some possible side-effects with the type of $o
+    $o-&gt;a;      # oelem $o, &#39;a&#39;;
+    $o-&gt;b;      # oelem $o, &#39;b&#39;;
+
+    my MyBase $o1 = new MyClass;
+    $o1-&gt;b;     # compile-time error
+
+    my MyClass $o2 = new MyClass;
+    $o2-&gt;b;     # $o2-&gt;[1]  - $o2 is known to be MyClass
+
+    $o = new MyClass;   # and directly afterwards:
+    $o-&gt;a;      # $o2-&gt;[0]  - $o is known to be MyClass</code></pre>
+
+
+</body>
+
+</html>
+
+

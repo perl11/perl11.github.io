@@ -17,7 +17,6 @@
   <li><a href="#Notice">Notice</a></li>
   <li><a href="#Core-Enhancements">Core Enhancements</a>
     <ul>
-      <li><a href="#extern-sub---libffi">extern sub - libffi</a></li>
       <li><a href="#Check-and-normalize-stringified-names">Check and normalize stringified names</a></li>
       <li><a href="#strict-names">strict names</a></li>
     </ul>
@@ -62,12 +61,12 @@
       <li><a href="#Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</a></li>
     </ul>
   </li>
+  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
   <li><a href="#Utility-Changes">Utility Changes</a>
     <ul>
-      <li><a href="#XXX3">XXX</a></li>
+      <li><a href="#cperlivp">cperlivp</a></li>
     </ul>
   </li>
-  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
   <li><a href="#Testing">Testing</a></li>
   <li><a href="#Platform-Support">Platform Support</a>
     <ul>
@@ -102,11 +101,9 @@
 
 <h1 id="Core-Enhancements">Core Enhancements</h1>
 
-<h2 id="extern-sub---libffi">extern sub - libffi</h2>
+<p>XXX New core language features go here. Summarize user-visible core language enhancements. Particularly prominent performance optimisations could go here, but most should go in the <a href="#Performance-Enhancements">&quot;Performance Enhancements&quot;</a> section.</p>
 
-<p>A new <a href="/cperl/lib/ffi.html">ffi</a> was added to core, with a syntax resembling perl6 NativeCall. Perl6 traits are cperl <a href="/cperl/lib/attributes.html">attributes</a>, but attribute values may be deferred to run-time. Packagers need to add <b>libffi</b> to their library dependencies.</p>
-
-<p>Not yet implemented are the :encoded() attribute for string arguments and return values, c-struct helpers, callback helpers and support for variadic (varargs) functions.</p>
+<p>[ List each enhancement as a =head2 entry ]</p>
 
 <h2 id="Check-and-normalize-stringified-names">Check and normalize stringified names</h2>
 
@@ -211,6 +208,9 @@
 <p>Note that this is still not optimal, as strict::import can be compile-time optimized from a dynamic method call to a static function call. A regression from 5.22.1c. See <a href="http://blogs.perl.org/users/rurban/2011/06/how-perl-calls-subs-and-methods.html">http://blogs.perl.org/users/rurban/2011/06/how-perl-calls-subs-and-methods.html</a></p>
 
 </li>
+<li><p>Most checks for readonly packages are now avoided, needed to bypass the &quot;Attempt to access disallowed key %s in the restricted hash %CLASS::&quot; errors. Stash lookup now got a GV_CLASS flag and hv_fetch*_ifexists macro, which does the EXISTS and FETCH hash actions in the stash on one.</p>
+
+</li>
 </ul>
 
 <h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
@@ -221,78 +221,152 @@
 
 <h2 id="New-Modules-and-Pragmata">New Modules and Pragmata</h2>
 
-<dl>
+<ul>
 
-<dt id="ffi-0.01c"><a href="/cperl/lib/ffi.html">ffi</a> 0.01c</dt>
-<dd>
+<li><p>XXX</p>
 
-<p>Helpers and more types.</p>
-
-</dd>
-</dl>
+</li>
+</ul>
 
 <h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
 
 <dl>
 
-<dt id="attributes-1.12c"><a href="/cperl/lib/attributes.html">attributes</a> 1.12c</dt>
+<dt id="attributes-1.12c"><a>attributes</a> 1.12c</dt>
 <dd>
 
-<p>Add ffi support. Support the new core attributes :native, :native($libname), :symbol($c_name), :nativeconv(abi), :encoded(encoding) <i>(NYI)</i>.</p>
+<p>Fixed :const parsing with SVs (cperl-only). Previously :const would set the containing sub to :const, now it sets the lexical to readonly, with deferring the attributes::import call after an assignment.</p>
+
+<pre><code>    my %h :const = (a =&gt; 1);
+=&gt;
+    assign %h = (...);
+    attributes-&gt;import(PACKAGE, \%h, const);</code></pre>
+
+<p>See <a href="https://github.com/perl11/cperl/issues/294">[cperl #294]</a>.</p>
 
 </dd>
-<dt id="B-1.68_07"><a href="/cperl/lib/B.html">B</a> 1.68_07</dt>
+<dt id="B-1.68_07"><a>B</a> 1.68_07</dt>
 <dd>
 
-<p>Add ffi support</p>
+<p>Add non-destructive $cv-&gt;PUREGV method, which does not create a GV from a CvNAMED $cv. Warning: $cv-&gt;GV does create a GV from a CvNAMED $cv.</p>
 
 </dd>
-<dt id="B::Deparse-1.40_04c"><a href="/cperl/lib/B/Deparse.html">B::Deparse</a> 1.40_04c</dt>
+<dt id="B::C-1.55_04"><a>B::C</a> 1.55_04</dt>
 <dd>
 
-<p>Add ffi support</p>
+<p>Protect from destructive $cv-&gt;GV, renamed is_lexsub to is_named, allow @0, &amp;0, ... types.</p>
 
 </dd>
-<dt id="Devel::PPPort"><a href="/cperl/lib/Devel/PPPort.html">Devel::PPPort</a></dt>
+<dt id="base-2.26c"><a>base</a> 2.26c</dt>
+<dd>
+
+<p>Turn off HvCLASS again, just turn on SvREADONLY <code>@ISA</code>. With all the new class features, we cannot and should not compete.</p>
+
+<p>The problem is the new sub as :method warning with classes, which would cause all Test::Simple methods to be declared as :method, as they derive from base.</p>
+
+</dd>
+<dt id="Devel::Peek-1.26_02"><a>Devel::Peek</a> 1.26_02</dt>
+<dd>
+
+<p>Add TYPECHECKED, RETTYPE and pad var names and types.</p>
+
+</dd>
+<dt id="Devel::PPPort-3.36_02"><a>Devel::PPPort</a> 3.36_02</dt>
 <dd>
 
 <p>Restore silence under <code>make -s</code>. I broke it in cperl 5.27.0</p>
 
+<p>Add <code>#if { CPERL &amp;&amp; VERSION </code> 5.26.0 }&gt; support, support parser enum expectation.</p>
+
 </dd>
-<dt id="ExtUtils::Constant-0.23_09"><a href="/cperl/lib/ExtUtils/Constant.html">ExtUtils::Constant</a> 0.23_09</dt>
+<dt id="Encode"><a>Encode</a></dt>
+<dd>
+
+<p>Skip the flapping test <i>t/Aliases.t</i> on threaded smokers, with random segfaults. This is a long standing core bug, with PMOP aliases or clone. First observed at <a href="https://github.com/rurban/perl-compiler/issues/73">https://github.com/rurban/perl-compiler/issues/73</a> (since 5.6)</p>
+
+</dd>
+<dt id="ExtUtils::Constant-0.23_09"><a>ExtUtils::Constant</a> 0.23_09</dt>
 <dd>
 
 <p>C++ compat fixes. -Wliteral-suffix</p>
 
 </dd>
-<dt id="ExtUtils::MakeMaker::Locale-8.04_04"><a href="/cperl/lib/ExtUtils/MakeMaker/Locale.html">ExtUtils::MakeMaker::Locale</a> 8.04_04</dt>
+<dt id="ExtUtils::MakeMaker-8.04_05"><a>ExtUtils::MakeMaker</a> 8.04_05</dt>
+<dd>
+
+<p>Support IO::Scalar handle as $parsefile argument to ExtUtils::MM_Unix::parse_version().</p>
+
+</dd>
+<dt id="ExtUtils::MakeMaker::Locale-8.04_04"><a>ExtUtils::MakeMaker::Locale</a> 8.04_04</dt>
 <dd>
 
 <p>no strict &#39;names&#39; for <code>$ENCODING_UTF-8</code>.</p>
 
 </dd>
-<dt id="File::Spec::Functions-3.36_05"><a href="/cperl/lib/File/Spec/Functions.html">File::Spec::Functions</a> 3.36_05</dt>
+<dt id="fields-2.25c"><a>fields</a> 2.25c</dt>
+<dd>
+
+<p>A cperl class has now fields with <code>@class::FIELDS</code> targ offsets to the lexical fields, and the old <code>%type::FIELDS</code> hash pointing to the <code>*class</code> GV, allowing again compile-time type checks on typed object hash accesses.</p>
+
+</dd>
+<dt id="File::Spec::Functions-3.36_05"><a>File::Spec::Functions</a> 3.36_05</dt>
 <dd>
 
 <p>Bumped version from unparsable 3.3.65, which prevented e.g. File::chdir to install.</p>
 
 </dd>
-<dt id="Opcode-1.39_02c"><a href="/cperl/lib/Opcode.html">Opcode</a> 1.39_02c</dt>
+<dt id="IO"><a>IO</a></dt>
 <dd>
 
-<p>Restrict the new op enterffi.</p>
+<p>Bump versions of 3 Socket modules.</p>
 
 </dd>
-<dt id="strict-1.13c"><a href="/cperl/lib/strict.html">strict</a> 1.13c</dt>
+<dt id="Memoize-1.03"><a>Memoize</a> 1.03</dt>
 <dd>
 
-<p>Implemented <code>strict &#39;names&#39;</code> to reject illegal identifiers created via <code>no strict &#39;refs&#39;</code> also at run-time, not only at compile-time. See <a href="https://github.com/perl11/cperl/issues/282">[cperl #282</a>.</p>
+<p>Skip flapping, timer-sensitive t/expmod_t.t tests on Travis CI.</p>
 
 </dd>
-<dt id="warnings-1.38"><a href="/cperl/lib/warnings.html">warnings</a> 1.38</dt>
+<dt id="Net::Ping-2.61"><a>Net::Ping</a> 2.61</dt>
 <dd>
 
-<p>Added the new ffi warnings category.</p>
+<p>Fix ping_udp for a started udp echo server (PR#5 by Stephan Loyd)</p>
+
+<p>Fix t/400_ping_syn.t phases</p>
+
+<p>Try to handle Windows Socket::getnameinfo errors</p>
+
+<p>Improve some tests on missing network connections</p>
+
+</dd>
+<dt id="Opcode-1.39_02c"><a>Opcode</a> 1.39_02c</dt>
+<dd>
+
+<p>Added new &#39;oelem&#39; and &#39;oelemfast&#39; to :base_core</p>
+
+</dd>
+<dt id="Search::Dict-1.07_01"><a>Search::Dict</a> 1.07_01</dt>
+<dd>
+
+<p>Bump version</p>
+
+</dd>
+<dt id="SelectSaver-1.02_01"><a>SelectSaver</a> 1.02_01</dt>
+<dd>
+
+<p>Bump version</p>
+
+</dd>
+<dt id="strict-1.13c"><a>strict</a> 1.13c</dt>
+<dd>
+
+<p>Implemented <code>strict &#39;names&#39;</code> to reject illegal identifiers created via <code>no strict &#39;refs&#39;</code> also at run-time, not only at compile-time. See <a href="https://github.com/perl11/cperl/issues/282">[cperl #282]</a>.</p>
+
+</dd>
+<dt id="VMS::Studio-2.41_01"><a>VMS::Studio</a> 2.41_01</dt>
+<dd>
+
+<p>Bump version</p>
 
 </dd>
 </dl>
@@ -354,33 +428,25 @@
 
 <ul>
 
-<li><p>XXX <a href="/cperl/perldiag.html#message">message</a></p>
+<li><p>With loopex ops calling a list, all arguments but the last are ignored. This might be valid for side-effects, but useless on constants. Warn with <a href="/cperl/perldiag.html#Useless-use-of-constant-in-list-at">Useless use of constant in list at %s() </a> This affects next, goto, redo, last, dump.</p>
+
+<p>E.g. with <code>label:{next(1,label)}</code> 1 is ignored.</p>
 
 </li>
 </ul>
 
 <h2 id="Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</h2>
 
-<p>XXX Changes (i.e. rewording) of diagnostic messages go here</p>
-
 <ul>
 
-<li><p>XXX Describe change here</p>
+<li><p>&quot;Can&#39;t modify non-lvalue subroutine call of &amp;%s&quot; was extended to support methods.</p>
+
+<p>The new message is &quot;Can&#39;t modify non-lvalue %s call of %s&quot;, with the variants &quot;Can&#39;t modify non-lvalue subroutine call of &amp;CLASS::sub&quot; and &quot;Can&#39;t modify non-lvalue method call of CLASS-&gt;sub&quot;.</p>
 
 </li>
-</ul>
+<li><p>Under DEBUGGING &quot;Modification of a read-only value attempted at &lt;location&gt;&quot; was changed to &quot;Modification of a read-only value attempted &lt;value&gt; at &lt;c file:line&gt; at &lt;location&gt;&quot;</p>
 
-<h1 id="Utility-Changes">Utility Changes</h1>
-
-<p>XXX Changes to installed programs such as <i>cperlbug</i> and <i>xsubpp</i> go here. Most of these are built within the directory <i>utils</i>.</p>
-
-<p>[ List utility changes as a =head2 entry for each utility and =item entries for each change Use <a>XXX</a> with program names to get proper documentation linking. ]</p>
-
-<h2 id="XXX3"><a>XXX</a></h2>
-
-<ul>
-
-<li><p>XXX</p>
+<p>Existing tests best cut off the &quot; at&quot; at the end.</p>
 
 </li>
 </ul>
@@ -401,6 +467,23 @@
 </li>
 </ul>
 
+<h1 id="Utility-Changes">Utility Changes</h1>
+
+<h2 id="cperlivp"><a>cperlivp</a></h2>
+
+<ul>
+
+<li><p>Add support for <code>-d DESTDIR</code>, e.g. after</p>
+
+<pre><code>    make -s -j4 install DESTDIR=$HOME/cperl-inst
+    cd $HOME/cperl-inst/usr/local/bin &amp;&amp;
+    ./cperl cperlivp -p -d $HOME/cperl-inst</code></pre>
+
+<p>See <a href="https://github.com/perl11/cperl/issues/305">[cperl #305]</a></p>
+
+</li>
+</ul>
+
 <h1 id="Testing">Testing</h1>
 
 <p>XXX Any significant changes to the testing of a freshly built perl should be listed here. Changes which create <b>new</b> files in <i>t/</i> go here as do any large changes to the testing harness (e.g. when parallel testing was added). Changes to existing files in <i>t/</i> aren&#39;t worth summarizing, although the bugs that they represent may be covered elsewhere.</p>
@@ -409,7 +492,7 @@
 
 <ul>
 
-<li><p>XXX</p>
+<li><p>Fixed <i>Porting/cmpVERSION.pl</i> resp. <i>t/porting/cmp_version.t</i></p>
 
 </li>
 </ul>
@@ -464,26 +547,44 @@
 
 <h1 id="Internal-Changes">Internal Changes</h1>
 
-<p>XXX Changes which affect the interface available to <code>XS</code> code go here. Other significant internal changes for future core maintainers should be noted as well.</p>
-
-<p>[ List each change as a =item entry ]</p>
-
 <ul>
 
-<li><p>XXX</p>
+<li><p><code>Perl_croak_no_modify()</code> got 2 arguments, the macro is the same. The new <code>croak_no_modify_sv(sv)</code> has better diagnostics and is used throughout core.</p>
 
 </li>
 </ul>
 
 <h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
 
-<p>XXX Important bug fixes in the core language are summarized here. Bug fixes in files in <i>ext/</i> and <i>lib/</i> are best summarized in <a href="#Modules-and-Pragmata">&quot;Modules and Pragmata&quot;</a>.</p>
-
-<p>[ List each fix as a =item entry ]</p>
-
 <ul>
 
 <li><p>Fixed signature corruption with skip&#39;ed arguments without default and with 0, 1, undef or op defaults, such as in <code>sub func ($, $=0, $=1, $=2, $=do{$i++} $=&quot;foo&quot;, $a=&quot;bar&quot;, $b=&quot;zoot&quot;)</code>, with the first <code>$</code>, the 2nd <code>$=0</code>, the 3rd <code>$=1</code> and the 5th <code>$=do{}</code> argument. cperl-only.</p>
+
+</li>
+<li><p>Harmonized TOKENBUF_SIZE and stack buf sizes</p>
+
+<p>The max identifier length depends on the max tokenbuf size, which went from 256 in perl5 to 1024 in cperl, mostly to speed up parsing with a larger parser buffer. A few places still had hardcoded 256 tmpbuf sizes, which led to wrong error messages. See <a href="https://github.com/perl11/cperl/issues/293">[cperl #293]</a>.</p>
+
+</li>
+<li><p>Fixed one place in ck_sort for utf8 lexical variable names, which passed the unneeded UTF8 flag to <code>pad_findmy_pvn()</code>. In cperl all pads are normalized UTF8 for faster searches, the flag argument must be 0. See <a href="https://github.com/perl11/cperl/issues/293">[cperl #293]</a>.</p>
+
+</li>
+<li><p>Fix regex stack recursion overflow with DEBUGGING</p>
+
+<p>This is a regression since 5.26 (also in upstream perl5). Without DEBUGGING it failed with the error message &quot;Unmatched ( in regex&quot;, now with more than 5000 open parens it will fail with the same error message. This would be security relevant if one would use a DEBUGGING perl in production as one can construct a pattern which writes arbitrary values to the stack, similar to the Storable (<a href="https://github.com/perl11/cperl/issues/257">[cperl #257]</a>, <a href="https://rt.cpan.org/Public/Bug/Display.html?id=97526">[cpan #97526]</a>) stack overflow and the old 5.10 regex stack overflow attack. See <a href="https://github.com/perl11/cperl/issues/293">[cperl #293]</a>.</p>
+
+</li>
+<li><p>Fixed wrong &quot;Don&rsquo;t stringify GV in numeric cx outside warnings scope&quot; optimization from 5.18, which fails with code like <code>$* += (** = 0)</code>. See <a href="https://github.com/perl11/cperl/issues/299">[cperl #299]</a>.</p>
+
+</li>
+<li><p>Added missing arity checks to <code>readline</code> and <code>readpipe</code>. E.g. <code>readline(1,2)</code> and <code>readpipe(1,2)</code> errors now. Those excessive args were previously called for side-effects, in case of constants or variables effectively ignored.</p>
+
+<p>All internal ops are now properly arity checked. See <a href="https://github.com/perl11/cperl/issues/301">[cperl #301]</a>.</p>
+
+</li>
+<li><p>More fixes for handling readonly packages, aka classes. Allow AMT (overload) cache updates, <code>@ISA</code> searches and general class dispatch, falling back to AUTOLOAD in classes.</p>
+
+<p>E.g. this works now: <code>class XX{method m{&quot;ok $self&quot;}} XX-&gt;new-&gt;m</code> The string concat looked in the class XX for an overload for the concat &quot;.&quot; op, and failed with &quot;Modification of a read-only value attempted&quot; on the class, when trying to update the AMT cache. See <a href="https://github.com/perl11/cperl/issues/308">[cperl #308]</a>.</p>
 
 </li>
 </ul>

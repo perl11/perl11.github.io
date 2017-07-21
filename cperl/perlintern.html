@@ -141,7 +141,7 @@
 
 <p>Checks types and adds <code>OPpMAP_PAIR</code> to <code>%hash = map</code>.</p>
 
-<pre><code>        OP *    ck_aassign(OP *o)</code></pre>
+<p>TODO: constant folding with OpSPECIAL OP * ck_aassign(OP *o)</p>
 
 </dd>
 <dt id="ck_aelem">ck_aelem </dt>
@@ -390,7 +390,7 @@
 <dt id="ck_readline">ck_readline </dt>
 <dd>
 
-<p>CHECK callback for readline, the &lt;&gt; op. (t% F? &quot;(:Scalar):Any&quot;)</p>
+<p>CHECK callback for readline, the &lt;&gt; op. (t% F? &quot;(:Scalar?):Any&quot;)</p>
 
 <p>Adds <code>*ARGV</code> if missing. OP * ck_readline(OP *o)</p>
 
@@ -424,7 +424,7 @@
 
 <p>Checks types.</p>
 
-<pre><code>        OP *    ck_sassign(OP *o)</code></pre>
+<p>TODO: constant folding with OpSPECIAL OP * ck_sassign(OP *o)</p>
 
 </dd>
 <dt id="ck_smartmatch">ck_smartmatch </dt>
@@ -581,7 +581,12 @@
 
 <p>Return the type as core_types_t enum of the op. User-defined types are only returned as type_Object, get the name of those with S_typename().</p>
 
-<p>TODO: add defined return types of all ops, and user-defined CV types for entersub. core_types_t op_typed_user(OP* o, char** usertype, int* u8)</p>
+<p>TODO: add defined return types of all ops, and user-defined CV types for entersub.</p>
+
+<p>u8 returns 0 or 1 (HEKf_UTF8), not SVf_UTF8</p>
+
+<pre><code>        core_types_t op_typed_user(OP* o, char** usertype,
+                                   int* u8)</code></pre>
 
 </dd>
 <dt id="op_check_type">_op_check_type </dt>
@@ -698,12 +703,28 @@
         OP*     gen_constant_list(OP* o)</code></pre>
 
 </dd>
-<dt id="jmaybe-OP-jmaybe-OP-o">jmaybe  OP* jmaybe(OP *o)</dt>
+<dt id="hasterm">hasterm </dt>
 <dd>
 
+<p>Adds the field padoffset to the @class::FIELDS array, and the field index into %class::FIELDS.</p>
+
+<pre><code>        OP*     hasterm(OP *o)</code></pre>
+
 </dd>
-<dt id="localize-OP-localize-OP-o-I32-lex">localize  OP* localize(OP *o, I32 lex)</dt>
+<dt id="jmaybe">jmaybe </dt>
 <dd>
+
+<p>Join list by <code>$;</code>, \034. Adds <code>$;</code>, the $SUBSCRIPT_SEPARATOR before the op list, if there is a list.</p>
+
+<p>If you refer to a hash element as <code>$foo{$x,$y,$z}</code> it really means <code>$foo{join($;, $x, $y, $z)}</code></p>
+
+<pre><code>        OP*     jmaybe(OP *o)</code></pre>
+
+</dd>
+<dt id="localize">localize </dt>
+<dd>
+
+<p>lex: 0 local 1 my|our|state 2 has OP* localize(OP *o, I32 lex)</p>
 
 </dd>
 <dt id="op_integerize">op_integerize </dt>
@@ -738,8 +759,13 @@
                                int * const opnum)</code></pre>
 
 </dd>
-<dt id="coresub_op-OP-coresub_op-SV-const-coreargssv-const-int-code-const-int-opnum">coresub_op  OP * coresub_op(SV *const coreargssv, const int code, const int opnum)</dt>
+<dt id="coresub_op">coresub_op </dt>
 <dd>
+
+<p>Provide the coreargs arguments for &amp;CORE::* subroutines, usually with matching ops. coreargssv is either the opnum (as UV) or the name (as PV) of no such op exists. code is the result of <code>keyword()</code>, and maybe negative. See <i>gv.c</i>: <code>S_maybe_add_coresub()</code>.</p>
+
+<pre><code>        OP *    coresub_op(SV *const coreargssv, const int code,
+                           const int opnum)</code></pre>
 
 </dd>
 <dt id="report_redefined_cv">report_redefined_cv </dt>
@@ -1052,6 +1078,8 @@
 <p>Returns the offset in the bottom pad of the lex or the fake lex. <code>cv</code> is the CV in which to start the search, and seq is the current <code>cop_seq</code> to match against. If <code>warn</code> is true, print appropriate warnings. The <code>out_</code>* vars return values, and so are pointers to where the returned values should be stored. <code>out_capture</code>, if non-null, requests that the innermost instance of the lexical is captured; <code>out_name</code> is set to the innermost matched pad name or fake pad name; <code>out_flags</code> returns the flags normally associated with the <code>PARENT_FAKELEX_FLAGS</code> field of a fake pad name.</p>
 
 <p>Note that <code>pad_findlex()</code> is recursive; it recurses up the chain of CVs, then comes back down, adding fake entries as it goes. It has to be this way because fake names in anon protoypes have to store in <code>xpadn_low</code> the index into the parent pad.</p>
+
+<p>PADs are with cperl all UTF8 so the flags argument must be 0 or padadd_STALEOK.</p>
 
 <pre><code>        PADOFFSET pad_findlex(const char *namepv,
                               STRLEN namelen, U32 flags,
@@ -1408,7 +1436,8 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     hv = GvHVn(gv);
                     hv_magic(hv, NULL, PERL_MAGIC_sig);
                     for (i = 1; i &lt; SIG_SIZE; i++) {
-                        SV * const * const init = hv_fetch(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
+                        SV * const * const init
+                            = hv_fetch_ifexists(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
                         if (init)
                             sv_setsv(*init, UNDEF);
                     }
@@ -1761,12 +1790,12 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
     
     /* By this point we should have a stash and a name */
     /* On protected stashes and !add try exists first */
-    if (SvREADONLY(stash) &amp;&amp; !add)
+    /*if (SvREADONLY(stash) &amp;&amp; !add)
         if (!hv_exists(stash, name, is_utf8 ? -(I32)len : (I32)len)) {
             if (addmg) gv = (GV *)newSV(0);
             else return NULL;
-        }
-    gvp = (GV**)hv_fetch(stash, name, is_utf8 ? -(I32)len : (I32)len,add);
+        }*/
+    gvp = (GV**)hv_fetch(stash, name, is_utf8 ? -(I32)len : (I32)len, add);
     if (!gvp || *gvp == (const GV *)UNDEF) {
         if (addmg) gv = (GV *)newSV(0);
         else return NULL;
@@ -2094,6 +2123,27 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
+<dt id="add_does_methods">add_does_methods </dt>
+<dd>
+
+<p>Copy all not-existing methods from parent roles to the class of <code>name</code>. Duplicates are fatal with roles. void add_does_methods(HV* klass, AV* does)</p>
+
+</dd>
+<dt id="add_isa_fields">add_isa_fields </dt>
+<dd>
+
+<p>Copy all not-existing fields from parent classes or roles to the class of <code>name</code>. Duplicates are fatal with roles, ignored with classes. void add_isa_fields(HV* klass, AV* isa)</p>
+
+</dd>
+<dt id="class_isamagic">class_isamagic </dt>
+<dd>
+
+<p>Set closed ISA magic to the array in pkg, either @ISA or @DOES.</p>
+
+<pre><code>        void    class_isamagic(OP* o, SV* pkg, const char* what,
+                               int len)</code></pre>
+
+</dd>
 <dt id="const_av_xsub">const_av_xsub </dt>
 <dd>
 
@@ -2108,6 +2158,62 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>Efficient sub that returns a constant scalar value.</p>
 
 <pre><code>        void    const_sv_xsub(CV* cv)</code></pre>
+
+</dd>
+<dt id="do_method_finalize">do_method_finalize </dt>
+<dd>
+
+<p>A field may start as lexical or access call in the class block and method pad, and needs to be converted to oelemfast ops, which are basically aelemfast_lex_u (lexical typed self, const ix &lt; 128).</p>
+
+<pre><code>  PADxV targ     -&gt; OELEMFAST(self)[targ]
+
+  $field         -&gt; $self-&gt;field[i] (same as above)
+  $self-&gt;{field} -&gt;     -&quot;- (do not use)
+  $self-&gt;field   -&gt;     -&quot;-
+
+  exists $self-&gt;field    -&gt; compile-time const if exists
+  exists $self-&gt;{field}  -&gt; compile-time const (do not use)
+  exists $self-&gt;{$field} -&gt; exists oelem</code></pre>
+
+<p>If the field is computed, convert to a new &#39;oelem&#39; op, which does the field lookup at run-time.</p>
+
+<pre><code>        void    do_method_finalize(const HV* klass, OP* o,
+                                   const PADOFFSET floor,
+                                   const PADOFFSET self)</code></pre>
+
+</dd>
+<dt id="method_finalize">method_finalize </dt>
+<dd>
+
+<p>Resolve internal lexicals or field helem&#39;s or field accessors to fields in the class method or sub.</p>
+
+<p>Field helem&#39;s might get deleted, as they don&#39;t work outside of classes. Only subs and methods inside the class are processed, not outside! void method_finalize(const HV* klass, const CV* cv)</p>
+
+</dd>
+<dt id="Mu_av_xsub">Mu_av_xsub </dt>
+<dd>
+
+<p>XS template to set or return object array values from it&#39;s compile-time field offset.</p>
+
+<pre><code>    class MY {
+      has @a;
+    }
+    my $c = new MY;
+    $c-&gt;a = (0..2); # (0,1,2)
+    print scalar $c-&gt;a; # 3
+    $c-&gt;a = 1;     # (1)
+    $c-&gt;a = 0..2;  # (0,1,2)
+    $c-&gt;a = 1,2;   # (1,2)
+
+        void    Mu_av_xsub(CV* cv)</code></pre>
+
+</dd>
+<dt id="Mu_sv_xsub">Mu_sv_xsub </dt>
+<dd>
+
+<p>XS template to return an object scalar value from it&#39;s compile-time field offset.</p>
+
+<pre><code>        void    Mu_sv_xsub(CV* cv)</code></pre>
 
 </dd>
 </dl>
@@ -2156,7 +2262,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>Note that we attach this data to CV via an OP_SIGNATURE rather than directly attaching it to the CV, so that it doesn&#39;t need copying each time a new thread is cloned.</p>
 
-<p>Done: - perl6-like optional args: ($opt?) i.e. ($opt=undef) - types in leading position (int $i) - attributes (:const, types), ($i :int :const) - no double copies into @_ - scalar references compiled to direct access, not just copies (\$a) =&gt; my $a = $_[0]. Todo: - error in ck_subr when @_/$_[] in signatured bodies is used</p>
+<p>Done: - perl6-like optional args: ($opt?) i.e. ($opt=undef) - types in leading position (int $i) - attributes (:const, types), ($i :int :const) - no double copies into @_ - scalar references compiled to direct access, not just copies (\$a) =&gt; my $a = $_[0]. - call-by-value and call-by-ref supported. call-by-ref could be improved through so we don&#39;t change constants to be called-by-ref, and rather copy it. Todo: - error in ck_subr when @_/$_[] in signatured bodies is used</p>
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
@@ -2380,12 +2486,32 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="apply_attrs_my">apply_attrs_my </dt>
 <dd>
 
-<p>Similar to <a href="#apply_attrs">&quot;apply_attrs&quot;</a> calls the attribute importer with the target, which must be a lexical and a list of attributes. As manually done via <code>use attributes $pkg, $rv, @attrs</code>.</p>
+<p>Similar to <a href="#apply_attrs">&quot;apply_attrs&quot;</a> calls the attribute importer with the target, which must be a lexical and a list of attributes. As manually done via <code>use attributes $pkg, $rv, @attrs</code>. This variant defers the import call to run-time.</p>
 
 <p>Returns the list of attributes in the **imopsp argument.</p>
 
 <pre><code>        void    apply_attrs_my(HV *stash, OP *target, OP *attrs,
                                OP **imopsp)</code></pre>
+
+</dd>
+<dt id="attrs_has_const">attrs_has_const </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Checks the attrs list if &quot;:const&quot; is in it. But not <code>(&quot;const&quot;, my $x)</code>.</p>
+
+<p>Returns the number of found attribs with const, which is only relevant for 1 for const being the single attr, 0 if no const was found, and &gt;1 if there are also other attribs besides const.</p>
+
+<p>If from_assign is TRUE, the attrs are already expanded to a full ENTERSUB import call. If not it&#39;s a list, not attrs. If from_assign is FALSE, it is from an unexpanded attrlist <code>our VAR :ATTR</code> declaration, without ENTERSUB.</p>
+
+<pre><code>  TRUE:  my $s :const = 1;  LIST-PUSHMARK-ENTERSUB
+  TRUE:  my @a :const = 1;  LIST-PUSHMARK-PADAV-ENTERSUB
+  TRUE:  our $s :const = 1; LIST-PUSHMARK-RV2SV(gv)-ENTERSUB
+  FALSE: our $s :const = 1; CONST
+  TRUE:  (&quot;const&quot;,my $s) = 1; LIST-PUSHMARK-CONST
+
+        int     attrs_has_const(OP* o, bool from_assign)</code></pre>
 
 </dd>
 <dt id="bind_match-OP-bind_match-I32-type-OP-left-OP-right">bind_match  OP* bind_match(I32 type, OP *left, OP *right)</dt>
@@ -2455,7 +2581,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="maybe_op_signature">maybe_op_signature </dt>
 <dd>
 
-<p>Does fake_signatures. If the sub starts with &#39;my (...) = @_&#39;, replace those ops with an OP_SIGNATURE.</p>
+<p>Does fake_signatures. If the sub starts with &#39;my (...) = @_&#39;, replace those ops with an OP_SIGNATURE. Here we don&#39;t have to add the default $self invocant.</p>
 
 <p>Cannot handle shift as this leaves leftover args.</p>
 
@@ -2474,12 +2600,31 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="my_attrs-OP-my_attrs-OP-o-OP-attrs">my_attrs  OP * my_attrs(OP *o, OP *attrs)</dt>
+<dt id="my_attrs">my_attrs </dt>
 <dd>
+
+<p>Prepend the lexical variable with the attribute-&gt;import call.</p>
+
+<pre><code>        OP *    my_attrs(OP *o, OP *attrs)</code></pre>
 
 </dd>
 <dt id="my_kid-OP-my_kid-OP-o-OP-attrs-OP-imopsp">my_kid  OP * my_kid(OP *o, OP *attrs, OP **imopsp)</dt>
 <dd>
+
+</dd>
+<dt id="newASSIGNOP_maybe_const">newASSIGNOP_maybe_const </dt>
+<dd>
+
+<p>Checks the attrs of the left if it has const. If so check dissect my_attrs() and check if there&#39;s another attr. If so defer attribute-&gt;import to run-time. If not just const the left side.</p>
+
+<p>OpSPECIAL on the assign op denotes :const. Undo temp. READONLY-ness via a private OPpASSIGN_CONSTINIT bit during assignment at run-time.</p>
+
+<p>Do various compile-time assignments on const rhs values, to enable constant folding.</p>
+
+<p>Return the newASSIGNOP, or the folded assigned value.</p>
+
+<pre><code>        OP*     newASSIGNOP_maybe_const(OP* left, I32 optype,
+                                        OP* right)</code></pre>
 
 </dd>
 <dt id="op_clear">op_clear </dt>
@@ -2503,7 +2648,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="op_const_sv">op_const_sv </dt>
 <dd>
 
-<p>op_const_sv: examine an optree to determine whether it&#39;s in-lineable. Can be called in 2 ways:</p>
+<p>op_const_sv: examine an optree to determine whether it&#39;s in-lineable. It walks the tree in exec order (next), not in tree order (sibling, first).</p>
+
+<p>Can be called in 2 ways:</p>
 
 <p>!allow_lex look for a single OP_CONST with attached value: return the value</p>
 
@@ -2701,7 +2848,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="PAD_COMPNAME_GEN_set">PAD_COMPNAME_GEN_set </dt>
 <dd>
 
-<p>Sets the generation number of the name at offset <code>po</code> in the current ling pad (lvalue) to <code>gen</code>. STRLEN PAD_COMPNAME_GEN_set(PADOFFSET po, int gen)</p>
+<p>Sets the generation number of the name at offset <code>po</code> in the current compiling pad (lvalue) to <code>gen</code>. STRLEN PAD_COMPNAME_GEN_set(PADOFFSET po, int gen)</p>
 
 </dd>
 <dt id="PAD_COMPNAME_OURSTASH">PAD_COMPNAME_OURSTASH </dt>
@@ -4585,7 +4732,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-2251">Around line 2251:</dt>
+<dt id="Around-line-2289">Around line 2289:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>
