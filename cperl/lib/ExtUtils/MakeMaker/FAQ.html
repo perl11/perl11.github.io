@@ -22,6 +22,13 @@
       <li><a href="#XS">XS</a></li>
     </ul>
   </li>
+  <li><a href="#DESIGN">DESIGN</a>
+    <ul>
+      <li><a href="#MakeMaker-object-hierarchy-simplified">MakeMaker object hierarchy (simplified)</a></li>
+      <li><a href="#MakeMaker-object-hierarchy-real">MakeMaker object hierarchy (real)</a></li>
+      <li><a href="#The-MM_-hierarchy">The MM_* hierarchy</a></li>
+    </ul>
+  </li>
   <li><a href="#PATCHING">PATCHING</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
@@ -42,7 +49,9 @@
 <dt id="How-do-I-install-a-module-into-my-home-directory">How do I install a module into my home directory?</dt>
 <dd>
 
-<p>If you&#39;re not the Perl administrator you probably don&#39;t have permission to install a module to its default location. Then you should install it for your own use into your home directory like so:</p>
+<p>If you&#39;re not the Perl administrator you probably don&#39;t have permission to install a module to its default location. Ways of handling this with a <b>lot</b> less manual effort on your part are <a>perlbrew</a> and <a>local::lib</a>.</p>
+
+<p>Otherwise, you can install it for your own use into your home directory like so:</p>
 
 <pre><code>    # Non-unix folks, replace ~ with /path/to/your/home/dir
     perl Makefile.PL INSTALL_BASE=~</code></pre>
@@ -105,7 +114,10 @@
         make
         make test</code></pre>
 
-<p>...and then set the PERL5LIB environment variable to point at the blib/lib and blib/arch directories.</p>
+<p>...and then use <a href="/cperl/lib/blib.html">blib</a> to point Perl at the built but uninstalled module:</p>
+
+<pre><code>        perl -Mblib script.pl
+        perl -Mblib -e &#39;...&#39;</code></pre>
 
 <p>The other is to install the module in a temporary location.</p>
 
@@ -114,7 +126,27 @@
         make test
         make install</code></pre>
 
-<p>And then set PERL5LIB to <i>~/tmp/lib/perl5</i>. This works well when you have multiple modules to work with. It also ensures that the module goes through its full installation process which may modify it.</p>
+<p>And then set PERL5LIB to <i>~/tmp/lib/perl5</i>. This works well when you have multiple modules to work with. It also ensures that the module goes through its full installation process which may modify it. Again, <a>local::lib</a> may assist you here.</p>
+
+</dd>
+<dt id="How-can-I-organize-tests-into-subdirectories-and-have-them-run">How can I organize tests into subdirectories and have them run?</dt>
+<dd>
+
+<p>Let&#39;s take the following test directory structure:</p>
+
+<pre><code>    t/foo/sometest.t
+    t/bar/othertest.t
+    t/bar/baz/anothertest.t</code></pre>
+
+<p>Now, inside of the <code>WriteMakeFile()</code> function in your <i>Makefile.PL</i>, specify where your tests are located with the <code>test</code> directive:</p>
+
+<pre><code>    test =&gt; {TESTS =&gt; &#39;t/*.t t/*/*.t t/*/*/*.t&#39;}</code></pre>
+
+<p>The first entry in the string will run all tests in the top-level <i>t/</i> directory. The second will run all test files located in any subdirectory under <i>t/</i>. The third, runs all test files within any subdirectory within any other subdirectory located under <i>t/</i>.</p>
+
+<p>Note that you do not have to use wildcards. You can specify explicitly which subdirectories to run tests in:</p>
+
+<pre><code>    test =&gt; {TESTS =&gt; &#39;t/*.t t/foo/*.t t/bar/baz/*.t&#39;}</code></pre>
 
 </dd>
 <dt id="PREFIX-vs-INSTALL_BASE-from-Module::Build::Cookbook">PREFIX vs INSTALL_BASE from Module::Build::Cookbook</dt>
@@ -123,6 +155,44 @@
 <p>The behavior of PREFIX is complicated and depends closely on how your Perl is configured. The resulting installation locations will vary from machine to machine and even different installations of Perl on the same machine. Because of this, its difficult to document where prefix will place your modules.</p>
 
 <p>In contrast, INSTALL_BASE has predictable, easy to explain installation locations. Now that Module::Build and MakeMaker both have INSTALL_BASE there is little reason to use PREFIX other than to preserve your existing installation locations. If you are starting a fresh Perl installation we encourage you to use INSTALL_BASE. If you have an existing installation installed via PREFIX, consider moving it to an installation structure matching INSTALL_BASE and using that instead.</p>
+
+</dd>
+<dt id="Generating-.pm-files-with-substitutions-eg-of-VERSION">Generating *.pm files with substitutions eg of $VERSION</dt>
+<dd>
+
+<p>If you want to configure your module files for local conditions, or to automatically insert a version number, you can use EUMM&#39;s <code>PL_FILES</code> capability, where it will automatically run each <i>*.PL</i> it finds to generate its basename. For instance:</p>
+
+<pre><code>    # Makefile.PL:
+    require &#39;common.pl&#39;;
+    my $version = get_version();
+    my @pms = qw(Foo.pm);
+    WriteMakefile(
+      NAME =&gt; &#39;Foo&#39;,
+      VERSION =&gt; $version,
+      PM =&gt; { map { ($_ =&gt; &quot;\$(INST_LIB)/$_&quot;) } @pms },
+      clean =&gt; { FILES =&gt; join &#39; &#39;, @pms },
+    );
+
+    # common.pl:
+    sub get_version { &#39;0.04&#39; }
+    sub process { my $v = get_version(); s/__VERSION__/$v/g; }
+    1;
+
+    # Foo.pm.PL:
+    require &#39;common.pl&#39;;
+    $_ = join &#39;&#39;, &lt;DATA&gt;;
+    process();
+    my $file = shift;
+    open my $fh, &#39;&gt;&#39;, $file or die &quot;$file: $!&quot;;
+    print $fh $_;
+    __DATA__
+    package Foo;
+    our $VERSION = &#39;__VERSION__&#39;;
+    1;</code></pre>
+
+<p>You may notice that <code>PL_FILES</code> is not specified above, since the default of mapping each .PL file to its basename works well.</p>
+
+<p>If the generated module were architecture-specific, you could replace <code>$(INST_LIB)</code> above with <code>$(INST_ARCHLIB)</code>, although if you locate modules under <i>lib</i>, that would involve ensuring any <code>lib/</code> in front of the module location were removed.</p>
 
 </dd>
 </dl>
@@ -178,7 +248,7 @@
 </li>
 </ul>
 
-<p>Module::Build was long the official heir apparent to MakeMaker. The rate of both its development and adoption has slowed in recent years, though, and it is unclear what the future holds for it. That said, Module::Build set the stage for <i>something</i> to become the heir to MakeMaker. MakeMaker&#39;s maintainers have long said that it is a dead end and should be kept functioning, but not extended with new features. It&#39;s complicated enough as it is!</p>
+<p>Module::Build was long the official heir apparent to MakeMaker. The rate of both its development and adoption has slowed in recent years, though, and it is unclear what the future holds for it. That said, Module::Build set the stage for <i>something</i> to become the heir to MakeMaker. MakeMaker&#39;s maintainers have long said that it is a dead end and should be kept functioning, while being cautious about extending with new features.</p>
 
 </dd>
 </dl>
@@ -192,7 +262,11 @@
 
 <p>Often you want to manually set the $VERSION in the main module distribution because this is the version that everybody sees on CPAN and maybe you want to customize it a bit. But for all the other modules in your dist, $VERSION is really just bookkeeping and all that&#39;s important is it goes up every time the module is changed. Doing this by hand is a pain and you often forget.</p>
 
-<p>Simplest way to do it automatically is to use your version control system&#39;s revision number (you are using version control, right?).</p>
+<p>Probably the easiest way to do this is using <i>perl-reversion</i> in <a>Perl::Version</a>:</p>
+
+<pre><code>  perl-reversion -bump</code></pre>
+
+<p>If your version control system supports revision numbers (git doesn&#39;t easily), the simplest way to do it automatically is to use its revision number (you are using version control, right?).</p>
 
 <p>In CVS, RCS and SVN you use $Revision$ (see the documentation of your version control system for details). Every time the file is checked in the $Revision$ will be updated, updating your $VERSION.</p>
 
@@ -266,7 +340,7 @@
 <p>We recommend ptar from Archive::Tar not older than 1.66 with &#39;-C&#39; option.</p>
 
 </dd>
-<dt id="Which-zip-should-I-use-on-Windows-for-nd-make-zipdist">Which zip should I use on Windows for &#39;[nd]make zipdist&#39;?</dt>
+<dt id="Which-zip-should-I-use-on-Windows-for-ndg-make-zipdist">Which zip should I use on Windows for &#39;[ndg]make zipdist&#39;?</dt>
 <dd>
 
 <p>We recommend InfoZIP: <a href="http://www.info-zip.org/Zip.html">http://www.info-zip.org/Zip.html</a></p>
@@ -291,7 +365,26 @@
 <dt id="How-do-I-make-two-or-more-XS-files-coexist-in-the-same-directory">How do I make two or more XS files coexist in the same directory?</dt>
 <dd>
 
-<p>Sometimes you need to have two and more XS files in the same package. One way to go is to put them into separate directories, but sometimes this is not the most suitable solution. The following technique allows you to put two (and more) XS files in the same directory.</p>
+<p>Sometimes you need to have two and more XS files in the same package. There are three ways: <code>XSMULTI</code>, separate directories, and bootstrapping one XS from another.</p>
+
+<dl>
+
+<dt id="XSMULTI">XSMULTI</dt>
+<dd>
+
+<p>Structure your modules so they are all located under <i>lib</i>, such that <code>Foo::Bar</code> is in <i>lib/Foo/Bar.pm</i> and <i>lib/Foo/Bar.xs</i>, etc. Have your top-level <code>WriteMakefile</code> set the variable <code>XSMULTI</code> to a true value.</p>
+
+<p>Er, that&#39;s it.</p>
+
+</dd>
+<dt id="Separate-directories">Separate directories</dt>
+<dd>
+
+<p>Put each XS files into separate directories, each with their own <i>Makefile.PL</i>. Make sure each of those <i>Makefile.PL</i>s has the correct <code>CFLAGS</code>, <code>INC</code>, <code>LIBS</code> etc. You will need to make sure the top-level <i>Makefile.PL</i> refers to each of these using <code>DIR</code>.</p>
+
+</dd>
+<dt id="Bootstrapping">Bootstrapping</dt>
+<dd>
 
 <p>Let&#39;s assume that we have a package <code>Cool::Foo</code>, which includes <code>Cool::Foo</code> and <code>Cool::Bar</code> modules each having a separate XS file. First we use the following <i>Makefile.PL</i>:</p>
 
@@ -398,12 +491,104 @@
 
 <p>This tip has been brought to you by Nick Ing-Simmons and Stas Bekman.</p>
 
+<p>An alternative way to achieve this can be seen in <a>Gtk2::CodeGen</a> and <a>Glib::CodeGen</a>.</p>
+
 </dd>
 </dl>
 
+</dd>
+</dl>
+
+<h1 id="DESIGN">DESIGN</h1>
+
+<h2 id="MakeMaker-object-hierarchy-simplified">MakeMaker object hierarchy (simplified)</h2>
+
+<p>What most people need to know (superclasses on top.)</p>
+
+<pre><code>        ExtUtils::MM_Any
+                |
+        ExtUtils::MM_Unix
+                |
+        ExtUtils::MM_{Current OS}
+                |
+        ExtUtils::MakeMaker
+                |
+               MY</code></pre>
+
+<p>The object actually used is of the class MY which allows you to override bits of MakeMaker inside your Makefile.PL by declaring MY::foo() methods.</p>
+
+<h2 id="MakeMaker-object-hierarchy-real">MakeMaker object hierarchy (real)</h2>
+
+<p>Here&#39;s how it really works:</p>
+
+<pre><code>                                    ExtUtils::MM_Any
+                                            |
+                                    ExtUtils::MM_Unix
+                                            |
+    ExtUtils::Liblist::Kid          ExtUtils::MM_{Current OS} (if necessary)
+          |                                          |
+    ExtUtils::Liblist     ExtUtils::MakeMaker        |
+                    |     |                          |   
+                    |     |   |-----------------------
+                   ExtUtils::MM
+                   |          |
+        ExtUtils::MY         MM (created by ExtUtils::MM)
+        |                                   |
+        MY (created by ExtUtils::MY)        |
+                    .                       |
+                 (mixin)                    |
+                    .                       |
+               PACK### (created each call to ExtUtils::MakeMaker-&gt;new)</code></pre>
+
+<p>NOTE: Yes, this is a mess. See <a href="http://archive.develooper.com/makemaker@perl.org/msg00134.html">http://archive.develooper.com/makemaker@perl.org/msg00134.html</a> for some history.</p>
+
+<p>NOTE: When ExtUtils::MM is loaded it chooses a superclass for MM from amongst the ExtUtils::MM_* modules based on the current operating system.</p>
+
+<p>NOTE: ExtUtils::MM_{Current OS} represents one of the ExtUtils::MM_* modules except ExtUtils::MM_Any chosen based on your operating system.</p>
+
+<p>NOTE: The main object used by MakeMaker is a PACK### object, *not* ExtUtils::MakeMaker. It is, effectively, a subclass of MY, ExtUtils::Makemaker, ExtUtils::Liblist and ExtUtils::MM_{Current OS}</p>
+
+<p>NOTE: The methods in MY are simply copied into PACK### rather than MY being a superclass of PACK###. I don&#39;t remember the rationale.</p>
+
+<p>NOTE: ExtUtils::Liblist should be removed from the inheritence hiearchy and simply be called as functions.</p>
+
+<p>NOTE: Modules like File::Spec and Exporter have been omitted for clarity.</p>
+
+<h2 id="The-MM_-hierarchy">The MM_* hierarchy</h2>
+
+<pre><code>                                MM_Win95   MM_NW5
+                                     \      /
+ MM_BeOS  MM_Cygwin  MM_OS2  MM_VMS  MM_Win32  MM_DOS  MM_UWIN
+       \        |      |         |        /      /      /
+        ------------------------------------------------
+                           |       |
+                        MM_Unix    |
+                              |    |
+                              MM_Any</code></pre>
+
+<p>NOTE: Each direct MM_Unix subclass is also an MM_Any subclass. This is a temporary hack because MM_Unix overrides some MM_Any methods with Unix specific code. It allows the non-Unix modules to see the original MM_Any implementations.</p>
+
+<p>NOTE: Modules like File::Spec and Exporter have been omitted for clarity.</p>
+
 <h1 id="PATCHING">PATCHING</h1>
 
-<p>If you have a question you&#39;d like to see added to the FAQ (whether or not you have the answer) please send it to makemaker@perl.org.</p>
+<p>If you have a question you&#39;d like to see added to the FAQ (whether or not you have the answer) please either:</p>
+
+<ul>
+
+<li><p>make a pull request on the MakeMaker github repository</p>
+
+</li>
+<li><p>raise a issue on the MakeMaker github repository</p>
+
+</li>
+<li><p>file an RT ticket</p>
+
+</li>
+<li><p>email makemaker@perl.org</p>
+
+</li>
+</ul>
 
 <h1 id="AUTHOR">AUTHOR</h1>
 

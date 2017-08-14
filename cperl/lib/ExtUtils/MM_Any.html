@@ -28,6 +28,8 @@
           <li><a href="#can_dep_space">can_dep_space</a></li>
           <li><a href="#quote_dep">quote_dep</a></li>
           <li><a href="#split_command">split_command</a></li>
+          <li><a href="#make_type">make_type</a></li>
+          <li><a href="#stashmeta">stashmeta</a></li>
           <li><a href="#echo">echo</a></li>
           <li><a href="#wraplist">wraplist</a></li>
           <li><a href="#maketext_filter">maketext_filter</a></li>
@@ -50,6 +52,11 @@
           <li><a href="#dir_target">dir_target</a></li>
           <li><a href="#distdir">distdir</a></li>
           <li><a href="#dist_test">dist_test</a></li>
+          <li><a href="#xs_dlsyms_arg">xs_dlsyms_arg</a></li>
+          <li><a href="#xs_dlsyms_ext">xs_dlsyms_ext</a></li>
+          <li><a href="#xs_dlsyms_extra">xs_dlsyms_extra</a></li>
+          <li><a href="#xs_dlsyms_iterator">xs_dlsyms_iterator</a></li>
+          <li><a href="#xs_make_dlsyms">xs_make_dlsyms</a></li>
           <li><a href="#dynamic-o">dynamic (o)</a></li>
           <li><a href="#makemakerdflt_target">makemakerdflt_target</a></li>
           <li><a href="#manifypods_target">manifypods_target</a></li>
@@ -102,10 +109,14 @@
         <ul>
           <li><a href="#find_tests">find_tests</a></li>
           <li><a href="#find_tests_recursive">find_tests_recursive</a></li>
+          <li><a href="#find_tests_recursive_in">find_tests_recursive_in</a></li>
           <li><a href="#extra_clean_files">extra_clean_files</a></li>
           <li><a href="#installvars">installvars</a></li>
           <li><a href="#libscan">libscan</a></li>
           <li><a href="#platform_constants">platform_constants</a></li>
+          <li><a href="#post_constants-o">post_constants (o)</a></li>
+          <li><a href="#post_initialize-o">post_initialize (o)</a></li>
+          <li><a href="#postamble-o">postamble (o)</a></li>
         </ul>
       </li>
     </ul>
@@ -123,9 +134,10 @@
 
   package ExtUtils::MM_SomeOS;
 
-  # Temporarily, you have to subclass both. Put MM_Unix first.
+  # Temporarily, you have to subclass both.  Put MM_Any first.
+  require ExtUtils::MM_Any;
   require ExtUtils::MM_Unix;
-  @ISA = qw( ExtUtils::MM_Unix ExtUtils::MM_Any );</code></pre>
+  @ISA = qw(ExtUtils::MM_Any ExtUtils::Unix);</code></pre>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
@@ -244,6 +256,16 @@
 
 <pre><code>    $self-&gt;split_command($cmd, %pod2man);</code></pre>
 
+<h3 id="make_type">make_type</h3>
+
+<p>Returns a suitable string describing the type of makefile being written.</p>
+
+<h3 id="stashmeta">stashmeta</h3>
+
+<pre><code>    my @recipelines = $MM-&gt;stashmeta($text, $file);</code></pre>
+
+<p>Generates a set of <code>@recipelines</code> which will result in the literal <code>$text</code> ending up in literal <code>$file</code> when the recipe is executed. Call it once, with all the text you want in <code>$file</code>. Make macros will not be expanded, so the locations will be fixed at configure-time, not at build-time.</p>
+
 <h3 id="echo">echo</h3>
 
 <pre><code>    my @commands = $MM-&gt;echo($text);
@@ -260,7 +282,7 @@
 
 <p>Example of use:</p>
 
-<pre><code>    my $make = map &quot;\t$_\n&quot;, $MM-&gt;echo($text, $file);</code></pre>
+<pre><code>    my $make = join &#39;&#39;, map &quot;\t$_\n&quot;, $MM-&gt;echo($text, $file);</code></pre>
 
 <h3 id="wraplist">wraplist</h3>
 
@@ -323,10 +345,10 @@ CODE</code></pre>
     $oneliner = $MM-&gt;oneliner(&#39;print &quot;Foo\n&quot;&#39;);
     $make = &#39;$oneliner &gt; somefile&#39;;</code></pre>
 
-<p>All dollar signs must be doubled in the $perl_code if you expect them to be interpreted normally, otherwise it will be considered a make macro. Also remember to quote make macros else it might be used as a bareword. For example:</p>
+<p>Dollar signs in the $perl_code will be protected from make using the <code>quote_literal</code> method, unless they are recognised as being a make variable, <code>$(varname)</code>, in which case they will be left for make to expand. Remember to quote make macros else it might be used as a bareword. For example:</p>
 
 <pre><code>    # Assign the value of the $(VERSION_FROM) make macro to $vf.
-    $oneliner = $MM-&gt;oneliner(&#39;$$vf = &quot;$(VERSION_FROM)&quot;&#39;);</code></pre>
+    $oneliner = $MM-&gt;oneliner(&#39;$vf = &quot;$(VERSION_FROM)&quot;&#39;);</code></pre>
 
 <p>Its currently very simple and may be expanded sometime in the figure to include more flexible code and switches.</p>
 
@@ -417,6 +439,39 @@ CODE</code></pre>
 
 <p>Defines a target that produces the distribution in the scratch directory, and runs &#39;perl Makefile.PL; make ;make test&#39; in that subdirectory.</p>
 
+<h3 id="xs_dlsyms_arg">xs_dlsyms_arg</h3>
+
+<p>Returns command-line arg(s) to linker for file listing dlsyms to export. Defaults to returning empty string, can be overridden by e.g. AIX.</p>
+
+<h3 id="xs_dlsyms_ext">xs_dlsyms_ext</h3>
+
+<p>Returns file-extension for <code>xs_make_dlsyms</code> method&#39;s output file, including any &quot;.&quot; character.</p>
+
+<h3 id="xs_dlsyms_extra">xs_dlsyms_extra</h3>
+
+<p>Returns any extra text to be prepended to the <code>$extra</code> argument of <code>xs_make_dlsyms</code>.</p>
+
+<h3 id="xs_dlsyms_iterator">xs_dlsyms_iterator</h3>
+
+<p>Iterates over necessary shared objects, calling <code>xs_make_dlsyms</code> method for each with appropriate arguments.</p>
+
+<h3 id="xs_make_dlsyms">xs_make_dlsyms</h3>
+
+<pre><code>    $self-&gt;xs_make_dlsyms(
+        \%attribs, # hashref from %attribs in caller
+        &quot;$self-&gt;{BASEEXT}.def&quot;, # output file for Makefile target
+        &#39;Makefile.PL&#39;, # dependency
+        $self-&gt;{NAME}, # shared object&#39;s &quot;name&quot;
+        $self-&gt;{DLBASE}, # last ::-separated part of name
+        $attribs{DL_FUNCS} || $self-&gt;{DL_FUNCS} || {}, # various params
+        $attribs{FUNCLIST} || $self-&gt;{FUNCLIST} || [],
+        $attribs{IMPORTS} || $self-&gt;{IMPORTS} || {},
+        $attribs{DL_VARS} || $self-&gt;{DL_VARS} || [],
+        # optional extra param that will be added as param to Mksymlists
+    );</code></pre>
+
+<p>Utility method that returns Makefile snippet to call <code>Mksymlists</code>.</p>
+
 <h3 id="dynamic-o">dynamic (o)</h3>
 
 <p>Defines the dynamic target.</p>
@@ -443,9 +498,9 @@ CODE</code></pre>
 
 <h3 id="metafile_data">metafile_data</h3>
 
-<pre><code>    my @metadata_pairs = $mm-&gt;metafile_data(\%meta_add, \%meta_merge);</code></pre>
+<pre><code>    my $metadata_hashref = $mm-&gt;metafile_data(\%meta_add, \%meta_merge);</code></pre>
 
-<p>Returns the data which MakeMaker turns into the META.yml file and the META.json file.</p>
+<p>Returns the data which MakeMaker turns into the META.yml file and the META.json file. It is always in version 2.0 of the format.</p>
 
 <p>Values of %meta_add will overwrite any existing metadata in those keys. %meta_merge will be merged with them.</p>
 
@@ -723,7 +778,15 @@ CODE</code></pre>
 
 <pre><code>  my $tests = $mm-&gt;find_tests_recursive;</code></pre>
 
-<p>Returns a string suitable for feeding to the shell to return all tests in t/ but recursively.</p>
+<p>Returns a string suitable for feeding to the shell to return all tests in t/ but recursively. Equivalent to</p>
+
+<pre><code>  my $tests = $mm-&gt;find_tests_recursive_in(&#39;t&#39;);</code></pre>
+
+<h3 id="find_tests_recursive_in">find_tests_recursive_in</h3>
+
+<pre><code>  my $tests = $mm-&gt;find_tests_recursive_in($dir);</code></pre>
+
+<p>Returns a string suitable for feeding to the shell to return all tests in $dir recursively.</p>
 
 <h3 id="extra_clean_files">extra_clean_files</h3>
 
@@ -750,6 +813,18 @@ CODE</code></pre>
 <pre><code>    my $make_frag = $mm-&gt;platform_constants</code></pre>
 
 <p>Returns a make fragment defining all the macros initialized in init_platform() rather than put them in constants().</p>
+
+<h3 id="post_constants-o">post_constants (o)</h3>
+
+<p>Returns an empty string per default. Dedicated to overrides from within Makefile.PL after all constants have been defined.</p>
+
+<h3 id="post_initialize-o">post_initialize (o)</h3>
+
+<p>Returns an empty string per default. Used in Makefile.PLs to add some chunk of text to the Makefile after the object is initialized.</p>
+
+<h3 id="postamble-o">postamble (o)</h3>
+
+<p>Returns an empty string. Can be used in Makefile.PLs to write some text to the Makefile at the end.</p>
 
 <h1 id="AUTHOR">AUTHOR</h1>
 

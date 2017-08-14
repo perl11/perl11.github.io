@@ -105,6 +105,18 @@
 
 <p>MakeMaker also checks for any files matching glob(&quot;t/*.t&quot;). It will execute all matching files in alphabetical order via the <a href="/cperl/lib/Test/Harness.html">Test::Harness</a> module with the <code>-I</code> switches set correctly.</p>
 
+<p>You can also organize your tests within subdirectories in the <i>t/</i> directory. To do so, use the <i>test</i> directive in your <i>Makefile.PL</i>. For example, if you had tests in:</p>
+
+<pre><code>    t/foo
+    t/foo/bar</code></pre>
+
+<p>You could tell make to run tests in both of those directories with the following directives:</p>
+
+<pre><code>    test =&gt; {TESTS =&gt; &#39;t/*/*.t t/*/*/*.t&#39;}
+    test =&gt; {TESTS =&gt; &#39;t/foo/*.t t/foo/bar/*.t&#39;}</code></pre>
+
+<p>The first will run all test files in all first-level subdirectories and all subdirectories they contain. The second will run tests in only the <i>t/foo</i> and <i>t/foo/bar</i>.</p>
+
 <p>If you&#39;d like to see the raw output of your tests, set the <code>TEST_VERBOSE</code> variable to true.</p>
 
 <pre><code>  make test TEST_VERBOSE=1</code></pre>
@@ -274,7 +286,7 @@
 
 <p>Extensions may be built either using the contents of the perl source directory tree or from the installed perl library. The recommended way is to build extensions after you have run &#39;make install&#39; on perl itself. You can do that in any directory on your hard disk that is not below the perl source tree. The support for extensions below the ext directory of the perl distribution is only good for the standard extensions that come with perl.</p>
 
-<p>If an extension is being built below the <code>ext/</code> <code>cpan/</code> or <code>dist/</code> directory of the perl source and PERL_CORE=1 is defined then MakeMaker will set PERL_SRC automatically (e.g., <code>../..</code>). If PERL_SRC is defined and the extension is recognized as a standard extension, then other variables default to the following:</p>
+<p>If an extension is being built below the <code>ext/</code> directory of the perl source then MakeMaker will set PERL_SRC automatically (e.g., <code>../..</code>). If PERL_SRC is defined and the extension is recognized as a standard extension, then other variables default to the following:</p>
 
 <pre><code>  PERL_INC     = PERL_SRC
   PERL_LIB     = PERL_SRC/lib
@@ -967,7 +979,11 @@
 <dt id="PERL">PERL</dt>
 <dd>
 
-<p>Perl binary for tasks that can be done by miniperl.</p>
+<p>Perl binary for tasks that can be done by miniperl. If it contains spaces or other shell metacharacters, it needs to be quoted in a way that protects them, since this value is intended to be inserted in a shell command line in the Makefile. E.g.:</p>
+
+<pre><code>  # Perl executable lives in &quot;C:/Program Files/Perl/bin&quot;
+  # Normally you don&#39;t need to set this yourself!
+  $ perl Makefile.PL PERL=&#39;&quot;C:/Program Files/Perl/bin/perl.exe&quot; -w&#39;</code></pre>
 
 </dd>
 <dt id="PERL_CORE">PERL_CORE</dt>
@@ -1068,13 +1084,15 @@
 <dt id="PL_FILES">PL_FILES</dt>
 <dd>
 
-<p>MakeMaker can run programs to generate files for you at build time. By default any file named *.PL (except Makefile.PL and Build.PL) in the top level directory will be assumed to be a Perl program and run passing its own basename in as an argument. For example...</p>
+<p>MakeMaker can run programs to generate files for you at build time. By default any file named *.PL (except Makefile.PL and Build.PL) in the top level directory will be assumed to be a Perl program and run passing its own basename in as an argument. This basename is actually a build target, and there is an intention, but not a requirement, that the *.PL file make the file passed to to as an argument. For example...</p>
 
 <pre><code>    perl foo.PL foo</code></pre>
 
 <p>This behavior can be overridden by supplying your own set of files to search. PL_FILES accepts a hash ref, the key being the file to run and the value is passed in as the first argument when the PL file is run.</p>
 
-<pre><code>    PL_FILES =&gt; {&#39;bin/foobar.PL&#39; =&gt; &#39;bin/foobar&#39;}</code></pre>
+<pre><code>    PL_FILES =&gt; {&#39;bin/foobar.PL&#39; =&gt; &#39;bin/foobar&#39;}
+
+    PL_FILES =&gt; {&#39;foo.PL&#39; =&gt; &#39;foo.c&#39;}</code></pre>
 
 <p>Would run bin/foobar.PL like this:</p>
 
@@ -1089,7 +1107,7 @@
 <pre><code>    perl bin/foobar.PL bin/foobar1
     perl bin/foobar.PL bin/foobar2</code></pre>
 
-<p>PL files are normally run <b>after</b> pm_to_blib and include INST_LIB and INST_ARCH in their <code>@INC</code>, so the just built modules can be accessed... unless the PL file is making a module (or anything else in PM) in which case it is run <b>before</b> pm_to_blib and does not include INST_LIB and INST_ARCH in its <code>@INC</code>. This apparently odd behavior is there for backwards compatibility (and it&#39;s somewhat DWIM).</p>
+<p>PL files are normally run <b>after</b> pm_to_blib and include INST_LIB and INST_ARCH in their <code>@INC</code>, so the just built modules can be accessed... unless the PL file is making a module (or anything else in PM) in which case it is run <b>before</b> pm_to_blib and does not include INST_LIB and INST_ARCH in its <code>@INC</code>. This apparently odd behavior is there for backwards compatibility (and it&#39;s somewhat DWIM). The argument passed to the .PL is set up as a target to build in the Makefile. In other sections such as <code>postamble</code> you can specify a dependency on the filename/argument that the .PL is supposed (or will have, now that that is is a dependency) to generate. Note the file to be generated will still be generated and the .PL will still run even without an explicit dependency created by you, since the <code>all</code> target still depends on running all eligible to run.PL files.</p>
 
 </dd>
 <dt id="PM">PM</dt>
@@ -1113,17 +1131,17 @@
 <dt id="PM_FILTER">PM_FILTER</dt>
 <dd>
 
-<p>A filter program, in the traditional Unix sense (input from stdin, output to stdout) that is passed on each .pm file during the build (in the pm_to_blib() phase). It is empty by default, meaning no filtering is done.</p>
+<p>A filter program, in the traditional Unix sense (input from stdin, output to stdout) that is passed on each .pm file during the build (in the pm_to_blib() phase). It is empty by default, meaning no filtering is done. You could use:</p>
 
-<p>Great care is necessary when defining the command if quoting needs to be done. For instance, you would need to say:</p>
+<pre><code>  PM_FILTER =&gt; &#39;perl -ne &quot;print unless /^\\#/&quot;&#39;,</code></pre>
 
-<pre><code>  {&#39;PM_FILTER&#39; =&gt; &#39;grep -v \\&quot;^\\#\\&quot;&#39;}</code></pre>
+<p>to remove all the leading comments on the fly during the build. In order to be as portable as possible, please consider using a Perl one-liner rather than Unix (or other) utilities, as above. The # is escaped for the Makefile, since what is going to be generated will then be:</p>
 
-<p>to remove all the leading comments on the fly during the build. The extra \\ are necessary, unfortunately, because this variable is interpolated within the context of a Perl program built on the command line, and double quotes are what is used with the -e switch to build that command line. The # is escaped for the Makefile, since what is going to be generated will then be:</p>
+<pre><code>  PM_FILTER = perl -ne &quot;print unless /^\#/&quot;</code></pre>
 
-<pre><code>  PM_FILTER = grep -v \&quot;^\#\&quot;</code></pre>
+<p>Without the \ before the #, we&#39;d have the start of a Makefile comment, and the macro would be incorrectly defined.</p>
 
-<p>Without the \\ before the #, we&#39;d have the start of a Makefile comment, and the macro would be incorrectly defined.</p>
+<p>You will almost certainly be better off using the <code>PL_FILES</code> system, instead. See above, or the <a href="/cperl/lib/ExtUtils/MakeMaker/FAQ.html">ExtUtils::MakeMaker::FAQ</a> entry.</p>
 
 </dd>
 <dt id="POLLUTE">POLLUTE</dt>
@@ -1185,7 +1203,7 @@
 <dt id="PREREQ_PM">PREREQ_PM</dt>
 <dd>
 
-<p>A hash of modules that are needed to run your module. The keys are the module names ie. Test::More, and the minimum version is the value. If the required version number is 0 any version will do.</p>
+<p>A hash of modules that are needed to run your module. The keys are the module names ie. Test::More, and the minimum version is the value. If the required version number is 0 any version will do. The versions given may be a Perl v-string (see <a href="/cperl/lib/version.html">version</a>) or a range (see <a href="/cperl/lib/CPAN/Meta/Requirements.html">CPAN::Meta::Requirements</a>).</p>
 
 <p>This will go into the <code>requires</code> field of your <i>META.yml</i> and the <code>runtime</code> of the <code>prereqs</code> field of your <i>META.json</i>.</p>
 
@@ -1350,6 +1368,40 @@
 <p>The .c files will automatically be included in the list of files deleted by a make clean.</p>
 
 </dd>
+<dt id="XSBUILD">XSBUILD</dt>
+<dd>
+
+<p>Hashref with options controlling the operation of <code>XSMULTI</code>:</p>
+
+<pre><code>  {
+    xs =&gt; {
+        all =&gt; {
+            # options applying to all .xs files for this distribution
+        },
+        &#39;lib/Class/Name/File&#39; =&gt; { # specifically for this file
+            DEFINE =&gt; &#39;-Dfunktastic&#39;, # defines for only this file
+            INC =&gt; &quot;-I$funkyliblocation&quot;, # include flags for only this file
+            # OBJECT =&gt; &#39;lib/Class/Name/File$(OBJ_EXT)&#39;, # default
+            LDFROM =&gt; &quot;lib/Class/Name/File\$(OBJ_EXT) $otherfile\$(OBJ_EXT)&quot;, # what&#39;s linked
+        },
+    },
+  }</code></pre>
+
+<p>Note <code>xs</code> is the file-extension. More possibilities may arise in the future. Note that object names are specified without their XS extension.</p>
+
+<p><code>LDFROM</code> defaults to the same as <code>OBJECT</code>. <code>OBJECT</code> defaults to, for <code>XSMULTI</code>, just the XS filename with the extension replaced with the compiler-specific object-file extension.</p>
+
+<p>The distinction between <code>OBJECT</code> and <code>LDFROM</code>: <code>OBJECT</code> is the make target, so make will try to build it. However, <code>LDFROM</code> is what will actually be linked together to make the shared object or static library (SO/SL), so if you override it, make sure it includes what you want to make the final SO/SL, almost certainly including the XS basename with <code>$(OBJ_EXT)</code> appended.</p>
+
+</dd>
+<dt id="XSMULTI">XSMULTI</dt>
+<dd>
+
+<p>When this is set to <code>1</code>, multiple XS files may be placed under <i>lib/</i> next to their corresponding <code>*.pm</code> files (this is essential for compiling with the correct <code>VERSION</code> values). This feature should be considered experimental, and details of it may change.</p>
+
+<p>This feature was inspired by, and small portions of code copied from, <a>ExtUtils::MakeMaker::BigHelper</a>. Hopefully this feature will render that module mainly obsolete.</p>
+
+</dd>
 <dt id="XSOPT">XSOPT</dt>
 <dd>
 
@@ -1446,6 +1498,8 @@
 <p><code>RECURSIVE_TEST_FILES</code> can be used to include all directories recursively under <code>t</code> that contain <code>.t</code> files. It will be ignored if you provide your own <code>TESTS</code> attribute, defaults to false.</p>
 
 <pre><code>  {RECURSIVE_TEST_FILES=&gt;1}</code></pre>
+
+<p>This is supported since 6.76</p>
 
 </dd>
 <dt id="tool_autosplit">tool_autosplit</dt>
@@ -1630,11 +1684,11 @@
 
 <p>Long plaguing users of MakeMaker based modules has been the problem of getting basic information about the module out of the sources <i>without</i> running the <i>Makefile.PL</i> and doing a bunch of messy heuristics on the resulting <i>Makefile</i>. Over the years, it has become standard to keep this information in one or more CPAN Meta files distributed with each distribution.</p>
 
-<p>The original format of CPAN Meta files was <a href="/cperl/lib/TAP/Parser/Result/YAML.html">YAML</a> and the corresponding file was called <i>META.yml</i>. In 2010, version 2 of the <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a> was released, which mandates JSON format for the metadata in order to overcome certain compatibility issues between YAML serializers and to avoid breaking older clients unable to handle a new version of the spec. The <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> library is now standard for accessing old and new-style Meta files.</p>
+<p>The original format of CPAN Meta files was <a href="/cperl/lib/CPAN/Meta/YAML.html">YAML</a> and the corresponding file was called <i>META.yml</i>. In 2010, version 2 of the <a href="/cperl/lib/CPAN/Meta/Spec.html">CPAN::Meta::Spec</a> was released, which mandates JSON format for the metadata in order to overcome certain compatibility issues between YAML serializers and to avoid breaking older clients unable to handle a new version of the spec. The <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> library is now standard for accessing old and new-style Meta files.</p>
 
 <p>If <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> is installed, MakeMaker will automatically generate <i>META.json</i> and <i>META.yml</i> files for you and add them to your <i>MANIFEST</i> as part of the &#39;distdir&#39; target (and thus the &#39;dist&#39; target). This is intended to seamlessly and rapidly populate CPAN with module meta-data. If you wish to shut this feature off, set the <code>NO_META</code> <code>WriteMakefile()</code> flag to true.</p>
 
-<p>At the 2008 QA Hackathon in Oslo, Perl module toolchain maintainers agrees to use the CPAN Meta format to communicate post-configuration requirements between toolchain components. These files, <i>MYMETA.json</i> and <i>MYMETA.yml</i>, are generated when <i>Makefile.PL</i> generates a <i>Makefile</i> (if <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> is installed). Clients like <a href="/cperl/lib/CPAN.html">CPAN</a> or <a>CPANPLUS</a> will read this files to see what prerequisites must be fulfilled before building or testing the distribution. If you with to shut this feature off, set the <code>NO_MYMETA</code> <code>WriteMakeFile()</code> flag to true.</p>
+<p>At the 2008 QA Hackathon in Oslo, Perl module toolchain maintainers agreed to use the CPAN Meta format to communicate post-configuration requirements between toolchain components. These files, <i>MYMETA.json</i> and <i>MYMETA.yml</i>, are generated when <i>Makefile.PL</i> generates a <i>Makefile</i> (if <a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> is installed). Clients like <a href="/cperl/lib/CPAN.html">CPAN</a> or <a>CPANPLUS</a> will read these files to see what prerequisites must be fulfilled before building or testing the distribution. If you wish to shut this feature off, set the <code>NO_MYMETA</code> <code>WriteMakeFile()</code> flag to true.</p>
 
 <h2 id="Disabling-an-extension">Disabling an extension</h2>
 
@@ -1662,6 +1716,17 @@
 <p>If <code>prompt()</code> detects that it is not running interactively and there is nothing on STDIN or if the PERL_MM_USE_DEFAULT environment variable is set to true, the $default will be used without prompting. This prevents automated processes from blocking on user input.</p>
 
 <p>If no $default is provided an empty string will be used instead.</p>
+
+</dd>
+<dt id="os_unsupported">os_unsupported</dt>
+<dd>
+
+<pre><code>  os_unsupported();
+  os_unsupported if $^O eq &#39;MSWin32&#39;;</code></pre>
+
+<p>The <code>os_unsupported()</code> function provides a way to correctly exit your <code>Makefile.PL</code> before calling <code>WriteMakefile</code>. It is essentially a <code>die</code> with the message &quot;OS unsupported&quot;.</p>
+
+<p>This is supported since 7.26</p>
 
 </dd>
 </dl>

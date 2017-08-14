@@ -84,6 +84,8 @@
 
 <p>The Windows SDK can be downloaded from <a href="http://www.microsoft.com/">http://www.microsoft.com/</a>. The MinGW64 compiler is available at <a href="http://mingw-w64.org">http://mingw-w64.org</a>. The latter is actually a cross-compiler targeting Win64. There&#39;s also a trimmed down compiler (no java, or gfortran) suitable for building perl available at: <a href="http://strawberryperl.com/package/kmx/64_gcctoolchain/">http://strawberryperl.com/package/kmx/64_gcctoolchain/</a></p>
 
+<p>The recommended way is to install strawberry perl (32 or 64bit), and use <i>c:\strawberry\c</i> as the mingw root CCHOME.</p>
+
 <p>NOTE: If you&#39;re using a 32-bit compiler to build perl on a 64-bit Windows operating system, then you should set the WIN64 environment variable to &quot;undef&quot;. Also, the trimmed down compiler only passes tests when USE_ITHREADS *= define (as opposed to undef) and when the CFG *= Debug line is commented out.</p>
 
 <p>This port fully supports MakeMaker (the set of modules that is used to build extensions to perl). Therefore, you should be able to build and install most extensions found in the CPAN sites. See <a href="#Usage-Hints-for-Perl-on-Windows">&quot;Usage Hints for Perl on Windows&quot;</a> below for general hints about this.</p>
@@ -252,10 +254,20 @@
 <p>You also need dmake. See <a href="#Make">&quot;Make&quot;</a> above on how to get it.</p>
 
 </dd>
+<dt id="MinGW-from-strawberry-perl">MinGW from strawberry perl</dt>
+<dd>
+
+<p>Strawberry perl comes with a full mingw-w64 enviroment, ready to build cperl on 32bit or 64bit Windows.</p>
+
+<p><a href="http://strawberryperl.com/">http://strawberryperl.com/</a></p>
+
+<p>Check that your path does not to include any cygwin or mingw paths, that the strawberry paths are included (esp. c:\strawberry\c\bin) and just use <code>gmake -C win32</code>.</p>
+
+</dd>
 <dt id="Intel-C-Compiler">Intel C++ Compiler</dt>
 <dd>
 
-<p>Experimental support for using Intel C++ Compiler has been added. Edit win32/Makefile and pick the correct CCTYPE for the Visual C that Intel C was installed into. Also uncomment __ICC to enable Intel C on Visual C support. To set up the build enviroment, from the Start Menu run IA-32 Visual Studio 20__ mode or Intel 64 Visual Studio 20__ mode as appropriate. Then run nmake as usually in that prompt box.</p>
+<p>Experimental support for using Intel C++ Compiler has been added. Edit <i>win32/Makefile</i> and pick the correct <code>CCTYPE</code> for the Visual C that Intel C was installed into. Also uncomment <code>__ICC</code> to enable Intel C on Visual C support. To set up the build enviroment, from the Start Menu run IA-32 Visual Studio 20__ mode or Intel 64 Visual Studio 20__ mode as appropriate. Then run <i>nmake</i> as usually in that prompt box.</p>
 
 <p>Only Intel C++ Compiler v12.1 has been tested. Other versions probably will work. Using Intel C++ Compiler instead of Visual C has the benefit of C99 compatibility which is needed by some CPAN XS modules, while maintaining compatibility with Visual C object code and Visual C debugging infrastructure unlike GCC.</p>
 
@@ -266,10 +278,12 @@
 
 <ul>
 
-<li><p>Make sure you are in the &quot;win32&quot; subdirectory under the perl toplevel. This directory contains a &quot;Makefile&quot; that will work with versions of nmake that come with Visual C++ or the Windows SDK, and a dmake &quot;makefile.mk&quot; that will work for all supported compilers. The defaults in the dmake makefile are setup to build using MinGW/gcc.</p>
+<li><p>Make sure you are in the &quot;win32&quot; subdirectory under the perl toplevel. This directory contains a &quot;Makefile&quot; that will work with versions of nmake that come with Visual C++ or the Windows SDK, a gmake &quot;GNUmakefile&quot; for mingw, and a dmake &quot;makefile.mk&quot; that will work for all supported compilers. The defaults in the dmake makefile are setup to build using MinGW/gcc.</p>
+
+<p>The default in the GNUmakefile are set to build using the strawberry perl mingw toolchain, i.e. <i>CCHOME=c:\strawberry\c</i>.</p>
 
 </li>
-<li><p>Edit the makefile.mk (or Makefile, if you&#39;re using nmake) and change the values of INST_DRV and INST_TOP. You can also enable various build flags. These are explained in the makefiles.</p>
+<li><p>Edit the makefile.mk (or GNUmakefile or Makefile) and change the values of INST_DRV and INST_TOP. You can also enable various build flags. These are explained in the makefiles. You can also override the INST_TOP and INST_DRV setting on the command-line. e.g. <code>nmake INST_TOP=\cperl INST_DRV=d:</code></p>
 
 <p>Note that it is generally not a good idea to try to build a perl with INST_DRV and INST_TOP set to a path that already exists from a previous build. In particular, this may cause problems with the lib/ExtUtils/t/Embed.t test, which attempts to build a test program and may end up building against the installed perl&#39;s lib/CORE directory rather than the one being tested.</p>
 
@@ -288,9 +302,9 @@
 <p>Be sure to read the instructions near the top of the makefiles carefully.</p>
 
 </li>
-<li><p>Type &quot;dmake&quot; (or &quot;nmake&quot; if you are using that make).</p>
+<li><p>Type &quot;gmake&quot; or &quot;dmake&quot; or &quot;nmake&quot; if you are using that make.</p>
 
-<p>This should build everything. Specifically, it will create perl.exe, perl525.dll at the perl toplevel, and various other extension dll&#39;s under the lib\auto directory. If the build fails for any reason, make sure you have done the previous steps correctly.</p>
+<p>This should build everything. Specifically, it will create cperl.exe, cperl527.dll at the perl toplevel, and various other extension dll&#39;s under the lib\auto directory. If the build fails for any reason, make sure you have done the previous steps correctly.</p>
 
 <p>To try dmake&#39;s parallel mode, type &quot;dmake -P2&quot;, where 2, is the maximum number of parallel jobs you want to run. A number of things in the build process will run in parallel, but there are serialization points where you will see just 1 CPU maxed out. This is normal.</p>
 
@@ -301,7 +315,7 @@
 
 <h2 id="Testing-Perl-on-Windows">Testing Perl on Windows</h2>
 
-<p>Type &quot;dmake test&quot; (or &quot;nmake test&quot;). This will run most of the tests from the testsuite (many tests will be skipped).</p>
+<p>Type &quot;gmake test&quot;, (or &quot;dmake test&quot; or &quot;nmake test&quot;). This will run most of the tests from the testsuite (many tests will be skipped).</p>
 
 <p>There should be no test failures.</p>
 
@@ -319,11 +333,11 @@
 
 <h2 id="Installation-of-Perl-on-Windows">Installation of Perl on Windows</h2>
 
-<p>Type &quot;dmake install&quot; (or &quot;nmake install&quot;). This will put the newly built perl and the libraries under whatever <code>INST_TOP</code> points to in the Makefile. It will also install the pod documentation under <code>$INST_TOP\$INST_VER\lib\pod</code> and HTML versions of the same under <code>$INST_TOP\$INST_VER\lib\pod\html</code>.</p>
+<p>Type &quot;gmake install&quot; (or &quot;dmake install&quot; or &quot;nmake install&quot;). This will put the newly built perl and the libraries under whatever <code>INST_TOP</code> points to in the Makefile. It will also install the pod documentation under <code>$INST_TOP\$INST_VER\lib\pod</code> and HTML versions of the same under <code>$INST_TOP\$INST_VER\lib\pod\html</code>.</p>
 
 <p>To use the Perl you just installed you will need to add a new entry to your PATH environment variable: <code>$INST_TOP\bin</code>, e.g.</p>
 
-<pre><code>    set PATH=c:\perl\bin;%PATH%</code></pre>
+<pre><code>    set PATH=c:\cperl\bin;%PATH%</code></pre>
 
 <p>If you opted to uncomment <code>INST_VER</code> and <code>INST_ARCH</code> in the makefile then the installation structure is a little more complicated and you will need to add two new PATH components instead: <code>$INST_TOP\$INST_VER\bin</code> and <code>$INST_TOP\$INST_VER\bin\$ARCHNAME</code>, e.g.</p>
 
