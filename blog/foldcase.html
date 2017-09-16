@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>The sad state case of foldcase and string comparisons // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="The sad state case of foldcase and string comparisons" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/foldcase.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">The sad state case of foldcase and string comparisons</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/foldcase.html" class="article-date">
+                <time datetime='2017-09-16T00:00:00.000&#43;00:00' itemprop="datePublished">2017-09-16</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<p>You probably heard about case-folding or <strong>foldcase</strong> before.
+Unicode defines CaseFolding mappings for some upper-case characters,
+which in full casefolding mode will expand some exotic characters
+to larger sequences. In simple mode it will do 1:1 <code>tolower()</code> mappings.</p>
+
+<hr />
+
+<p>The <strong>perl</strong> documentation has this to say:</p>
+
+<h2 id="fc"><strong>fc</strong></h2>
+
+<p><em>Returns the casefolded version of EXPR. This is the internal function
+implementing the &ldquo;\F&rdquo; escape in double-quoted strings.</em></p>
+
+<p><em>Casefolding is the process of mapping strings to a form where case
+differences are erased; comparing two strings in their casefolded form
+is effectively a way of asking if two strings are equal, regardless of
+case.</em></p>
+
+<p><em>Roughly, if you ever found yourself writing this</em></p>
+
+<pre><code>lc($this) eq lc($that)    # Wrong!
+    # or
+uc($this) eq uc($that)    # Also wrong!
+    # or
+$this =~ /^\Q$that\E\z/i  # Right!
+</code></pre>
+
+<p><em>Now you can write</em></p>
+
+<pre><code>fc($this) eq fc($that)
+</code></pre>
+
+<p><em>And get the correct results.</em></p>
+
+<p>So far there is no bug and everything is fine.</p>
+
+<hr />
+
+<p><strong>Unicode</strong> has this say:</p>
+
+<p><a href="http://www.unicode.org/reports/tr44/#Casemapping">http://www.unicode.org/reports/tr44/#Casemapping</a></p>
+
+<p><em>Case for bicameral scripts and case mapping of characters are
+complicated topics in the Unicode Standard—both because of their
+inherent algorithmic complexity and because of the number of
+characters and special edge cases involved.</em></p>
+
+<p><em>This section provides a brief roadmap to discussions about these
+topics, and specifications and definitions in the standard, as well as
+explaining which case-related properties are defined in the UCD.</em></p>
+
+<p><a href="http://unicode.org/reports/tr21/tr21-5.html#Caseless_Matching">http://unicode.org/reports/tr21/tr21-5.html#Caseless_Matching</a></p>
+
+<p><em>The <a href="http://www.unicode.org/reports/tr44/tr44-20.html#Casemapping">CaseFolding</a> file
+in the Unicode Character Database is used for performing
+locale-independent case-folding. This file is generated from the case
+mappings in the Unicode Character Database, using both the
+single-character mappings and the multi-character mappings. It folds
+all characters having different case forms together into a common
+form. To compare two strings for caseless matching, you can fold each
+string using this data, and then use a binary comparison.</em></p>
+
+<p><em>Generally, where case distinctions are not important, other distinctions between Unicode characters (in particular, compatibility distinctions) are ignored as well. In such circumstances, text can be normalized to Normalization Form KC or KD after case-folding, to produce a normalized form that erases both compatibility distinctions and case distinctions. (See UTR #15: Unicode Normalization Forms for more information.) However, such normalization should generally only be done on a restricted repertoire, such as identifiers (alphanumerics).</em></p>
+
+<hr />
+
+<p><strong>w3.org</strong> gets closer to the real problem:</p>
+
+<p><a href="https://www.w3.org/International/wiki/Case_folding">https://www.w3.org/International/wiki/Case_folding</a></p>
+
+<p><em>One of the most common things that software developers do is &ldquo;normalize&rdquo; text for the purposes of comparison. And one of the most basic ways that developers are taught to normalize text for comparison is to compare it in a &ldquo;case insensitive&rdquo; fashion. In other cases, developers want to compare strings in a case sensitive manner. Unicode defines upper, lower, and title case properties for characters, plus special cases that impact specific language&rsquo;s use of text.</em></p>
+
+<p><em>Many developers believe that that a case-insensitive comparison is achieved by mapping both strings being compared to either upper- or lowercase and then comparing the resulting bytes. The existence of functions such as &lsquo;strcasecmp&rsquo; in some C libraries, for example, or common examples in programming books reinforces this belief:</em></p>
+
+<pre><code>if (strcmp(toupper(foo),toupper(bar))==0) { // a typical caseless comparison
+</code></pre>
+
+<p><em>Alas, this model of case insensitive comparison breaks down with some languages. It also fails to consider other textual differences that can affect text. For example, [Unicode Normalization] could be needed to even out differences in e.g. non-Latin texts.</em></p>
+
+<p><em>This document introduces case-folding and case insensitivity; provides some examples of how it is implemented in Unicode; and gives a few guidelines for spec writers and others who with to reference comparison using case folding.</em> &hellip;</p>
+
+<p><em>Consider Unicode Normalization in addition to case folding. If you mean to find text that is semantically equal, you may need to normalize the text beyond just case folding it. Note that Unicode Normalization does not include case folding: these are separate operations.</em></p>
+
+<hr />
+
+<p>As you might have understood from now, the foldcase API needs to add a
+normalization step to the case-folding step.</p>
+
+<p>case-folding expands certain characters to longer strings, NFD
+normalization even more, NFC normalization will contract them at last
+with some additional memory and cpu costs.</p>
+
+<p>Without normalization you will not be able to compare multi-byte
+strings properly.</p>
+
+<p>perl has this bug since 5.16. Every other language has this bug also,
+but doesn’t brag about proper full foldcase’ing in its docs as perl
+does.</p>
+
+<p>For performance cperl and safeclib (my C11 libc) implements <code>fc</code> with
+NFD. (Same as Apple in its HPFS btw).</p>
+
+<p>Note that not even libc implements a proper <code>wcsfc()</code> or
+<code>wcsnorm()</code>. You cannot compare multi-byte strings in POSIX, only with
+gnulib or ICU, but they are massively over-architectured, still
+unusable for e.g. coreutils. E.g. grep would really like to find
+strings. Only cperl will do so properly after <a href="https://github.com/perl11/cperl/issues/332">#332</a> has landed (it&rsquo;s
+already implemented in safeclib). awk, grep, perl5, perl6, ruby,
+python, go, silversearch, go platinum searcher, rust ripgrep, &hellip; do
+not. They all fail on normalization issues, and with grep you don&rsquo;t
+know if it&rsquo;s multi-byte patched at all.</p>
+
+<p>safeclib is the first library to implement proper foldcasing in
+C. FreeBSD will take it from there.</p>
+
+<h2 id="details">Details</h2>
+
+<p>Unicode is pretty established, some use it with the <code>wchar_t</code> API in
+POSIX, some more as non-POSIX via external non-standardized utf-8 libraries.
+The defacto standard there is <a href="https://github.com/JuliaLang/utf8proc">utf8proc</a>, which is now maintained with julia.
+This is highly recommended.</p>
+
+<p>gnulib found out about this problem when people started asking for
+multi-byte support in the coreutils. People would really like to find
+strings also in foreign documents.  So Bruno Haible, the author of
+gnulib (and clisp) added libunistring, with support for u32 and u16
+and later even u8 (i.e. utf-8 not single-bytes).</p>
+
+<p>The first problem is that gnulib is GPL-infected, the second is that
+libunistring is too big and too slow to be usable for the coreutils.
+Suse and Redhat added the unsupported multi-byte patch for some
+years now, but the situation is still unsolved, and you frequently
+hear about 8x slower basic utilities with utf-8 locales.</p>
+
+<h2 id="multi-byte-support">Multi-byte support</h2>
+
+<p>A good overview is this document:
+<a href="http://crashcourse.housegordon.org/coreutils-multibyte-support.html">http://crashcourse.housegordon.org/coreutils-multibyte-support.html</a></p>
+
+<h2 id="so-what-s-the-technical-problem">So what&rsquo;s the technical problem?</h2>
+
+<p>Technically you need to search in a range of integers from <code>1</code> to
+<code>0x10fff</code> for case-folding expansions, and then for composed
+characters which need to be decomposed.</p>
+
+<p>There are several established ways to search an integer in a known
+static large sparse array:</p>
+
+<ul>
+<li><p><strong>linear search</strong> is done by musl libc in <a href="https://github.com/rurban/musl/commits/master"><code>towctrans.c</code></a>, and musl even does
+not stop searching after it cannot find the integer anymore. It always
+does a full range sweep over all ranges.
+I&rsquo;ve fixed that, and musl is now as fast as glibc in case transformations.</p></li>
+
+<li><p>perl5 also does linear search, but does it even more stupid than
+musl. It&rsquo;s about 8000x slower than a normal search for unicode
+properties as implemented in cperl. cperl needed it faster, because
+cperl supports unicode indentifiers, and such identifiers need to be
+normalized.  perl does not have case-insensitive identifiers, so
+case-mapping is not done yet, it will be implemented in the next
+month for the <code>m//i</code> (case-insensitive regexp match) case. Currently
+when perl needs to do case-transformation it loads some perl source
+code from generated mapping tables, from a big file, transforms this
+into an array, transforms this into a reverse range array, stores
+this reverse range array in some global perl data as INVLIST
+datatype, which is btw. not shared amongst threads or forks, and
+then searches via slow perl source ops in these ranges. You cannot
+possible think of a slower thing to do. Normally you would prepare
+such tables as C code and then generate s ahared library for
+it. Only the external library Encode does it this way, for its
+encodings transformations.  But still, perl5 has the best unicode
+support of all languages, just also the slowest.</p></li>
+
+<li><p><strong>trie search</strong>: There&rsquo;s a nice helper module in perl <code>CharClass::Matcher</code>
+under <code>regen/regcharclass.pl</code> which generates C code for some
+typical unicode properties, as trie. It&rsquo;s not a binary trie, it does
+not start in the middle of the range, and then recurses into the
+lower or upper halfs of the integers. It only starts at the top, so
+it&rsquo;s basically a longer linear search, using even more memory than
+a linear search, but it supports utf-8, it even searches in multi-byte
+utf-8, it generates ASCII and EBCDIC, and it will drive into
+recursion overflows when trying to generate more realistic
+tables. Such as the case mapping tables or the normalization tables.</p></li>
+
+<li><p><strong>binary search</strong>: You start in the middle and recurse into the lower
+and upper halfs. The problem here is the amount of memory needed to
+store the full range of <code>1..0x10fff</code>. You don&rsquo;t want to do
+that. Only glibc does that. Search is log n, but memory is n.
+You could binary search over some range tables though.</p></li>
+</ul>
+
+<p>glibc uses a full unicode array with a bitcompressed scheme of
+  the properties.</p>
+
+<ul>
+<li>2 or 3-stage tables: that&rsquo;s what perl Unicode::Normalize and
+gnulib/libunistring does and
+<a href="http://www.unicode.org/versions/Unicode10.0.0/ch05.pdf">Unicode 5.1 Data Structures for Character Conversion recommends</a> recommends.
+Both use 3 nested tables of 256 elements planes. Since the entries
+are sparse, most elements are NULL, and the final tables holds the
+values.  This saves some space, and search is 3.  However space is
+still not optimal. I improved the Unicode::Normalize generated
+tables by using another indirection and store the unique values in
+seperate tables, sorted by element size.  E.g. for the Canonical
+Decomposition table the value lengths are <code>(917,762,227,36)</code>, which
+is perfect for this kind of scheme.  But for the Compatible
+Decomposition table the lengths are <code>(1664,1190,638,109,16,14,1,1)</code>
+and then a final arabic letter which expands to 18 at the end. This
+one can be special cased, but the rest cannot be optimized to use
+indirection with a 16bit short, you need to use 32bit, and then the
+old scheme is better.
+<br /></li>
+</ul>
+
+<p>libunistring/gnulib divides its generated tables into 3 levels and
+  does some additional manual logic as it sees fit.  For tricky tables
+  like the composition table it uses gperf, which goes down to 11Kb
+  (array size 1527 for 928 entries).  Some logic is extracted into
+  iterators, e.g. the case-folding is locale-specific, and there are
+  special rules for turkish and lithuanian, which is added via custom
+  iterator passes. This is slow. Think of custom LLVM passes over your
+  code. safeclib hardcoded those simple rules.</p>
+
+<p>Note that coreutils will use this eventually, but tried so far over
+  10 years already.</p>
+
+<ul>
+<li>perfect hashes: This is what ICU does. But it&rsquo;s only a simple
+perfect hash.</li>
+</ul>
+
+<p>You could analyze the bit patterns and try to find to fast search
+  algorithm for the numbers. gperf does a little bit of this. This
+  could be the perfect algorithm as it would use the least amount of
+  memory, and would be still pretty fast. Unfortunately there does not
+  exist a good perfect hash algorithm for such integer ranges as used
+  in the Unicode tables.</p>
+
+<p>I&rsquo;ll try to come up with something new.  A strict hash table as used
+  in the most popular schemes via one indirection tables would be too
+  big, a hybrid approach would be needed to generate logic branches
+  with some nested binary search or hash tables, which in the end also
+  can have logic to search in the collision list. It doesn&rsquo;t need to
+  be perfect perfect, just optimal. The cost function would be easy,
+  as branches, search cost, code size and data size would be easy to
+  come up with. But it doesn&rsquo;t exist yet. And Unicode changes its
+  tables every year.</p>
+
+<p>As you see with ICU and partially with libunistring the amount of
+memory is still massive and prohibitive. coreutils will not use it,
+and honestly such a basic problem of string comparison and string
+searching should be in the libc, and properly solved. And only this,
+not much else. Other unicode properties can be another optional shared
+library.</p>
+
+<p>That&rsquo;s why I added those functions to my <a href="https://github.com/rurban/safeclib/commits/wcsnorm">safeclib</a>, which was written
+2008 by Cisco under the MIT license to add the missing secure C11
+Annex K functions with the <code>_s</code> suffix. After about 10 years of C11
+still <a href="https://rurban.github.io/safeclib/doc/safec-3.0/d1/dae/md_doc_libc-overview.html">almost nobody implements full C11</a>. You need to use Windows,
+Android or Embarcadero on embedded systems, or you need to add safeclib.</p>
+
+<p><a href="https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/wcsfc_s.c"><code>wcsfc_s()</code></a> does secure foldcasing, i.e. full Unicode case-folding and
+NFD normalization, with the minimal amount of memory used.  It uses my
+generated tables for case-folding and canonical decomposition.
+case-folding is the extended version of the musl <a href="https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/towctrans.c"><code>towctrans</code></a>, fixed to
+stop searching early, and normalization with the improved version of
+Unicode::Normalize mkheader with <a href="https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/unifcan.h">indirect tables</a>.</p>
+
+<p><a href="https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/wcsnorm_s.c"><code>wcsnorm_s()</code></a> does normalization to NFC (<em>soon</em>), and there exist API&rsquo;s for the
+intermediate steps, decompose, reorder, compose, but not the compat
+modes as they are too big and should not be used. (only for identifiers
+maybe).</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#fc"><strong>fc</strong></a></li>
+<li><a href="#details">Details</a></li>
+<li><a href="#multi-byte-support">Multi-byte support</a></li>
+<li><a href="#so-what-s-the-technical-problem">So what&rsquo;s the technical problem?</a></li>
+</ul></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/unicode">unicode
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/attributes-args.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">Attribute arguments&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

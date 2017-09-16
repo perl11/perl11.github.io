@@ -10,6 +10,290 @@
     <atom:link href="http://perl11.org/blog/tags/cperl.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>The sad state case of foldcase and string comparisons</title>
+      <link>http://perl11.org/blog/foldcase.html</link>
+      <pubDate>Sat, 16 Sep 2017 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/foldcase.html</guid>
+      <description>
+
+&lt;p&gt;You probably heard about case-folding or &lt;strong&gt;foldcase&lt;/strong&gt; before.
+Unicode defines CaseFolding mappings for some upper-case characters,
+which in full casefolding mode will expand some exotic characters
+to larger sequences. In simple mode it will do 1:1 &lt;code&gt;tolower()&lt;/code&gt; mappings.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;The &lt;strong&gt;perl&lt;/strong&gt; documentation has this to say:&lt;/p&gt;
+
+&lt;h2 id=&#34;fc&#34;&gt;&lt;strong&gt;fc&lt;/strong&gt;&lt;/h2&gt;
+
+&lt;p&gt;&lt;em&gt;Returns the casefolded version of EXPR. This is the internal function
+implementing the &amp;ldquo;\F&amp;rdquo; escape in double-quoted strings.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Casefolding is the process of mapping strings to a form where case
+differences are erased; comparing two strings in their casefolded form
+is effectively a way of asking if two strings are equal, regardless of
+case.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Roughly, if you ever found yourself writing this&lt;/em&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;lc($this) eq lc($that)    # Wrong!
+    # or
+uc($this) eq uc($that)    # Also wrong!
+    # or
+$this =~ /^\Q$that\E\z/i  # Right!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;Now you can write&lt;/em&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;fc($this) eq fc($that)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;And get the correct results.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;So far there is no bug and everything is fine.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;strong&gt;Unicode&lt;/strong&gt; has this say:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://www.unicode.org/reports/tr44/#Casemapping&#34;&gt;http://www.unicode.org/reports/tr44/#Casemapping&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Case for bicameral scripts and case mapping of characters are
+complicated topics in the Unicode Standard—both because of their
+inherent algorithmic complexity and because of the number of
+characters and special edge cases involved.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;This section provides a brief roadmap to discussions about these
+topics, and specifications and definitions in the standard, as well as
+explaining which case-related properties are defined in the UCD.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://unicode.org/reports/tr21/tr21-5.html#Caseless_Matching&#34;&gt;http://unicode.org/reports/tr21/tr21-5.html#Caseless_Matching&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;The &lt;a href=&#34;http://www.unicode.org/reports/tr44/tr44-20.html#Casemapping&#34;&gt;CaseFolding&lt;/a&gt; file
+in the Unicode Character Database is used for performing
+locale-independent case-folding. This file is generated from the case
+mappings in the Unicode Character Database, using both the
+single-character mappings and the multi-character mappings. It folds
+all characters having different case forms together into a common
+form. To compare two strings for caseless matching, you can fold each
+string using this data, and then use a binary comparison.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Generally, where case distinctions are not important, other distinctions between Unicode characters (in particular, compatibility distinctions) are ignored as well. In such circumstances, text can be normalized to Normalization Form KC or KD after case-folding, to produce a normalized form that erases both compatibility distinctions and case distinctions. (See UTR #15: Unicode Normalization Forms for more information.) However, such normalization should generally only be done on a restricted repertoire, such as identifiers (alphanumerics).&lt;/em&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;strong&gt;w3.org&lt;/strong&gt; gets closer to the real problem:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://www.w3.org/International/wiki/Case_folding&#34;&gt;https://www.w3.org/International/wiki/Case_folding&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;One of the most common things that software developers do is &amp;ldquo;normalize&amp;rdquo; text for the purposes of comparison. And one of the most basic ways that developers are taught to normalize text for comparison is to compare it in a &amp;ldquo;case insensitive&amp;rdquo; fashion. In other cases, developers want to compare strings in a case sensitive manner. Unicode defines upper, lower, and title case properties for characters, plus special cases that impact specific language&amp;rsquo;s use of text.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Many developers believe that that a case-insensitive comparison is achieved by mapping both strings being compared to either upper- or lowercase and then comparing the resulting bytes. The existence of functions such as &amp;lsquo;strcasecmp&amp;rsquo; in some C libraries, for example, or common examples in programming books reinforces this belief:&lt;/em&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;if (strcmp(toupper(foo),toupper(bar))==0) { // a typical caseless comparison
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;Alas, this model of case insensitive comparison breaks down with some languages. It also fails to consider other textual differences that can affect text. For example, [Unicode Normalization] could be needed to even out differences in e.g. non-Latin texts.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;This document introduces case-folding and case insensitivity; provides some examples of how it is implemented in Unicode; and gives a few guidelines for spec writers and others who with to reference comparison using case folding.&lt;/em&gt; &amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Consider Unicode Normalization in addition to case folding. If you mean to find text that is semantically equal, you may need to normalize the text beyond just case folding it. Note that Unicode Normalization does not include case folding: these are separate operations.&lt;/em&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;As you might have understood from now, the foldcase API needs to add a
+normalization step to the case-folding step.&lt;/p&gt;
+
+&lt;p&gt;case-folding expands certain characters to longer strings, NFD
+normalization even more, NFC normalization will contract them at last
+with some additional memory and cpu costs.&lt;/p&gt;
+
+&lt;p&gt;Without normalization you will not be able to compare multi-byte
+strings properly.&lt;/p&gt;
+
+&lt;p&gt;perl has this bug since 5.16. Every other language has this bug also,
+but doesn’t brag about proper full foldcase’ing in its docs as perl
+does.&lt;/p&gt;
+
+&lt;p&gt;For performance cperl and safeclib (my C11 libc) implements &lt;code&gt;fc&lt;/code&gt; with
+NFD. (Same as Apple in its HPFS btw).&lt;/p&gt;
+
+&lt;p&gt;Note that not even libc implements a proper &lt;code&gt;wcsfc()&lt;/code&gt; or
+&lt;code&gt;wcsnorm()&lt;/code&gt;. You cannot compare multi-byte strings in POSIX, only with
+gnulib or ICU, but they are massively over-architectured, still
+unusable for e.g. coreutils. E.g. grep would really like to find
+strings. Only cperl will do so properly after &lt;a href=&#34;https://github.com/perl11/cperl/issues/332&#34;&gt;#332&lt;/a&gt; has landed (it&amp;rsquo;s
+already implemented in safeclib). awk, grep, perl5, perl6, ruby,
+python, go, silversearch, go platinum searcher, rust ripgrep, &amp;hellip; do
+not. They all fail on normalization issues, and with grep you don&amp;rsquo;t
+know if it&amp;rsquo;s multi-byte patched at all.&lt;/p&gt;
+
+&lt;p&gt;safeclib is the first library to implement proper foldcasing in
+C. FreeBSD will take it from there.&lt;/p&gt;
+
+&lt;h2 id=&#34;details&#34;&gt;Details&lt;/h2&gt;
+
+&lt;p&gt;Unicode is pretty established, some use it with the &lt;code&gt;wchar_t&lt;/code&gt; API in
+POSIX, some more as non-POSIX via external non-standardized utf-8 libraries.
+The defacto standard there is &lt;a href=&#34;https://github.com/JuliaLang/utf8proc&#34;&gt;utf8proc&lt;/a&gt;, which is now maintained with julia.
+This is highly recommended.&lt;/p&gt;
+
+&lt;p&gt;gnulib found out about this problem when people started asking for
+multi-byte support in the coreutils. People would really like to find
+strings also in foreign documents.  So Bruno Haible, the author of
+gnulib (and clisp) added libunistring, with support for u32 and u16
+and later even u8 (i.e. utf-8 not single-bytes).&lt;/p&gt;
+
+&lt;p&gt;The first problem is that gnulib is GPL-infected, the second is that
+libunistring is too big and too slow to be usable for the coreutils.
+Suse and Redhat added the unsupported multi-byte patch for some
+years now, but the situation is still unsolved, and you frequently
+hear about 8x slower basic utilities with utf-8 locales.&lt;/p&gt;
+
+&lt;h2 id=&#34;multi-byte-support&#34;&gt;Multi-byte support&lt;/h2&gt;
+
+&lt;p&gt;A good overview is this document:
+&lt;a href=&#34;http://crashcourse.housegordon.org/coreutils-multibyte-support.html&#34;&gt;http://crashcourse.housegordon.org/coreutils-multibyte-support.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;so-what-s-the-technical-problem&#34;&gt;So what&amp;rsquo;s the technical problem?&lt;/h2&gt;
+
+&lt;p&gt;Technically you need to search in a range of integers from &lt;code&gt;1&lt;/code&gt; to
+&lt;code&gt;0x10fff&lt;/code&gt; for case-folding expansions, and then for composed
+characters which need to be decomposed.&lt;/p&gt;
+
+&lt;p&gt;There are several established ways to search an integer in a known
+static large sparse array:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;linear search&lt;/strong&gt; is done by musl libc in &lt;a href=&#34;https://github.com/rurban/musl/commits/master&#34;&gt;&lt;code&gt;towctrans.c&lt;/code&gt;&lt;/a&gt;, and musl even does
+not stop searching after it cannot find the integer anymore. It always
+does a full range sweep over all ranges.
+I&amp;rsquo;ve fixed that, and musl is now as fast as glibc in case transformations.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;perl5 also does linear search, but does it even more stupid than
+musl. It&amp;rsquo;s about 8000x slower than a normal search for unicode
+properties as implemented in cperl. cperl needed it faster, because
+cperl supports unicode indentifiers, and such identifiers need to be
+normalized.  perl does not have case-insensitive identifiers, so
+case-mapping is not done yet, it will be implemented in the next
+month for the &lt;code&gt;m//i&lt;/code&gt; (case-insensitive regexp match) case. Currently
+when perl needs to do case-transformation it loads some perl source
+code from generated mapping tables, from a big file, transforms this
+into an array, transforms this into a reverse range array, stores
+this reverse range array in some global perl data as INVLIST
+datatype, which is btw. not shared amongst threads or forks, and
+then searches via slow perl source ops in these ranges. You cannot
+possible think of a slower thing to do. Normally you would prepare
+such tables as C code and then generate s ahared library for
+it. Only the external library Encode does it this way, for its
+encodings transformations.  But still, perl5 has the best unicode
+support of all languages, just also the slowest.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;trie search&lt;/strong&gt;: There&amp;rsquo;s a nice helper module in perl &lt;code&gt;CharClass::Matcher&lt;/code&gt;
+under &lt;code&gt;regen/regcharclass.pl&lt;/code&gt; which generates C code for some
+typical unicode properties, as trie. It&amp;rsquo;s not a binary trie, it does
+not start in the middle of the range, and then recurses into the
+lower or upper halfs of the integers. It only starts at the top, so
+it&amp;rsquo;s basically a longer linear search, using even more memory than
+a linear search, but it supports utf-8, it even searches in multi-byte
+utf-8, it generates ASCII and EBCDIC, and it will drive into
+recursion overflows when trying to generate more realistic
+tables. Such as the case mapping tables or the normalization tables.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;binary search&lt;/strong&gt;: You start in the middle and recurse into the lower
+and upper halfs. The problem here is the amount of memory needed to
+store the full range of &lt;code&gt;1..0x10fff&lt;/code&gt;. You don&amp;rsquo;t want to do
+that. Only glibc does that. Search is log n, but memory is n.
+You could binary search over some range tables though.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;glibc uses a full unicode array with a bitcompressed scheme of
+  the properties.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;2 or 3-stage tables: that&amp;rsquo;s what perl Unicode::Normalize and
+gnulib/libunistring does and
+&lt;a href=&#34;http://www.unicode.org/versions/Unicode10.0.0/ch05.pdf&#34;&gt;Unicode 5.1 Data Structures for Character Conversion recommends&lt;/a&gt; recommends.
+Both use 3 nested tables of 256 elements planes. Since the entries
+are sparse, most elements are NULL, and the final tables holds the
+values.  This saves some space, and search is 3.  However space is
+still not optimal. I improved the Unicode::Normalize generated
+tables by using another indirection and store the unique values in
+seperate tables, sorted by element size.  E.g. for the Canonical
+Decomposition table the value lengths are &lt;code&gt;(917,762,227,36)&lt;/code&gt;, which
+is perfect for this kind of scheme.  But for the Compatible
+Decomposition table the lengths are &lt;code&gt;(1664,1190,638,109,16,14,1,1)&lt;/code&gt;
+and then a final arabic letter which expands to 18 at the end. This
+one can be special cased, but the rest cannot be optimized to use
+indirection with a 16bit short, you need to use 32bit, and then the
+old scheme is better.
+&lt;br /&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;libunistring/gnulib divides its generated tables into 3 levels and
+  does some additional manual logic as it sees fit.  For tricky tables
+  like the composition table it uses gperf, which goes down to 11Kb
+  (array size 1527 for 928 entries).  Some logic is extracted into
+  iterators, e.g. the case-folding is locale-specific, and there are
+  special rules for turkish and lithuanian, which is added via custom
+  iterator passes. This is slow. Think of custom LLVM passes over your
+  code. safeclib hardcoded those simple rules.&lt;/p&gt;
+
+&lt;p&gt;Note that coreutils will use this eventually, but tried so far over
+  10 years already.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;perfect hashes: This is what ICU does. But it&amp;rsquo;s only a simple
+perfect hash.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;You could analyze the bit patterns and try to find to fast search
+  algorithm for the numbers. gperf does a little bit of this. This
+  could be the perfect algorithm as it would use the least amount of
+  memory, and would be still pretty fast. Unfortunately there does not
+  exist a good perfect hash algorithm for such integer ranges as used
+  in the Unicode tables.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ll try to come up with something new.  A strict hash table as used
+  in the most popular schemes via one indirection tables would be too
+  big, a hybrid approach would be needed to generate logic branches
+  with some nested binary search or hash tables, which in the end also
+  can have logic to search in the collision list. It doesn&amp;rsquo;t need to
+  be perfect perfect, just optimal. The cost function would be easy,
+  as branches, search cost, code size and data size would be easy to
+  come up with. But it doesn&amp;rsquo;t exist yet. And Unicode changes its
+  tables every year.&lt;/p&gt;
+
+&lt;p&gt;As you see with ICU and partially with libunistring the amount of
+memory is still massive and prohibitive. coreutils will not use it,
+and honestly such a basic problem of string comparison and string
+searching should be in the libc, and properly solved. And only this,
+not much else. Other unicode properties can be another optional shared
+library.&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s why I added those functions to my &lt;a href=&#34;https://github.com/rurban/safeclib/commits/wcsnorm&#34;&gt;safeclib&lt;/a&gt;, which was written
+2008 by Cisco under the MIT license to add the missing secure C11
+Annex K functions with the &lt;code&gt;_s&lt;/code&gt; suffix. After about 10 years of C11
+still &lt;a href=&#34;https://rurban.github.io/safeclib/doc/safec-3.0/d1/dae/md_doc_libc-overview.html&#34;&gt;almost nobody implements full C11&lt;/a&gt;. You need to use Windows,
+Android or Embarcadero on embedded systems, or you need to add safeclib.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/wcsfc_s.c&#34;&gt;&lt;code&gt;wcsfc_s()&lt;/code&gt;&lt;/a&gt; does secure foldcasing, i.e. full Unicode case-folding and
+NFD normalization, with the minimal amount of memory used.  It uses my
+generated tables for case-folding and canonical decomposition.
+case-folding is the extended version of the musl &lt;a href=&#34;https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/towctrans.c&#34;&gt;&lt;code&gt;towctrans&lt;/code&gt;&lt;/a&gt;, fixed to
+stop searching early, and normalization with the improved version of
+Unicode::Normalize mkheader with &lt;a href=&#34;https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/unifcan.h&#34;&gt;indirect tables&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/rurban/safeclib/blob/wcsnorm/src/extwchar/wcsnorm_s.c&#34;&gt;&lt;code&gt;wcsnorm_s()&lt;/code&gt;&lt;/a&gt; does normalization to NFC (&lt;em&gt;soon&lt;/em&gt;), and there exist API&amp;rsquo;s for the
+intermediate steps, decompose, reorder, compose, but not the compat
+modes as they are too big and should not be used. (only for identifiers
+maybe).&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Attribute arguments</title>
       <link>http://perl11.org/blog/attributes-args.html</link>
       <pubDate>Sat, 27 May 2017 00:00:00 +0000</pubDate>
