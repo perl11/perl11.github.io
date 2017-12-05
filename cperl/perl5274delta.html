@@ -1,0 +1,290 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Core-Enhancements">Core Enhancements</a>
+    <ul>
+      <li><a href="#In-place-editing-is-now-safer">In-place editing is now safer</a></li>
+    </ul>
+  </li>
+  <li><a href="#Security">Security</a>
+    <ul>
+      <li><a href="#CVE-2017-12837-Heap-buffer-overflow-in-regular-expression-compiler">[CVE-2017-12837] Heap buffer overflow in regular expression compiler</a></li>
+      <li><a href="#CVE-2017-12883-Buffer-over-read-in-regular-expression-parser">[CVE-2017-12883] Buffer over-read in regular expression parser</a></li>
+      <li><a href="#CVE-2017-12814-ENV-key-stack-buffer-overflow-on-Windows">[CVE-2017-12814] $ENV{$key} stack buffer overflow on Windows</a></li>
+    </ul>
+  </li>
+  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+      <li><a href="#Removed-Modules-and-Pragmata">Removed Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</a></li>
+    </ul>
+  </li>
+  <li><a href="#Testing">Testing</a></li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#Give-Thanks">Give Thanks</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5274delta - what is new for perl v5.27.4</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.27.3 release and the 5.27.4 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.27.2, first read <a href="/cperl/perl5273delta.html">perl5273delta</a>, which describes differences between 5.27.2 and 5.27.3.</p>
+
+<h1 id="Core-Enhancements">Core Enhancements</h1>
+
+<h2 id="In-place-editing-is-now-safer">In-place editing is now safer</h2>
+
+<p>Previously in-place editing would delete or rename the input file as soon as you started working on a new file.</p>
+
+<p>Without backups this would result in loss of data if there was an error, such as a full disk, when writing to the output file.</p>
+
+<p>This has changed so that the input file isn&#39;t replaced until the output file has been completely written and successfully closed.</p>
+
+<p>This works by creating a work file in the same directory, which is renamed over the input file once the output file is complete.</p>
+
+<p>Incompatibilities:</p>
+
+<ul>
+
+<li><p>Since this renaming needs to only happen once, if you create a thread or child process, that renaming will only happen in the original thread or process.</p>
+
+</li>
+<li><p>If you change directories while processing a file, and your operating system doesn&#39;t provide the <code>unlinkat()</code>, <code>renameat()</code> and <code>fchmodat()</code> functions, the final rename step may fail.</p>
+
+</li>
+</ul>
+
+<p><a href="https://rt.perl.org/Public/Bug/Display.html?id=127663">[perl #127663]</a></p>
+
+<h1 id="Security">Security</h1>
+
+<h2 id="CVE-2017-12837-Heap-buffer-overflow-in-regular-expression-compiler">[CVE-2017-12837] Heap buffer overflow in regular expression compiler</h2>
+
+<p>Compiling certain regular expression patterns with the case-insensitive modifier could cause a heap buffer overflow and crash perl. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131582">[perl #131582]</a></p>
+
+<h2 id="CVE-2017-12883-Buffer-over-read-in-regular-expression-parser">[CVE-2017-12883] Buffer over-read in regular expression parser</h2>
+
+<p>For certain types of syntax error in a regular expression pattern, the error message could either contain the contents of a random, possibly large, chunk of memory, or could crash perl. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131598">[perl #131598]</a></p>
+
+<h2 id="CVE-2017-12814-ENV-key-stack-buffer-overflow-on-Windows">[CVE-2017-12814] <code>$ENV{$key}</code> stack buffer overflow on Windows</h2>
+
+<p>A possible stack buffer overflow in the <code>%ENV</code> code on Windows has been fixed by removing the buffer completely since it was superfluous anyway. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131665">[perl #131665]</a></p>
+
+<h1 id="Performance-Enhancements">Performance Enhancements</h1>
+
+<ul>
+
+<li><p>Slightly improved performance when parsing stash names. <a href="https://rt.perl.org/Public/Bug/Display.html?id=129990">[perl #129990]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a href="/cperl/lib/attributes.html">attributes</a> has been upgraded from version 0.3 to 0.31.</p>
+
+</li>
+<li><p><a>File::Glob</a> has been upgraded from version 1.29 to 1.30.</p>
+
+</li>
+<li><p><a>I18N::Langinfo</a> has been upgraded from version 0.13 to 0.14. This fixes a bug in which the underlying locale was ignored for the <code>RADIXCHAR</code> (always was returned as a dot, and the <code>THOUSEP</code> (always empty). Now the locale-appropriate values are returned.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Module/CoreList.html">Module::CoreList</a> has been upgraded from version 5.20170821 to 5.20170920.</p>
+
+</li>
+<li><p><a href="/cperl/lib/sort.html">sort</a> has been upgraded from version 2.02 to 2.03.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Term/ReadLine.html">Term::ReadLine</a> has been upgraded from version 1.16 to 1.17.</p>
+
+</li>
+<li><p><a>threads</a> has been upgraded from version 2.17 to 2.18.</p>
+
+</li>
+<li><p><a>VMS::Stdio</a> has been upgraded from version 2.41 to 2.42.</p>
+
+</li>
+</ul>
+
+<h2 id="Removed-Modules-and-Pragmata">Removed Modules and Pragmata</h2>
+
+<ul>
+
+<li><p>The <code>VMS::stdio</code> compatibility shim has been removed.</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</h2>
+
+<ul>
+
+<li><p>A false-positive warning that was issued when using a numerically-quantified sub-pattern in a recursive regex has been silenced. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131868">[perl #131868]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Testing">Testing</h1>
+
+<p>Tests were added and changed to reflect the other additions and changes in this release.</p>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="Darwin">Darwin</dt>
+<dd>
+
+<p>Perl now correctly uses reentrant functions, like <code>asctime_r</code>, on versions of Darwin that have support for them.</p>
+
+</dd>
+</dl>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>A new function, <a href="/cperl/perlapi.html#Perl_langinfo"><code>Perl_langinfo()</code></a> has been added. It is an (almost) drop-in replacement for the system <code>nl_langinfo(3)</code>, but works on platforms that lack that; as well as being more thread-safe, and hiding some gotchas with locale handling from the caller. Code that uses this, needn&#39;t use <a><code>localeconv(3)</code></a> (and be affected by the gotchas) to find the decimal point, thousands separator, or currency symbol. See <a href="/cperl/perlapi.html#Perl_langinfo">&quot;Perl_langinfo&quot; in perlapi</a>.</p>
+
+</li>
+<li><p>A new API function <a href="/cperl/perlapi.html#sv_rvunweaken"><code>sv_rvunweaken()</code></a> has been added to complement <a href="/cperl/perlapi.html#sv_rvweaken"><code>sv_rvweaken()</code></a>. The implementation was taken from <a href="/cperl/lib/Scalar/Util.html#unweaken">&quot;unweaken&quot; in Scalar::Util</a>.</p>
+
+</li>
+<li><p>A new flag, <code>SORTf_UNSTABLE</code>, has been added. This will allow a future commit to make mergesort unstable when the user specifies &lsquo;no sort stable&rsquo;, since it has been decided that mergesort should remain stable by default.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>The internal stack usage checks introduced in 5.27.2 are now also done by the <code>entersub</code> operator when calling XSUBs. This means we can report which XSUB failed to allocate enough stack space. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131975">[perl #131975]</a></p>
+
+</li>
+<li><p>Parsing a <code>sub</code> definition could cause a use after free if the <code>sub</code> keyword was followed by whitespace including newlines (and comments.) <a href="https://rt.perl.org/Public/Bug/Display.html?id=131836">[perl #131836]</a></p>
+
+</li>
+<li><p>The tokenizer now correctly adjusts a parse pointer when skipping whitespace in a <code> ${identifier} </code> construct. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131949">[perl #131949]</a></p>
+
+</li>
+<li><p>Accesses to <code>${^LAST_FH}</code> no longer assert after using any of a variety of I/O operations on a non-glob. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128263">[perl #128263]</a></p>
+
+</li>
+<li><p>The <code>Copy()</code>, <code>Move()</code>, <code>Zero()</code> macros and their variants now assert if the pointers supplied are <code>NULL</code>. ISO C considers supplying NULL pointers to the functions these macros are built upon as undefined behaviour even when their count parameters are zero. Based on these assertions and the original bug report three macro calls were made conditional. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131746">[perl #131746]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=131892">[perl #131892]</a></p>
+
+</li>
+<li><p>The in-place sort optimisation now correctly strengthens weak references using the new <a href="/cperl/perlapi.html#sv_rvunweaken"><code>sv_rvunweaken()</code></a> API function.</p>
+
+</li>
+<li><p>Only the <code>=</code> operator is permitted for defining defaults for parameters in subroutine signatures. Previously other assignment operators, e.g. <code>+=</code>, were also permitted. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131777">[perl #131777]</a></p>
+
+</li>
+<li><p>Package names are now always included in <code>:prototype</code> warnings <a href="https://rt.perl.org/Public/Bug/Display.html?id=131833">[perl #131833]</a></p>
+
+</li>
+<li><p>Creating a thread with no parameters no longer tries to <code>Copy()</code> a null pointer. This fixes an assertion failure and allows threaded builds to work again.</p>
+
+</li>
+<li><p>The <code>je_old_stack_hwm</code> field, previously only found in the <code>jmpenv</code> structure on debugging builds, has been added to non-debug builds as well. This fixes an issue with some CPAN modules caused by the size of this structure varying between debugging and non-debugging builds. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131942">[perl #131942]</a></p>
+
+</li>
+<li><p>The arguments to the <code>ninstr()</code> macro are now correctly parenthesized.</p>
+
+</li>
+<li><p>A NULL pointer dereference in the <code>S_regmatch()</code> function has been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=132017">[perl #132017]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.27.4 represents approximately 4 weeks of development since Perl 5.27.3 and contains approximately 5,000 lines of changes across 140 files from 18 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 3,300 lines of changes to 76 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.27.4:</p>
+
+<p>Abigail, Chris &#39;BinGOs&#39; Williams, Dagfinn Ilmari Manns&aring;ker, David Mitchell, Dominic Hargreaves, Father Chrysostomos, H.Merijn Brand, James E Keenan, Jarkko Hietaniemi, John SJ Anderson, Karl Williamson, Lukas Mai, Matthew Horsfall, Neil Bowers, Nicolas R., Steve Hay, Tony Cook, Yves Orton.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> for details of how to report the issue.</p>
+
+<h1 id="Give-Thanks">Give Thanks</h1>
+
+<p>If you wish to thank the Perl 5 Porters for the work we had done in Perl 5, you can do so by running the <code>perlthanks</code> program:</p>
+
+<pre><code>    perlthanks</code></pre>
+
+<p>This will send an email to the Perl 5 Porters list with your show of thanks.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

@@ -235,7 +235,7 @@
 <p><code>BINMODE</code>, <code>CLEAR</code>, <code>CLOSE</code>, <code>DELETE</code>, <code>DESTROY</code>, <code>EOF</code>, <code>EXISTS</code>, <code>EXTEND</code>, <code>FETCH</code>, <code>FETCHSIZE</code>, <code>FILENO</code>, <code>FIRSTKEY</code>, <code>GETC</code>, <code>NEXTKEY</code>, <code>OPEN</code>, <code>POP</code>, <code>PRINT</code>, <code>PRINTF</code>, <code>PUSH</code>, <code>READ</code>, <code>READLINE</code>, <code>SCALAR</code>, <code>SEEK</code>, <code>SHIFT</code>, <code>SPLICE</code>, <code>STORE</code>, <code>STORESIZE</code>, <code>TELL</code>, <code>TIEARRAY</code>, <code>TIEHANDLE</code>, <code>TIEHASH</code>, <code>TIESCALAR</code>, <code>UNSHIFT</code>, <code>UNTIE</code>, <code>WRITE</code></p>
 
 </dd>
-<dt id="documented-in-PerlIO::via">documented in <a href="/cperl/lib/PerlIO/via.html">PerlIO::via</a></dt>
+<dt id="documented-in-PerlIO::via">documented in <a>PerlIO::via</a></dt>
 <dd>
 
 <p><code>BINMODE</code>, <code>CLEARERR</code>, <code>CLOSE</code>, <code>EOF</code>, <code>ERROR</code>, <code>FDOPEN</code>, <code>FILENO</code>, <code>FILL</code>, <code>FLUSH</code>, <code>OPEN</code>, <code>POPPED</code>, <code>PUSHED</code>, <code>READ</code>, <code>SEEK</code>, <code>SETLINEBUF</code>, <code>SYSOPEN</code>, <code>TELL</code>, <code>UNREAD</code>, <code>UTF8</code>, <code>WRITE</code></p>
@@ -579,7 +579,7 @@
 
 <p>Also, since <code>$x</code> is lexical, it can&#39;t be reached or modified by any Perl code outside.</p>
 
-<p>When combined with variable declaration, simple scalar assignment to <code>state</code> variables (as in <code>state $x = 42</code>) is executed only the first time. When such statements are evaluated subsequent times, the assignment is ignored. The behavior of this sort of assignment to non-scalar variables is undefined.</p>
+<p>When combined with variable declaration, simple assignment to <code>state</code> variables (as in <code>state $x = 42</code>) is executed only the first time. When such statements are evaluated subsequent times, the assignment is ignored. The behavior of assignment to <code>state</code> declarations where the left hand side of the assignment involves any parentheses is currently undefined.</p>
 
 <h3 id="Persistent-variables-with-closures">Persistent variables with closures</h3>
 
@@ -815,12 +815,29 @@
     my sub bar { ... }
     bar();              # calls &quot;my&quot; sub</code></pre>
 
-<p>To use a lexical subroutine from inside the subroutine itself, you must predeclare it. The <code>sub foo {...}</code> subroutine definition syntax respects any previous <code>my sub;</code> or <code>state sub;</code> declaration.</p>
+<p>You can&#39;t (directly) write a recursive lexical subroutine:</p>
+
+<pre><code>    # WRONG
+    my sub baz {
+        baz();
+    }</code></pre>
+
+<p>This example fails because <code>baz()</code> refers to the package/global subroutine <code>baz</code>, not the lexical subroutine currently being defined.</p>
+
+<p>The solution is to use <a href="/cperl/perlfunc.html#SUB__"><code>__SUB__</code></a>:</p>
+
+<pre><code>    my sub baz {
+        __SUB__-&gt;();    # calls itself
+    }</code></pre>
+
+<p>It is possible to predeclare a lexical subroutine. The <code>sub foo {...}</code> subroutine definition syntax respects any previous <code>my sub;</code> or <code>state sub;</code> declaration. Using this to define recursive subroutines is a bad idea, however:</p>
 
 <pre><code>    my sub baz;         # predeclaration
     sub baz {           # define the &quot;my&quot; sub
-        baz();          # recursive call
+        baz();          # WRONG: calls itself, but leaks memory
     }</code></pre>
+
+<p>Just like <code>my $f; $f = sub { $f-&gt;() }</code>, this example leaks memory. The name <code>baz</code> is a reference to the subroutine, and the subroutine uses the name <code>baz</code>; they keep each other alive (see <a href="/cperl/perlref.html#Circular-References">&quot;Circular References&quot; in perlref</a>).</p>
 
 <h3 id="state-sub-vs-my-sub"><code>state sub</code> vs <code>my sub</code></h3>
 

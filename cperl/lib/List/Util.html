@@ -73,9 +73,9 @@
 
       max maxstr min minstr product sum sum0
 
-      pairs pairkeys pairvalues pairfirst pairgrep pairmap
+      pairs unpairs pairkeys pairvalues pairfirst pairgrep pairmap
 
-      shuffle uniqnum uniqstr
+      shuffle uniq uniqnum uniqstr
     );</code></pre>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
@@ -119,7 +119,7 @@
 
 <pre><code>  $foo = reduce { $a + $b } 0, @values;             # sum with 0 identity value</code></pre>
 
-<p>The above example code blocks also suggest how to use <code>reduce</code> to build a more efficient combined version of one of these basic functions and a <code>map</code> block. For example, to find the total length of the all the strings in a list, we could use</p>
+<p>The above example code blocks also suggest how to use <code>reduce</code> to build a more efficient combined version of one of these basic functions and a <code>map</code> block. For example, to find the total length of all the strings in a list, we could use</p>
 
 <pre><code>    $total = sum map { length } @strings;</code></pre>
 
@@ -143,6 +143,8 @@
         # at least one string has more than 10 characters
     }</code></pre>
 
+<p>Note: Due to XS issues the block passed may be able to access the outer @_ directly. This is not intentional and will break under debugger.</p>
+
 <h2 id="all">all</h2>
 
 <pre><code>    my $bool = all { BLOCK } @list;</code></pre>
@@ -151,21 +153,21 @@
 
 <p>Similar to <a href="#any">&quot;any&quot;</a>, except that it requires all elements of the <code>@list</code> to make the <code>BLOCK</code> return true. If any element returns false, then it returns false. If the <code>BLOCK</code> never returns false or the <code>@list</code> was empty then it returns true.</p>
 
+<p>Note: Due to XS issues the block passed may be able to access the outer @_ directly. This is not intentional and will break under debugger.</p>
+
 <h2 id="none">none</h2>
-
-<pre><code>    my $bool = none { BLOCK } @list;</code></pre>
-
-<p><i>Since version 1.33.</i></p>
-
-<p>Similar to <a href="#any">&quot;any&quot;</a> and <a href="#all">&quot;all&quot;</a>, but with the return sense inverted. <code>none</code> returns true only if no value in the <code>@list</code> causes the <code>BLOCK</code> to return true.</p>
 
 <h2 id="notall">notall</h2>
 
-<pre><code>    my $bool = notall { BLOCK } @list;</code></pre>
+<pre><code>    my $bool = none { BLOCK } @list;
+
+    my $bool = notall { BLOCK } @list;</code></pre>
 
 <p><i>Since version 1.33.</i></p>
 
 <p>Similar to <a href="#any">&quot;any&quot;</a> and <a href="#all">&quot;all&quot;</a>, but with the return sense inverted. <code>none</code> returns true only if no value in the <code>@list</code> causes the <code>BLOCK</code> to return true, and <code>notall</code> returns true only if not all of the values do.</p>
+
+<p>Note: Due to XS issues the block passed may be able to access the outer @_ directly. This is not intentional and will break under debugger.</p>
 
 <h2 id="first">first</h2>
 
@@ -426,6 +428,8 @@
 <p>In scalar context, returns the number of elements that would have been returned as a list.</p>
 
 <p>Note that <code>undef</code> is treated much as other numerical operations treat it; it compares equal to zero but additionally produces a warning if such warnings are enabled (<code>use warnings &#39;uninitialized&#39;;</code>). In addition, an <code>undef</code> in the returned list is coerced into a numerical zero, so that the entire list of values returned by <code>uniqnum</code> are well-behaved as numbers.</p>
+
+<p>Note also that multiple IEEE <code>NaN</code> values are treated as duplicates of each other, regardless of any differences in their payloads, and despite the fact that <code>0+&#39;NaN&#39; == 0+&#39;NaN&#39;</code> yields false.</p>
 
 <h2 id="uniqstr">uniqstr</h2>
 

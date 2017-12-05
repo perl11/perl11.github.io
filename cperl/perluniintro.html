@@ -82,7 +82,7 @@
 
 <h2 id="Perls-Unicode-Support">Perl&#39;s Unicode Support</h2>
 
-<p>Starting from Perl v5.6.0, Perl has had the capacity to handle Unicode natively. Perl v5.8.0, however, is the first recommended release for serious Unicode work. The maintenance release 5.6.1 fixed many of the problems of the initial Unicode implementation, but for example regular expressions still do not work with Unicode in 5.6.1. Perl v5.14.0 is the first release where Unicode support is (almost) seamlessly integrable without some gotchas. (There are a few exceptions. Firstly, some differences in <a href="/cperl/perlfunc.html#quotemeta">quotemeta</a> were fixed starting in Perl 5.16.0. Secondly, some differences in <a href="/cperl/perlop.html#Range-Operators">the range operator</a> were fixed starting in Perl 5.26.0. Thirdly, some differences in <a href="/cperl/perlfunc.html#split">split</a> were fixed started in cperl v5.26c and Perl 5.28.0.)</p>
+<p>Starting from Perl v5.6.0, Perl has had the capacity to handle Unicode natively. Perl v5.8.0, however, is the first recommended release for serious Unicode work. The maintenance release 5.6.1 fixed many of the problems of the initial Unicode implementation, but for example regular expressions still do not work with Unicode in 5.6.1. Perl v5.14.0 is the first release where Unicode support is (almost) seamlessly integrable without some gotchas. (There are a few exceptions. Firstly, some differences in <a href="/cperl/perlfunc.html#quotemeta">quotemeta</a> were fixed starting in Perl 5.16.0. Secondly, some differences in <a href="/cperl/perlop.html#Range-Operators">the range operator</a> were fixed starting in Perl 5.26.0. Thirdly, some differences in <a href="/cperl/perlfunc.html#split">split</a> were fixed in cperl v5.26c and Perl 5.28.0.)</p>
 
 <p>To enable this seamless support, you should <code>use feature &#39;unicode_strings&#39;</code> (which is automatically selected if you <code>use 5.012</code> or higher). See <a href="/cperl/lib/feature.html">feature</a>. (5.14 also fixes a number of bugs and departures from the Unicode standard.)</p>
 
@@ -226,7 +226,7 @@
 
 <p>The matching of encoding names is loose: case does not matter, and many encodings have several aliases. Note that the <code>:utf8</code> layer must always be specified exactly like that; it is <i>not</i> subject to the loose matching of encoding names. Also note that currently <code>:utf8</code> is unsafe for input, because it accepts the data without validating that it is indeed valid UTF-8; you should instead use <code>:encoding(UTF-8)</code> (with or without a hyphen).</p>
 
-<p>See <a href="/cperl/lib/PerlIO.html">PerlIO</a> for the <code>:utf8</code> layer, <a href="/cperl/lib/PerlIO/encoding.html">PerlIO::encoding</a> and <a href="/cperl/lib/Encode/PerlIO.html">Encode::PerlIO</a> for the <code>:encoding()</code> layer, and <a href="/cperl/lib/Encode/Supported.html">Encode::Supported</a> for many encodings supported by the <code>Encode</code> module.</p>
+<p>See <a href="/cperl/lib/PerlIO.html">PerlIO</a> for the <code>:utf8</code> layer, <a>PerlIO::encoding</a> and <a href="/cperl/lib/Encode/PerlIO.html">Encode::PerlIO</a> for the <code>:encoding()</code> layer, and <a href="/cperl/lib/Encode/Supported.html">Encode::Supported</a> for many encodings supported by the <code>Encode</code> module.</p>
 
 <p>Reading in a file that you know happens to be encoded in one of the Unicode or legacy encodings does not magically turn the data into Unicode in Perl&#39;s eyes. To do that, specify the appropriate layer when opening files</p>
 
@@ -278,7 +278,9 @@
 
 <p>Common encodings recognized by ISO, MIME, IANA, and various other standardisation organisations are recognised; for a more detailed list see <a href="/cperl/lib/Encode/Supported.html">Encode::Supported</a>.</p>
 
-<p><code>read()</code> reads characters and returns the number of characters. <code>seek()</code> and <code>tell()</code> operate on byte counts, as do <code>sysread()</code> and <code>sysseek()</code>.</p>
+<p><code>read()</code> reads characters and returns the number of characters. <code>seek()</code> and <code>tell()</code> operate on byte counts, as does <code>sysseek()</code>.</p>
+
+<p><code>sysread()</code> and <code>syswrite()</code> should not be used on file handles with character encoding layers, they behave badly, and that behaviour has been deprecated since perl 5.24.</p>
 
 <p>Notice that because of the default behaviour of not doing any conversion upon input if there is no default layer, it is easy to mistakenly write code that keeps on expanding a file by repeatedly encoding the data:</p>
 
@@ -325,9 +327,10 @@
 
 <ul>
 
-<li><p>Bit Complement Operator ~ And vec()</p>
+<li><p>Starting in Perl 5.28, it is illegal for bit operators, like <code>~</code>, to operate on strings containing code points above 255.</p>
 
-<p>The bit complement operator <code>~</code> may produce surprising results if used on strings containing characters with ordinal values above 255. In such a case, the results are consistent with the internal encoding of the characters, but not with much else. So don&#39;t do that. Similarly for <code>vec()</code>: you will be operating on the internally-encoded bit patterns of the Unicode characters, not on the code point values, which is very probably not what you want.</p>
+</li>
+<li><p>The vec() function may produce surprising results if used on strings containing characters with ordinal values above 255. In such a case, the results are consistent with the internal encoding of the characters, but not with much else. So don&#39;t do that, and starting in Perl 5.28, a deprecation message is issued if you do so, becoming illegal in Perl 5.32.</p>
 
 </li>
 <li><p>Peeking At Perl&#39;s Internal Encoding</p>
@@ -360,7 +363,7 @@
 
 <p>The short answer is that by default Perl compares equivalence (<code>eq</code>, <code>ne</code>) based only on code points of the characters. In the above case, the answer is no (because 0x00C1 != 0x0041). But sometimes, any CAPITAL LETTER A&#39;s should be considered equal, or even A&#39;s of any case.</p>
 
-<p>The long answer is that you need to consider character normalization and casing issues: see <a href="/cperl/lib/Unicode/Normalize.html">Unicode::Normalize</a>, Unicode Technical Report #15, <a href="http://www.unicode.org/unicode/reports/tr15">Unicode Normalization Forms</a> and sections on case mapping in the <a href="http://www.unicode.org">Unicode Standard</a>.</p>
+<p>The long answer is that you need to consider character normalization and casing issues: see <a>Unicode::Normalize</a>, Unicode Technical Report #15, <a href="http://www.unicode.org/unicode/reports/tr15">Unicode Normalization Forms</a> and sections on case mapping in the <a href="http://www.unicode.org">Unicode Standard</a>.</p>
 
 <p>As of Perl 5.8.0, the &quot;Full&quot; case-folding of <i>Case Mappings/SpecialCasing</i> is implemented, but bugs remain in <code>qr//i</code> with them, mostly fixed by 5.14, and essentially entirely by 5.18.</p>
 
@@ -373,7 +376,7 @@
 
 <p>The short answer is that by default, Perl compares strings (<code>lt</code>, <code>le</code>, <code>cmp</code>, <code>ge</code>, <code>gt</code>) based only on the code points of the characters. In the above case, the answer is &quot;after&quot;, since <code>0x00C1</code> &gt; <code>0x00C0</code>.</p>
 
-<p>The long answer is that &quot;it depends&quot;, and a good answer cannot be given without knowing (at the very least) the language context. See <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a>, and <i>Unicode Collation Algorithm</i> <a href="http://www.unicode.org/unicode/reports/tr10/">http://www.unicode.org/unicode/reports/tr10/</a></p>
+<p>The long answer is that &quot;it depends&quot;, and a good answer cannot be given without knowing (at the very least) the language context. See <a>Unicode::Collate</a>, and <i>Unicode Collation Algorithm</i> <a href="http://www.unicode.org/unicode/reports/tr10/">http://www.unicode.org/unicode/reports/tr10/</a></p>
 
 </li>
 </ul>
@@ -386,7 +389,7 @@
 
 <p>Character ranges in regular expression bracketed character classes ( e.g., <code>/[a-z]/</code>) and in the <code>tr///</code> (also known as <code>y///</code>) operator are not magically Unicode-aware. What this means is that <code>[A-Za-z]</code> will not magically start to mean &quot;all alphabetic letters&quot; (not that it does mean that even for 8-bit characters; for those, if you are using locales (<a href="/cperl/perllocale.html">perllocale</a>), use <code>/[[:alpha:]]/</code>; and if not, use the 8-bit-aware property <code>\p{alpha}</code>).</p>
 
-<p>All the properties that begin with <code>\p</code> (and its inverse <code>\P</code>) are actually character classes that are Unicode-aware. There are dozens of them, see <a href="/cperl/perluniprops.html">perluniprops</a>.</p>
+<p>All the properties that begin with <code>\p</code> (and its inverse <code>\P</code>) are actually character classes that are Unicode-aware. There are dozens of them, see <a>perluniprops</a>.</p>
 
 <p>Starting in v5.22, you can use Unicode code points as the end points of regular expression pattern character ranges, and the range will include all Unicode code points that lie between those end points, inclusive.</p>
 
@@ -521,7 +524,7 @@
 </li>
 <li><p>How Does Unicode Work With Traditional Locales?</p>
 
-<p>If your locale is a UTF-8 locale, starting in Perl v5.20, Perl works well for all categories except <code>LC_COLLATE</code> dealing with sorting and the <code>cmp</code> operator.</p>
+<p>If your locale is a UTF-8 locale, starting in Perl v5.26, Perl works well for all categories; before this, starting with Perl v5.20, it works for all categories but <code>LC_COLLATE</code>, which deals with sorting and the <code>cmp</code> operator. But note that the standard <code><a>Unicode::Collate</a></code> and <code><a>Unicode::Collate::Locale</a></code> modules offer much more powerful solutions to collation issues, and work on earlier releases.</p>
 
 <p>For other locales, starting in Perl 5.16, you can specify</p>
 
@@ -619,7 +622,7 @@
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p><a href="/cperl/perlunitut.html">perlunitut</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/Encode.html">Encode</a>, <a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/utf8.html">utf8</a>, <a href="/cperl/lib/bytes.html">bytes</a>, <a href="/cperl/perlretut.html">perlretut</a>, <a href="/cperl/perlrun.html">perlrun</a>, <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a>, <a href="/cperl/lib/Unicode/Normalize.html">Unicode::Normalize</a>, <a href="/cperl/lib/Unicode/UCD.html">Unicode::UCD</a></p>
+<p><a href="/cperl/perlunitut.html">perlunitut</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/Encode.html">Encode</a>, <a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/utf8.html">utf8</a>, <a href="/cperl/lib/bytes.html">bytes</a>, <a href="/cperl/perlretut.html">perlretut</a>, <a href="/cperl/perlrun.html">perlrun</a>, <a>Unicode::Collate</a>, <a>Unicode::Normalize</a>, <a href="/cperl/lib/Unicode/UCD.html">Unicode::UCD</a></p>
 
 <h1 id="ACKNOWLEDGMENTS">ACKNOWLEDGMENTS</h1>
 

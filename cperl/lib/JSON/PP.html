@@ -126,13 +126,13 @@
 
 <h1 id="VERSION">VERSION</h1>
 
-<pre><code>    2.91_04</code></pre>
+<pre><code>    2.97000_04</code></pre>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
 <p>JSON::PP is a pure perl JSON decoder/encoder (as of RFC4627, which we know is obsolete but we still stick to; see below for an option to support part of RFC7159), and (almost) compatible to the much faster <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a>. JSON::PP works as a fallback module when you use <a>JSON</a> module without having installed Cpanel::JSON::XS or JSON::XS.</p>
 
-<p>Because of this fallback feature of JSON.pm, JSON::PP tries not to be more JavaScript-friendly than Cpanel::JSON::XS (i.e. not to escape extra characters such as U+2028 and U+2029 nor support RFC7159/ECMA-404), in order for you not to lose such JavaScript-friendliness silently when you use JSON.pm and install <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> for speed or by accident. If you need JavaScript-friendly RFC7159-compliant pure perl module, try <a>JSON::Tiny</a>, which is derived from <a>Mojolicious</a> web framework and is also smaller and faster than JSON::PP.</p>
+<p>Because of this fallback feature of JSON.pm, JSON::PP tries not to be more JavaScript-friendly than Cpanel::JSON::XS (i.e. not to escape extra characters such as U+2028 and U+2029 nor support RFC7159/ECMA-404), in order for you not to lose such JavaScript-friendliness silently when you use JSON.pm and install <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> for speed or by accident. If you need JavaScript-friendly RFC7159-compliant (i.e. insecure) pure perl module, try <a>JSON::Tiny</a>, which is derived from <a>Mojolicious</a> web framework and is also smaller and faster than JSON::PP.</p>
 
 <p>JSON::PP has been in the Perl core since Perl 5.14, mainly for CPAN toolchain modules to parse META.json.</p>
 
@@ -271,11 +271,13 @@
     
     $enabled = $json-&gt;get_ascii</code></pre>
 
-<p>If $enable is true (or missing), then the encode method will not generate characters outside the code range 0..127. Any Unicode characters outside that range will be escaped using either a single \uXXXX or a double \uHHHH\uLLLLL escape sequence, as per RFC4627. (See to <a href="/cperl/lib/Cpanel/JSON/XS.html#OBJECT-ORIENTED-INTERFACE">&quot;OBJECT-ORIENTED INTERFACE&quot; in Cpanel::JSON::XS</a>).</p>
+<p>If <code>$enable</code> is true (or missing), then the <code>encode</code> method will not generate characters outside the code range <code>0..127</code> (which is ASCII). Any Unicode characters outside that range will be escaped using either a single \uXXXX (BMP characters) or a double \uHHHH\uLLLLL escape sequence, as per RFC4627. The resulting encoded JSON text can be treated as a native Unicode string, an ascii-encoded, latin1-encoded or UTF-8 encoded string, or any other superset of ASCII.</p>
 
-<p>In Perl 5.005, there is no character having high value (more than 255). See to <a href="#UNICODE-HANDLING-ON-PERLS">&quot;UNICODE HANDLING ON PERLS&quot;</a>.</p>
+<p>If <code>$enable</code> is false, then the <code>encode</code> method will not escape Unicode characters unless required by the JSON syntax or other flags. This results in a faster and more compact format.</p>
 
-<p>If $enable is false, then the encode method will not escape Unicode characters unless required by the JSON syntax or other flags. This results in a faster and more compact format.</p>
+<p>See also the section <i>ENCODING/CODESET FLAG NOTES</i> later in this document.</p>
+
+<p>The main use for this flag is to produce JSON texts that can be transmitted over a 7-bit channel, as the encoded JSON texts will not contain any 8 bit characters.</p>
 
 <pre><code>  JSON::PP-&gt;new-&gt;ascii(1)-&gt;encode([chr 0x10401])
   =&gt; [&quot;\ud801\udc01&quot;]</code></pre>
@@ -286,7 +288,7 @@
     
     $enabled = $json-&gt;get_latin1</code></pre>
 
-<p>If $enable is true (or missing), then the encode method will encode the resulting JSON text as latin1 (or iso-8859-1), escaping any characters outside the code range 0..255.</p>
+<p>If <code>$enable</code> is true (or missing), then the <code>encode</code> method will encode the resulting JSON text as latin1 (or iso-8859-1), escaping any characters outside the code range <code>0..255</code>. The resulting string can be treated as a latin1-encoded JSON text or a native Unicode string. The <code>decode</code> method will not be affected in any way by this flag, as <code>decode</code> by default expects Unicode, which is a strict superset of latin1.</p>
 
 <p>If <code>$enable</code> is false, then the <code>encode</code> method will not escape Unicode characters unless required by the JSON syntax or other flags.</p>
 
@@ -627,7 +629,7 @@
 
 <h1 id="FLAGS-FOR-JSON::PP-ONLY">FLAGS FOR JSON::PP ONLY</h1>
 
-<p>The following flags and properties are for JSON::PP only. If you use any of these, you can&#39;t make your application run faster by replacing JSON::PP with JSON::XS. If you need these and also speed boost, try <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a>, a fork of JSON::XS by Reini Urban, which supports some of these.</p>
+<p>The following flags and properties are for JSON::PP only. If you use any of these, you can&#39;t make your application run faster by replacing JSON::PP with Cpanel::JSON::XS.</p>
 
 <h2 id="allow_singlequote">allow_singlequote</h2>
 
@@ -697,7 +699,7 @@
 
 <p>This option is only useful when you also enable <code>indent</code> or <code>pretty</code>.</p>
 
-<p>JSON::XS indents with three spaces when you <code>encode</code> (if requested by <code>indent</code> or <code>pretty</code>), and the number cannot be changed. JSON::PP allows you to change/get the number of indent spaces with these mutator/accessor. The default number of spaces is three (the same as JSON::XS), and the acceptable range is from <code>0</code> (no indentation; it&#39;d be better to disable indentation by <code>indent(0)</code>) to <code>15</code>.</p>
+<p>Cpanel::JSON::XS indents with three spaces when you <code>encode</code> (if requested by <code>indent</code> or <code>pretty</code>), and the number cannot be changed. JSON::PP allows you to change/get the number of indent spaces with these mutator/accessor. The default number of spaces is three (the same as Cpanel::JSON::XS), and the acceptable range is from <code>0</code> (no indentation; it&#39;d be better to disable indentation by <code>indent(0)</code>) to <code>15</code>.</p>
 
 <h2 id="sort_by">sort_by</h2>
 
@@ -732,7 +734,7 @@
 
 <h1 id="INCREMENTAL-PARSING">INCREMENTAL PARSING</h1>
 
-<p>This section is also taken from JSON::XS.</p>
+<p>This section is also taken from Cpanel::JSON::XS.</p>
 
 <p>In some cases, there is the need for incremental parsing of JSON texts. While this module always has to keep both JSON text and resulting Perl data structure in memory at one time, it does allow you to parse a JSON stream incrementally. It does so by accumulating text until it has a full JSON object, which it then can decode. This process is similar to using <code>decode_prefix</code> to see if a full JSON object is available, but is much more efficient (and can be implemented with a minimum of method calls).</p>
 
@@ -930,7 +932,7 @@
 
 <p>Note that numerical precision has the same meaning as under Perl (so binary to decimal conversion follows the same rules as in Perl, which can differ to other languages). Also, your perl interpreter might expose extensions to the floating point numbers of your platform, such as infinities or NaN&#39;s - these cannot be represented in JSON, and it is an error to pass those in.</p>
 
-<p>JSON::PP (and JSON::XS) trusts what you pass to <code>encode</code> method (or <code>encode_json</code> function) is a clean, validated data structure with values that can be represented as valid JSON values only, because it&#39;s not from an external data source (as opposed to JSON texts you pass to <code>decode</code> or <code>decode_json</code>, which JSON::PP considers tainted and doesn&#39;t trust). As JSON::PP doesn&#39;t know exactly what you and consumers of your JSON texts want the unexpected values to be (you may want to convert them into null, or to stringify them with or without normalisation (string representation of infinities/NaN may vary depending on platforms), or to croak without conversion), you&#39;re advised to do what you and your consumers need before you encode, and also not to numify values that may start with values that look like a number (including infinities/NaN), without validating.</p>
+<p>JSON::PP (and Cpanel::JSON::XS) trusts what you pass to <code>encode</code> method (or <code>encode_json</code> function) is a clean, validated data structure with values that can be represented as valid JSON values only, because it&#39;s not from an external data source (as opposed to JSON texts you pass to <code>decode</code> or <code>decode_json</code>, which JSON::PP considers tainted and doesn&#39;t trust). As JSON::PP doesn&#39;t know exactly what you and consumers of your JSON texts want the unexpected values to be (you may want to convert them into null, or to stringify them with or without normalisation (string representation of infinities/NaN may vary depending on platforms), or to croak without conversion), you&#39;re advised to do what you and your consumers need before you encode, and also not to numify values that may start with values that look like a number (including infinities/NaN), without validating.</p>
 
 </dd>
 </dl>
@@ -1034,7 +1036,7 @@
 
 <h1 id="ENCODING-CODESET-FLAG-NOTES">ENCODING/CODESET FLAG NOTES</h1>
 
-<p>This section is taken from JSON::XS.</p>
+<p>This section is taken from Cpanel::JSON::XS.</p>
 
 <p>The interested reader might have seen a number of flags that signify encodings or codesets - <code>utf8</code>, <code>latin1</code> and <code>ascii</code>. There seems to be some confusion on what these do, so here is a short comparison:</p>
 
@@ -1102,7 +1104,11 @@
 
 <p>Most of the document are copied and modified from Cpanel::JSON::XS doc.</p>
 
-<p><a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a></p>
+<p>The <i>json_pp</i> command line utility for quick experiments.</p>
+
+<p><a href="/cperl/lib/Cpanel/JSON/XS.html">JSON::XS</a>, <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a>, and <a>JSON::Tiny</a> for faster alternatives. <a>JSON</a> and <a>JSON::MaybeXS</a> for easy migration.</p>
+
+<p><a>JSON::PP::Compat5005</a> and <a>JSON::PP::Compat5006</a> for older perl users.</p>
 
 <p>RFC4627 (<a href="http://www.ietf.org/rfc/rfc4627.txt">http://www.ietf.org/rfc/rfc4627.txt</a>)</p>
 
@@ -1122,7 +1128,7 @@
 
 <dl>
 
-<dt id="Around-line-2991">Around line 2991:</dt>
+<dt id="Around-line-2997">Around line 2997:</dt>
 <dd>
 
 <p>You forgot a &#39;=back&#39; before &#39;=head1&#39;</p>

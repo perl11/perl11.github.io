@@ -1,0 +1,624 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx219.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Core-Enhancements">Core Enhancements</a>
+    <ul>
+      <li><a href="#Initialisation-of-aggregate-state-variables">Initialisation of aggregate state variables</a></li>
+      <li><a href="#Full-size-inode-numbers">Full-size inode numbers</a></li>
+    </ul>
+  </li>
+  <li><a href="#Incompatible-Changes">Incompatible Changes</a>
+    <ul>
+      <li><a href="#Yada-yada-is-now-strictly-a-statement">Yada-yada is now strictly a statement</a></li>
+      <li><a href="#Subroutines-no-longer-need-typeglobs">Subroutines no longer need typeglobs</a></li>
+      <li><a href="#Sort-algorithm-can-no-longer-be-specified">Sort algorithm can no longer be specified</a></li>
+    </ul>
+  </li>
+  <li><a href="#Performance-Enhancements">Performance Enhancements</a></li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Removal-of-use-vars">Removal of use vars</a></li>
+      <li><a href="#Use-of-DynaLoader-changed-to-XSLoader-in-many-modules">Use of DynaLoader changed to XSLoader in many modules</a></li>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Documentation">Documentation</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Documentation">Changes to Existing Documentation</a></li>
+    </ul>
+  </li>
+  <li><a href="#Diagnostics">Diagnostics</a>
+    <ul>
+      <li><a href="#Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</a></li>
+    </ul>
+  </li>
+  <li><a href="#Utility-Changes">Utility Changes</a>
+    <ul>
+      <li><a href="#perlbug">perlbug</a></li>
+    </ul>
+  </li>
+  <li><a href="#Configuration-and-Compilation">Configuration and Compilation</a></li>
+  <li><a href="#Packaging">Packaging</a></li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Discontinued-Platforms">Discontinued Platforms</a></li>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Internal-Changes">Internal Changes</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Errata-From-Previous-Releases">Errata From Previous Releases</a></li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#Give-Thanks">Give Thanks</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5276delta - what is new for perl v5.27.6</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes differences between the 5.27.5 release and the 5.27.6 release.</p>
+
+<p>If you are upgrading from an earlier release such as 5.27.4, first read <a href="/cperl/perl5275delta.html">perl5275delta</a>, which describes differences between 5.27.4 and 5.27.5.</p>
+
+<h1 id="Core-Enhancements">Core Enhancements</h1>
+
+<h2 id="Initialisation-of-aggregate-state-variables">Initialisation of aggregate state variables</h2>
+
+<p>A persistent lexical array or hash variable can now be initialized, by an expression such as <code>state @a = qw(x y z)</code>. Initialization of a list of persistent lexical variables is still not possible.</p>
+
+<h2 id="Full-size-inode-numbers">Full-size inode numbers</h2>
+
+<p>On platforms where inode numbers are of a type larger than perl&#39;s native integer numerical types, <a href="/cperl/perlfunc.html#stat">stat</a> will preserve the full content of large inode numbers by returning them in the form of strings of decimal digits. Exact comparison of inode numbers can thus be achieved by comparing with <code>eq</code> rather than <code>==</code>. Comparison with <code>==</code>, and other numerical operations (which are usually meaningless on inode numbers), work as well as they did before, which is to say they fall back to floating point, and ultimately operate on a fairly useless rounded inode number if the real inode number is too big for the floating point format.</p>
+
+<h1 id="Incompatible-Changes">Incompatible Changes</h1>
+
+<h2 id="Yada-yada-is-now-strictly-a-statement">Yada-yada is now strictly a statement</h2>
+
+<p>By the time of its initial stable release in Perl 5.12, the <code>...</code> (yada-yada) operator was explicitly intended to serve as a statement, not an expression. However, the original implementation was confused on this point, leading to inconsistent parsing. The operator was accidentally accepted in a few situations where it did not serve as a complete statement, such as</p>
+
+<pre><code>    ... . &quot;foo&quot;;
+    ... if $a &lt; $b;</code></pre>
+
+<p>The parsing has now been made consistent, permitting yada-yada only as a statement. Affected code can use <code>do{...}</code> to put a yada-yada into an arbitrary expression context.</p>
+
+<h2 id="Subroutines-no-longer-need-typeglobs">Subroutines no longer need typeglobs</h2>
+
+<p>Perl 5.22.0 introduced an optimization allowing subroutines to be stored in packages as simple sub refs, not requiring a full typeglob (thus potentially saving large amounts of memeory). However, the optimization was flawed: it only applied to the main package.</p>
+
+<p>This optimization has now been extended to all packages. This may break compatibility with introspection code that looks inside stashes and expects everything in them to be a typeglob.</p>
+
+<p>When this optimization happens, the typeglob still notionally exists, so accessing it will cause the stash entry to be upgraded to a typeglob. The optimization does not apply to XSUBs or exported subroutines, and calling a method will undo it, since method calls cache things in typeglobs.</p>
+
+<p>(This change actually happened in perl 5.27.5 but was omitted from its perldelta.)</p>
+
+<p>[perl #129916] [perl #132252]</p>
+
+<h2 id="Sort-algorithm-can-no-longer-be-specified">Sort algorithm can no longer be specified</h2>
+
+<p>Since Perl 5.8, the <a href="/cperl/lib/sort.html">sort</a> pragma has had subpragmata <code>_mergesort</code>, <code>_quicksort</code>, and <code>_qsort</code> that can be used to specify which algorithm perl should use to implement the <a href="/cperl/perlfunc.html#sort">sort</a> builtin. This was always considered a dubious feature that might not last, hence the underscore spellings, and they were documented as not being portable beyond Perl 5.8. These subpragmata have now been deleted, and any attempt to use them is an error. The <a href="/cperl/lib/sort.html">sort</a> pragma otherwise remains, and the algorithm-neutral <code>stable</code> subpragma can be used to control sorting behaviour. [perl #119635]</p>
+
+<h1 id="Performance-Enhancements">Performance Enhancements</h1>
+
+<ul>
+
+<li><p>Many string concatenation expressions are now considerably faster, due to the introduction internally of a <code>multiconcat</code> opcode which combines multiple concatenations, and optionally a <code>=</code> or <code>.=</code>, into a single action. For example, apart from retrieving <code>$s</code>, <code>$a</code> and <code>$b</code>, this whole expression is now handled as a single op:</p>
+
+<pre><code>    $s .= &quot;a=$a b=$b\n&quot;</code></pre>
+
+<p>As a special case, if the LHS of an assignment is a lexical variable or <code>my $s</code>, the op itself handles retrieving the lexical variable, which is faster.</p>
+
+<p>In general, the more the expression includes a mix of constant strings and variable expressions, the longer the expression, and the more it mixes together non-utf8 and utf8 strings, the more marked the performance improvement. For example on a <code>x86_64</code> system, this code has been benchmarked running four times faster:</p>
+
+<pre><code>    my $s;
+    my $a = &quot;ab\x{100}cde&quot;;
+    my $b = &quot;fghij&quot;;
+    my $c = &quot;\x{101}klmn&quot;;
+
+    for my $i (1..10_000_000) {
+        $s = &quot;\x{100}wxyz&quot;;
+        $s .= &quot;foo=$a bar=$b baz=$c&quot;;
+    }</code></pre>
+
+<p>In addition, <code>sprintf</code> expressions which have a constant format containing only <code>%s</code> and <code>%%</code> format elements, and which have a fixed number of arguments, are now also optimised into a <code>multiconcat</code> op.</p>
+
+</li>
+<li><p>Subroutines in packages no longer need to be stored in typeglobs, saving large amounts of memory. See <a href="#Subroutines-no-longer-need-typeglobs">&quot;Subroutines no longer need typeglobs&quot;</a> under <a href="#Incompatible-Changes">&quot;Incompatible Changes&quot;</a>, above.</p>
+
+</li>
+</ul>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<p>Key highlights in this release across several modules:</p>
+
+<h2 id="Removal-of-use-vars">Removal of use vars</h2>
+
+<p>The usage of <code>use vars</code> has been discouraged since the introduction of <code>our</code> in Perl 5.6.0. Where possible the usage of this pragma has now been removed from the Perl source code.</p>
+
+<p>This had a slight effect (for the better) on the output of WARNING_BITS in B::Deparse.</p>
+
+<h2 id="Use-of-DynaLoader-changed-to-XSLoader-in-many-modules">Use of DynaLoader changed to XSLoader in many modules</h2>
+
+<p>XSLoader is more modern, and most modules already require perl 5.6 or greater, so no functionality is lost by switching. In some cases, we have also made changes to the local implementation that may not be reflected in the version on CPAN due to a desire to maintain more backwards compatibility.</p>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<ul>
+
+<li><p><a href="/cperl/lib/Attribute/Handlers.html">Attribute::Handlers</a> has been upgraded from version 1.00 to 1.01.</p>
+
+</li>
+<li><p><a href="/cperl/lib/attributes.html">attributes</a> has been upgraded from version 0.31 to 0.32.</p>
+
+</li>
+<li><p><a href="/cperl/lib/B.html">B</a> has been upgraded from version 1.70 to 1.72.</p>
+
+</li>
+<li><p><a href="/cperl/lib/B/Concise.html">B::Concise</a> has been upgraded from version 1.002 to 1.003.</p>
+
+</li>
+<li><p><a href="/cperl/lib/B/Deparse.html">B::Deparse</a> has been upgraded from version 1.43 to 1.45.</p>
+
+</li>
+<li><p><a href="/cperl/lib/base.html">base</a> has been upgraded from version 2.26 to 2.27.</p>
+
+</li>
+<li><p><a href="/cperl/lib/blib.html">blib</a> has been upgraded from version 1.06 to 1.07.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Carp.html">Carp</a> has been upgraded from version 1.43 to 1.44.</p>
+
+<p>If a package on the call stack contains a constant named <code>ISA</code>, Carp no longer throws a &quot;Not a GLOB reference&quot; error.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Compress/Raw/Zlib.html">Compress::Raw::Zlib</a> has been upgraded from version 2.074 to 2.075.</p>
+
+<p>This addresses a security vulnerability in older versions of the &#39;zlib&#39; library (which is bundled with Compress-Raw-Zlib).</p>
+
+</li>
+<li><p><a href="/cperl/lib/Config/Extensions.html">Config::Extensions</a> has been upgraded from version 0.01 to 0.02.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Devel/PPPort.html">Devel::PPPort</a> has moved from cpan-first to perl-first maintenance</p>
+
+<p>Primary responsibility for the code in Devel::PPPort has moved into core perl. In a practical sense there should be no change except that hopefully it will stay more up to date with changes made to symbols in perl, rather than needing to be updated after the fact.</p>
+
+</li>
+<li><p><a href="/cperl/lib/DynaLoader.html">DynaLoader</a> has been upgraded from version 1.42 to 1.44.</p>
+
+</li>
+<li><p><a href="/cperl/lib/experimental.html">experimental</a> has been upgraded from version 0.016 to 0.017.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/CBuilder.html">ExtUtils::CBuilder</a> has been upgraded from version 0.280228 to 0.280229.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/Embed.html">ExtUtils::Embed</a> has been upgraded from version 1.34 to 1.35.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/Miniperl.html">ExtUtils::Miniperl</a> has been upgraded from version 1.06 to 1.07.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/ParseXS.html">ExtUtils::ParseXS</a> has been upgraded from version 3.35 to 3.36.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/Typemaps.html">ExtUtils::Typemaps</a> has been upgraded from version 3.35 to 3.36.</p>
+
+</li>
+<li><p><a href="/cperl/lib/ExtUtils/XSSymSet.html">ExtUtils::XSSymSet</a> has been upgraded from version 1.3 to 1.4.</p>
+
+</li>
+<li><p><a href="/cperl/lib/fields.html">fields</a> has been upgraded from version 2.23 to 2.24.</p>
+
+</li>
+<li><p><a href="/cperl/lib/File/Copy.html">File::Copy</a> has been upgraded from version 2.32 to 2.33. It will now use Time::HiRes utime where available (perl #132401).</p>
+
+</li>
+<li><p><a href="/cperl/lib/File/Spec.html">File::Spec</a> has been upgraded from version 3.68 to 3.70.</p>
+
+</li>
+<li><p><a href="/cperl/lib/File/stat.html">File::stat</a> has been upgraded from version 1.07 to 1.08.</p>
+
+</li>
+<li><p><a href="/cperl/lib/FileCache.html">FileCache</a> has been upgraded from version 1.09 to 1.10.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Filter/Simple.html">Filter::Simple</a> has been upgraded from version 0.94 to 0.95.</p>
+
+</li>
+<li><p><a>Hash::Util::FieldHash</a> has been upgraded from version 1.19 to 1.20.</p>
+
+</li>
+<li><p><a>I18N::Langinfo</a> has been upgraded from version 0.14 to 0.15.</p>
+
+</li>
+<li><p><a href="/cperl/lib/I18N/LangTags.html">I18N::LangTags</a> has been upgraded from version 0.42 to 0.43.</p>
+
+</li>
+<li><p>The libnet distribution has been upgraded from version 3.10 to 3.11.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Locale/Maketext.html">Locale::Maketext</a> has been upgraded from version 1.28 to 1.29.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Module/CoreList.html">Module::CoreList</a> has been upgraded from version 5.20171020 to 5.20171120.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Net/Ping.html">Net::Ping</a> has been upgraded from version 2.55 to 2.62.</p>
+
+</li>
+<li><p><a>ODBM_File</a> has been upgraded from version 1.14 to 1.15.</p>
+
+</li>
+<li><p><a>Opcode</a> has been upgraded from version 1.40 to 1.41.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Pod/Html.html">Pod::Html</a> has been upgraded from version 1.2202 to 1.2203.</p>
+
+</li>
+<li><p><a>POSIX</a> has been upgraded from version 1.78 to 1.80.</p>
+
+</li>
+<li><p><a href="/cperl/lib/re.html">re</a> has been upgraded from version 0.35 to 0.36.</p>
+
+</li>
+<li><p><a href="/cperl/lib/SelfLoader.html">SelfLoader</a> has been upgraded from version 1.24 to 1.25.</p>
+
+</li>
+<li><p><a>Socket</a> has been upgraded from version 2.020_03 to 2.020_04.</p>
+
+</li>
+<li><p><a href="/cperl/lib/sort.html">sort</a> has been upgraded from version 2.03 to 2.04.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Memoize/Storable.html">Storable</a> has been upgraded from version 2.64 to 2.65.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Test.html">Test</a> has been upgraded from version 1.30 to 1.31.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Test/Simple.html">Test::Simple</a> has been upgraded from version 1.302103 to 1.302111.</p>
+
+</li>
+<li><p><a>threads</a> has been upgraded from version 2.18 to 2.19.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Tie/Array.html">Tie::Array</a> has been upgraded from version 1.06 to 1.07.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Tie/StdHandle.html">Tie::StdHandle</a> has been upgraded from version 4.4 to 4.5.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Time/gmtime.html">Time::gmtime</a> has been upgraded from version 1.03 to 1.04.</p>
+
+</li>
+<li><p><a>Time::HiRes</a> has been upgraded from version 1.9746 to 1.9747.</p>
+
+</li>
+<li><p><a href="/cperl/lib/Time/localtime.html">Time::localtime</a> has been upgraded from version 1.02 to 1.03.</p>
+
+</li>
+<li><p><a>Unicode::Collate</a> has been upgraded from version 1.19 to 1.23.</p>
+
+</li>
+<li><p><a>Unicode::Normalize</a> has been upgraded from version 1.25 to 1.26.</p>
+
+</li>
+<li><p><a href="/cperl/lib/User/grent.html">User::grent</a> has been upgraded from version 1.01 to 1.02.</p>
+
+</li>
+<li><p><a href="/cperl/lib/User/pwent.html">User::pwent</a> has been upgraded from version 1.00 to 1.01.</p>
+
+</li>
+<li><p><a>VMS::DCLsym</a> has been upgraded from version 1.08 to 1.09.</p>
+
+</li>
+<li><p><a>VMS::Stdio</a> has been upgraded from version 2.42 to 2.44.</p>
+
+</li>
+<li><p><a href="/cperl/lib/warnings.html">warnings</a> has been upgraded from version 1.37 to 1.38.</p>
+
+</li>
+<li><p><a>XS::Typemap</a> has been upgraded from version 0.15 to 0.16.</p>
+
+</li>
+<li><p><a href="/cperl/lib/XSLoader.html">XSLoader</a> has been upgraded from version 0.27 to 0.28.</p>
+
+</li>
+</ul>
+
+<h1 id="Documentation">Documentation</h1>
+
+<h2 id="Changes-to-Existing-Documentation">Changes to Existing Documentation</h2>
+
+<p>We have attempted to update the documentation to reflect the changes listed in this document. If you find any we have missed, send email to <a href="mailto:perlbug@perl.org">perlbug@perl.org</a>.</p>
+
+<p>Additionally, the following selected changes have been made:</p>
+
+<ul>
+
+<li><p><a href="/cperl/perldiag.html#Variable-length-lookbehind-not-implemented-in-regex-m-s">&quot;Variable length lookbehind not implemented in regex m/%s/&quot; in perldiag</a></p>
+
+<p>This now gives more ideas as to workarounds to the issue that was introduced in Perl 5.18 (but not documented explicitly in its perldelta) for the fact that some Unicode <code>/i</code> rules cause a few sequences such as</p>
+
+<pre><code> (?&lt;!st)</code></pre>
+
+<p>to be considered variable length, and hence disallowed.</p>
+
+</li>
+<li><p>&quot;Use of state $_ is experimental&quot; in <a href="/cperl/perldiag.html">perldiag</a></p>
+
+<p>This entry has been removed, as the experimental support of this construct was removed in perl 5.24.0.</p>
+
+</li>
+<li><p>The section on reference counting in <a href="/cperl/perlguts.html">perlguts</a> has been heavily revised, to describe references in the way a programmer needs to think about them rather than in terms of the physical data structures.</p>
+
+</li>
+<li><p>The section &quot;Truth and Falsehood&quot; in <a href="/cperl/perlsyn.html">perlsyn</a> has been removed from that document, where it didn&#39;t belong, and merged into the existing paragraph on the same topic in <a href="/cperl/perldata.html">perldata</a>.</p>
+
+</li>
+<li><p>The description of the <code>x</code> operator in <a href="/cperl/perlop.html">perlop</a> has been clarified. [perl #132460]</p>
+
+</li>
+<li><p><a>perluniprops</a> has been updated to note that <code>\p{Word}</code> now includes code points matching the <code>\p{Join_Control}</code> property. The change to the property was made in Perl 5.18, but not documented until now. There are currently only two code points that match this property U+200C (ZERO WIDTH NON-JOINER) and U+200D (ZERO WIDTH JOINER).</p>
+
+</li>
+<li><p>The entry for <code>$+</code> in perlvar has been expanded upon to describe handling of multiply-named capturing groups.</p>
+
+</li>
+<li><p><a href="/cperl/perlop.html">perlop</a> has been updated to note that <code>qw</code>&#39;s whitespace rules differ from that of <code>split</code>&#39;s in that only ASCII whitespace is used.</p>
+
+</li>
+<li><p><a>POSIX</a> has been updated with some more cautions about using locale-specific functions in threaded applications.</p>
+
+</li>
+</ul>
+
+<h1 id="Diagnostics">Diagnostics</h1>
+
+<p>The following additions or changes have been made to diagnostic output, including warnings and fatal error messages. For the complete list of diagnostic messages, see <a href="/cperl/perldiag.html">perldiag</a>.</p>
+
+<h2 id="Changes-to-Existing-Diagnostics">Changes to Existing Diagnostics</h2>
+
+<ul>
+
+<li><p>The diagnostic <code>Initialization of state variables in list context currently forbidden</code> has changed to <code>Initialization of state variables in list currently forbidden</code>, because list-context initialization of single aggregate state variables is now permitted.</p>
+
+</li>
+</ul>
+
+<h1 id="Utility-Changes">Utility Changes</h1>
+
+<h2 id="perlbug"><a>perlbug</a></h2>
+
+<ul>
+
+<li><p><code>--help</code> and <code>--version</code> options have been added.</p>
+
+</li>
+</ul>
+
+<h1 id="Configuration-and-Compilation">Configuration and Compilation</h1>
+
+<dl>
+
+<dt id="C89-requirement">C89 requirement</dt>
+<dd>
+
+<p>Perl has been documented as requiring a C89 compiler to build since October 1998. A variety of simplifications have now been made to Perl&#39;s internals to rely on the features specified by the C89 standard. We believe that this internal change hasn&#39;t altered the set of platforms that Perl builds on, but please report a bug if Perl now has new problems building on your platform.</p>
+
+</dd>
+<dt id="New-probes">New probes</dt>
+<dd>
+
+<dl>
+
+<dt id="HAS_BUILTIN_ADD_OVERFLOW">HAS_BUILTIN_ADD_OVERFLOW</dt>
+<dd>
+
+</dd>
+<dt id="HAS_BUILTIN_MUL_OVERFLOW">HAS_BUILTIN_MUL_OVERFLOW</dt>
+<dd>
+
+</dd>
+<dt id="HAS_BUILTIN_SUB_OVERFLOW">HAS_BUILTIN_SUB_OVERFLOW</dt>
+<dd>
+
+</dd>
+<dt id="HAS_THREAD_SAFE_NL_LANGINFO_L">HAS_THREAD_SAFE_NL_LANGINFO_L</dt>
+<dd>
+
+</dd>
+<dt id="HAS_LOCALECONV_L">HAS_LOCALECONV_L</dt>
+<dd>
+
+</dd>
+<dt id="HAS_MBRLEN">HAS_MBRLEN</dt>
+<dd>
+
+</dd>
+<dt id="HAS_MBRTOWC">HAS_MBRTOWC</dt>
+<dd>
+
+</dd>
+<dt id="HAS_MEMRCHR">HAS_MEMRCHR</dt>
+<dd>
+
+</dd>
+<dt id="HAS_NANOSLEEP">HAS_NANOSLEEP</dt>
+<dd>
+
+</dd>
+<dt id="HAS_STRNLEN">HAS_STRNLEN</dt>
+<dd>
+
+</dd>
+<dt id="HAS_STRTOLD_L">HAS_STRTOLD_L</dt>
+<dd>
+
+</dd>
+<dt id="I_WCHAR">I_WCHAR</dt>
+<dd>
+
+</dd>
+</dl>
+
+</dd>
+</dl>
+
+<h1 id="Packaging">Packaging</h1>
+
+<p>For the past few years we have released perl using three different archive formats: bzip (<code>.bz2</code>), LZMA2 (<code>.xz</code>) and gzip (<code>.gz</code>). Since xz compresses better and decompresses faster, and gzip is more compatible and uses less memory, we have dropped the <code>.bz2</code> archive format with this release. (If this poses a problem, do let us know; see <a href="#Reporting-Bugs">&quot;Reporting Bugs&quot;</a>, below.)</p>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Discontinued-Platforms">Discontinued Platforms</h2>
+
+<dl>
+
+<dt id="PowerUX-Power-MAX-OS">PowerUX / Power MAX OS</dt>
+<dd>
+
+<p>Compiler hints and other support for these apparently long-defunct platforms has been removed.</p>
+
+</dd>
+</dl>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="Windows">Windows</dt>
+<dd>
+
+<p>Visual C++ compiler version detection has been improved to work on non-English language systems.</p>
+
+</dd>
+</dl>
+
+<h1 id="Internal-Changes">Internal Changes</h1>
+
+<ul>
+
+<li><p>A new optimisation phase has been added to the compiler, <code>optimize_optree()</code>, which does a top-down scan of a complete optree just before the peephole optimiser is run. This phase is not currently hookable.</p>
+
+</li>
+<li><p>An <code>OP_MULTICONCAT</code> op has been added. At <code>optimize_optree()</code> time, a chain of <code>OP_CONCAT</code> and <code>OP_CONST</code> ops, together optionally with an <code>OP_STRINGIFY</code> and/or <code>OP_SASSIGN</code>, are combined into a single <code>OP_MULTICONCAT</code> op. The op is of type <code>UNOP_AUX</code>, and the aux array contains the argument count, plus a pointer to a constant string and a set of segment lengths. For example with</p>
+
+<pre><code>    my $x = &quot;foo=$foo, bar=$bar\n&quot;;</code></pre>
+
+<p>the constant string would be <code>&quot;foo=, bar=\n&quot;</code> and the segment lengths would be (4,6,1). If the string contains characters such as <code>\x80</code>, whose representation changes under utf8, two sets of strings plus lengths are precomputed and stored.</p>
+
+</li>
+<li><p>Direct access to <a href="/cperl/perlapi.html#PL_keyword_plugin"><code>PL_keyword_plugin</code></a> is not safe in the presence of multithreading. A new <a href="/cperl/perlapi.html#wrap_keyword_plugin"><code>wrap_keyword_plugin</code></a> function has been added to allow XS modules to safely define custom keywords even when loaded from a thread, analogous to <a href="/cperl/perlapi.html#PL_check"><code>PL_check</code></a> / <a href="/cperl/perlapi.html#wrap_op_checker"><code>wrap_op_checker</code></a>.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p><code>stat()</code>, <code>lstat()</code>, and file test operators now fail if given a filename containing a nul character, in the same way that <code>open()</code> already fails.</p>
+
+</li>
+<li><p><code>stat()</code>, <code>lstat()</code>, and file test operators now reliably set <code>$!</code> when failing due to being applied to a closed or otherwise invalid file handle.</p>
+
+</li>
+<li><p>File test operators for Unix permission bits that don&#39;t exist on a particular platform, such as <code>-k</code> (sticky bit) on Windows, now check that the file being tested exists before returning the blanket false result, and yield the appropriate errors if the argument doesn&#39;t refer to a file.</p>
+
+</li>
+<li><p>The in-place reverse optimisation now correctly strengthens weak references using the <a href="/cperl/perlapi.html#sv_rvunweaken"><code>sv_rvunweaken()</code></a> API function.</p>
+
+</li>
+<li><p>Fixed a read before buffer when parsing a range starting with <code>\N{}</code> at the beginning of the character set for the transliteration operator. [perl #132245]</p>
+
+</li>
+<li><p>Fixed a leaked SV when parsing an empty <code>\N{}</code> at compile-time. [perl #132245]</p>
+
+</li>
+<li><p>Calling <code>do $path</code> on a directory or block device now yields a meaningful error code in <code>$!</code>. [perl #125774]</p>
+
+</li>
+<li><p>Regexp substitution using an overloaded replacement value that provides a tainted stringification now correctly taints the resulting string. [perl #115266]</p>
+
+</li>
+<li><p>Lexical sub declarations in <code>do</code> blocks such as <code>do { my sub lex; 123 }</code> could corrupt the stack, erasing items already on the stack in the enclosing statement. This has been fixed. [perl #132442]</p>
+
+</li>
+</ul>
+
+<h1 id="Errata-From-Previous-Releases">Errata From Previous Releases</h1>
+
+<ul>
+
+<li><p><a href="#Subroutines-no-longer-need-typeglobs">&quot;Subroutines no longer need typeglobs&quot;</a> under <a href="#Incompatible-Changes">&quot;Incompatible Changes&quot;</a>, above, was made for perl 5.27.5 but was mistakenly omitted from its perldelta.</p>
+
+</li>
+</ul>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>Perl 5.27.6 represents approximately 4 weeks of development since Perl 5.27.5 and contains approximately 110,000 lines of changes across 1,100 files from 30 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 20,000 lines of changes to 430 .pm, .t, .c and .h files.</p>
+
+<p>Perl continues to flourish into its third decade thanks to a vibrant community of users and developers. The following people are known to have contributed the improvements that became Perl 5.27.6:</p>
+
+<p>Aaron Crane, Andrew Fresh, Ask Bj&oslash;rn Hansen, Chris &#39;BinGOs&#39; Williams, Craig A. Berry, Dagfinn Ilmari Manns&aring;ker, Daniel Dragan, David Cantrell, David Mitchell, Dominic Hargreaves, Father Chrysostomos, Harald J&ouml;rg, H.Merijn Brand, James E Keenan, Jarkko Hietaniemi, J. Nick Koston, John Lightsey, Karen Etheridge, Karl Williamson, Lukas Mai, Matthew Horsfall, Nicolas R., Paul Marquess, Sawyer X, Slaven Rezic, Steve Hay, Todd Rinaldo, Tony Cook, Yves Orton, Zefram.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>perlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> for details of how to report the issue.</p>
+
+<h1 id="Give-Thanks">Give Thanks</h1>
+
+<p>If you wish to thank the Perl 5 Porters for the work we had done in Perl 5, you can do so by running the <code>perlthanks</code> program:</p>
+
+<pre><code>    perlthanks</code></pre>
+
+<p>This will send an email to the Perl 5 Porters list with your show of thanks.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+

@@ -36,6 +36,8 @@
   <li><a href="#Global-Variables">Global Variables</a></li>
   <li><a href="#GV-Functions">GV Functions</a></li>
   <li><a href="#Handy-Values">Handy Values</a></li>
+  <li><a href="#Hash-Accessor-Macros">Hash Accessor Macros</a></li>
+  <li><a href="#Hash-Entries">Hash Entries</a></li>
   <li><a href="#Hash-Manipulation-Functions">Hash Manipulation Functions</a></li>
   <li><a href="#Hook-manipulation">Hook manipulation</a></li>
   <li><a href="#Lexer-interface">Lexer interface</a></li>
@@ -432,7 +434,7 @@
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
-<pre><code>        I32     call_sv(SV* sv, VOL I32 flags)</code></pre>
+<pre><code>        I32     call_sv(SV* sv, volatile I32 flags)</code></pre>
 
 </dd>
 <dt id="ENTER">ENTER </dt>
@@ -490,7 +492,7 @@
 <dt id="LEAVE_with_name-name">LEAVE_with_name(name) </dt>
 <dd>
 
-<p>Same as <code><a href="#LEAVE">&quot;LEAVE&quot;</a></code>, but when debugging is enabled it first checks that the scope has the given name. <code>name</code> must be a <code>NUL</code>-terminated literal string.</p>
+<p>Same as <code><a href="#LEAVE">&quot;LEAVE&quot;</a></code>, but when debugging is enabled it first checks that the scope has the given name. <code>name</code> must be a literal string.</p>
 
 <pre><code>                LEAVE_with_name(name);</code></pre>
 
@@ -913,25 +915,43 @@
 <dt id="cv_get_call_checker">cv_get_call_checker </dt>
 <dd>
 
-<p>Retrieves the function that will be used to fix up a call to the <code>cv</code> to override the default signature handling or suppress evaluation of the args (i.e. macros). Specifically, the function is applied to an <code>entersub</code> op tree for a subroutine call, not marked with <code>&amp;</code>, where the callee can be identified at compile time as <code>cv</code>.</p>
-
-<p>The C-level function pointer is returned in <code>*ckfun_p</code>, and an SV argument for it is returned in <code>*ckobj_p</code>. The function is intended to be called in this manner:</p>
-
-<pre><code> entersubop = (*ckfun_p)(aTHX_ entersubop, namegv, (*ckobj_p));</code></pre>
-
-<p>In this call, <code>entersubop</code> is a pointer to the <code>entersub</code> op, which may be replaced by the check function, and <code>namegv</code> is a GV supplying the name that should be used by the check function to refer to the callee of the <code>entersub</code> op if it needs to emit any diagnostics. It is permitted to apply the check function in non-standard situations, such as to a call to a different subroutine or to a method call.</p>
-
-<p>By default, the function is <a href="#ck_entersub_args_proto_or_list">Perl_ck_entersub_args_proto_or_list</a>, and the SV parameter is <code>cv</code> itself. This implements standard prototype processing. It can be changed, for a particular subroutine, by <a href="#cv_set_call_checker">&quot;cv_set_call_checker&quot;</a>.</p>
+<p>The original form of <a href="#cv_get_call_checker_flags">&quot;cv_get_call_checker_flags&quot;</a>, which does not return checker flags. When using a checker function returned by this function, it is only safe to call it with a genuine GV as its <code>namegv</code> argument.</p>
 
 <pre><code>        void    cv_get_call_checker(CV *cv,
                                     Perl_call_checker *ckfun_p,
                                     SV **ckobj_p)</code></pre>
 
 </dd>
+<dt id="cv_get_call_checker_flags">cv_get_call_checker_flags </dt>
+<dd>
+
+<p>Retrieves the function that will be used to fix up a call to the <code>cv</code> to override the default signature handling or suppress evaluation of the args (i.e. macros). Specifically, the function is applied to an <code>entersub</code> op tree for a subroutine call, not marked with <code>&amp;</code>, where the callee can be identified at compile time as <code>cv</code>.</p>
+
+<p>The C-level function pointer is returned in <code>*ckfun_p</code>, an SV argument for it is returned in <code>*ckobj_p</code>, and control flags are returned in <code>*ckflags_p</code>. The function is intended to be called in this manner:</p>
+
+<pre><code> entersubop = (*ckfun_p)(aTHX_ entersubop, namegv, (*ckobj_p));</code></pre>
+
+<p>In this call, <code>entersubop</code> is a pointer to the <code>entersub</code> op, which may be replaced by the check function, and <code>namegv</code> supplies the name that should be used by the check function to refer to the callee of the <code>entersub</code> op if it needs to emit any diagnostics. It is permitted to apply the check function in non-standard situations, such as to a call to a different subroutine or to a method call.</p>
+
+<p><code>namegv</code> may not actually be a GV. If the <code>CALL_CHECKER_REQUIRE_GV</code> bit is clear in <code>*ckflags_p</code>, it is permitted to pass a CV or other SV instead, anything that can be used as the first argument to <a href="#cv_name">&quot;cv_name&quot;</a>. If the <code>CALL_CHECKER_REQUIRE_GV</code> bit is set in <code>*ckflags_p</code> then the check function requires <code>namegv</code> to be a genuine GV.</p>
+
+<p>By default, the check function is <a href="#ck_entersub_args_proto_or_list">Perl_ck_entersub_args_proto_or_list</a>, the SV parameter is <code>cv</code> itself, and the <code>CALL_CHECKER_REQUIRE_GV</code> flag is clear. This implements standard prototype processing. It can be changed, for a particular subroutine, by <a href="#cv_set_call_checker_flags">&quot;cv_set_call_checker_flags&quot;</a>.</p>
+
+<p>If the <code>CALL_CHECKER_REQUIRE_GV</code> bit is set in <code>gflags</code> then it indicates that the caller only knows about the genuine GV version of <code>namegv</code>, and accordingly the corresponding bit will always be set in <code>*ckflags_p</code>, regardless of the check function&#39;s recorded requirements. If the <code>CALL_CHECKER_REQUIRE_GV</code> bit is clear in <code>gflags</code> then it indicates the caller knows about the possibility of passing something other than a GV as <code>namegv</code>, and accordingly the corresponding bit may be either set or clear in <code>*ckflags_p</code>, indicating the check function&#39;s recorded requirements.</p>
+
+<p><code>gflags</code> is a bitset passed into <code>cv_get_call_checker_flags</code>, in which only the <code>CALL_CHECKER_REQUIRE_GV</code> bit currently has a defined meaning (for which see above). All other bits should be clear.</p>
+
+<pre><code>        void    cv_get_call_checker_flags(
+                    CV *cv, U32 gflags,
+                    Perl_call_checker *ckfun_p, SV **ckobj_p,
+                    U32 *ckflags_p
+                )</code></pre>
+
+</dd>
 <dt id="cv_set_call_checker">cv_set_call_checker </dt>
 <dd>
 
-<p>The original form of <a href="#cv_set_call_checker_flags">&quot;cv_set_call_checker_flags&quot;</a>, which passes it the <code>CALL_CHECKER_REQUIRE_GV</code> flag for backward-compatibility.</p>
+<p>The original form of <a href="#cv_set_call_checker_flags">&quot;cv_set_call_checker_flags&quot;</a>, which passes it the <code>CALL_CHECKER_REQUIRE_GV</code> flag for backward-compatibility. The effect of that flag setting is that the check function is guaranteed to get a genuine GV as its <code>namegv</code> argument.</p>
 
 <pre><code>        void    cv_set_call_checker(CV *cv,
                                     Perl_call_checker ckfun,
@@ -943,7 +963,7 @@
 
 <p>Sets the function that will be used to fix up a call to <code>cv</code>. Specifically, the function is applied to an <code>entersub</code> op tree for a subroutine call, not marked with <code>&amp;</code>, where the callee can be identified at compile time as <code>cv</code>.</p>
 
-<p>The C-level function pointer is supplied in <code>ckfun</code>, and an SV argument for it is supplied in <code>ckobj</code>. The function should be defined like this:</p>
+<p>The C-level function pointer is supplied in <code>ckfun</code>, an SV argument for it is supplied in <code>ckobj</code>, and control flags are supplied in <code>ckflags</code>. The function should be defined like this:</p>
 
 <pre><code>    static OP * ckfun(pTHX_ OP *op, GV *namegv, SV *ckobj)</code></pre>
 
@@ -953,13 +973,15 @@
 
 <p>In this call, <code>entersubop</code> is a pointer to the <code>entersub</code> op, which may be replaced by the check function, and <code>namegv</code> supplies the name that should be used by the check function to refer to the callee of the <code>entersub</code> op if it needs to emit any diagnostics. It is permitted to apply the check function in non-standard situations, such as to a call to a different subroutine or to a method call.</p>
 
-<p><code>namegv</code> may not actually be a GV. For efficiency, perl may pass a CV or other SV instead. Whatever is passed can be used as the first argument to <a href="#cv_name">&quot;cv_name&quot;</a>. You can force perl to pass a GV by including <code>CALL_CHECKER_REQUIRE_GV</code> in the <code>flags</code>.</p>
+<p><code>namegv</code> may not actually be a GV. For efficiency, perl may pass a CV or other SV instead. Whatever is passed can be used as the first argument to <a href="#cv_name">&quot;cv_name&quot;</a>. You can force perl to pass a GV by including <code>CALL_CHECKER_REQUIRE_GV</code> in the <code>ckflags</code>.</p>
 
-<p>The current setting for a particular CV can be retrieved by <a href="#cv_get_call_checker">&quot;cv_get_call_checker&quot;</a>.</p>
+<p><code>ckflags</code> is a bitset, in which only the <code>CALL_CHECKER_REQUIRE_GV</code> bit currently has a defined meaning (for which see above). All other bits should be clear.</p>
+
+<p>The current setting for a particular CV can be retrieved by <a href="#cv_get_call_checker_flags">&quot;cv_get_call_checker_flags&quot;</a>.</p>
 
 <pre><code>        void    cv_set_call_checker_flags(
                     CV *cv, Perl_call_checker ckfun, SV *ckobj,
-                    U32 flags
+                    U32 ckflags
                 )</code></pre>
 
 </dd>
@@ -1053,25 +1075,60 @@
 <dt id="field_index">field_index </dt>
 <dd>
 
-<p>Searches for the fieldname without the &#39;$&#39; in %klass::FIELDS (or maybe some other internal class structure, like linear search in additional @FIELDS)</p>
-
-<p>If klen is negative, the hash key is UTF8.</p>
-
-<p>Returns the field index in the object/class @FIELDS av or with want_pad set, the padoffset into comppad. PADOFFSET field_index(const HV* klass, const char* key, I32 klen, bool want_pad)</p>
+<p>Return i&#39;th field padoffset or <code>NOT_IN_PAD</code>. PADOFFSET field_index(const HV* klass, U16 i)</p>
 
 </dd>
 <dt id="field_pad">field_pad </dt>
 <dd>
 
-<p>Searches for the fieldname without the &#39;$&#39; in %klass::FIELDS (or maybe some other internal class structure, like linear search in additional @FIELDS)</p>
+<p>Returns the pad offset in <code>comppad_name</code> for the field in the klass, or <code>NOT_IN_PAD</code> if not found.</p>
+
+<p>If klen is negative, the key is UTF8. PADOFFSET field_pad(const HV* klass, const char* key, I32 klen)</p>
+
+</dd>
+<dt id="field_pad_add">field_pad_add </dt>
+<dd>
+
+<p>Adds the fieldname (without the &#39;$&#39;) with its compile-time padoffset to the %klass.</p>
+
+<p>If klen is negative, the hash key is UTF8. Even if the klen argument is provided, the fieldname may not contain a NULL character.</p>
+
+<p>The old API is to add the pad to the @class::FIELDS array, and the name with the index of the field to the %class::FIELDS hash.</p>
+
+<p>The new API is via methods only, with a single buffer of name\0pad entries, the search is be linear in a string buffer. The typical numbers are 1-3 - 20 fields per class. The padsize will be dynamic eventually, currently sizeof(long).</p>
+
+<p>The list of name/pad pairs always needs to end with a \0 char.</p>
+
+<pre><code>        void    field_pad_add(HV* klass, const char* key,
+                              I32 klen, PADOFFSET targ)</code></pre>
+
+</dd>
+<dt id="field_search">field_search </dt>
+<dd>
+
+<p>Searches for the fieldname without the &#39;$&#39; in <code>%class::</code></p>
 
 <p>If klen is negative, the hash key is UTF8.</p>
 
-<p>Returns the pad offset in comppad_name. PADOFFSET field_pad(const HV* klass, const char* key, I32 klen)</p>
+<p>Returns <code>-1</code> if not found. Returns the field index in the object/class fields list and with <code>*po</code> set, sets there the padoffset into comppad. int field_search(const HV* klass, const char* key, I32 klen, PADOFFSET *po)</p>
+
+</dd>
+<dt id="fields_size">fields_size </dt>
+<dd>
+
+<p>Length of the <a href="#HvFIELDS">&quot;HvFIELDS&quot;</a> buffer in <a href="#HvAUX">&quot;HvAUX&quot;</a>.</p>
+
+<pre><code>        int     fields_size(char* fields)</code></pre>
 
 </dd>
 <dt id="newPROG-void-newPROG-OP-o">newPROG  void newPROG(OP* o)</dt>
 <dd>
+
+</dd>
+<dt id="numfields">numfields </dt>
+<dd>
+
+<p>Number of fields in the klass. U16 numfields(const HV* klass)</p>
 
 </dd>
 </dl>
@@ -1132,10 +1189,11 @@
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Like <a href="#cophh_delete_pvn">&quot;cophh_delete_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
+<p>Like <a href="#cophh_delete_pvn">&quot;cophh_delete_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
 
 <pre><code>        COPHH * cophh_delete_pvs(const COPHH *cophh,
-                                 const char *key, U32 flags)</code></pre>
+                                 &quot;literal string&quot; key,
+                                 U32 flags)</code></pre>
 
 </dd>
 <dt id="cophh_delete_sv">cophh_delete_sv </dt>
@@ -1179,10 +1237,10 @@
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Like <a href="#cophh_fetch_pvn">&quot;cophh_fetch_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
+<p>Like <a href="#cophh_fetch_pvn">&quot;cophh_fetch_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
 
 <pre><code>        SV *    cophh_fetch_pvs(const COPHH *cophh,
-                                const char *key, U32 flags)</code></pre>
+                                &quot;literal string&quot; key, U32 flags)</code></pre>
 
 </dd>
 <dt id="cophh_fetch_sv">cophh_fetch_sv </dt>
@@ -1249,10 +1307,10 @@
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Like <a href="#cophh_store_pvn">&quot;cophh_store_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
+<p>Like <a href="#cophh_store_pvn">&quot;cophh_store_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
 
 <pre><code>        COPHH * cophh_store_pvs(const COPHH *cophh,
-                                const char *key, SV *value,
+                                &quot;literal string&quot; key, SV *value,
                                 U32 flags)</code></pre>
 
 </dd>
@@ -1305,10 +1363,11 @@
 <dt id="cop_hints_fetch_pvs">cop_hints_fetch_pvs </dt>
 <dd>
 
-<p>Like <a href="#cop_hints_fetch_pvn">&quot;cop_hints_fetch_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
+<p>Like <a href="#cop_hints_fetch_pvn">&quot;cop_hints_fetch_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
 
 <pre><code>        SV *    cop_hints_fetch_pvs(const COP *cop,
-                                    const char *key, U32 flags)</code></pre>
+                                    &quot;literal string&quot; key,
+                                    U32 flags)</code></pre>
 
 </dd>
 <dt id="cop_hints_fetch_sv">cop_hints_fetch_sv </dt>
@@ -2305,6 +2364,58 @@ NOTE: the perl_ form of this function is deprecated.
 
 <dl>
 
+<dt id="pregfree">pregfree </dt>
+<dd>
+
+<p>handles refcounting and freeing the perl core regexp structure. When it is necessary to actually free the structure the first thing it does is call the &#39;free&#39; method of the regexp_engine associated to the regexp, allowing the handling of the <code>void *pprivate</code> member first. (This routine is not overridable by extensions, which is why the extensions free is called first.)</p>
+
+<p>See <code>regdupe</code> and <a href="#regdupe_internal">&quot;regdupe_internal&quot;</a> if you change anything here. void pregfree(REGEXP* r)</p>
+
+</dd>
+<dt id="re_dup_guts">re_dup_guts </dt>
+<dd>
+
+<pre><code>                                        |NN CLONE_PARAMS* param</code></pre>
+
+<p>duplicate a regexp.</p>
+
+<p>This routine is expected to clone a given regexp structure. It is only compiled under USE_ITHREADS.</p>
+
+<p>After all of the core data stored in struct regexp is duplicated the <code>regexp_engine-&gt;dupe</code> method is used to copy any private data stored in the <code>*pprivate</code> pointer. This allows extensions to handle any duplication it needs to do.</p>
+
+<p>See <a href="#pregfree">&quot;pregfree&quot;</a> and <a href="#regfree_internal">&quot;regfree_internal&quot;</a> if you change anything here. NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        void    re_dup_guts(const REGEXP *sstr, REGEXP *dstr,
+                            CLONE_PARAMS* param)</code></pre>
+
+</dd>
+<dt id="regdupe_internal">regdupe_internal </dt>
+<dd>
+
+<p>This is the internal complement to <code>regdupe</code> which is used to copy the structure pointed to by the <code>*pprivate</code> pointer in the regexp. This is the core version of the extension overridable cloning hook. The regexp structure being duplicated will be copied by perl prior to this and will be provided as the regexp *r argument, however with the /old/ structures <code>pprivate</code> pointer value. Thus this routine may override any copying normally done by perl.</p>
+
+<p>It returns a pointer to the new <code>regexp_internal</code> structure. NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        void*   regdupe_internal(REGEXP * const r,
+                                 CLONE_PARAMS* param)</code></pre>
+
+</dd>
+<dt id="regfree_internal">regfree_internal </dt>
+<dd>
+
+<p>Free the private data in a regexp. This is overloadable by extensions. Perl takes care of the regexp structure in <a href="#pregfree">&quot;pregfree&quot;</a>, this covers the <code>*pprivate</code> pointer which technically perl doesn&#39;t know about, however of course we have to handle the <code>regexp_internal</code> structure when no extension is in use.</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        void    regfree_internal(REGEXP *const rx)</code></pre>
+
+</dd>
+<dt id="regnext">regnext </dt>
+<dd>
+
+<p>dig the &quot;next&quot; pointer out of a node regnode* regnext(regnode* p)</p>
+
+</dd>
 <dt id="re_study">re_study </dt>
 <dd>
 
@@ -2429,6 +2540,8 @@ NOTE: the perl_ form of this function is deprecated.
 <p>When a keyword is handled, the plugin function may also have (compile-time) side effects. It may modify <code>%^H</code>, define functions, and so on. Typically, if side effects are the main purpose of a handler, it does not wish to generate any ops to be included in the normal compilation. In this case it is still required to supply an op tree, but it suffices to generate a single null op.</p>
 
 <p>That&#39;s how the <code>*PL_keyword_plugin</code> function needs to behave overall. Conventionally, however, one does not completely replace the existing handler function. Instead, take a copy of <code>PL_keyword_plugin</code> before assigning your own function pointer to it. Your handler function should look for keywords that it is interested in and handle those. Where it is not interested, it should call the saved plugin function, passing on the arguments it received. Thus <code>PL_keyword_plugin</code> actually points at a chain of handler functions, all of which have an opportunity to handle keywords, and only the last function in the chain (built into the Perl core) will normally return <code>KEYWORD_PLUGIN_DECLINE</code>.</p>
+
+<p>For thread safety, modules should not set this variable directly. Instead, use the function <a href="#wrap_keyword_plugin">&quot;wrap_keyword_plugin&quot;</a>.</p>
 
 </dd>
 </dl>
@@ -2674,9 +2787,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="gv_stashpvs">gv_stashpvs </dt>
 <dd>
 
-<p>Like <code>gv_stashpvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>gv_stashpvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        HV*     gv_stashpvs(const char* name, I32 create)</code></pre>
+<pre><code>        HV*     gv_stashpvs(&quot;literal string&quot; name, I32 create)</code></pre>
 
 </dd>
 <dt id="gv_stashsv">gv_stashsv </dt>
@@ -2749,6 +2862,338 @@ NOTE: the perl_ form of this function is deprecated.
 </dd>
 </dl>
 
+<h1 id="Hash-Accessor-Macros">Hash Accessor Macros</h1>
+
+<dl>
+
+<dt id="HvARRAY">HvARRAY </dt>
+<dd>
+
+<p>Array accessor.</p>
+
+<pre><code>        SV**    HvARRAY(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvAUX">HvAUX </dt>
+<dd>
+
+<p>An extra hash struct available if <a href="#SvOOK">&quot;SvOOK&quot;</a> is true. This quite intentionally does no <code>SvOOK</code> flag checking. That&#39;s your responsibility.</p>
+
+<pre><code>        struct xpvhv_aux* HvAUX(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvCLASS">HvCLASS </dt>
+<dd>
+
+<p>If the stash is a class.</p>
+
+<pre><code>        bool    HvCLASS(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvCLASS_on">HvCLASS_on </dt>
+<dd>
+
+<p>Turns the stash into a class.</p>
+
+<pre><code>        void    HvCLASS_on(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvEITER">HvEITER </dt>
+<dd>
+
+<p>Writable access to the eiter field in HvAUX.</p>
+
+<pre><code>        U32*    HvEITER(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvEITER_get">HvEITER_get </dt>
+<dd>
+
+<p>Returns the <a href="#HvEITER">&quot;HvEITER&quot;</a> or <code>NULL</code></p>
+
+<pre><code>        U32*    HvEITER_get(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvEITER_set">HvEITER_set </dt>
+<dd>
+
+<p>Access to <a href="#hv_eiter_set">&quot;hv_eiter_set&quot;</a></p>
+
+<pre><code>        void    HvEITER_set(HV *hv, U32 eiter)</code></pre>
+
+</dd>
+<dt id="HvENAME">HvENAME </dt>
+<dd>
+
+<p>Returns the effective name of a stash, or NULL if there is none. The effective name represents a location in the symbol table where this stash resides. It is updated automatically when packages are aliased or deleted. A stash that is no longer in the symbol table has no effective name. This name is preferable to <code>HvNAME</code> for use in MRO linearisations and isa caches.</p>
+
+<pre><code>        char*   HvENAME(HV* stash)</code></pre>
+
+</dd>
+<dt id="HvENAMELEN">HvENAMELEN </dt>
+<dd>
+
+<p>Returns the length of the stash&#39;s effective name.</p>
+
+<pre><code>        I32     HvENAMELEN(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvENAMEUTF8">HvENAMEUTF8 </dt>
+<dd>
+
+<p>Returns true if the effective name is in UTF-8 encoding.</p>
+
+<pre><code>        unsigned char HvENAMEUTF8(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvFIELDS">HvFIELDS </dt>
+<dd>
+
+<p>Returns the writable fields buffer for a class, which needs to exist.</p>
+
+<pre><code>        char*   HvFIELDS(HV *klass)</code></pre>
+
+</dd>
+<dt id="HvFIELDS_get">HvFIELDS_get </dt>
+<dd>
+
+<p>Returns the fields buffer for a class or NULL.</p>
+
+<pre><code>        char*   HvFIELDS_get(HV *klass)</code></pre>
+
+</dd>
+<dt id="HvFILL">HvFILL </dt>
+<dd>
+
+<p>Accessor to <a href="#hv_fill">&quot;hv_fill&quot;</a></p>
+
+<pre><code>        U32     HvFILL(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvFLAGS">HvFLAGS </dt>
+<dd>
+
+<p>Returns the hash specific flags from HvAUX.</p>
+
+<pre><code>        U32     HvFLAGS(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvLASTRAND_get">HvLASTRAND_get </dt>
+<dd>
+
+<p>Returns the value of xhv_last_rand or 0.</p>
+
+<p>With PERL_HASH_RANDOMIZE_KEYS (i.e. not in cperl) the last random value for hash traversal, used to detect each() after insert for warnings.</p>
+
+<pre><code>        U32     HvLASTRAND_get(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvMAX">HvMAX </dt>
+<dd>
+
+<p>Size of <a href="#HvARRAY">&quot;HvARRAY&quot;</a></p>
+
+<pre><code>        U32     HvMAX(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvNAME">HvNAME </dt>
+<dd>
+
+<p>Returns the package name of a stash, or <code>NULL</code> if <code>stash</code> isn&#39;t a stash. See <code><a href="#SvSTASH">&quot;SvSTASH&quot;</a></code>, <code><a href="#CvSTASH">&quot;CvSTASH&quot;</a></code>.</p>
+
+<pre><code>        char*   HvNAME(HV* stash)</code></pre>
+
+</dd>
+<dt id="HvNAMELEN">HvNAMELEN </dt>
+<dd>
+
+<p>Returns the length of the stash&#39;s name.</p>
+
+<pre><code>        I32     HvNAMELEN(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvNAMEUTF8">HvNAMEUTF8 </dt>
+<dd>
+
+<p>Returns true if the name is in UTF-8 encoding.</p>
+
+<pre><code>        unsigned char HvNAMEUTF8(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvPKGTYPE">HvPKGTYPE </dt>
+<dd>
+
+<p>Returns either &quot;package&quot;, &quot;role&quot; or &quot;class&quot;</p>
+
+<pre><code>        const char* HvPKGTYPE(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvPKGTYPE_NN">HvPKGTYPE_NN </dt>
+<dd>
+
+<p>Returns <a href="#HvPKGTYPE">&quot;HvPKGTYPE&quot;</a> for an existing stash.</p>
+
+<pre><code>        const char* HvPKGTYPE_NN(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvRAND_get">HvRAND_get </dt>
+<dd>
+
+<p>Returns the value of xhv_rand or 0</p>
+
+<p>With PERL_HASH_RANDOMIZE_KEYS (i.e. not in cperl) the random value for hash traversal.</p>
+
+<pre><code>        U32     HvRAND_get(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvRITER">HvRITER </dt>
+<dd>
+
+<p>Writable access to the riter field in HvAUX.</p>
+
+<pre><code>        U32     HvRITER(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvRITER_get">HvRITER_get </dt>
+<dd>
+
+<p>Returns the <a href="#HvRITER">&quot;HvRITER&quot;</a> or the <code>HV_NO_RITER</code> value if HvAUX does not exist.</p>
+
+<pre><code>        U32     HvRITER_get(HV *hv)</code></pre>
+
+</dd>
+<dt id="HvRITER_set">HvRITER_set </dt>
+<dd>
+
+<p>Access to <a href="#hv_riter_set">&quot;hv_riter_set&quot;</a></p>
+
+<pre><code>        void    HvRITER_set(HV *hv, U32 riter)</code></pre>
+
+</dd>
+<dt id="HvROLE">HvROLE </dt>
+<dd>
+
+<p>If the stash is a role.</p>
+
+<pre><code>        bool    HvROLE(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvROLE_on">HvROLE_on </dt>
+<dd>
+
+<p>Turns the stash into a role.</p>
+
+<pre><code>        void    HvROLE_on(HV *stash)</code></pre>
+
+</dd>
+<dt id="HvSTATIC">HvSTATIC </dt>
+<dd>
+
+<p>Returns !0 if the HvAUXf_STATIC flag is set, when the hash buffer are statically allocated (only with embedder or in the compiler). Is usually combined with SvREADONLY.</p>
+
+<pre><code>        bool    HvSTATIC(HV *hv)</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Hash-Entries">Hash Entries</h1>
+
+<dl>
+
+<dt id="HEf_SVKEY">HEf_SVKEY </dt>
+<dd>
+
+<p>This flag, used in the length slot of hash entries and magic structures, specifies the structure contains an <code>SV*</code> pointer where a <code>char*</code> pointer is to be expected. (For information only--not to be used).</p>
+
+</dd>
+<dt id="HeHASH">HeHASH </dt>
+<dd>
+
+<p>Returns the computed hash stored in the hash entry.</p>
+
+<pre><code>        U32     HeHASH(HE* he)</code></pre>
+
+</dd>
+<dt id="HeKEY">HeKEY </dt>
+<dd>
+
+<p>Returns the actual pointer stored in the key slot of the hash entry. The pointer may be either <code>char*</code> or <code>SV*</code>, depending on the value of <code>HeKLEN()</code>. Can be assigned to. The <code>HePV()</code> or <code>HeSVKEY()</code> macros are usually preferable for finding the value of a key.</p>
+
+<pre><code>        void*   HeKEY(HE* he)</code></pre>
+
+</dd>
+<dt id="HeKLEN">HeKLEN </dt>
+<dd>
+
+<p>If this is negative, and amounts to <code>HEf_SVKEY</code>, it indicates the entry holds an <code>SV*</code> key. Otherwise, holds the actual length of the key. Can be assigned to. The <code>HePV()</code> macro is usually preferable for finding key lengths.</p>
+
+<pre><code>        I32     HeKLEN(HE* he)</code></pre>
+
+</dd>
+<dt id="HePV">HePV </dt>
+<dd>
+
+<p>Returns the key slot of the hash entry as a <code>char*</code> value, doing any necessary dereferencing of possibly <code>SV*</code> keys. The length of the string is placed in <code>len</code> (this is a macro, so do <i>not</i> use <code>&amp;len</code>). If you do not care about what the length of the key is, you may use the global variable <code>PL_na</code>, though this is rather less efficient than using a local variable. Remember though, that hash keys in perl are free to contain embedded nulls, so using <code>strlen()</code> or similar is not a good way to find the length of hash keys. This is very similar to the <code>SvPV()</code> macro described elsewhere in this document. See also <code><a href="#HeUTF8">&quot;HeUTF8&quot;</a></code>. Note also that the hash key length cannot be longer than 31bit, even if it is a <code>HEf_SVKEY</code>.</p>
+
+<p>If you are using <code>HePV</code> to get values to pass to <code>newSVpvn()</code> to create a new SV, you should consider using <code>newSVhek(HeKEY_hek(he))</code> as it is more efficient.</p>
+
+<pre><code>        char*   HePV(HE* he, STRLEN len)</code></pre>
+
+</dd>
+<dt id="HeSVKEY">HeSVKEY </dt>
+<dd>
+
+<p>Returns the key as an <code>SV*</code>, or <code>NULL</code> if the hash entry does not contain an <code>SV*</code> key.</p>
+
+<pre><code>        SV*     HeSVKEY(HE* he)</code></pre>
+
+</dd>
+<dt id="HeSVKEY_force">HeSVKEY_force </dt>
+<dd>
+
+<p>Returns the key as an <code>SV*</code>. Will create and return a temporary mortal <code>SV*</code> if the hash entry contains only a <code>char*</code> key.</p>
+
+<pre><code>        SV*     HeSVKEY_force(HE* he)</code></pre>
+
+</dd>
+<dt id="HeSVKEY_set">HeSVKEY_set </dt>
+<dd>
+
+<p>Sets the key to a given <code>SV*</code>, taking care to set the appropriate flags to indicate the presence of an <code>SV*</code> key, and returns the same <code>SV*</code>.</p>
+
+<pre><code>        SV*     HeSVKEY_set(HE* he, SV* sv)</code></pre>
+
+</dd>
+<dt id="HeUTF8">HeUTF8 </dt>
+<dd>
+
+<p>Returns whether the <code>char *</code> value returned by <code>HePV</code> is encoded in UTF-8, doing any necessary dereferencing of possibly <code>SV*</code> keys. The value returned will be 0 or non-0, not necessarily 1 (or even a value with any low bits set), so <b>do not</b> blindly assign this to a <code>bool</code> variable, as <code>bool</code> may be a typedef for <code>char</code>.</p>
+
+<pre><code>        U32     HeUTF8(HE* he)</code></pre>
+
+</dd>
+<dt id="HeVAL">HeVAL </dt>
+<dd>
+
+<p>Returns the value slot (type <code>SV*</code>) stored in the hash entry. Can be assigned to.</p>
+
+<pre><code>  SV *foo= HeVAL(hv);
+  HeVAL(hv)= sv;
+
+
+        SV*     HeVAL(HE* he)</code></pre>
+
+</dd>
+<dt id="newHV">newHV </dt>
+<dd>
+
+<p>Creates a new HV. The reference count is set to 1.</p>
+
+<pre><code>        HV*     newHV()</code></pre>
+
+</dd>
+</dl>
+
 <h1 id="Hash-Manipulation-Functions">Hash Manipulation Functions</h1>
 
 <p>A HV structure represents a Perl hash. It consists mainly of an array of pointers, each of which points to a linked list of HE structures. The array is indexed by the hash function of the key, so each linked list represents all the hash entries with the same hash value. Each HE contains a pointer to the actual value, plus a pointer to a HEK structure which holds the key and hash value.</p>
@@ -2811,90 +3256,6 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        HV*     get_hvs(const char *name, I32 flags)</code></pre>
 
 </dd>
-<dt id="HEf_SVKEY">HEf_SVKEY </dt>
-<dd>
-
-<p>This flag, used in the length slot of hash entries and magic structures, specifies the structure contains an <code>SV*</code> pointer where a <code>char*</code> pointer is to be expected. (For information only--not to be used).</p>
-
-</dd>
-<dt id="HeHASH">HeHASH </dt>
-<dd>
-
-<p>Returns the computed hash stored in the hash entry.</p>
-
-<pre><code>        U32     HeHASH(HE* he)</code></pre>
-
-</dd>
-<dt id="HeKEY">HeKEY </dt>
-<dd>
-
-<p>Returns the actual pointer stored in the key slot of the hash entry. The pointer may be either <code>char*</code> or <code>SV*</code>, depending on the value of <code>HeKLEN()</code>. Can be assigned to. The <code>HePV()</code> or <code>HeSVKEY()</code> macros are usually preferable for finding the value of a key.</p>
-
-<pre><code>        void*   HeKEY(HE* he)</code></pre>
-
-</dd>
-<dt id="HeKLEN">HeKLEN </dt>
-<dd>
-
-<p>If this is negative, and amounts to <code>HEf_SVKEY</code>, it indicates the entry holds an <code>SV*</code> key. Otherwise, holds the actual length of the key. Can be assigned to. The <code>HePV()</code> macro is usually preferable for finding key lengths.</p>
-
-<pre><code>        I32     HeKLEN(HE* he)</code></pre>
-
-</dd>
-<dt id="HePV">HePV </dt>
-<dd>
-
-<p>Returns the key slot of the hash entry as a <code>char*</code> value, doing any necessary dereferencing of possibly <code>SV*</code> keys. The length of the string is placed in <code>len</code> (this is a macro, so do <i>not</i> use <code>&amp;len</code>). If you do not care about what the length of the key is, you may use the global variable <code>PL_na</code>, though this is rather less efficient than using a local variable. Remember though, that hash keys in perl are free to contain embedded nulls, so using <code>strlen()</code> or similar is not a good way to find the length of hash keys. This is very similar to the <code>SvPV()</code> macro described elsewhere in this document. See also <code><a href="#HeUTF8">&quot;HeUTF8&quot;</a></code>. Note also that the hash key length cannot be longer than 31bit, even if it is a HEf_SVKEY.</p>
-
-<p>If you are using <code>HePV</code> to get values to pass to <code>newSVpvn()</code> to create a new SV, you should consider using <code>newSVhek(HeKEY_hek(he))</code> as it is more efficient.</p>
-
-<pre><code>        char*   HePV(HE* he, STRLEN len)</code></pre>
-
-</dd>
-<dt id="HeSVKEY">HeSVKEY </dt>
-<dd>
-
-<p>Returns the key as an <code>SV*</code>, or <code>NULL</code> if the hash entry does not contain an <code>SV*</code> key.</p>
-
-<pre><code>        SV*     HeSVKEY(HE* he)</code></pre>
-
-</dd>
-<dt id="HeSVKEY_force">HeSVKEY_force </dt>
-<dd>
-
-<p>Returns the key as an <code>SV*</code>. Will create and return a temporary mortal <code>SV*</code> if the hash entry contains only a <code>char*</code> key.</p>
-
-<pre><code>        SV*     HeSVKEY_force(HE* he)</code></pre>
-
-</dd>
-<dt id="HeSVKEY_set">HeSVKEY_set </dt>
-<dd>
-
-<p>Sets the key to a given <code>SV*</code>, taking care to set the appropriate flags to indicate the presence of an <code>SV*</code> key, and returns the same <code>SV*</code>.</p>
-
-<pre><code>        SV*     HeSVKEY_set(HE* he, SV* sv)</code></pre>
-
-</dd>
-<dt id="HeUTF8">HeUTF8 </dt>
-<dd>
-
-<p>Returns whether the <code>char *</code> value returned by <code>HePV</code> is encoded in UTF-8, doing any necessary dereferencing of possibly <code>SV*</code> keys. The value returned will be 0 or non-0, not necessarily 1 (or even a value with any low bits set), so <b>do not</b> blindly assign this to a <code>bool</code> variable, as <code>bool</code> may be a typedef for <code>char</code>.</p>
-
-<pre><code>        U32     HeUTF8(HE* he)</code></pre>
-
-</dd>
-<dt id="HeVAL">HeVAL </dt>
-<dd>
-
-<p>Returns the value slot (type <code>SV*</code>) stored in the hash entry. Can be assigned to.</p>
-
-<pre><code>  SV *foo= HeVAL(hv);
-  HeVAL(hv)= sv;
-
-
-        SV*     HeVAL(HE* he)</code></pre>
-
-</dd>
 <dt id="hv_assert">hv_assert </dt>
 <dd>
 
@@ -2928,7 +3289,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="hv_clear_placeholders">hv_clear_placeholders </dt>
 <dd>
 
-<p>Clears any placeholders from a hash. If a restricted hash has any of its keys marked as readonly and the key is subsequently deleted, the key is not actually deleted but is marked by assigning it a value of <code>PLACEHOLDER</code>. This tags it so it will be ignored by future operations such as iterating over the hash, but will still allow the hash to have a value reassigned to the key at some future point. This function clears any such placeholder keys from the hash. See <code><a href="/cperl/lib/Hash/Util.html#lock_keys">Hash::Util::lock_keys()</a></code> for an example of its use.</p>
+<p>Clears any placeholders from a hash. If a restricted hash has any of its keys marked as readonly and the key is subsequently deleted, the key is not actually deleted but is marked by assigning it a value of <code>PLACEHOLDER</code>. This tags it so it will be ignored by future operations such as iterating over the hash, but will still allow the hash to have a value reassigned to the key at some future point. This function clears any such placeholder keys from the hash. See <code><a>Hash::Util::lock_keys()</a></code> for an example of its use.</p>
 
 <pre><code>        void    hv_clear_placeholders(HV *hv)</code></pre>
 
@@ -2957,30 +3318,6 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>        SV*     hv_delete_ent(HV *hv, SV *keysv, I32 flags,
                               U32 hash)</code></pre>
-
-</dd>
-<dt id="HvENAME">HvENAME </dt>
-<dd>
-
-<p>Returns the effective name of a stash, or NULL if there is none. The effective name represents a location in the symbol table where this stash resides. It is updated automatically when packages are aliased or deleted. A stash that is no longer in the symbol table has no effective name. This name is preferable to <code>HvNAME</code> for use in MRO linearisations and isa caches.</p>
-
-<pre><code>        char*   HvENAME(HV* stash)</code></pre>
-
-</dd>
-<dt id="HvENAMELEN">HvENAMELEN </dt>
-<dd>
-
-<p>Returns the length of the stash&#39;s effective name.</p>
-
-<pre><code>        I32     HvENAMELEN(HV *stash)</code></pre>
-
-</dd>
-<dt id="HvENAMEUTF8">HvENAMEUTF8 </dt>
-<dd>
-
-<p>Returns true if the effective name is in UTF-8 encoding.</p>
-
-<pre><code>        unsigned char HvENAMEUTF8(HV *stash)</code></pre>
 
 </dd>
 <dt id="hv_exists">hv_exists </dt>
@@ -3013,9 +3350,10 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="hv_fetchs">hv_fetchs </dt>
 <dd>
 
-<p>Like <code>hv_fetch</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>hv_fetch</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        SV**    hv_fetchs(HV* tb, const char* key, I32 lval)</code></pre>
+<pre><code>        SV**    hv_fetchs(HV* tb, &quot;literal string&quot; key,
+                          I32 lval)</code></pre>
 
 </dd>
 <dt id="hv_fetch_ent">hv_fetch_ent </dt>
@@ -3111,30 +3449,6 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    hv_magic(HV *hv, GV *gv, int how)</code></pre>
 
 </dd>
-<dt id="HvNAME">HvNAME </dt>
-<dd>
-
-<p>Returns the package name of a stash, or <code>NULL</code> if <code>stash</code> isn&#39;t a stash. See <code><a href="#SvSTASH">&quot;SvSTASH&quot;</a></code>, <code><a href="#CvSTASH">&quot;CvSTASH&quot;</a></code>.</p>
-
-<pre><code>        char*   HvNAME(HV* stash)</code></pre>
-
-</dd>
-<dt id="HvNAMELEN">HvNAMELEN </dt>
-<dd>
-
-<p>Returns the length of the stash&#39;s name.</p>
-
-<pre><code>        I32     HvNAMELEN(HV *stash)</code></pre>
-
-</dd>
-<dt id="HvNAMEUTF8">HvNAMEUTF8 </dt>
-<dd>
-
-<p>Returns true if the name is in UTF-8 encoding.</p>
-
-<pre><code>        unsigned char HvNAMEUTF8(HV *stash)</code></pre>
-
-</dd>
 <dt id="hv_placeholders_get">hv_placeholders_get </dt>
 <dd>
 
@@ -3179,9 +3493,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="hv_stores">hv_stores </dt>
 <dd>
 
-<p>Like <code>hv_store</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair and omits the hash parameter.</p>
+<p>Like <code>hv_store</code>, but takes a literal string instead of a string/length pair and omits the hash parameter.</p>
 
-<pre><code>        SV**    hv_stores(HV* tb, const char* key,
+<pre><code>        SV**    hv_stores(HV* tb, &quot;literal string&quot; key,
                           NULLOK SV* val)</code></pre>
 
 </dd>
@@ -3208,19 +3522,19 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>Undefines the hash. The XS equivalent of <code>undef(%hash)</code>.</p>
 
-<p>As well as freeing all the elements of the hash (like <code>hv_clear()</code>), this also frees any auxiliary data and storage associated with the hash.</p>
+<p>As well as freeing all the elements of the hash (like <a href="#hv_clear">&quot;hv_clear&quot;</a>), this also frees any auxiliary data and storage associated with the hash.</p>
 
 <p>See <a href="#av_clear">&quot;av_clear&quot;</a> for a note about the hash possibly being invalid on return.</p>
 
 <pre><code>        void    hv_undef(HV *hv)</code></pre>
 
 </dd>
-<dt id="newHV">newHV </dt>
+<dt id="hv_undef_flags">hv_undef_flags </dt>
 <dd>
 
-<p>Creates a new HV. The reference count is set to 1.</p>
+<p>Adds the <code>HV_NAME_SETALL</code> flag optionally to <a href="#hv_undef">&quot;hv_undef&quot;</a>, which is needed when being called from <a href="#sv_clear">&quot;sv_clear&quot;</a>. Then we must check for effective names that need freeing, as well as the usual name.</p>
 
-<pre><code>        HV*     newHV()</code></pre>
+<pre><code>        void    hv_undef_flags(HV *hv, U32 flags)</code></pre>
 
 </dd>
 <dt id="share_hek">share_hek </dt>
@@ -3298,25 +3612,25 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>                        |Perl_check_t new_checker|Perl_check_t *old_checker_p</code></pre>
 
-<p>Puts a C function into the chain of check functions for a specified op type. This is the preferred way to manipulate the <a href="#PL_check">&quot;PL_check&quot;</a> array. <code>opcode</code> specifies which type of op is to be affected. <code>new_checker</code> is a pointer to the C function that is to be added to that opcode&#39;s check chain, and <code>old_checker_p</code> points to the storage location where a pointer to the next function in the chain will be stored. The value of <code>new_pointer</code> is written into the <a href="#PL_check">&quot;PL_check&quot;</a> array, while the value previously stored there is written to <code>*old_checker_p</code>.</p>
-
-<p>The function should be defined like this:</p>
-
-<pre><code>    static OP *new_checker(pTHX_ OP *op) { ... }</code></pre>
-
-<p>It is intended to be called in this manner:</p>
-
-<pre><code>    new_checker(aTHX_ op)</code></pre>
-
-<p><code>old_checker_p</code> should be defined like this:</p>
-
-<pre><code>    static Perl_check_t old_checker_p;</code></pre>
+<p>Puts a C function into the chain of check functions for a specified op type. This is the preferred way to manipulate the <a href="#PL_check">&quot;PL_check&quot;</a> array. <code>opcode</code> specifies which type of op is to be affected. <code>new_checker</code> is a pointer to the C function that is to be added to that opcode&#39;s check chain, and <code>old_checker_p</code> points to the storage location where a pointer to the next function in the chain will be stored. The value of <code>new_checker</code> is written into the <a href="#PL_check">&quot;PL_check&quot;</a> array, while the value previously stored there is written to <code>*old_checker_p</code>.</p>
 
 <p><a href="#PL_check">&quot;PL_check&quot;</a> is global to an entire process, and a module wishing to hook op checking may find itself invoked more than once per process, typically in different threads. To handle that situation, this function is idempotent. The location <code>*old_checker_p</code> must initially (once per process) contain a null pointer. A C variable of static duration (declared at file scope, typically also marked <code>static</code> to give it internal linkage) will be implicitly initialised appropriately, if it does not have an explicit initialiser. This function will only actually modify the check chain if it finds <code>*old_checker_p</code> to be null. This function is also thread safe on the small scale. It uses appropriate locking to avoid race conditions in accessing <a href="#PL_check">&quot;PL_check&quot;</a>.</p>
 
 <p>When this function is called, the function referenced by <code>new_checker</code> must be ready to be called, except for <code>*old_checker_p</code> being unfilled. In a threading situation, <code>new_checker</code> may be called immediately, even before this function has returned. <code>*old_checker_p</code> will always be appropriately set before <code>new_checker</code> is called. If <code>new_checker</code> decides not to do anything special with an op that it is given (which is the usual case for most uses of op check hooking), it must chain the check function referenced by <code>*old_checker_p</code>.</p>
 
-<p>If you want to influence compilation of calls to a specific subroutine, then use <a href="#cv_set_call_checker">&quot;cv_set_call_checker&quot;</a> rather than hooking checking of all <code>entersub</code> ops.</p>
+<p>Taken all together, XS code to hook an op checker should typically look something like this:</p>
+
+<pre><code>    static Perl_check_t nxck_frob;
+    static OP *myck_frob(pTHX_ OP *op) {
+        ...
+        op = nxck_frob(aTHX_ op);
+        ...
+        return op;
+    }
+    BOOT:
+        wrap_op_checker(OP_FROB, myck_frob, &amp;nxck_frob);</code></pre>
+
+<p>If you want to influence compilation of calls to a specific subroutine, then use <a href="#cv_set_call_checker_flags">&quot;cv_set_call_checker_flags&quot;</a> rather than hooking checking of all <code>entersub</code> ops.</p>
 
 <pre><code>        void    wrap_op_checker(Optype opcode  \)</code></pre>
 
@@ -3444,6 +3758,10 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>The <code>flags</code> parameter is reserved for future use. Currently it is only used by perl internally, so extensions should always pass zero.</p>
 
+<p>LEX_START_SAME_FILTER indicates that this is not a new file, so it can share filters with the current parser.</p>
+
+<p>LEX_START_DONT_CLOSE indicates that the file handle wasn&#39;t opened by the caller, hence isn&#39;t owned by the parser, so shouldn&#39;t be closed on parser destruction. This is used to handle the case of defaulting to reading the script from the standard input because no filename was given on the command line (without getting confused by situation where STDIN has been closed, so the script handle is opened on fd 0)</p>
+
 <pre><code>        void    lex_start(SV *line, PerlIO *rsfp, U32 flags)</code></pre>
 
 </dd>
@@ -3477,9 +3795,9 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Like <a href="#lex_stuff_pvn">&quot;lex_stuff_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <a href="#lex_stuff_pvn">&quot;lex_stuff_pvn&quot;</a>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    lex_stuff_pvs(const char *pv, U32 flags)</code></pre>
+<pre><code>        void    lex_stuff_pvs(&quot;literal string&quot; pv, U32 flags)</code></pre>
 
 </dd>
 <dt id="lex_stuff_sv">lex_stuff_sv </dt>
@@ -3690,6 +4008,86 @@ NOTE: the perl_ form of this function is deprecated.
 <p>cperl guarantees that the size of the buffer is minimal the PTRSIZE so we can use faster word-comparisons for longer strings, perl5 not.</p>
 
 </dd>
+<dt id="scan_num">scan_num </dt>
+<dd>
+
+<p>takes: pointer to position in buffer</p>
+
+<p>returns: pointer to new position in buffer</p>
+
+<p>side-effects: builds ops for the constant in pl_yylval.op</p>
+
+<p>Read a number in any of the formats that Perl accepts:</p>
+
+<pre><code>  \d(_?\d)*(\.(\d(_?\d)*)?)?[Ee][\+\-]?(\d(_?\d)*)      12 12.34 12.
+  \.\d(_?\d)*[Ee][\+\-]?(\d(_?\d)*)                     .34
+  0b[01](_?[01])*                                       binary integers
+  0[0-7](_?[0-7])*                                      octal integers
+  0x[0-9A-Fa-f](_?[0-9A-Fa-f])*                         hexadecimal integers
+  0x[0-9A-Fa-f](_?[0-9A-Fa-f])*(?:\.\d*)?p[+-]?[0-9]+   hexadecimal floats</code></pre>
+
+<p>Like most scan_ routines, it uses the PL_tokenbuf buffer to hold the thing it reads.</p>
+
+<p>If it reads a number without a decimal point or an exponent, it will try converting the number to an integer and see if it can do so without loss of precision.</p>
+
+<pre><code>        char*   scan_num(const char* s, YYSTYPE *lvalp)</code></pre>
+
+</dd>
+<dt id="scan_vstring">scan_vstring </dt>
+<dd>
+
+<p>Returns a pointer to the next character after the parsed vstring, as well as updating the passed in sv.</p>
+
+<p>Function must be called like</p>
+
+<pre><code>        sv = sv_2mortal(newSV(5));
+        s = scan_vstring(s,e,sv);</code></pre>
+
+<p>where s and e are the start and end of the string. The sv should already be large enough to store the vstring passed in, for performance reasons.</p>
+
+<p>This function may croak if fatal warnings are enabled in the calling scope, hence the sv_2mortal in the example (to prevent a leak). Make sure to do SvREFCNT_inc afterwards if you use sv_2mortal.</p>
+
+<pre><code>        char*   scan_vstring(const char *s, const char *const e,
+                             SV *sv)</code></pre>
+
+</dd>
+<dt id="wrap_keyword_plugin">wrap_keyword_plugin </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Puts a C function into the chain of keyword plugins. This is the preferred way to manipulate the <a href="#PL_keyword_plugin">&quot;PL_keyword_plugin&quot;</a> variable. <code>new_plugin</code> is a pointer to the C function that is to be added to the keyword plugin chain, and <code>old_plugin_p</code> points to the storage location where a pointer to the next function in the chain will be stored. The value of <code>new_plugin</code> is written into the <a href="#PL_keyword_plugin">&quot;PL_keyword_plugin&quot;</a> variable, while the value previously stored there is written to <code>*old_plugin_p</code>.</p>
+
+<p><a href="#PL_keyword_plugin">&quot;PL_keyword_plugin&quot;</a> is global to an entire process, and a module wishing to hook keyword parsing may find itself invoked more than once per process, typically in different threads. To handle that situation, this function is idempotent. The location <code>*old_plugin_p</code> must initially (once per process) contain a null pointer. A C variable of static duration (declared at file scope, typically also marked <code>static</code> to give it internal linkage) will be implicitly initialised appropriately, if it does not have an explicit initialiser. This function will only actually modify the plugin chain if it finds <code>*old_plugin_p</code> to be null. This function is also thread safe on the small scale. It uses appropriate locking to avoid race conditions in accessing <a href="#PL_keyword_plugin">&quot;PL_keyword_plugin&quot;</a>.</p>
+
+<p>When this function is called, the function referenced by <code>new_plugin</code> must be ready to be called, except for <code>*old_plugin_p</code> being unfilled. In a threading situation, <code>new_plugin</code> may be called immediately, even before this function has returned. <code>*old_plugin_p</code> will always be appropriately set before <code>new_plugin</code> is called. If <code>new_plugin</code> decides not to do anything special with the identifier that it is given (which is the usual case for most calls to a keyword plugin), it must chain the plugin function referenced by <code>*old_plugin_p</code>.</p>
+
+<p>Taken all together, XS code to install a keyword plugin should typically look something like this:</p>
+
+<pre><code>    static Perl_keyword_plugin_t next_keyword_plugin;
+    static OP *my_keyword_plugin(pTHX_
+        char *keyword_plugin, STRLEN keyword_len, OP **op_ptr)
+    {
+        if (memEQs(keyword_ptr, keyword_len,
+                   &quot;my_new_keyword&quot;)) {
+            ...
+        } else {
+            return next_keyword_plugin(aTHX_
+                keyword_ptr, keyword_len, op_ptr);
+        }
+    }
+    BOOT:
+        wrap_keyword_plugin(my_keyword_plugin,
+                            &amp;next_keyword_plugin);</code></pre>
+
+<p>Direct access to <a href="#PL_keyword_plugin">&quot;PL_keyword_plugin&quot;</a> should be avoided.</p>
+
+<pre><code>        void    wrap_keyword_plugin(
+                    Perl_keyword_plugin_t new_plugin,
+                    Perl_keyword_plugin_t *old_plugin_p
+                )</code></pre>
+
+</dd>
 </dl>
 
 <h1 id="Locale-related-functions-and-macros">Locale-related functions and macros</h1>
@@ -3702,6 +4100,116 @@ NOTE: the perl_ form of this function is deprecated.
 <p>This macro should be used as a statement. It declares a private variable (whose name begins with an underscore) that is needed by the other macros in this section. Failing to include this correctly should lead to a syntax error. For compatibility with C89 C compilers it should be placed in a block before any executable statements.</p>
 
 <pre><code>        void    DECLARATION_FOR_LC_NUMERIC_MANIPULATION</code></pre>
+
+</dd>
+<dt id="Perl_langinfo">Perl_langinfo </dt>
+<dd>
+
+<p>This is an (almost &ordf;) drop-in replacement for the system <code><a href="http://man.he.net/man3/nl_langinfo">nl_langinfo(3)</a></code>, taking the same <code>item</code> parameter values, and returning the same information. But it is more thread-safe than regular <code>nl_langinfo()</code>, and hides the quirks of Perl&#39;s locale handling from your code, and can be used on systems that lack a native <code>nl_langinfo</code>.</p>
+
+<p>Expanding on these:</p>
+
+<ul>
+
+<li><p>It delivers the correct results for the <code>RADIXCHAR</code> and <code>THOUSESEP</code> items, without you having to write extra code. The reason for the extra code would be because these are from the <code>LC_NUMERIC</code> locale category, which is normally kept set to the C locale by Perl, no matter what the underlying locale is supposed to be, and so to get the expected results, you have to temporarily toggle into the underlying locale, and later toggle back. (You could use plain <code>nl_langinfo</code> and <code><a href="#STORE_LC_NUMERIC_FORCE_TO_UNDERLYING">&quot;STORE_LC_NUMERIC_FORCE_TO_UNDERLYING&quot;</a></code> for this but then you wouldn&#39;t get the other advantages of <code>Perl_langinfo()</code>; not keeping <code>LC_NUMERIC</code> in the C locale would break a lot of CPAN, which is expecting the radix (decimal point) character to be a dot.)</p>
+
+</li>
+<li><p>Depending on <code>item</code>, it works on systems that don&#39;t have <code>nl_langinfo</code>, hence makes your code more portable. Of the fifty-some possible items specified by the POSIX 2008 standard, <a href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/langinfo.h.html">http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/langinfo.h.html</a>, only two are completely unimplemented. It uses various techniques to recover the other items, including calling <code><a href="http://man.he.net/man3/localeconv">localeconv(3)</a></code>, and <code><a href="http://man.he.net/man3/strftime">strftime(3)</a></code>, both of which are specified in C89, so should be always be available. Later <code>strftime()</code> versions have additional capabilities; <code>&quot;&quot;</code> is returned for those not available on your system.</p>
+
+<p>The details for those items which may differ from what this emulation returns and what a native <code>nl_langinfo()</code> would return are:</p>
+
+<dl>
+
+<dt id="CODESET"><code>CODESET</code></dt>
+<dd>
+
+</dd>
+<dt id="ERA"><code>ERA</code></dt>
+<dd>
+
+<p>Unimplemented, so returns <code>&quot;&quot;</code>.</p>
+
+</dd>
+<dt id="YESEXPR"><code>YESEXPR</code></dt>
+<dd>
+
+</dd>
+<dt id="NOEXPR"><code>NOEXPR</code></dt>
+<dd>
+
+<p>Only the values for English are returned. Earlier POSIX standards also specified <code>YESSTR</code> and <code>NOSTR</code>, but these have been removed from POSIX 2008, and aren&#39;t supported by <code>Perl_langinfo</code>.</p>
+
+</dd>
+<dt id="D_FMT"><code>D_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%x</code>, the locale&#39;s appropriate date representation.</p>
+
+</dd>
+<dt id="T_FMT"><code>T_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%X</code>, the locale&#39;s appropriate time representation.</p>
+
+</dd>
+<dt id="D_T_FMT"><code>D_T_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%c</code>, the locale&#39;s appropriate date and time representation.</p>
+
+</dd>
+<dt id="CRNCYSTR"><code>CRNCYSTR</code></dt>
+<dd>
+
+<p>The return may be incorrect for those rare locales where the currency symbol replaces the radix character. Send email to <a href="mailto:perlbug@perl.org">mailto:perlbug@perl.org</a> if you have examples of it needing to work differently.</p>
+
+</dd>
+<dt id="ALT_DIGITS"><code>ALT_DIGITS</code></dt>
+<dd>
+
+<p>Currently this gives the same results as Linux does. Send email to <a href="mailto:perlbug@perl.org">mailto:perlbug@perl.org</a> if you have examples of it needing to work differently.</p>
+
+</dd>
+<dt id="ERA_D_FMT"><code>ERA_D_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="ERA_T_FMT"><code>ERA_T_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="ERA_D_T_FMT"><code>ERA_D_T_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="T_FMT_AMPM"><code>T_FMT_AMPM</code></dt>
+<dd>
+
+<p>These are derived by using <code>strftime()</code>, and not all versions of that function know about them. <code>&quot;&quot;</code> is returned for these on such systems.</p>
+
+</dd>
+</dl>
+
+<p>When using <code>Perl_langinfo</code> on systems that don&#39;t have a native <code>nl_langinfo()</code>, you must</p>
+
+<pre><code> #include &quot;perl_langinfo.h&quot;</code></pre>
+
+<p>before the <code>perl.h</code> <code>#include</code>. You can replace your <code>langinfo.h</code> <code>#include</code> with this one. (Doing it this way keeps out the symbols that plain <code>langinfo.h</code> imports into the namespace for code that doesn&#39;t need it.)</p>
+
+<p>You also should not use the bare <code>langinfo.h</code> item names, but should preface them with <code>PERL_</code>, so use <code>PERL_RADIXCHAR</code> instead of plain <code>RADIXCHAR</code>. The <code>PERL_<i>foo</i></code> versions will also work for this function on systems that do have a native <code>nl_langinfo</code>.</p>
+
+</li>
+<li><p>It is thread-friendly, returning its result in a buffer that won&#39;t be overwritten by another thread, so you don&#39;t have to code for that possibility. The buffer can be overwritten by the next call to <code>nl_langinfo</code> or <code>Perl_langinfo</code> in the same thread.</p>
+
+</li>
+<li><p>&ordf; It returns <span style="white-space: nowrap;"><code>const char *</code></span>, whereas plain <code>nl_langinfo()</code> returns <span style="white-space: nowrap;"><code>char *</code></span>, but you are (only by documentation) forbidden to write into the buffer. By declaring this <code>const</code>, the compiler enforces this restriction. The extra <code>const</code> is why this isn&#39;t an unequivocal drop-in replacement for <code>nl_langinfo</code>.</p>
+
+</li>
+</ul>
+
+<p>The original impetus for <code>Perl_langinfo()</code> was so that code that needs to find out the current currency symbol, floating point radix character, or digit grouping separator can use, on all systems, the simpler and more thread-friendly <code>nl_langinfo</code> API instead of <code><a href="http://man.he.net/man3/localeconv">localeconv(3)</a></code> which is a pain to make thread-friendly. For other fields returned by <code>localeconv</code>, it is better to use the methods given in <a href="/cperl/perlcall.html">perlcall</a> to call <a><code>POSIX::localeconv()</code></a>, which is thread-friendly.</p>
+
+<pre><code>        const char* Perl_langinfo(const nl_item item)</code></pre>
 
 </dd>
 <dt id="RESTORE_LC_NUMERIC">RESTORE_LC_NUMERIC </dt>
@@ -3823,6 +4331,16 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        int     mg_free(SV* sv)</code></pre>
 
 </dd>
+<dt id="mg_freeext">mg_freeext </dt>
+<dd>
+
+<p>Remove any magic of type <code>how</code> using virtual table <code>vtbl</code> from the SV <code>sv</code>. See <a href="#sv_magic">&quot;sv_magic&quot;</a>.</p>
+
+<p><code>mg_freeext(sv, how, NULL)</code> is equivalent to <code>mg_free_type(sv, how)</code>.</p>
+
+<pre><code>        void    mg_freeext(SV* sv, int how, const MGVTBL *vtbl)</code></pre>
+
+</dd>
 <dt id="mg_free_type">mg_free_type </dt>
 <dd>
 
@@ -3927,6 +4445,20 @@ NOTE: the perl_ form of this function is deprecated.
 <p>Arranges for <code>sv</code> to be shared between threads if a suitable module has been loaded.</p>
 
 <pre><code>        void    SvSHARE(SV* sv)</code></pre>
+
+</dd>
+<dt id="sv_string_from_errnum">sv_string_from_errnum </dt>
+<dd>
+
+<p>Generates the message string describing an OS error and returns it as an SV. <code>errnum</code> must be a value that <code>errno</code> could take, identifying the type of error.</p>
+
+<p>If <code>tgtsv</code> is non-null then the string will be written into that SV (overwriting existing content) and it will be returned. If <code>tgtsv</code> is a null pointer then the string will be written into a new mortal SV which will be returned.</p>
+
+<p>The message will be taken from whatever locale would be used by <code>$!</code>, and will be encoded in the SV in whatever manner would be used by <code>$!</code>. The details of this process are subject to future change. Currently, the message is taken from the C locale by default (usually producing an English message), and from the currently selected locale when in the scope of the <code>use locale</code> pragma. A heuristic attempt is made to decode the message from the locale&#39;s character encoding, but it will only be decoded as either UTF-8 or ISO-8859-1. It is always correctly decoded in a UTF-8 locale, usually in an ISO-8859-1 locale, and never in any other locale.</p>
+
+<p>The SV is always returned containing an actual string, and with no other OK bits set. Unlike <code>$!</code>, a message is even yielded for <code>errnum</code> zero (meaning success), and if no useful message is available then a useless string (currently empty) is returned.</p>
+
+<pre><code>        SV *    sv_string_from_errnum(int errnum, SV *tgtsv)</code></pre>
 
 </dd>
 <dt id="SvUNLOCK">SvUNLOCK </dt>
@@ -4093,9 +4625,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="savepvs">savepvs </dt>
 <dd>
 
-<p>Like <code>savepvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>savepvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        char*   savepvs(const char* s)</code></pre>
+<pre><code>        char*   savepvs(&quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="savesharedpv">savesharedpv </dt>
@@ -4120,7 +4652,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>A version of <code>savepvs()</code> which allocates the duplicate string in memory which is shared between threads.</p>
 
-<pre><code>        char*   savesharedpvs(const char* s)</code></pre>
+<pre><code>        char*   savesharedpvs(&quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="savesharedsvpv">savesharedsvpv </dt>
@@ -4343,14 +4875,6 @@ NOTE: the perl_ form of this function is deprecated.
                             const char *format, ...)</code></pre>
 
 </dd>
-<dt id="my_sprintf">my_sprintf </dt>
-<dd>
-
-<p>The C library <code>sprintf</code>, wrapped if necessary, to ensure that it will return the length of the string written to the buffer. Only rare pre-ANSI systems need the wrapper function - usually this is a direct call to <code>sprintf</code>.</p>
-
-<pre><code>        int     my_sprintf(char *buffer, const char *pat, ...)</code></pre>
-
-</dd>
 <dt id="my_strlcat">my_strlcat </dt>
 <dd>
 
@@ -4377,6 +4901,16 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>        Size_t  my_strlcpy(char *dst, const char *src,
                            Size_t size)</code></pre>
+
+</dd>
+<dt id="my_strnlen">my_strnlen </dt>
+<dd>
+
+<p>The C library <code>strnlen</code> if available, or a Perl implementation of it.</p>
+
+<p><code>my_strnlen()</code> computes the length of the string, up to <code>maxlen</code> characters. It will will never attempt to address more than <code>maxlen</code> characters, making it suitable for use with strings that are not guaranteed to be NUL-terminated.</p>
+
+<pre><code>        Size_t  my_strnlen(const char *str, Size_t maxlen)</code></pre>
 
 </dd>
 <dt id="my_vsnprintf">my_vsnprintf </dt>
@@ -5228,7 +5762,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="newMETHOP">newMETHOP </dt>
 <dd>
 
-<p>Constructs, checks, and returns an op of method type with a method name evaluated at runtime. <code>type</code> is the opcode. <code>flags</code> gives the eight bits of <code>op_flags</code>, except that <code>OPf_KIDS</code> will be set automatically, and, shifted up eight bits, the eight bits of <code>op_private</code>, except that the bit with value 1 is automatically set. <code>dynamic_meth</code> supplies an op which evaluates method name; it is consumed by this function and become part of the constructed op tree. Supported optypes: <code>OP_METHOD</code>.</p>
+<p>Constructs, checks, and returns an op of method type with a method name evaluated at runtime. <code>type</code> is the opcode. <code>flags</code> gives the eight bits of <code>op_flags</code>, except that <code>OPf_KIDS</code> will be set automatically, and, shifted up eight bits, the eight bits of <code>op_private</code>, except that the bit with value 1 is automatically set. <code>dynamic_meth</code> supplies an op which evaluates method name; it is consumed by this function and become part of the constructed op tree.</p>
+
+<p>Supported optypes: METHOD, METHOD_NAMED, METHOD_SUPER, METHOD_REDIR, METHOD_REDIR_SUPER, CUSTOM.</p>
 
 <pre><code>        OP *    newMETHOP(I32 type, I32 flags, OP *first)</code></pre>
 
@@ -5279,7 +5815,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="newPVOP">newPVOP </dt>
 <dd>
 
-<p>Constructs, checks, and returns an op of any type that involves an embedded C-level pointer (PV). <code>type</code> is the opcode. <code>flags</code> gives the eight bits of <code>op_flags</code>. <code>pv</code> supplies the C-level pointer, which must have been allocated using <code>PerlMemShared_malloc</code>; the memory will be freed when the op is destroyed.</p>
+<p>Constructs, checks, and returns an op of any type that involves an embedded C-level pointer (PV). <code>type</code> is the opcode. <code>flags</code> gives the eight bits of <code>op_flags</code>. <code>pv</code> supplies the C-level pointer. Depending on the op type, the memory referenced by <code>pv</code> may be freed when the op is destroyed. If the op is of a freeing type, <code>pv</code> must have been allocated using <code>PerlMemShared_malloc</code>.</p>
 
 <pre><code>        OP *    newPVOP(I32 type, I32 flags, char *pv)</code></pre>
 
@@ -5640,9 +6176,9 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p><code>parent</code> is the parent node of the sibling chain. It may passed as <code>NULL</code> if the splicing doesn&#39;t affect the first or last op in the chain.</p>
 
-<p><code>start</code> is the node preceding the first node to be spliced. Node(s) following it will be deleted, and ops will be inserted after it. If it is <code>NULL</code>, the first node onwards is deleted, and nodes are inserted at the beginning.</p>
+<p><code>start</code> is the node preceding the first node to be spliced. Sibling node(s) following it will be deleted, and ops will be inserted after it. If it is <code>NULL</code>, the first node onwards is deleted, and nodes are inserted at the beginning.</p>
 
-<p><code>del_count</code> is the number of nodes to delete. If zero, no nodes are deleted. If -1 or greater than or equal to the number of remaining kids, all remaining kids are deleted.</p>
+<p><code>del_count</code> is the number of sibling nodes to delete. If zero, no nodes are deleted. If -1 or greater than or equal to the number of remaining kids, all remaining kids are deleted.</p>
 
 <p><code>insert</code> is the first of a chain of nodes to be inserted in place of the nodes. If <code>NULL</code>, no nodes are inserted.</p>
 
@@ -5757,11 +6293,11 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>The 0th entry of the PADLIST is a PADNAMELIST which represents the &quot;names&quot; or rather the &quot;static type information&quot; for lexicals. The individual elements of a PADNAMELIST are PADNAMEs. Future refactorings might stop the PADNAMELIST from being stored in the PADLIST&#39;s array, so don&#39;t rely on it. See <a href="#PadlistNAMES">&quot;PadlistNAMES&quot;</a>.</p>
 
-<p>The CvDEPTH&#39;th entry of a PADLIST is a PAD (an AV) which is the stack frame at that depth of recursion into the CV. The 0th slot of a frame AV is an AV which is <code>@_</code>. Other entries are storage for variables and op targets.</p>
+<p>The CvDEPTH&#39;th entry of a PADLIST is a PAD (an AV) which is the stack frame at that depth of recursion into the CV. The 0-th slot of a frame AV is an AV which is <code>@_</code>. Other entries are storage for variables and op targets.</p>
 
-<p>Iterating over the PADNAMELIST iterates over all possible pad items. Pad slots for targets (<code>SVs_PADTMP</code>) and GVs end up having &amp;PL_padname_undef &quot;names&quot;, while slots for constants have <code>&amp;PL_padname_const</code> &quot;names&quot; (see <code><a href="#pad_alloc">&quot;pad_alloc&quot;</a></code>). That <code>&amp;PL_padname_undef</code> and <code>&amp;PL_padname_const</code> are used is an implementation detail subject to change. To test for them, use <code>!PadnamePV(name)</code> and <span style="white-space: nowrap;"><code>PadnamePV(name) &amp;&amp; !PadnameLEN(name)</code></span>, respectively.</p>
+<p>Iterating over the PADNAMELIST iterates over all possible pad items. Pad slots for targets (<code>SVs_PADTMP</code>) and GVs end up having <code>&amp;PL_padname_undef</code> &quot;names&quot;, while slots for constants have <code>&amp;PL_padname_const</code> &quot;names&quot; (see <code><a href="#pad_alloc">&quot;pad_alloc&quot;</a></code>). That <code>&amp;PL_padname_undef</code> and <code>&amp;PL_padname_const</code> are used is an implementation detail subject to change. To test for them, use <code>!PadnamePV(name)</code> and <span style="white-space: nowrap;"><code>PadnamePV(name) &amp;&amp; !PadnameLEN(name)</code></span>, respectively.</p>
 
-<p>Only <code>my</code>/<code>our</code> variable slots get valid names. The rest are op targets/GVs/constants which are statically allocated or resolved at compile time. These don&#39;t have names by which they can be looked up from Perl code at run time through eval&quot;&quot; the way <code>my</code>/<code>our</code> variables can be. Since they can&#39;t be looked up by &quot;name&quot; but only by their index allocated at compile time (which is usually in <code>PL_op-</code>op_targ&gt;), wasting a name SV for them doesn&#39;t make sense.</p>
+<p>Only lexical variable slots get valid names (i.e. my/our/state/has). The rest are op targets/GVs/constants which are statically allocated or resolved at compile time. These don&#39;t have names by which they can be looked up from Perl code at run time through eval&quot;&quot; the way lexical variables can be. Since they can&#39;t be looked up by &quot;name&quot; but only by their index allocated at compile time (which is usually in <code>PL_op-</code>op_targ&gt;), wasting a name SV for them doesn&#39;t make sense.</p>
 
 <p>The pad names in the PADNAMELIST have their PV holding the name of the variable. The <code>COP_SEQ_RANGE_LOW</code> and <code>_HIGH</code> fields form a range (low+1..high inclusive) of cop_seq numbers for which the name is valid. During compilation, these fields may hold the special value PERL_PADSEQ_INTRO to indicate various stages:</p>
 
@@ -5799,10 +6335,11 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="pad_add_name_pvs">pad_add_name_pvs </dt>
 <dd>
 
-<p>Exactly like <a href="#pad_add_name_pvn">&quot;pad_add_name_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Exactly like <a href="#pad_add_name_pvn">&quot;pad_add_name_pvn&quot;</a>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        PADOFFSET pad_add_name_pvs(const char *name, U32 flags,
-                                   HV *typestash, HV *ourstash)</code></pre>
+<pre><code>        PADOFFSET pad_add_name_pvs(&quot;literal string&quot; name,
+                                   U32 flags, HV *typestash,
+                                   HV *ourstash)</code></pre>
 
 </dd>
 <dt id="PadARRAY">PadARRAY </dt>
@@ -5818,9 +6355,10 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="pad_findmy_pvs">pad_findmy_pvs </dt>
 <dd>
 
-<p>Exactly like <a href="#pad_findmy_pvn">&quot;pad_findmy_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Exactly like <a href="#pad_findmy_pvn">&quot;pad_findmy_pvn&quot;</a>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        PADOFFSET pad_findmy_pvs(const char *name, U32 flags)</code></pre>
+<pre><code>        PADOFFSET pad_findmy_pvs(&quot;literal string&quot; name,
+                                 U32 flags)</code></pre>
 
 </dd>
 <dt id="PadlistARRAY">PadlistARRAY </dt>
@@ -6084,7 +6622,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="PL_sv_no">PL_sv_no </dt>
 <dd>
 
-<p>This is the <code>false</code> SV. See <code><a href="#PL_sv_yes">&quot;PL_sv_yes&quot;</a></code>. Always refer to this as <code>&amp;PL_sv_no</code>.</p>
+<p>This is the <code>false</code> SV. See <code><a href="#PL_sv_yes">&quot;PL_sv_yes&quot;</a></code>. Always refer to this as <code>&amp;PL_sv_no</code> or <code>SV_NO</code>.</p>
 
 <pre><code>        SV      PL_sv_no</code></pre>
 
@@ -6100,9 +6638,17 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="PL_sv_yes">PL_sv_yes </dt>
 <dd>
 
-<p>This is the <code>true</code> SV. See <code><a href="#PL_sv_no">&quot;PL_sv_no&quot;</a></code>. Always refer to this as <code>&amp;PL_sv_yes</code>.</p>
+<p>This is the <code>true</code> SV. See <code><a href="#PL_sv_no">&quot;PL_sv_no&quot;</a></code>. Always refer to this as <code>&amp;PL_sv_yes</code> or <code>SV_YES</code>.</p>
 
 <pre><code>        SV      PL_sv_yes</code></pre>
+
+</dd>
+<dt id="PL_sv_zero">PL_sv_zero </dt>
+<dd>
+
+<p>This readonly SV has a zero numeric value and a <code>&quot;0&quot;</code> string value. It&#39;s similar to <code><a href="#PL_sv_no">&quot;PL_sv_no&quot;</a></code> except for its string value. Can be used as a cheap alternative to <code>mXPUSHi(0)</code> for example. Always refer to this as <code>&amp;PL_sv_zero</code> or <code>SV_ZERO</code>. Introduced in 5.28.</p>
+
+<pre><code>        SV      PL_sv_zero</code></pre>
 
 </dd>
 </dl>
@@ -6667,7 +7213,8 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>Creates a new SV and copies a string into it, which may contain <code>NUL</code> characters (<code>\0</code>) and other binary data. The reference count for the SV is set to 1. Note that if <code>len</code> is zero, Perl will create a zero length (Perl) string. You are responsible for ensuring that the source buffer is at least <code>len</code> bytes long. If the <code>buffer</code> argument is NULL the new SV will be undefined.</p>
 
-<pre><code>        SV*     newSVpvn(const char *const s, const STRLEN len)</code></pre>
+<pre><code>        SV*     newSVpvn(const char *const buffer,
+                         const STRLEN len)</code></pre>
 
 </dd>
 <dt id="newSVpvn_flags">newSVpvn_flags </dt>
@@ -6694,17 +7241,17 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="newSVpvs">newSVpvs </dt>
 <dd>
 
-<p>Like <code>newSVpvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>newSVpvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        SV*     newSVpvs(const char* s)</code></pre>
+<pre><code>        SV*     newSVpvs(&quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="newSVpvs_flags">newSVpvs_flags </dt>
 <dd>
 
-<p>Like <code>newSVpvn_flags</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>newSVpvn_flags</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        SV*     newSVpvs_flags(const char* s, U32 flags)</code></pre>
+<pre><code>        SV*     newSVpvs_flags(&quot;literal string&quot; s, U32 flags)</code></pre>
 
 </dd>
 <dt id="newSVpv_share">newSVpv_share </dt>
@@ -6718,9 +7265,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="newSVpvs_share">newSVpvs_share </dt>
 <dd>
 
-<p>Like <code>newSVpvn_share</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair and omits the hash parameter.</p>
+<p>Like <code>newSVpvn_share</code>, but takes a literal string instead of a string/length pair and omits the hash parameter.</p>
 
-<pre><code>        SV*     newSVpvs_share(const char* s)</code></pre>
+<pre><code>        SV*     newSVpvs_share(&quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="newSVrv">newSVrv </dt>
@@ -6920,34 +7467,34 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="sv_catpvs">sv_catpvs </dt>
 <dd>
 
-<p>Like <code>sv_catpvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_catpvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_catpvs(SV* sv, const char* s)</code></pre>
+<pre><code>        void    sv_catpvs(SV* sv, &quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_catpvs_flags">sv_catpvs_flags </dt>
 <dd>
 
-<p>Like <code>sv_catpvn_flags</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_catpvn_flags</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_catpvs_flags(SV* sv, const char* s,
+<pre><code>        void    sv_catpvs_flags(SV* sv, &quot;literal string&quot; s,
                                 I32 flags)</code></pre>
 
 </dd>
 <dt id="sv_catpvs_mg">sv_catpvs_mg </dt>
 <dd>
 
-<p>Like <code>sv_catpvn_mg</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_catpvn_mg</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_catpvs_mg(SV* sv, const char* s)</code></pre>
+<pre><code>        void    sv_catpvs_mg(SV* sv, &quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_catpvs_nomg">sv_catpvs_nomg </dt>
 <dd>
 
-<p>Like <code>sv_catpvn_nomg</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_catpvn_nomg</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_catpvs_nomg(SV* sv, const char* s)</code></pre>
+<pre><code>        void    sv_catpvs_nomg(SV* sv, &quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_catpv_flags">sv_catpv_flags </dt>
@@ -7414,10 +7961,18 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    sv_reset(const char* s, HV *const stash)</code></pre>
 
 </dd>
+<dt id="sv_rvunweaken">sv_rvunweaken </dt>
+<dd>
+
+<p>Unweaken a reference: Clear the <code>SvWEAKREF</code> flag on this RV; remove the backreference to this RV from the array of backreferences associated with the target SV, increment the refcount of the target. Silently ignores <code>undef</code> and warns on non-weak references.</p>
+
+<pre><code>        SV*     sv_rvunweaken(SV *const sv)</code></pre>
+
+</dd>
 <dt id="sv_rvweaken">sv_rvweaken </dt>
 <dd>
 
-<p>Weaken a reference: set the <code>SvWEAKREF</code> flag on this RV; give the referred-to SV <code>PERL_MAGIC_backref</code> magic if it hasn&#39;t already; and push a back-reference to this RV onto the array of backreferences associated with that magic. If the RV is magical, set magic will be called after the RV is cleared.</p>
+<p>Weaken a reference: set the <code>SvWEAKREF</code> flag on this RV; give the referred-to SV <code>PERL_MAGIC_backref</code> magic if it hasn&#39;t already; and push a back-reference to this RV onto the array of backreferences associated with that magic. If the RV is magical, set magic will be called after the RV is cleared. Silently ignores <code>undef</code> and warns on already-weak references.</p>
 
 <pre><code>        SV*     sv_rvweaken(SV *const sv)</code></pre>
 
@@ -7518,17 +8073,17 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="sv_setpvs">sv_setpvs </dt>
 <dd>
 
-<p>Like <code>sv_setpvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_setpvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_setpvs(SV* sv, const char* s)</code></pre>
+<pre><code>        void    sv_setpvs(SV* sv, &quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_setpvs_mg">sv_setpvs_mg </dt>
 <dd>
 
-<p>Like <code>sv_setpvn_mg</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_setpvn_mg</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        void    sv_setpvs_mg(SV* sv, const char* s)</code></pre>
+<pre><code>        void    sv_setpvs_mg(SV* sv, &quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_setpv_bufsize">sv_setpv_bufsize </dt>
@@ -7598,9 +8153,9 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="sv_setref_pvs">sv_setref_pvs </dt>
 <dd>
 
-<p>Like <code>sv_setref_pvn</code>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair.</p>
+<p>Like <code>sv_setref_pvn</code>, but takes a literal string instead of a string/length pair.</p>
 
-<pre><code>        SV *    sv_setref_pvs(const char* s)</code></pre>
+<pre><code>        SV *    sv_setref_pvs(&quot;literal string&quot; s)</code></pre>
 
 </dd>
 <dt id="sv_setref_uv">sv_setref_uv </dt>
@@ -7844,7 +8399,8 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    sv_vcatpvfn(SV *const sv, const char *const pat,
                             const STRLEN patlen,
                             va_list *const args,
-                            SV **const svargs, const I32 svmax,
+                            SV **const svargs,
+                            const int sv_count,
                             bool *const maybe_tainted)</code></pre>
 
 </dd>
@@ -7857,6 +8413,8 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>If called as <code>sv_vcatpvfn</code> or flags has the <code>SV_GMAGIC</code> bit set, calls get magic.</p>
 
+<p>It assumes that pat has the same utf8-ness as sv. It&#39;s the caller&#39;s responsibility to ensure that this is so.</p>
+
 <p>Usually used via one of its frontends <code>sv_vcatpvf</code> and <code>sv_vcatpvf_mg</code>.</p>
 
 <pre><code>        void    sv_vcatpvfn_flags(SV *const sv,
@@ -7864,7 +8422,7 @@ NOTE: the perl_ form of this function is deprecated.
                                   const STRLEN patlen,
                                   va_list *const args,
                                   SV **const svargs,
-                                  const I32 svmax,
+                                  const int sv_count,
                                   bool *const maybe_tainted,
                                   const U32 flags)</code></pre>
 
@@ -7902,7 +8460,8 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        void    sv_vsetpvfn(SV *const sv, const char *const pat,
                             const STRLEN patlen,
                             va_list *const args,
-                            SV **const svargs, const I32 svmax,
+                            SV **const svargs,
+                            const int sv_count,
                             bool *const maybe_tainted)</code></pre>
 
 </dd>
@@ -9174,10 +9733,18 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Converts a string <code>s</code> of length <code>len</code> from UTF-8 into native byte encoding. Unlike <a href="#utf8_to_bytes">&quot;utf8_to_bytes&quot;</a> but like <a href="#bytes_to_utf8">&quot;bytes_to_utf8&quot;</a>, returns a pointer to the newly-created string, and updates <code>len</code> to contain the new length. Returns the original string if no conversion occurs, <code>len</code> is unchanged. Do nothing if <code>is_utf8</code> points to 0. Sets <code>is_utf8</code> to 0 if <code>s</code> is converted or consisted entirely of characters that are invariant in UTF-8 (i.e., US-ASCII on non-EBCDIC machines).</p>
+<p>Converts a potentially UTF-8 encoded string <code>s</code> of length <code>*lenp</code> into native byte encoding. On input, the boolean <code>*is_utf8p</code> gives whether or not <code>s</code> is actually encoded in UTF-8.</p>
 
-<pre><code>        U8*     bytes_from_utf8(const U8 *s, STRLEN *len,
-                                bool *is_utf8)</code></pre>
+<p>Unlike <a href="#utf8_to_bytes">&quot;utf8_to_bytes&quot;</a> but like <a href="#bytes_to_utf8">&quot;bytes_to_utf8&quot;</a>, this is non-destructive of the input string.</p>
+
+<p>Do nothing if <code>*is_utf8p</code> is 0, or if there are code points in the string not expressible in native byte encoding. In these cases, <code>*is_utf8p</code> and <code>*lenp</code> are unchanged, and the return value is the original <code>s</code>.</p>
+
+<p>Otherwise, <code>*is_utf8p</code> is set to 0, and the return value is a pointer to a newly created string containing a downgraded copy of <code>s</code>, and whose length is returned in <code>*lenp</code>, updated. The new string is <code>NUL</code>-terminated.</p>
+
+<p>Upon successful return, the number of variants in the string can be computed by having saved the value of <code>*lenp</code> before the call, and subtracting the after-call value of <code>*lenp</code> from it.</p>
+
+<pre><code>        U8*     bytes_from_utf8(const U8 *s, STRLEN *lenp,
+                                bool *is_utf8p)</code></pre>
 
 </dd>
 <dt id="bytes_to_utf8">bytes_to_utf8 </dt>
@@ -9185,13 +9752,15 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Converts a string <code>s</code> of length <code>len</code> bytes from the native encoding into UTF-8. Returns a pointer to the newly-created string, and sets <code>len</code> to reflect the new length in bytes.</p>
+<p>Converts a string <code>s</code> of length <code>*lenp</code> bytes from the native encoding into UTF-8. Returns a pointer to the newly-created string, and sets <code>*lenp</code> to reflect the new length in bytes.</p>
+
+<p>Upon successful return, the number of variants in the string can be computed by having saved the value of <code>*lenp</code> before the call, and subtracting it from the after-call value of <code>*lenp</code>.</p>
 
 <p>A <code>NUL</code> character will be written after the end of the string.</p>
 
 <p>If you want to convert to UTF-8 from encodings other than the native (Latin1 or EBCDIC), see <a href="#sv_recode_to_utf8">&quot;sv_recode_to_utf8&quot;</a>().</p>
 
-<pre><code>        U8*     bytes_to_utf8(const U8 *s, STRLEN *len)</code></pre>
+<pre><code>        U8*     bytes_to_utf8(const U8 *s, STRLEN *lenp)</code></pre>
 
 </dd>
 <dt id="DO_UTF8">DO_UTF8 </dt>
@@ -9242,7 +9811,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>This function returns FALSE for strings containing any code points above the Unicode max of 0x10FFFF or surrogate code points, but accepts non-character code points per <a href="http://www.unicode.org/versions/corrigendum9.html">Corrigendum #9</a>.</p>
 
-<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_flags">&quot;is_utf8_string_flags&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
+<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_invariant_string_loc">&quot;is_utf8_invariant_string_loc&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_flags">&quot;is_utf8_string_flags&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
 
 <pre><code>        bool    is_c9strict_utf8_string(const U8 *s,
                                         const STRLEN len)</code></pre>
@@ -9319,7 +9888,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>This function returns FALSE for strings containing any code points above the Unicode max of 0x10FFFF, surrogate code points, or non-character code points.</p>
 
-<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_flags">&quot;is_utf8_string_flags&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
+<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_invariant_string_loc">&quot;is_utf8_invariant_string_loc&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_flags">&quot;is_utf8_string_flags&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
 
 <pre><code>        bool    is_strict_utf8_string(const U8 *s,
                                       const STRLEN len)</code></pre>
@@ -9404,6 +9973,16 @@ NOTE: the perl_ form of this function is deprecated.
                                          STRLEN const len)</code></pre>
 
 </dd>
+<dt id="is_utf8_invariant_string_loc">is_utf8_invariant_string_loc </dt>
+<dd>
+
+<p>Like <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code> but upon failure, stores the location of the first UTF-8 variant character in the <code>ep</code> pointer; if all characters are UTF-8 invariant, this function does not change the contents of <code>*ep</code>.</p>
+
+<pre><code>        bool    is_utf8_invariant_string_loc(const U8* const s,
+                                             STRLEN const len,
+                                             const U8 ** ep)</code></pre>
+
+</dd>
 <dt id="is_utf8_string">is_utf8_string </dt>
 <dd>
 
@@ -9411,7 +9990,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>This function considers Perl&#39;s extended UTF-8 to be valid. That means that code points above Unicode, surrogates, and non-character code points are considered valid by this function. Use <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>, <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>, or <code><a href="#is_utf8_string_flags">&quot;is_utf8_string_flags&quot;</a></code> to restrict what code points are considered valid.</p>
 
-<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>,</p>
+<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_invariant_string_loc">&quot;is_utf8_invariant_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>,</p>
 
 <pre><code>        bool    is_utf8_string(const U8 *s, const STRLEN len)</code></pre>
 
@@ -9423,7 +10002,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>If <code>flags</code> is 0, this gives the same results as <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>; if <code>flags</code> is <code>UTF8_DISALLOW_ILLEGAL_INTERCHANGE</code>, this gives the same results as <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>; and if <code>flags</code> is <code>UTF8_DISALLOW_ILLEGAL_C9_INTERCHANGE</code>, this gives the same results as <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>. Otherwise <code>flags</code> may be any combination of the <code>UTF8_DISALLOW_<i>foo</i></code> flags understood by <code><a href="#utf8n_to_uvchr">&quot;utf8n_to_uvchr&quot;</a></code>, with the same meanings.</p>
 
-<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
+<p>See also <code><a href="#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot;</a></code>, <code><a href="#is_utf8_invariant_string_loc">&quot;is_utf8_invariant_string_loc&quot;</a></code>, <code><a href="#is_utf8_string">&quot;is_utf8_string&quot;</a></code>, <code><a href="#is_utf8_string_loc">&quot;is_utf8_string_loc&quot;</a></code>, <code><a href="#is_utf8_string_loc_flags">&quot;is_utf8_string_loc_flags&quot;</a></code>, <code><a href="#is_utf8_string_loclen">&quot;is_utf8_string_loclen&quot;</a></code>, <code><a href="#is_utf8_string_loclen_flags">&quot;is_utf8_string_loclen_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_flags">&quot;is_utf8_fixed_width_buf_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loc_flags">&quot;is_utf8_fixed_width_buf_loc_flags&quot;</a></code>, <code><a href="#is_utf8_fixed_width_buf_loclen_flags">&quot;is_utf8_fixed_width_buf_loclen_flags&quot;</a></code>, <code><a href="#is_strict_utf8_string">&quot;is_strict_utf8_string&quot;</a></code>, <code><a href="#is_strict_utf8_string_loc">&quot;is_strict_utf8_string_loc&quot;</a></code>, <code><a href="#is_strict_utf8_string_loclen">&quot;is_strict_utf8_string_loclen&quot;</a></code>, <code><a href="#is_c9strict_utf8_string">&quot;is_c9strict_utf8_string&quot;</a></code>, <code><a href="#is_c9strict_utf8_string_loc">&quot;is_c9strict_utf8_string_loc&quot;</a></code>, and <code><a href="#is_c9strict_utf8_string_loclen">&quot;is_c9strict_utf8_string_loclen&quot;</a></code>.</p>
 
 <pre><code>        bool    is_utf8_string_flags(const U8 *s,
                                      const STRLEN len,
@@ -9623,35 +10202,6 @@ NOTE: the perl_ form of this function is deprecated.
                                UV flags)</code></pre>
 
 </dd>
-<dt id="to_utf8_case">to_utf8_case </dt>
-<dd>
-
-<p>DEPRECATED! It is planned to remove this function from a future release of Perl. Do not use it for new code; remove it from existing code.</p>
-
-<p>Instead use the appropriate one of <a href="#toUPPER_utf8_safe">&quot;toUPPER_utf8_safe&quot;</a>, <a href="#toTITLE_utf8_safe">&quot;toTITLE_utf8_safe&quot;</a>, <a href="#toLOWER_utf8_safe">&quot;toLOWER_utf8_safe&quot;</a>, or <a href="#toFOLD_utf8_safe">&quot;toFOLD_utf8_safe&quot;</a>.</p>
-
-<p>This function will be removed in Perl v5.28.</p>
-
-<p><code>p</code> contains the pointer to the UTF-8 string encoding the character that is being converted. This routine assumes that the character at <code>p</code> is well-formed.</p>
-
-<p><code>ustrp</code> is a pointer to the character buffer to put the conversion result to. <code>lenp</code> is a pointer to the length of the result.</p>
-
-<p><code>swashp</code> is a pointer to the swash to use.</p>
-
-<p>Both the special and normal mappings are stored in <i>lib/unicore/To/Foo.pl</i>, and loaded by <code>SWASHNEW</code>, using <i>lib/utf8_heavy.pl</i>. <code>special</code> (usually, but not always, a multicharacter mapping), is tried first.</p>
-
-<p><code>special</code> is a string, normally <code>NULL</code> or <code>&quot;&quot;</code>. <code>NULL</code> means to not use any special mappings; <code>&quot;&quot;</code> means to use the special mappings. Values other than these two are treated as the name of the hash containing the special mappings, like <code>&quot;utf8::ToSpecLower&quot;</code>.</p>
-
-<p><code>normal</code> is a string like <code>&quot;ToLower&quot;</code> which means the swash <code>%utf8::ToLower</code>.</p>
-
-<p>Code points above the platform&#39;s <code>IV_MAX</code> will raise a deprecation warning, unless those are turned off.</p>
-
-<pre><code>        UV      to_utf8_case(const U8 *p, U8* ustrp,
-                             STRLEN *lenp, SV **swashp,
-                             const char *normal,
-                             const char *special)</code></pre>
-
-</dd>
 <dt id="to_utf8_fold">to_utf8_fold </dt>
 <dd>
 
@@ -9703,7 +10253,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>Bottom level UTF-8 decode routine. Returns the native code point value of the first character in the string <code>s</code>, which is assumed to be in UTF-8 (or UTF-EBCDIC) encoding, and no longer than <code>curlen</code> bytes; <code>*retlen</code> (if <code>retlen</code> isn&#39;t NULL) will be set to the length, in bytes, of that character.</p>
 
-<p>The value of <code>flags</code> determines the behavior when <code>s</code> does not point to a well-formed UTF-8 character. If <code>flags</code> is 0, encountering a malformation causes zero to be returned and <code>*retlen</code> is set so that (<span style="white-space: nowrap;"><code>s</code> + <code>*retlen</code></span>) is the next possible position in <code>s</code> that could begin a non-malformed character. Also, if UTF-8 warnings haven&#39;t been lexically disabled, a warning is raised. Some UTF-8 input sequences may contain multiple malformations. This function tries to find every possible one in each call, so multiple warnings can be raised for each sequence.</p>
+<p>The value of <code>flags</code> determines the behavior when <code>s</code> does not point to a well-formed UTF-8 character. If <code>flags</code> is 0, encountering a malformation causes zero to be returned and <code>*retlen</code> is set so that (<span style="white-space: nowrap;"><code>s</code> + <code>*retlen</code></span>) is the next possible position in <code>s</code> that could begin a non-malformed character. Also, if UTF-8 warnings haven&#39;t been lexically disabled, a warning is raised. Some UTF-8 input sequences may contain multiple malformations. This function tries to find every possible one in each call, so multiple warnings can be raised for the same sequence.</p>
 
 <p>Various ALLOW flags can be set in <code>flags</code> to allow (and not warn on) individual types of malformations, such as the sequence being overlong (that is, when there is a shorter sequence that can express the same code point; overlong sequences are expressly forbidden in the UTF-8 standard due to potential security issues). Another malformation example is the first byte of a character not being a legal first byte. See <i>utf8.h</i> for the list of such flags. Even if allowed, this function generally returns the Unicode REPLACEMENT CHARACTER when it encounters a malformation. There are flags in <i>utf8.h</i> to override this behavior for the overlong malformations, but don&#39;t do that except for very specialized purposes.</p>
 
@@ -9715,11 +10265,9 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>The flags <code>UTF8_WARN_ILLEGAL_INTERCHANGE</code>, <code>UTF8_WARN_ILLEGAL_C9_INTERCHANGE</code>, <code>UTF8_WARN_SURROGATE</code>, <code>UTF8_WARN_NONCHAR</code>, and <code>UTF8_WARN_SUPER</code> will cause warning messages to be raised for their respective categories, but otherwise the code points are considered valid (not malformations). To get a category to both be treated as a malformation and raise a warning, specify both the WARN and DISALLOW flags. (But note that warnings are not raised if lexically disabled nor if <code>UTF8_CHECK_ONLY</code> is also specified.)</p>
 
-<p>It is now deprecated to have very high code points (above <code>IV_MAX</code> on the platforms) and this function will raise a deprecation warning for these (unless such warnings are turned off). This value is typically 0x7FFF_FFFF (2**31 -1) in a 32-bit word.</p>
+<p>Extremely high code points were never specified in any standard, and require an extension to UTF-8 to express, which Perl does. It is likely that programs written in something other than Perl would not be able to read files that contain these; nor would Perl understand files written by something that uses a different extension. For these reasons, there is a separate set of flags that can warn and/or disallow these extremely high code points, even if other above-Unicode ones are accepted. They are the <code>UTF8_WARN_PERL_EXTENDED</code> and <code>UTF8_DISALLOW_PERL_EXTENDED</code> flags. For more information see <a href="#UTF8_GOT_PERL_EXTENDED">&quot;<code>UTF8_GOT_PERL_EXTENDED</code>&quot;</a>. Of course <code>UTF8_DISALLOW_SUPER</code> will treat all above-Unicode code points, including these, as malformations. (Note that the Unicode standard considers anything above 0x10FFFF to be illegal, but there are standards predating it that allow up to 0x7FFF_FFFF (2**31 -1))</p>
 
-<p>Code points above 0x7FFF_FFFF (2**31 - 1) were never specified in any standard, so using them is more problematic than other above-Unicode code points. Perl invented an extension to UTF-8 to represent the ones above 2**36-1, so it is likely that non-Perl languages will not be able to read files that contain these; nor would Perl understand files written by something that uses a different extension. For these reasons, there is a separate set of flags that can warn and/or disallow these extremely high code points, even if other above-Unicode ones are accepted. These are the <code>UTF8_WARN_ABOVE_31_BIT</code> and <code>UTF8_DISALLOW_ABOVE_31_BIT</code> flags. These are entirely independent from the deprecation warning for code points above <code>IV_MAX</code>. On 32-bit machines, it will eventually be forbidden to have any code point that needs more than 31 bits to represent. When that happens, effectively the <code>UTF8_DISALLOW_ABOVE_31_BIT</code> flag will always be set on 32-bit machines. (Of course <code>UTF8_DISALLOW_SUPER</code> will treat all above-Unicode code points, including these, as malformations; and <code>UTF8_WARN_SUPER</code> warns on these.)</p>
-
-<p>On EBCDIC platforms starting in Perl v5.24, the Perl extension for representing extremely high code points kicks in at 0x3FFF_FFFF (2**30 -1), which is lower than on ASCII. Prior to that, code points 2**31 and higher were simply unrepresentable, and a different, incompatible method was used to represent code points between 2**30 and 2**31 - 1. The flags <code>UTF8_WARN_ABOVE_31_BIT</code> and <code>UTF8_DISALLOW_ABOVE_31_BIT</code> have the same function as on ASCII platforms, warning and disallowing 2**31 and higher.</p>
+<p>A somewhat misleadingly named synonym for <code>UTF8_WARN_PERL_EXTENDED</code> is retained for backward compatibility: <code>UTF8_WARN_ABOVE_31_BIT</code>. Similarly, <code>UTF8_DISALLOW_ABOVE_31_BIT</code> is usable instead of the more accurately named <code>UTF8_DISALLOW_PERL_EXTENDED</code>. The names are misleading because these flags can apply to code points that actually do fit in 31 bits. This happens on EBCDIC platforms, and sometimes when the <a href="#UTF8_GOT_LONG">overlong malformation</a> is also present. The new names accurately describe the situation in all cases.</p>
 
 <p>All other code points corresponding to Unicode characters, including private use and those yet to be assigned, are never considered malformed and never warn.</p>
 
@@ -9738,10 +10286,18 @@ NOTE: the perl_ form of this function is deprecated.
 
 <dl>
 
-<dt id="UTF8_GOT_ABOVE_31_BIT"><code>UTF8_GOT_ABOVE_31_BIT</code></dt>
+<dt id="UTF8_GOT_PERL_EXTENDED"><code>UTF8_GOT_PERL_EXTENDED</code></dt>
 <dd>
 
-<p>The code point represented by the input UTF-8 sequence occupies more than 31 bits. This bit is set only if the input <code>flags</code> parameter contains either the <code>UTF8_DISALLOW_ABOVE_31_BIT</code> or the <code>UTF8_WARN_ABOVE_31_BIT</code> flags.</p>
+<p>The input sequence is not standard UTF-8, but a Perl extension. This bit is set only if the input <code>flags</code> parameter contains either the <code>UTF8_DISALLOW_PERL_EXTENDED</code> or the <code>UTF8_WARN_PERL_EXTENDED</code> flags.</p>
+
+<p>Code points above 0x7FFF_FFFF (2**31 - 1) were never specified in any standard, and so some extension must be used to express them. Perl uses a natural extension to UTF-8 to represent the ones up to 2**36-1, and invented a further extension to represent even higher ones, so that any code point that fits in a 64-bit word can be represented. Text using these extensions is not likely to be portable to non-Perl code. We lump both of these extensions together and refer to them as Perl extended UTF-8. There exist other extensions that people have invented, incompatible with Perl&#39;s.</p>
+
+<p>On EBCDIC platforms starting in Perl v5.24, the Perl extension for representing extremely high code points kicks in at 0x3FFF_FFFF (2**30 -1), which is lower than on ASCII. Prior to that, code points 2**31 and higher were simply unrepresentable, and a different, incompatible method was used to represent code points between 2**30 and 2**31 - 1.</p>
+
+<p>On both platforms, ASCII and EBCDIC, <code>UTF8_GOT_PERL_EXTENDED</code> is set if Perl extended UTF-8 is used.</p>
+
+<p>In earlier Perls, this bit was named <code>UTF8_GOT_ABOVE_31_BIT</code>, which you still may use for backward compatibility. That name is misleading, as this flag may be set when the code point actually does fit in 31 bits. This happens on EBCDIC platforms, and sometimes when the <a href="#UTF8_GOT_LONG">overlong malformation</a> is also present. The new name accurately describes the situation in all cases.</p>
 
 </dd>
 <dt id="UTF8_GOT_CONTINUATION"><code>UTF8_GOT_CONTINUATION</code></dt>
@@ -9761,6 +10317,8 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>The input sequence was malformed in that there is some other sequence that evaluates to the same code point, but that sequence is shorter than this one.</p>
 
+<p>Until Unicode 3.1, it was legal for programs to accept this malformation, but it was discovered that this created security issues.</p>
+
 </dd>
 <dt id="UTF8_GOT_NONCHAR"><code>UTF8_GOT_NONCHAR</code></dt>
 <dd>
@@ -9777,7 +10335,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="UTF8_GOT_OVERFLOW"><code>UTF8_GOT_OVERFLOW</code></dt>
 <dd>
 
-<p>The input sequence was malformed in that it is for a code point that is not representable in the number of bits available in a UV on the current platform.</p>
+<p>The input sequence was malformed in that it is for a code point that is not representable in the number of bits available in an IV on the current platform.</p>
 
 </dd>
 <dt id="UTF8_GOT_SHORT"><code>UTF8_GOT_SHORT</code></dt>
@@ -9951,11 +10509,13 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>NOTE: this function is experimental and may change or be removed without notice.</p>
 
-<p>Converts a string <code>s</code> of length <code>len</code> from UTF-8 into native byte encoding. Unlike <a href="#bytes_to_utf8">&quot;bytes_to_utf8&quot;</a>, this over-writes the original string, and updates <code>len</code> to contain the new length. Returns zero on failure, setting <code>len</code> to -1.</p>
+<p>Converts a string <code>&quot;s&quot;</code> of length <code>*lenp</code> from UTF-8 into native byte encoding. Unlike <a href="#bytes_to_utf8">&quot;bytes_to_utf8&quot;</a>, this over-writes the original string, and updates <code>*lenp</code> to contain the new length. Returns zero on failure (leaving <code>&quot;s&quot;</code> unchanged) setting <code>*lenp</code> to -1.</p>
+
+<p>Upon successful return, the number of variants in the string can be computed by having saved the value of <code>*lenp</code> before the call, and subtracting the after-call value of <code>*lenp</code> from it.</p>
 
 <p>If you need a copy of the string, see <a href="#bytes_from_utf8">&quot;bytes_from_utf8&quot;</a>.</p>
 
-<pre><code>        U8*     utf8_to_bytes(U8 *s, STRLEN *len)</code></pre>
+<pre><code>        U8*     utf8_to_bytes(U8 *s, STRLEN *lenp)</code></pre>
 
 </dd>
 <dt id="utf8_to_uvchr_buf">utf8_to_uvchr_buf </dt>
@@ -9964,8 +10524,6 @@ NOTE: the perl_ form of this function is deprecated.
 <p>Returns the native code point of the first character in the string <code>s</code> which is assumed to be in UTF-8 encoding; <code>send</code> points to 1 beyond the end of <code>s</code>. <code>*retlen</code> will be set to the length, in bytes, of that character.</p>
 
 <p>If <code>s</code> does not point to a well-formed UTF-8 character and UTF8 warnings are enabled, zero is returned and <code>*retlen</code> is set (if <code>retlen</code> isn&#39;t <code>NULL</code>) to -1. If those warnings are off, the computed value, if well-defined (or the Unicode REPLACEMENT CHARACTER if not), is silently returned, and <code>*retlen</code> is set (if <code>retlen</code> isn&#39;t <code>NULL</code>) so that (<span style="white-space: nowrap;"><code>s</code> + <code>*retlen</code></span>) is the next possible position in <code>s</code> that could begin a non-malformed character. See <a href="#utf8n_to_uvchr">&quot;utf8n_to_uvchr&quot;</a> for details on when the REPLACEMENT CHARACTER is returned.</p>
-
-<p>Code points above the platform&#39;s <code>IV_MAX</code> will raise a deprecation warning, unless those are turned off.</p>
 
 <pre><code>        UV      utf8_to_uvchr_buf(const U8 *s, const U8 *send,
                                   STRLEN *retlen)</code></pre>
@@ -9981,8 +10539,6 @@ NOTE: the perl_ form of this function is deprecated.
 <p>Returns the Unicode (not-native) code point of the first character in the string <code>s</code> which is assumed to be in UTF-8 encoding; <code>send</code> points to 1 beyond the end of <code>s</code>. <code>retlen</code> will be set to the length, in bytes, of that character.</p>
 
 <p>If <code>s</code> does not point to a well-formed UTF-8 character and UTF8 warnings are enabled, zero is returned and <code>*retlen</code> is set (if <code>retlen</code> isn&#39;t NULL) to -1. If those warnings are off, the computed value if well-defined (or the Unicode REPLACEMENT CHARACTER, if not) is silently returned, and <code>*retlen</code> is set (if <code>retlen</code> isn&#39;t NULL) so that (<span style="white-space: nowrap;"><code>s</code> + <code>*retlen</code></span>) is the next possible position in <code>s</code> that could begin a non-malformed character. See <a href="#utf8n_to_uvchr">&quot;utf8n_to_uvchr&quot;</a> for details on when the REPLACEMENT CHARACTER is returned.</p>
-
-<p>Code points above the platform&#39;s <code>IV_MAX</code> will raise a deprecation warning, unless those are turned off.</p>
 
 <pre><code>        UV      utf8_to_uvuni_buf(const U8 *s, const U8 *send,
                                   STRLEN *retlen)</code></pre>
@@ -10015,7 +10571,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>    *(d++) = uv;</code></pre>
 
-<p>This function accepts any UV as input, but very high code points (above <code>IV_MAX</code> on the platform) will raise a deprecation warning. This is typically 0x7FFF_FFFF in a 32-bit word.</p>
+<p>This function accepts any code point from 0..<code>IV_MAX</code> as input. <code>IV_MAX</code> is typically 0x7FFF_FFFF in a 32-bit word.</p>
 
 <p>It is possible to forbid or warn on non-Unicode code points, or those that may be problematic by using <a href="#uvchr_to_utf8_flags">&quot;uvchr_to_utf8_flags&quot;</a>.</p>
 
@@ -10037,7 +10593,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>    *(d++) = uv;</code></pre>
 
-<p>If <code>flags</code> is 0, this function accepts any UV as input, but very high code points (above <code>IV_MAX</code> for the platform) will raise a deprecation warning. This is typically 0x7FFF_FFFF in a 32-bit word.</p>
+<p>If <code>flags</code> is 0, this function accepts any code point from 0..<code>IV_MAX</code> as input. <code>IV_MAX</code> is typically 0x7FFF_FFFF in a 32-bit word.</p>
 
 <p>Specifying <code>flags</code> can further restrict what is allowed and not warned on, as follows:</p>
 
@@ -10049,9 +10605,9 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>The flag <code>UNICODE_WARN_ILLEGAL_INTERCHANGE</code> selects all three of the above WARN flags; and <code>UNICODE_DISALLOW_ILLEGAL_INTERCHANGE</code> selects all three DISALLOW flags. <code>UNICODE_DISALLOW_ILLEGAL_INTERCHANGE</code> restricts the allowed inputs to the strict UTF-8 traditionally defined by Unicode. Similarly, <code>UNICODE_WARN_ILLEGAL_C9_INTERCHANGE</code> and <code>UNICODE_DISALLOW_ILLEGAL_C9_INTERCHANGE</code> are shortcuts to select the above-Unicode and surrogate flags, but not the non-character ones, as defined in <a href="http://www.unicode.org/versions/corrigendum9.html">Unicode Corrigendum #9</a>. See <a href="/cperl/perlunicode.html#Noncharacter-code-points">&quot;Noncharacter code points&quot; in perlunicode</a>.</p>
 
-<p>Code points above 0x7FFF_FFFF (2**31 - 1) were never specified in any standard, so using them is more problematic than other above-Unicode code points. Perl invented an extension to UTF-8 to represent the ones above 2**36-1, so it is likely that non-Perl languages will not be able to read files that contain these that written by the perl interpreter; nor would Perl understand files written by something that uses a different extension. For these reasons, there is a separate set of flags that can warn and/or disallow these extremely high code points, even if other above-Unicode ones are accepted. These are the <code>UNICODE_WARN_ABOVE_31_BIT</code> and <code>UNICODE_DISALLOW_ABOVE_31_BIT</code> flags. These are entirely independent from the deprecation warning for code points above <code>IV_MAX</code>. On 32-bit machines, it will eventually be forbidden to have any code point that needs more than 31 bits to represent. When that happens, effectively the <code>UNICODE_DISALLOW_ABOVE_31_BIT</code> flag will always be set on 32-bit machines. (Of course <code>UNICODE_DISALLOW_SUPER</code> will treat all above-Unicode code points, including these, as malformations; and <code>UNICODE_WARN_SUPER</code> warns on these.)</p>
+<p>Extremely high code points were never specified in any standard, and require an extension to UTF-8 to express, which Perl does. It is likely that programs written in something other than Perl would not be able to read files that contain these; nor would Perl understand files written by something that uses a different extension. For these reasons, there is a separate set of flags that can warn and/or disallow these extremely high code points, even if other above-Unicode ones are accepted. They are the <code>UNICODE_WARN_PERL_EXTENDED</code> and <code>UNICODE_DISALLOW_PERL_EXTENDED</code> flags. For more information see <a href="#UTF8_GOT_PERL_EXTENDED">&quot;<code>UTF8_GOT_PERL_EXTENDED</code>&quot;</a>. Of course <code>UNICODE_DISALLOW_SUPER</code> will treat all above-Unicode code points, including these, as malformations. (Note that the Unicode standard considers anything above 0x10FFFF to be illegal, but there are standards predating it that allow up to 0x7FFF_FFFF (2**31 -1))</p>
 
-<p>On EBCDIC platforms starting in Perl v5.24, the Perl extension for representing extremely high code points kicks in at 0x3FFF_FFFF (2**30 -1), which is lower than on ASCII. Prior to that, code points 2**31 and higher were simply unrepresentable, and a different, incompatible method was used to represent code points between 2**30 and 2**31 - 1. The flags <code>UNICODE_WARN_ABOVE_31_BIT</code> and <code>UNICODE_DISALLOW_ABOVE_31_BIT</code> have the same function as on ASCII platforms, warning and disallowing 2**31 and higher.</p>
+<p>A somewhat misleadingly named synonym for <code>UNICODE_WARN_PERL_EXTENDED</code> is retained for backward compatibility: <code>UNICODE_WARN_ABOVE_31_BIT</code>. Similarly, <code>UNICODE_DISALLOW_ABOVE_31_BIT</code> is usable instead of the more accurately named <code>UNICODE_DISALLOW_PERL_EXTENDED</code>. The names are misleading because these flags can apply to code points that actually do fit in 31 bits. This happens on EBCDIC platforms, and sometimes when the <a href="#UTF8_GOT_LONG">overlong malformation</a> is also present. The new names accurately describe the situation in all cases.</p>
 
 <pre><code>        U8*     uvchr_to_utf8_flags(U8 *d, UV uv, UV flags)</code></pre>
 
@@ -11142,14 +11698,6 @@ NOTE: the perl_ form of this function is deprecated.
 <dd>
 
 </dd>
-<dt id="my_bcopy">my_bcopy </dt>
-<dd>
-
-</dd>
-<dt id="my_bzero">my_bzero </dt>
-<dd>
-
-</dd>
 <dt id="my_chsize">my_chsize </dt>
 <dd>
 
@@ -11183,14 +11731,6 @@ NOTE: the perl_ form of this function is deprecated.
 
 </dd>
 <dt id="my_lstat">my_lstat </dt>
-<dd>
-
-</dd>
-<dt id="my_memcmp">my_memcmp </dt>
-<dd>
-
-</dd>
-<dt id="my_memset">my_memset </dt>
 <dd>
 
 </dd>
@@ -11338,10 +11878,6 @@ NOTE: the perl_ form of this function is deprecated.
 <dd>
 
 </dd>
-<dt id="pregfree">pregfree </dt>
-<dd>
-
-</dd>
 <dt id="pregfree2">pregfree2 </dt>
 <dd>
 
@@ -11375,10 +11911,6 @@ NOTE: the perl_ form of this function is deprecated.
 
 </dd>
 <dt id="re_compile">re_compile </dt>
-<dd>
-
-</dd>
-<dt id="re_dup_guts">re_dup_guts </dt>
 <dd>
 
 </dd>
@@ -11442,23 +11974,11 @@ NOTE: the perl_ form of this function is deprecated.
 <dd>
 
 </dd>
-<dt id="regdupe_internal">regdupe_internal </dt>
-<dd>
-
-</dd>
 <dt id="regexec_flags">regexec_flags </dt>
 <dd>
 
 </dd>
-<dt id="regfree_internal">regfree_internal </dt>
-<dd>
-
-</dd>
 <dt id="reginitcolors">reginitcolors </dt>
-<dd>
-
-</dd>
-<dt id="regnext">regnext </dt>
 <dd>
 
 </dd>
@@ -11682,31 +12202,11 @@ NOTE: the perl_ form of this function is deprecated.
 <dd>
 
 </dd>
-<dt id="scan_num">scan_num </dt>
-<dd>
-
-</dd>
-<dt id="scan_vstring">scan_vstring </dt>
-<dd>
-
-</dd>
 <dt id="seed">seed </dt>
 <dd>
 
 </dd>
 <dt id="set_context">set_context </dt>
-<dd>
-
-</dd>
-<dt id="set_numeric_local">set_numeric_local </dt>
-<dd>
-
-</dd>
-<dt id="set_numeric_radix">set_numeric_radix </dt>
-<dd>
-
-</dd>
-<dt id="set_numeric_standard">set_numeric_standard </dt>
 <dd>
 
 </dd>
