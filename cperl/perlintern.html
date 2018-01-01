@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx219.apple.com" />
+<link rev="made" href="mailto:root@osx201.apple.com" />
 </head>
 
 <body style="background-color: white">
@@ -164,7 +164,7 @@
 
 <p>Checks types and adds <code>OPpMAP_PAIR</code> to <code>%hash = map</code>.</p>
 
-<p>TODO: constant folding with OpSPECIAL OP * ck_aassign(OP *o)</p>
+<p>TODO: constant folding with OpSPECIAL TODO: fill lhs AvFILLp with gh210-computedsizearydecl OP * ck_aassign(OP *o)</p>
 
 </dd>
 <dt id="ck_aelem">ck_aelem </dt>
@@ -639,7 +639,9 @@
 
 <p>3) with static ranges and shaped arrays, can possibly optimize to aelem_u</p>
 
-<pre><code>        bool    peep_leaveloop(OP* leave, OP* from, OP* to)</code></pre>
+<p>Returns TRUE when some op was changed.</p>
+
+<pre><code>        bool    peep_leaveloop(BINOP* leave, OP* from, OP* to)</code></pre>
 
 </dd>
 <dt id="ret_check_type">ret_check_type </dt>
@@ -1080,7 +1082,7 @@
 <dt id="pad_alloc_name">pad_alloc_name </dt>
 <dd>
 
-<p>Allocates a place in the currently-compiling pad (via <a href="/cperl/perlapi.html#pad_alloc">&quot;pad_alloc&quot; in perlapi</a>) and then stores a name for that entry. <code>name</code> is adopted and becomes the name entry; it must already contain the name string. <code>typestash</code> and <code>ourstash</code> and the <code>padadd_STATE</code> flag get added to <code>name</code>. None of the other processing of <a href="/cperl/perlapi.html#pad_add_name_pvn">&quot;pad_add_name_pvn&quot; in perlapi</a> is done. Returns the offset of the allocated pad slot.</p>
+<p>Allocates a place in the currently-compiling pad (via <a href="/cperl/perlapi.html#pad_alloc">&quot;pad_alloc&quot; in perlapi</a>) and then stores a name for that entry. <code>name</code> is adopted and becomes the name entry; it must already contain the name string. <code>typestash</code> and <code>ourstash</code> and the <code>padadd_STATE</code> flag get added to <code>name</code>. None of the other processing of <a href="/pod/perlapi.html#pad_add_name_pvn">&quot;pad_add_name_pvn&quot; in perlapi</a> is done. Returns the offset of the allocated pad slot.</p>
 
 <pre><code>        PADOFFSET pad_alloc_name(PADNAME *name, U32 flags,
                                  HV *typestash, HV *ourstash)</code></pre>
@@ -1619,7 +1621,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     /* Ensures that we have an all-digit variable, ${&quot;1foo&quot;} fails
                        this test  */
                     UV uv;
-                    if (!grok_atoUV(name, &amp;uv, NULL) || uv &gt; I32_MAX)
+                    if (!grok_atoUV(name, &amp;uv, NULL))
                         goto ret;
                     if (UNLIKELY(uv &gt; I32_MAX))
                         Perl_croak(aTHX_ &quot;panic: gv name too long (%&quot; UVuf &quot;)&quot;, uv);
@@ -2454,6 +2456,16 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        void    notify_parser_that_changed_to_utf8()</code></pre>
 
 </dd>
+<dt id="num_constlistexpr">num_constlistexpr </dt>
+<dd>
+
+<p>Number of const list elements. depth starts with 0</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        SSize_t num_constlistexpr(OP* o, int depth)</code></pre>
+
+</dd>
 <dt id="parse_subsignature">parse_subsignature </dt>
 <dd>
 
@@ -3025,7 +3037,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>OpSPECIAL on the assign op denotes :const. Undo temp. READONLY-ness via a private OPpASSIGN_CONSTINIT bit during assignment at run-time.</p>
 
-<p>Do various compile-time assignments on const rhs values, to enable constant folding.</p>
+<p>Do various compile-time assignments on const rhs values, to enable constant folding. my @a[] = (...) comes also here, setting the computed lhs AvSHAPED size.</p>
 
 <p>Return the newASSIGNOP, or the folded assigned value.</p>
 
@@ -3067,6 +3079,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
         erencing an outer lexical, turn on CvCONST to indicate the CV is
         a candidate for &quot;constizing&quot; at clone time, and return NULL.
                 op_const_sv;</code></pre>
+
+</dd>
+<dt id="op_gv_set">op_gv_set </dt>
+<dd>
+
+<p>Set the gv as the op_sv. With threads also relocate a gv to the pad for thread safety. cperl-only</p>
+
+<pre><code>        void    op_gv_set(OP* o, GV* gv)</code></pre>
 
 </dd>
 <dt id="op_relocate_sv">op_relocate_sv </dt>
@@ -3528,7 +3548,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>The AV holding the backreferences is pointed to either as the <code>mg_obj</code> of <code>PERL_MAGIC_backref</code>, or in the specific case of a HV, from the <code>xhv_backreferences</code> field. The array is created with a refcount of 2. This means that if during global destruction the array gets picked on before its parent to have its refcount decremented by the random zapper, it won&#39;t actually be freed, meaning it&#39;s still there for when its parent gets freed.</p>
 
-<p>When the parent SV is freed, the extra ref is killed by <a href="/cperl/perlintern.html#sv_kill_backrefs">&quot;sv_kill_backrefs&quot; in perlintern</a>. The other ref is killed, in the case of magic, by <a href="/cperl/perlapi.html#mg_free">&quot;mg_free&quot; in perlapi</a> / <code>MGf_REFCOUNTED</code>, or for a hash, by <a href="/cperl/perlintern.html#hv_kill_backrefs">&quot;hv_kill_backrefs&quot; in perlintern</a>.</p>
+<p>When the parent SV is freed, the extra ref is killed by <a href="/cperl/perlintern.html#sv_kill_backrefs">&quot;sv_kill_backrefs&quot; in perlintern</a>. The other ref is killed, in the case of magic, by <a href="/pod/perlapi.html#mg_free">&quot;mg_free&quot; in perlapi</a> / <code>MGf_REFCOUNTED</code>, or for a hash, by <a href="/pod/perlintern.html#hv_kill_backrefs">&quot;hv_kill_backrefs&quot; in perlintern</a>.</p>
 
 <p>When a single backref SV is stored directly, it is not reference counted.</p>
 
@@ -4780,6 +4800,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="new_entersubop">new_entersubop </dt>
+<dd>
+
+</dd>
 <dt id="new_numeric">new_numeric </dt>
 <dd>
 
@@ -5160,7 +5184,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p><a href="/cperl/perlguts.html">perlguts</a>, <a href="/cperl/perlapi.html">perlapi</a></p>
+<p><a href="/cperl/perlguts.html">perlguts</a>, <a href="/pod/perlapi.html">perlapi</a></p>
 
 <h1 id="POD-ERRORS">POD ERRORS</h1>
 
@@ -5168,7 +5192,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-2429">Around line 2429:</dt>
+<dt id="Around-line-2432">Around line 2432:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>

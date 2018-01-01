@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx219.apple.com" />
+<link rev="made" href="mailto:root@osx201.apple.com" />
 </head>
 
 <body style="background-color: white">
@@ -277,7 +277,7 @@
 
 <h2 id="Tainting-happens-under-more-circumstances-now-conforms-to-documentation">Tainting happens under more circumstances; now conforms to documentation</h2>
 
-<p>This affects regular expression matching and changing the case of a string (<code>lc</code>, <code>&quot;\U&quot;</code>, <i>etc</i>.) within the scope of <code>use locale</code>. The result is now tainted based on the operation, no matter what the contents of the string were, as the documentation (<a href="/cperl/perlsec.html">perlsec</a>, <a href="/cperl/perllocale.html#SECURITY">&quot;SECURITY&quot; in perllocale</a>) indicates it should. Previously, for the case change operation, if the string contained no characters whose case change could be affected by the locale, the result would not be tainted. For example, the result of <code>uc()</code> on an empty string or one containing only above-Latin1 code points is now tainted, and wasn&#39;t before. This leads to more consistent tainting results. Regular expression patterns taint their non-binary results (like <code>$&amp;</code>, <code>$2</code>) if and only if the pattern contains elements whose matching depends on the current (potentially tainted) locale. Like the case changing functions, the actual contents of the string being matched now do not matter, whereas formerly it did. For example, if the pattern contains a <code>\w</code>, the results will be tainted even if the match did not have to use that portion of the pattern to succeed or fail, because what a <code>\w</code> matches depends on locale. However, for example, a <code>.</code> in a pattern will not enable tainting, because the dot matches any single character, and what the current locale is doesn&#39;t change in any way what matches and what doesn&#39;t.</p>
+<p>This affects regular expression matching and changing the case of a string (<code>lc</code>, <code>&quot;\U&quot;</code>, <i>etc</i>.) within the scope of <code>use locale</code>. The result is now tainted based on the operation, no matter what the contents of the string were, as the documentation (<a href="/cperl/perlsec.html">perlsec</a>, <a href="/pod/perllocale.html#SECURITY">&quot;SECURITY&quot; in perllocale</a>) indicates it should. Previously, for the case change operation, if the string contained no characters whose case change could be affected by the locale, the result would not be tainted. For example, the result of <code>uc()</code> on an empty string or one containing only above-Latin1 code points is now tainted, and wasn&#39;t before. This leads to more consistent tainting results. Regular expression patterns taint their non-binary results (like <code>$&amp;</code>, <code>$2</code>) if and only if the pattern contains elements whose matching depends on the current (potentially tainted) locale. Like the case changing functions, the actual contents of the string being matched now do not matter, whereas formerly it did. For example, if the pattern contains a <code>\w</code>, the results will be tainted even if the match did not have to use that portion of the pattern to succeed or fail, because what a <code>\w</code> matches depends on locale. However, for example, a <code>.</code> in a pattern will not enable tainting, because the dot matches any single character, and what the current locale is doesn&#39;t change in any way what matches and what doesn&#39;t.</p>
 
 <h2 id="p-P-matching-has-changed-for-non-Unicode-code-points"><code>\p{}</code>, <code>\P{}</code> matching has changed for non-Unicode code points.</h2>
 
@@ -303,15 +303,15 @@
 
 <h2 id="Assignments-of-Windows-sockets-error-codes-to-now-prefer-errno.h-values-over-WSAGetLastError-values">Assignments of Windows sockets error codes to $! now prefer <i>errno.h</i> values over WSAGetLastError() values</h2>
 
-<p>In previous versions of Perl, Windows sockets error codes as returned by WSAGetLastError() were assigned to $!, and some constants such as ECONNABORTED, not in <i>errno.h</i> in VC++ (or the various Windows ports of gcc) were defined to corresponding WSAE* values to allow $! to be tested against the E* constants exported by <a href="/cperl/lib/Errno.html">Errno</a> and <a>POSIX</a>.</p>
+<p>In previous versions of Perl, Windows sockets error codes as returned by WSAGetLastError() were assigned to $!, and some constants such as ECONNABORTED, not in <i>errno.h</i> in VC++ (or the various Windows ports of gcc) were defined to corresponding WSAE* values to allow $! to be tested against the E* constants exported by <a>Errno</a> and <a>POSIX</a>.</p>
 
 <p>This worked well until VC++ 2010 and later, which introduced new E* constants with values &gt; 100 into <i>errno.h</i>, including some being (re)defined by perl to WSAE* values. That caused problems when linking XS code against other libraries which used the original definitions of <i>errno.h</i> constants.</p>
 
-<p>To avoid this incompatibility, perl now maps WSAE* error codes to E* values where possible, and assigns those values to $!. The E* constants exported by <a href="/cperl/lib/Errno.html">Errno</a> and <a>POSIX</a> are updated to match so that testing $! against them, wherever previously possible, will continue to work as expected, and all E* constants found in <i>errno.h</i> are now exported from those modules with their original <i>errno.h</i> values.</p>
+<p>To avoid this incompatibility, perl now maps WSAE* error codes to E* values where possible, and assigns those values to $!. The E* constants exported by <a>Errno</a> and <a>POSIX</a> are updated to match so that testing $! against them, wherever previously possible, will continue to work as expected, and all E* constants found in <i>errno.h</i> are now exported from those modules with their original <i>errno.h</i> values.</p>
 
 <p>In order to avoid breakage in existing Perl code which assigns WSAE* values to $!, perl now intercepts the assignment and performs the same mapping to E* values as it uses internally when assigning to $! itself.</p>
 
-<p>However, one backwards-incompatibility remains: existing Perl code which compares $! against the numeric values of the WSAE* error codes that were previously assigned to $! will now be broken in those cases where a corresponding E* value has been assigned instead. This is only an issue for those E* values &lt; 100, which were always exported from <a href="/cperl/lib/Errno.html">Errno</a> and <a>POSIX</a> with their original <i>errno.h</i> values, and therefore could not be used for WSAE* error code tests (e.g. WSAEINVAL is 10022, but the corresponding EINVAL is 22). (E* values &gt; 100, if present, were redefined to WSAE* values anyway, so compatibility can be achieved by using the E* constants, which will work both before and after this change, albeit using different numeric values under the hood.)</p>
+<p>However, one backwards-incompatibility remains: existing Perl code which compares $! against the numeric values of the WSAE* error codes that were previously assigned to $! will now be broken in those cases where a corresponding E* value has been assigned instead. This is only an issue for those E* values &lt; 100, which were always exported from <a>Errno</a> and <a>POSIX</a> with their original <i>errno.h</i> values, and therefore could not be used for WSAE* error code tests (e.g. WSAEINVAL is 10022, but the corresponding EINVAL is 22). (E* values &gt; 100, if present, were redefined to WSAE* values anyway, so compatibility can be achieved by using the E* constants, which will work both before and after this change, albeit using different numeric values under the hood.)</p>
 
 <h2 id="Functions-PerlIO_vsprintf-and-PerlIO_sprintf-have-been-removed">Functions <code>PerlIO_vsprintf</code> and <code>PerlIO_sprintf</code> have been removed</h2>
 
@@ -492,10 +492,10 @@
 
 <ul>
 
-<li><p><a href="/cperl/lib/experimental.html">experimental</a> 0.007 has been added to the Perl core.</p>
+<li><p><a>experimental</a> 0.007 has been added to the Perl core.</p>
 
 </li>
-<li><p><a href="/cperl/lib/IO/Socket/IP.html">IO::Socket::IP</a> 0.29 has been added to the Perl core.</p>
+<li><p><a>IO::Socket::IP</a> 0.29 has been added to the Perl core.</p>
 
 </li>
 </ul>
@@ -504,264 +504,264 @@
 
 <ul>
 
-<li><p><a href="/cperl/lib/Archive/Tar.html">Archive::Tar</a> has been upgraded from version 1.90 to 1.96.</p>
+<li><p><a>Archive::Tar</a> has been upgraded from version 1.90 to 1.96.</p>
 
 </li>
 <li><p><a>arybase</a> has been upgraded from version 0.06 to 0.07.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Attribute/Handlers.html">Attribute::Handlers</a> has been upgraded from version 0.94 to 0.96.</p>
+<li><p><a>Attribute::Handlers</a> has been upgraded from version 0.94 to 0.96.</p>
 
 </li>
-<li><p><a href="/cperl/lib/attributes.html">attributes</a> has been upgraded from version 0.21 to 0.22.</p>
+<li><p><a>attributes</a> has been upgraded from version 0.21 to 0.22.</p>
 
 </li>
-<li><p><a href="/cperl/lib/autodie.html">autodie</a> has been upgraded from version 2.13 to 2.23.</p>
+<li><p><a>autodie</a> has been upgraded from version 2.13 to 2.23.</p>
 
 </li>
-<li><p><a href="/cperl/lib/AutoLoader.html">AutoLoader</a> has been upgraded from version 5.73 to 5.74.</p>
+<li><p><a>AutoLoader</a> has been upgraded from version 5.73 to 5.74.</p>
 
 </li>
-<li><p><a href="/cperl/lib/autouse.html">autouse</a> has been upgraded from version 1.07 to 1.08.</p>
+<li><p><a>autouse</a> has been upgraded from version 1.07 to 1.08.</p>
 
 </li>
-<li><p><a href="/cperl/lib/B.html">B</a> has been upgraded from version 1.42 to 1.48.</p>
+<li><p><a>B</a> has been upgraded from version 1.42 to 1.48.</p>
 
 </li>
-<li><p><a href="/cperl/lib/B/Concise.html">B::Concise</a> has been upgraded from version 0.95 to 0.992.</p>
+<li><p><a>B::Concise</a> has been upgraded from version 0.95 to 0.992.</p>
 
 </li>
 <li><p><a>B::Debug</a> has been upgraded from version 1.18 to 1.19.</p>
 
 </li>
-<li><p><a href="/cperl/lib/B/Deparse.html">B::Deparse</a> has been upgraded from version 1.20 to 1.26.</p>
+<li><p><a>B::Deparse</a> has been upgraded from version 1.20 to 1.26.</p>
 
 </li>
-<li><p><a href="/cperl/lib/base.html">base</a> has been upgraded from version 2.18 to 2.22.</p>
+<li><p><a>base</a> has been upgraded from version 2.18 to 2.22.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Benchmark.html">Benchmark</a> has been upgraded from version 1.15 to 1.18.</p>
+<li><p><a>Benchmark</a> has been upgraded from version 1.15 to 1.18.</p>
 
 </li>
-<li><p><a href="/cperl/lib/bignum.html">bignum</a> has been upgraded from version 0.33 to 0.37.</p>
+<li><p><a>bignum</a> has been upgraded from version 0.33 to 0.37.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Carp.html">Carp</a> has been upgraded from version 1.29 to 1.3301.</p>
+<li><p><a>Carp</a> has been upgraded from version 1.29 to 1.3301.</p>
 
 </li>
 <li><p><a>CGI</a> has been upgraded from version 3.63 to 3.65. NOTE: <a>CGI</a> is deprecated and may be removed from a future version of Perl.</p>
 
 </li>
-<li><p><a href="/cperl/lib/charnames.html">charnames</a> has been upgraded from version 1.36 to 1.40.</p>
+<li><p><a>charnames</a> has been upgraded from version 1.36 to 1.40.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Class/Struct.html">Class::Struct</a> has been upgraded from version 0.64 to 0.65.</p>
+<li><p><a>Class::Struct</a> has been upgraded from version 0.64 to 0.65.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Compress/Raw/Bzip2.html">Compress::Raw::Bzip2</a> has been upgraded from version 2.060 to 2.064.</p>
+<li><p><a>Compress::Raw::Bzip2</a> has been upgraded from version 2.060 to 2.064.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Compress/Raw/Zlib.html">Compress::Raw::Zlib</a> has been upgraded from version 2.060 to 2.065.</p>
+<li><p><a>Compress::Raw::Zlib</a> has been upgraded from version 2.060 to 2.065.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Config/Perl/V.html">Config::Perl::V</a> has been upgraded from version 0.17 to 0.20.</p>
+<li><p><a>Config::Perl::V</a> has been upgraded from version 0.17 to 0.20.</p>
 
 </li>
-<li><p><a href="/cperl/lib/constant.html">constant</a> has been upgraded from version 1.27 to 1.31.</p>
+<li><p><a>constant</a> has been upgraded from version 1.27 to 1.31.</p>
 
 </li>
-<li><p><a href="/cperl/lib/CPAN.html">CPAN</a> has been upgraded from version 2.00 to 2.05.</p>
+<li><p><a>CPAN</a> has been upgraded from version 2.00 to 2.05.</p>
 
 </li>
-<li><p><a href="/cperl/lib/CPAN/Meta.html">CPAN::Meta</a> has been upgraded from version 2.120921 to 2.140640.</p>
+<li><p><a>CPAN::Meta</a> has been upgraded from version 2.120921 to 2.140640.</p>
 
 </li>
-<li><p><a href="/cperl/lib/CPAN/Meta/Requirements.html">CPAN::Meta::Requirements</a> has been upgraded from version 2.122 to 2.125.</p>
+<li><p><a>CPAN::Meta::Requirements</a> has been upgraded from version 2.122 to 2.125.</p>
 
 </li>
-<li><p><a href="/cperl/lib/CPAN/Meta/YAML.html">CPAN::Meta::YAML</a> has been upgraded from version 0.008 to 0.012.</p>
+<li><p><a>CPAN::Meta::YAML</a> has been upgraded from version 0.008 to 0.012.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Data/Dumper.html">Data::Dumper</a> has been upgraded from version 2.145 to 2.151.</p>
+<li><p><a>Data::Dumper</a> has been upgraded from version 2.145 to 2.151.</p>
 
 </li>
-<li><p><a href="/cperl/lib/DB.html">DB</a> has been upgraded from version 1.04 to 1.07.</p>
+<li><p><a>DB</a> has been upgraded from version 1.04 to 1.07.</p>
 
 </li>
-<li><p><a href="/cperl/lib/DB_File.html">DB_File</a> has been upgraded from version 1.827 to 1.831.</p>
+<li><p><a>DB_File</a> has been upgraded from version 1.827 to 1.831.</p>
 
 </li>
-<li><p><a href="/cperl/lib/DBM_Filter.html">DBM_Filter</a> has been upgraded from version 0.05 to 0.06.</p>
+<li><p><a>DBM_Filter</a> has been upgraded from version 0.05 to 0.06.</p>
 
 </li>
-<li><p><a href="/cperl/lib/deprecate.html">deprecate</a> has been upgraded from version 0.02 to 0.03.</p>
+<li><p><a>deprecate</a> has been upgraded from version 0.02 to 0.03.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Devel/Peek.html">Devel::Peek</a> has been upgraded from version 1.11 to 1.16.</p>
+<li><p><a>Devel::Peek</a> has been upgraded from version 1.11 to 1.16.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Devel/PPPort.html">Devel::PPPort</a> has been upgraded from version 3.20 to 3.21.</p>
+<li><p><a>Devel::PPPort</a> has been upgraded from version 3.20 to 3.21.</p>
 
 </li>
-<li><p><a href="/cperl/lib/diagnostics.html">diagnostics</a> has been upgraded from version 1.31 to 1.34.</p>
+<li><p><a>diagnostics</a> has been upgraded from version 1.31 to 1.34.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Digest/MD5.html">Digest::MD5</a> has been upgraded from version 2.52 to 2.53.</p>
+<li><p><a>Digest::MD5</a> has been upgraded from version 2.52 to 2.53.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Digest/SHA.html">Digest::SHA</a> has been upgraded from version 5.84 to 5.88.</p>
+<li><p><a>Digest::SHA</a> has been upgraded from version 5.84 to 5.88.</p>
 
 </li>
-<li><p><a href="/cperl/lib/DynaLoader.html">DynaLoader</a> has been upgraded from version 1.18 to 1.25.</p>
+<li><p><a>DynaLoader</a> has been upgraded from version 1.18 to 1.25.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Encode.html">Encode</a> has been upgraded from version 2.49 to 2.60.</p>
+<li><p><a>Encode</a> has been upgraded from version 2.49 to 2.60.</p>
 
 </li>
-<li><p><a href="/cperl/lib/encoding.html">encoding</a> has been upgraded from version 2.6_01 to 2.12.</p>
+<li><p><a>encoding</a> has been upgraded from version 2.6_01 to 2.12.</p>
 
 </li>
-<li><p><a href="/cperl/lib/English.html">English</a> has been upgraded from version 1.06 to 1.09.</p>
+<li><p><a>English</a> has been upgraded from version 1.06 to 1.09.</p>
 
 <p><code>$OLD_PERL_VERSION</code> was added as an alias of <code>$]</code>.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Errno.html">Errno</a> has been upgraded from version 1.18 to 1.20_03.</p>
+<li><p><a>Errno</a> has been upgraded from version 1.18 to 1.20_03.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Exporter.html">Exporter</a> has been upgraded from version 5.68 to 5.70.</p>
+<li><p><a>Exporter</a> has been upgraded from version 5.68 to 5.70.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/CBuilder.html">ExtUtils::CBuilder</a> has been upgraded from version 0.280210 to 0.280216.</p>
+<li><p><a>ExtUtils::CBuilder</a> has been upgraded from version 0.280210 to 0.280216.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/Command.html">ExtUtils::Command</a> has been upgraded from version 1.17 to 1.18.</p>
+<li><p><a>ExtUtils::Command</a> has been upgraded from version 1.17 to 1.18.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/Embed.html">ExtUtils::Embed</a> has been upgraded from version 1.30 to 1.32.</p>
+<li><p><a>ExtUtils::Embed</a> has been upgraded from version 1.30 to 1.32.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/Install.html">ExtUtils::Install</a> has been upgraded from version 1.59 to 1.67.</p>
+<li><p><a>ExtUtils::Install</a> has been upgraded from version 1.59 to 1.67.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a> has been upgraded from version 6.66 to 6.98.</p>
+<li><p><a>ExtUtils::MakeMaker</a> has been upgraded from version 6.66 to 6.98.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/Miniperl.html">ExtUtils::Miniperl</a> has been upgraded from version to 1.01.</p>
+<li><p><a>ExtUtils::Miniperl</a> has been upgraded from version to 1.01.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/ParseXS.html">ExtUtils::ParseXS</a> has been upgraded from version 3.18 to 3.24.</p>
+<li><p><a>ExtUtils::ParseXS</a> has been upgraded from version 3.18 to 3.24.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/Typemaps.html">ExtUtils::Typemaps</a> has been upgraded from version 3.19 to 3.24.</p>
+<li><p><a>ExtUtils::Typemaps</a> has been upgraded from version 3.19 to 3.24.</p>
 
 </li>
-<li><p><a href="/cperl/lib/ExtUtils/XSSymSet.html">ExtUtils::XSSymSet</a> has been upgraded from version 1.2 to 1.3.</p>
+<li><p><a>ExtUtils::XSSymSet</a> has been upgraded from version 1.2 to 1.3.</p>
 
 </li>
-<li><p><a href="/cperl/lib/feature.html">feature</a> has been upgraded from version 1.32 to 1.36.</p>
+<li><p><a>feature</a> has been upgraded from version 1.32 to 1.36.</p>
 
 </li>
-<li><p><a href="/cperl/lib/fields.html">fields</a> has been upgraded from version 2.16 to 2.17.</p>
+<li><p><a>fields</a> has been upgraded from version 2.16 to 2.17.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Basename.html">File::Basename</a> has been upgraded from version 2.84 to 2.85.</p>
+<li><p><a>File::Basename</a> has been upgraded from version 2.84 to 2.85.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Copy.html">File::Copy</a> has been upgraded from version 2.26 to 2.29.</p>
+<li><p><a>File::Copy</a> has been upgraded from version 2.26 to 2.29.</p>
 
 </li>
 <li><p><a>File::DosGlob</a> has been upgraded from version 1.10 to 1.12.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Fetch.html">File::Fetch</a> has been upgraded from version 0.38 to 0.48.</p>
+<li><p><a>File::Fetch</a> has been upgraded from version 0.38 to 0.48.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Find.html">File::Find</a> has been upgraded from version 1.23 to 1.27.</p>
+<li><p><a>File::Find</a> has been upgraded from version 1.23 to 1.27.</p>
 
 </li>
 <li><p><a>File::Glob</a> has been upgraded from version 1.20 to 1.23.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Spec.html">File::Spec</a> has been upgraded from version 3.40 to 3.47.</p>
+<li><p><a>File::Spec</a> has been upgraded from version 3.40 to 3.47.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Temp.html">File::Temp</a> has been upgraded from version 0.23 to 0.2304.</p>
+<li><p><a>File::Temp</a> has been upgraded from version 0.23 to 0.2304.</p>
 
 </li>
-<li><p><a href="/cperl/lib/FileCache.html">FileCache</a> has been upgraded from version 1.08 to 1.09.</p>
+<li><p><a>FileCache</a> has been upgraded from version 1.08 to 1.09.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Filter/Simple.html">Filter::Simple</a> has been upgraded from version 0.89 to 0.91.</p>
+<li><p><a>Filter::Simple</a> has been upgraded from version 0.89 to 0.91.</p>
 
 </li>
 <li><p><a>Filter::Util::Call</a> has been upgraded from version 1.45 to 1.49.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Getopt/Long.html">Getopt::Long</a> has been upgraded from version 2.39 to 2.42.</p>
+<li><p><a>Getopt::Long</a> has been upgraded from version 2.39 to 2.42.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Getopt/Std.html">Getopt::Std</a> has been upgraded from version 1.07 to 1.10.</p>
+<li><p><a>Getopt::Std</a> has been upgraded from version 1.07 to 1.10.</p>
 
 </li>
 <li><p><a>Hash::Util::FieldHash</a> has been upgraded from version 1.10 to 1.15.</p>
 
 </li>
-<li><p><a href="/cperl/lib/HTTP/Tiny.html">HTTP::Tiny</a> has been upgraded from version 0.025 to 0.043.</p>
+<li><p><a>HTTP::Tiny</a> has been upgraded from version 0.025 to 0.043.</p>
 
 </li>
 <li><p><a>I18N::Langinfo</a> has been upgraded from version 0.10 to 0.11.</p>
 
 </li>
-<li><p><a href="/cperl/lib/I18N/LangTags.html">I18N::LangTags</a> has been upgraded from version 0.39 to 0.40.</p>
+<li><p><a>I18N::LangTags</a> has been upgraded from version 0.39 to 0.40.</p>
 
 </li>
-<li><p><a href="/cperl/lib/if.html">if</a> has been upgraded from version 0.0602 to 0.0603.</p>
+<li><p><a>if</a> has been upgraded from version 0.0602 to 0.0603.</p>
 
 </li>
 <li><p><a>inc::latest</a> has been upgraded from version 0.4003 to 0.4205. NOTE: <a>inc::latest</a> is deprecated and may be removed from a future version of Perl.</p>
 
 </li>
-<li><p><a href="/cperl/lib/integer.html">integer</a> has been upgraded from version 1.00 to 1.01.</p>
+<li><p><a>integer</a> has been upgraded from version 1.00 to 1.01.</p>
 
 </li>
 <li><p><a>IO</a> has been upgraded from version 1.28 to 1.31.</p>
 
 </li>
-<li><p><a href="/cperl/lib/IO/Compress/Gzip.html">IO::Compress::Gzip</a> and friends have been upgraded from version 2.060 to 2.064.</p>
+<li><p><a>IO::Compress::Gzip</a> and friends have been upgraded from version 2.060 to 2.064.</p>
 
 </li>
-<li><p><a href="/cperl/lib/IPC/Cmd.html">IPC::Cmd</a> has been upgraded from version 0.80 to 0.92.</p>
+<li><p><a>IPC::Cmd</a> has been upgraded from version 0.80 to 0.92.</p>
 
 </li>
-<li><p><a href="/cperl/lib/IPC/Open3.html">IPC::Open3</a> has been upgraded from version 1.13 to 1.16.</p>
+<li><p><a>IPC::Open3</a> has been upgraded from version 1.13 to 1.16.</p>
 
 </li>
 <li><p><a>IPC::SysV</a> has been upgraded from version 2.03 to 2.04.</p>
 
 </li>
-<li><p><a href="/cperl/lib/JSON/PP.html">JSON::PP</a> has been upgraded from version 2.27202 to 2.27203.</p>
+<li><p><a>JSON::PP</a> has been upgraded from version 2.27202 to 2.27203.</p>
 
 </li>
-<li><p><a href="/cperl/lib/List/Util.html">List::Util</a> has been upgraded from version 1.27 to 1.38.</p>
+<li><p><a>List::Util</a> has been upgraded from version 1.27 to 1.38.</p>
 
 </li>
-<li><p><a href="/cperl/lib/locale.html">locale</a> has been upgraded from version 1.02 to 1.03.</p>
+<li><p><a>locale</a> has been upgraded from version 1.02 to 1.03.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Locale/Codes.html">Locale::Codes</a> has been upgraded from version 3.25 to 3.30.</p>
+<li><p><a>Locale::Codes</a> has been upgraded from version 3.25 to 3.30.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Locale/Maketext.html">Locale::Maketext</a> has been upgraded from version 1.23 to 1.25.</p>
+<li><p><a>Locale::Maketext</a> has been upgraded from version 1.23 to 1.25.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> has been upgraded from version 1.9991 to 1.9993.</p>
+<li><p><a>Math::BigInt</a> has been upgraded from version 1.9991 to 1.9993.</p>
 
 </li>
 <li><p><a>Math::BigInt::FastCalc</a> has been upgraded from version 0.30 to 0.31.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Math/BigRat.html">Math::BigRat</a> has been upgraded from version 0.2604 to 0.2606.</p>
+<li><p><a>Math::BigRat</a> has been upgraded from version 0.2604 to 0.2606.</p>
 
 </li>
 <li><p><a>MIME::Base64</a> has been upgraded from version 3.13 to 3.14.</p>
@@ -770,22 +770,22 @@
 <li><p><a>Module::Build</a> has been upgraded from version 0.4003 to 0.4205. NOTE: <a>Module::Build</a> is deprecated and may be removed from a future version of Perl.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Module/CoreList.html">Module::CoreList</a> has been upgraded from version 2.89 to 3.10.</p>
+<li><p><a>Module::CoreList</a> has been upgraded from version 2.89 to 3.10.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Module/Load.html">Module::Load</a> has been upgraded from version 0.24 to 0.32.</p>
+<li><p><a>Module::Load</a> has been upgraded from version 0.24 to 0.32.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Module/Load/Conditional.html">Module::Load::Conditional</a> has been upgraded from version 0.54 to 0.62.</p>
+<li><p><a>Module::Load::Conditional</a> has been upgraded from version 0.54 to 0.62.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Module/Metadata.html">Module::Metadata</a> has been upgraded from version 1.000011 to 1.000019.</p>
+<li><p><a>Module::Metadata</a> has been upgraded from version 1.000011 to 1.000019.</p>
 
 </li>
 <li><p><a>mro</a> has been upgraded from version 1.11 to 1.16.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Net/Ping.html">Net::Ping</a> has been upgraded from version 2.41 to 2.43.</p>
+<li><p><a>Net::Ping</a> has been upgraded from version 2.41 to 2.43.</p>
 
 </li>
 <li><p><a>Opcode</a> has been upgraded from version 1.25 to 1.27.</p>
@@ -794,22 +794,22 @@
 <li><p><a>Package::Constants</a> has been upgraded from version 0.02 to 0.04. NOTE: <a>Package::Constants</a> is deprecated and may be removed from a future version of Perl.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Params/Check.html">Params::Check</a> has been upgraded from version 0.36 to 0.38.</p>
+<li><p><a>Params::Check</a> has been upgraded from version 0.36 to 0.38.</p>
 
 </li>
-<li><p><a href="/cperl/lib/parent.html">parent</a> has been upgraded from version 0.225 to 0.228.</p>
+<li><p><a>parent</a> has been upgraded from version 0.225 to 0.228.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Parse/CPAN/Meta.html">Parse::CPAN::Meta</a> has been upgraded from version 1.4404 to 1.4414.</p>
+<li><p><a>Parse::CPAN::Meta</a> has been upgraded from version 1.4404 to 1.4414.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Perl/OSType.html">Perl::OSType</a> has been upgraded from version 1.003 to 1.007.</p>
+<li><p><a>Perl::OSType</a> has been upgraded from version 1.003 to 1.007.</p>
 
 </li>
-<li><p><a href="/cperl/lib/perlfaq.html">perlfaq</a> has been upgraded from version 5.0150042 to 5.0150044.</p>
+<li><p><a>perlfaq</a> has been upgraded from version 5.0150042 to 5.0150044.</p>
 
 </li>
-<li><p><a href="/cperl/lib/PerlIO.html">PerlIO</a> has been upgraded from version 1.07 to 1.09.</p>
+<li><p><a>PerlIO</a> has been upgraded from version 1.07 to 1.09.</p>
 
 </li>
 <li><p><a>PerlIO::encoding</a> has been upgraded from version 0.16 to 0.18.</p>
@@ -821,49 +821,49 @@
 <li><p><a>PerlIO::via</a> has been upgraded from version 0.12 to 0.14.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Escapes.html">Pod::Escapes</a> has been upgraded from version 1.04 to 1.06.</p>
+<li><p><a>Pod::Escapes</a> has been upgraded from version 1.04 to 1.06.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Functions.html">Pod::Functions</a> has been upgraded from version 1.06 to 1.08.</p>
+<li><p><a>Pod::Functions</a> has been upgraded from version 1.06 to 1.08.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Html.html">Pod::Html</a> has been upgraded from version 1.18 to 1.21.</p>
+<li><p><a>Pod::Html</a> has been upgraded from version 1.18 to 1.21.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Parser.html">Pod::Parser</a> has been upgraded from version 1.60 to 1.62.</p>
+<li><p><a>Pod::Parser</a> has been upgraded from version 1.60 to 1.62.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Perldoc.html">Pod::Perldoc</a> has been upgraded from version 3.19 to 3.23.</p>
+<li><p><a>Pod::Perldoc</a> has been upgraded from version 3.19 to 3.23.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Pod/Usage.html">Pod::Usage</a> has been upgraded from version 1.61 to 1.63.</p>
+<li><p><a>Pod::Usage</a> has been upgraded from version 1.61 to 1.63.</p>
 
 </li>
 <li><p><a>POSIX</a> has been upgraded from version 1.32 to 1.38_03.</p>
 
 </li>
-<li><p><a href="/cperl/lib/re.html">re</a> has been upgraded from version 0.23 to 0.26.</p>
+<li><p><a>re</a> has been upgraded from version 0.23 to 0.26.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Safe.html">Safe</a> has been upgraded from version 2.35 to 2.37.</p>
+<li><p><a>Safe</a> has been upgraded from version 2.35 to 2.37.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Scalar/Util.html">Scalar::Util</a> has been upgraded from version 1.27 to 1.38.</p>
+<li><p><a>Scalar::Util</a> has been upgraded from version 1.27 to 1.38.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Memoize/SDBM_File.html">SDBM_File</a> has been upgraded from version 1.09 to 1.11.</p>
+<li><p><a>SDBM_File</a> has been upgraded from version 1.09 to 1.11.</p>
 
 </li>
 <li><p><a>Socket</a> has been upgraded from version 2.009 to 2.013.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Memoize/Storable.html">Storable</a> has been upgraded from version 2.41 to 2.49.</p>
+<li><p><a>Storable</a> has been upgraded from version 2.41 to 2.49.</p>
 
 </li>
-<li><p><a href="/cperl/lib/strict.html">strict</a> has been upgraded from version 1.07 to 1.08.</p>
+<li><p><a>strict</a> has been upgraded from version 1.07 to 1.08.</p>
 
 </li>
-<li><p><a href="/cperl/lib/subs.html">subs</a> has been upgraded from version 1.01 to 1.02.</p>
+<li><p><a>subs</a> has been upgraded from version 1.01 to 1.02.</p>
 
 </li>
 <li><p><a>Sys::Hostname</a> has been upgraded from version 1.17 to 1.18.</p>
@@ -872,31 +872,31 @@
 <li><p><a>Sys::Syslog</a> has been upgraded from version 0.32 to 0.33.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Term/Cap.html">Term::Cap</a> has been upgraded from version 1.13 to 1.15.</p>
+<li><p><a>Term::Cap</a> has been upgraded from version 1.13 to 1.15.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Term/ReadLine.html">Term::ReadLine</a> has been upgraded from version 1.12 to 1.14.</p>
+<li><p><a>Term::ReadLine</a> has been upgraded from version 1.12 to 1.14.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Test/Harness.html">Test::Harness</a> has been upgraded from version 3.26 to 3.30.</p>
+<li><p><a>Test::Harness</a> has been upgraded from version 3.26 to 3.30.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Test/Simple.html">Test::Simple</a> has been upgraded from version 0.98 to 1.001002.</p>
+<li><p><a>Test::Simple</a> has been upgraded from version 0.98 to 1.001002.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Text/ParseWords.html">Text::ParseWords</a> has been upgraded from version 3.28 to 3.29.</p>
+<li><p><a>Text::ParseWords</a> has been upgraded from version 3.28 to 3.29.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Text/Tabs.html">Text::Tabs</a> has been upgraded from version 2012.0818 to 2013.0523.</p>
+<li><p><a>Text::Tabs</a> has been upgraded from version 2012.0818 to 2013.0523.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Text/Wrap.html">Text::Wrap</a> has been upgraded from version 2012.0818 to 2013.0523.</p>
+<li><p><a>Text::Wrap</a> has been upgraded from version 2012.0818 to 2013.0523.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Thread.html">Thread</a> has been upgraded from version 3.02 to 3.04.</p>
+<li><p><a>Thread</a> has been upgraded from version 3.02 to 3.04.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Thread/Queue.html">Thread::Queue</a> has been upgraded from version 3.02 to 3.05.</p>
+<li><p><a>Thread::Queue</a> has been upgraded from version 3.02 to 3.05.</p>
 
 </li>
 <li><p><a>threads</a> has been upgraded from version 1.86 to 1.93.</p>
@@ -905,19 +905,19 @@
 <li><p><a>threads::shared</a> has been upgraded from version 1.43 to 1.46.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Tie/Array.html">Tie::Array</a> has been upgraded from version 1.05 to 1.06.</p>
+<li><p><a>Tie::Array</a> has been upgraded from version 1.05 to 1.06.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Tie/File.html">Tie::File</a> has been upgraded from version 0.99 to 1.00.</p>
+<li><p><a>Tie::File</a> has been upgraded from version 0.99 to 1.00.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Tie/Hash.html">Tie::Hash</a> has been upgraded from version 1.04 to 1.05.</p>
+<li><p><a>Tie::Hash</a> has been upgraded from version 1.04 to 1.05.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Tie/Scalar.html">Tie::Scalar</a> has been upgraded from version 1.02 to 1.03.</p>
+<li><p><a>Tie::Scalar</a> has been upgraded from version 1.02 to 1.03.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Tie/StdHandle.html">Tie::StdHandle</a> has been upgraded from version 4.3 to 4.4.</p>
+<li><p><a>Tie::StdHandle</a> has been upgraded from version 4.3 to 4.4.</p>
 
 </li>
 <li><p><a>Time::HiRes</a> has been upgraded from version 1.9725 to 1.9726.</p>
@@ -932,28 +932,28 @@
 <li><p><a>Unicode::Normalize</a> has been upgraded from version 1.16 to 1.17.</p>
 
 </li>
-<li><p><a href="/cperl/lib/Unicode/UCD.html">Unicode::UCD</a> has been upgraded from version 0.51 to 0.57.</p>
+<li><p><a>Unicode::UCD</a> has been upgraded from version 0.51 to 0.57.</p>
 
 </li>
-<li><p><a href="/cperl/lib/utf8.html">utf8</a> has been upgraded from version 1.10 to 1.13.</p>
+<li><p><a>utf8</a> has been upgraded from version 1.10 to 1.13.</p>
 
 </li>
-<li><p><a href="/cperl/lib/version.html">version</a> has been upgraded from version 0.9902 to 0.9908.</p>
+<li><p><a>version</a> has been upgraded from version 0.9902 to 0.9908.</p>
 
 </li>
-<li><p><a href="/cperl/lib/vmsish.html">vmsish</a> has been upgraded from version 1.03 to 1.04.</p>
+<li><p><a>vmsish</a> has been upgraded from version 1.03 to 1.04.</p>
 
 </li>
-<li><p><a href="/cperl/lib/warnings.html">warnings</a> has been upgraded from version 1.18 to 1.23.</p>
+<li><p><a>warnings</a> has been upgraded from version 1.18 to 1.23.</p>
 
 </li>
-<li><p><a href="/cperl/lib/File/Spec/Win32.html">Win32</a> has been upgraded from version 0.47 to 0.49.</p>
+<li><p><a>Win32</a> has been upgraded from version 0.47 to 0.49.</p>
 
 </li>
 <li><p><a>XS::Typemap</a> has been upgraded from version 0.10 to 0.13.</p>
 
 </li>
-<li><p><a href="/cperl/lib/XSLoader.html">XSLoader</a> has been upgraded from version 0.16 to 0.17.</p>
+<li><p><a>XSLoader</a> has been upgraded from version 0.16 to 0.17.</p>
 
 </li>
 </ul>
@@ -999,7 +999,7 @@
 <li><p>Long doubles are not considered experimental.</p>
 
 </li>
-<li><p>Code in regular expressions, regular expression backtracking verbs, and lvalue subroutines are no longer listed as experimental. (This also affects <a href="/cperl/perlre.html">perlre</a> and <a href="/cperl/perlsub.html">perlsub</a>.)</p>
+<li><p>Code in regular expressions, regular expression backtracking verbs, and lvalue subroutines are no longer listed as experimental. (This also affects <a href="/cperl/perlre.html">perlre</a> and <a href="/pod/perlsub.html">perlsub</a>.)</p>
 
 </li>
 </ul>
@@ -1035,7 +1035,7 @@
 <li><p>Numerous minor changes have been made to reflect changes made to the perl internals in this release.</p>
 
 </li>
-<li><p>New sections on <a href="/cperl/perlguts.html#Read-Only-Values">Read-Only Values</a> and <a href="/cperl/perlguts.html#Copy-on-Write">Copy on Write</a> have been added.</p>
+<li><p>New sections on <a href="/cperl/perlguts.html#Read-Only-Values">Read-Only Values</a> and <a href="/pod/perlguts.html#Copy-on-Write">Copy on Write</a> have been added.</p>
 
 </li>
 </ul>
@@ -1062,7 +1062,7 @@
 
 <ul>
 
-<li><p>The <a href="/cperl/perllexwarn.html">perllexwarn</a> documentation used to describe the hierarchy of warning categories understood by the <a href="/cperl/lib/warnings.html">warnings</a> pragma. That description has now been moved to the <a href="/cperl/lib/warnings.html">warnings</a> documentation itself, leaving <a href="/cperl/perllexwarn.html">perllexwarn</a> as a stub that points to it. This change consolidates all documentation for lexical warnings in a single place.</p>
+<li><p>The <a href="/cperl/perllexwarn.html">perllexwarn</a> documentation used to describe the hierarchy of warning categories understood by the <a>warnings</a> pragma. That description has now been moved to the <a>warnings</a> documentation itself, leaving <a href="/pod/perllexwarn.html">perllexwarn</a> as a stub that points to it. This change consolidates all documentation for lexical warnings in a single place.</p>
 
 </li>
 </ul>
@@ -1155,7 +1155,7 @@
 <li><p>A new section explaining the performance issues of $`, $&amp; and $&#39;, including workarounds and changes in different versions of Perl, has been added.</p>
 
 </li>
-<li><p>Three <a href="/cperl/lib/English.html">English</a> variable names which have long been documented but do not actually exist have been removed from the documentation. These were <code>$OLD_PERL_VERSION</code>, <code>$OFMT</code>, and <code>$ARRAY_BASE</code>.</p>
+<li><p>Three <a>English</a> variable names which have long been documented but do not actually exist have been removed from the documentation. These were <code>$OLD_PERL_VERSION</code>, <code>$OFMT</code>, and <code>$ARRAY_BASE</code>.</p>
 
 <p>(Actually, <code>OLD_PERL_VERSION</code> <i>does</i> exist, starting with this revision, but remained undocumented until perl 5.22.0.)</p>
 
@@ -1438,10 +1438,10 @@
 
 <ul>
 
-<li><p>The <i>Makefile.PL</i> for <a href="/cperl/lib/Memoize/SDBM_File.html">SDBM_File</a> now generates a better <i>Makefile</i>, which avoids a race condition during parallel makes, which could cause the build to fail. This is the last known parallel make problem (on *nix platforms), and therefore we believe that a parallel make should now always be error free.</p>
+<li><p>The <i>Makefile.PL</i> for <a>SDBM_File</a> now generates a better <i>Makefile</i>, which avoids a race condition during parallel makes, which could cause the build to fail. This is the last known parallel make problem (on *nix platforms), and therefore we believe that a parallel make should now always be error free.</p>
 
 </li>
-<li><p><i>installperl</i> and <i>installman</i>&#39;s option handling has been refactored to use <a href="/cperl/lib/Getopt/Long.html">Getopt::Long</a>. Both are used by the <i>Makefile</i> <code>install</code> targets, and are not installed, so these changes are only likely to affect custom installation scripts.</p>
+<li><p><i>installperl</i> and <i>installman</i>&#39;s option handling has been refactored to use <a>Getopt::Long</a>. Both are used by the <i>Makefile</i> <code>install</code> targets, and are not installed, so these changes are only likely to affect custom installation scripts.</p>
 
 <ul>
 
@@ -1641,7 +1641,7 @@
 <li><p>Skip access checks on remotes in opendir(). [perl #121002]</p>
 
 </li>
-<li><p>A check for glob metacharacters in a path returned by the <a href="/cperl/perlfunc.html#glob"><code>glob()</code></a> operator has been replaced with a check for VMS wildcard characters. This saves a significant number of unnecessary <a href="/cperl/perlfunc.html#lstat"><code>lstat()</code></a> calls such that some simple glob operations become 60-80% faster.</p>
+<li><p>A check for glob metacharacters in a path returned by the <a href="/cperl/perlfunc.html#glob"><code>glob()</code></a> operator has been replaced with a check for VMS wildcard characters. This saves a significant number of unnecessary <a href="/pod/perlfunc.html#lstat"><code>lstat()</code></a> calls such that some simple glob operations become 60-80% faster.</p>
 
 </li>
 </ul>
@@ -1701,7 +1701,7 @@
 
 <ul>
 
-<li><p>The building of XS modules has largely been restored. Several still cannot (yet) be built but it is now possible to build Perl on WinCE with only a couple of further patches (to <a>Socket</a> and <a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a>), hopefully to be incorporated soon.</p>
+<li><p>The building of XS modules has largely been restored. Several still cannot (yet) be built but it is now possible to build Perl on WinCE with only a couple of further patches (to <a>Socket</a> and <a>ExtUtils::MakeMaker</a>), hopefully to be incorporated soon.</p>
 
 </li>
 <li><p>Perl can now be built in one shot with no user intervention on WinCE by running <code>nmake -f Makefile.ce all</code>.</p>
@@ -1815,7 +1815,7 @@
 <li><p>Compiling with <code>-Accflags=-PERL_BOOL_AS_CHAR</code> now allows C99 and C++ compilers to emulate the aliasing of <code>bool</code> to <code>char</code> that perl does for C89 compilers. [perl #120314]</p>
 
 </li>
-<li><p>The <code>sv</code> argument in <a href="/cperl/perlapi.html#sv_2pv_flags">&quot;sv_2pv_flags&quot; in perlapi</a>, <a href="/cperl/perlapi.html#sv_2iv_flags">&quot;sv_2iv_flags&quot; in perlapi</a>, <a href="/cperl/perlapi.html#sv_2uv_flags">&quot;sv_2uv_flags&quot; in perlapi</a>, and <a href="/cperl/perlapi.html#sv_2nv_flags">&quot;sv_2nv_flags&quot; in perlapi</a> and their older wrappers sv_2pv, sv_2iv, sv_2uv, sv_2nv, is now non-NULL. Passing NULL now will crash. When the non-NULL marker was introduced en masse in 5.9.3 the functions were marked non-NULL, but since the creation of the SV API in 5.0 alpha 2, if NULL was passed, the functions returned 0 or false-type values. The code that supports <code>sv</code> argument being non-NULL dates to 5.0 alpha 2 directly, and indirectly to Perl 1.0 (pre 5.0 api). The lack of documentation that the functions accepted a NULL <code>sv</code> was corrected in 5.11.0 and between 5.11.0 and 5.19.5 the functions were marked NULLOK. As an optimization the NULLOK code has now been removed, and the functions became non-NULL marked again, because core getter-type macros never pass NULL to these functions and would crash before ever passing NULL.</p>
+<li><p>The <code>sv</code> argument in <a href="/cperl/perlapi.html#sv_2pv_flags">&quot;sv_2pv_flags&quot; in perlapi</a>, <a href="/pod/perlapi.html#sv_2iv_flags">&quot;sv_2iv_flags&quot; in perlapi</a>, <a href="/pod/perlapi.html#sv_2uv_flags">&quot;sv_2uv_flags&quot; in perlapi</a>, and <a href="/pod/perlapi.html#sv_2nv_flags">&quot;sv_2nv_flags&quot; in perlapi</a> and their older wrappers sv_2pv, sv_2iv, sv_2uv, sv_2nv, is now non-NULL. Passing NULL now will crash. When the non-NULL marker was introduced en masse in 5.9.3 the functions were marked non-NULL, but since the creation of the SV API in 5.0 alpha 2, if NULL was passed, the functions returned 0 or false-type values. The code that supports <code>sv</code> argument being non-NULL dates to 5.0 alpha 2 directly, and indirectly to Perl 1.0 (pre 5.0 api). The lack of documentation that the functions accepted a NULL <code>sv</code> was corrected in 5.11.0 and between 5.11.0 and 5.19.5 the functions were marked NULLOK. As an optimization the NULLOK code has now been removed, and the functions became non-NULL marked again, because core getter-type macros never pass NULL to these functions and would crash before ever passing NULL.</p>
 
 <p>The only way a NULL <code>sv</code> can be passed to sv_2*v* functions is if XS code directly calls sv_2*v*. This is unlikely as XS code uses Sv*V* macros to get the underlying value out of the SV. One possible situation which leads to a NULL <code>sv</code> being passed to sv_2*v* functions, is if XS code defines its own getter type Sv*V* macros, which check for NULL <b>before</b> dereferencing and checking the SV&#39;s flags through public API Sv*OK* macros or directly using private API <code>SvFLAGS</code>, and if <code>sv</code> is NULL, then calling the sv_2*v functions with a NULL litteral or passing the <code>sv</code> containing a NULL value.</p>
 
@@ -2306,7 +2306,7 @@
 <li><p><code>$x-&gt;{key}</code> where $x was declared as <code>my Class $x</code> no longer crashes if a Class::FIELDS subroutine stub has been declared.</p>
 
 </li>
-<li><p><code>@$obj{&#39;key&#39;}</code> and <code>${$obj}{key}</code> used to be exempt from compile-time field checking (&quot;No such class field&quot;; see <a href="/cperl/lib/fields.html">fields</a>) but no longer are.</p>
+<li><p><code>@$obj{&#39;key&#39;}</code> and <code>${$obj}{key}</code> used to be exempt from compile-time field checking (&quot;No such class field&quot;; see <a>fields</a>) but no longer are.</p>
 
 </li>
 <li><p>A nonexistent array element with a large index passed to a subroutine that ties the array and then tries to access the element no longer results in a crash.</p>
@@ -2327,7 +2327,7 @@
 <li><p><code>&lt;&lt;&lt;`...`</code> here-docs (with backticks as the delimiters) now call <code>readpipe</code> overrides. [perl #119827]</p>
 
 </li>
-<li><p><code>&amp;CORE::exit()</code> and <code>&amp;CORE::die()</code> now respect <a href="/cperl/lib/vmsish.html">vmsish</a> hints.</p>
+<li><p><code>&amp;CORE::exit()</code> and <code>&amp;CORE::die()</code> now respect <a>vmsish</a> hints.</p>
 
 </li>
 <li><p>Undefining a glob that triggers a DESTROY method that undefines the same glob is now safe. It used to produce &quot;Attempt to free unreferenced glob pointer&quot; warnings and leak memory.</p>
