@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx219.apple.com" />
+<link rev="made" href="mailto:root@osx201.apple.com" />
 </head>
 
 <body style="background-color: white">
@@ -19,8 +19,13 @@
     <ul>
       <li><a href="#Local-Locales">Local Locales</a></li>
       <li><a href="#Date-Calculations">Date Calculations</a></li>
+      <li><a href="#Truncation">Truncation</a></li>
       <li><a href="#Date-Comparisons">Date Comparisons</a></li>
-      <li><a href="#Date-Parsing">Date Parsing</a></li>
+      <li><a href="#Date-Parsing">Date Parsing</a>
+        <ul>
+          <li><a href="#CAVEAT-A-a-B-b-and-friends">CAVEAT %A, %a, %B, %b, and friends</a></li>
+        </ul>
+      </li>
       <li><a href="#YYYY-MM-DDThh:mm:ss">YYYY-MM-DDThh:mm:ss</a></li>
       <li><a href="#Week-Number">Week Number</a></li>
       <li><a href="#Global-Overriding">Global Overriding</a></li>
@@ -54,7 +59,7 @@
 
 <p>This module replaces the standard <code>localtime</code> and <code>gmtime</code> functions with implementations that return objects. It does so in a backwards compatible manner, so that using localtime/gmtime in the way documented in perlfunc will still return what you expect.</p>
 
-<p>The module actually implements most of an interface described by Larry Wall on the perl5-porters mailing list here: http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/2000-01/msg00241.html</p>
+<p>The module actually implements most of an interface described by Larry Wall on the perl5-porters mailing list here: <a href="http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/2000-01/msg00241.html">http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/2000-01/msg00241.html</a></p>
 
 <h1 id="USAGE">USAGE</h1>
 
@@ -123,7 +128,7 @@
 
 <h2 id="Local-Locales">Local Locales</h2>
 
-<p>Both wdayname (day) and monname (month) allow passing in a list to use to index the name of the days against. This can be useful if you need to implement some form of localisation without actually installing or using locales.</p>
+<p>Both wdayname (day) and monname (month) allow passing in a list to use to index the name of the days against. This can be useful if you need to implement some form of localisation without actually installing or using locales. Note that this is a global override and will affect all Time::Piece instances.</p>
 
 <pre><code>  my @days = qw( Dimanche Lundi Merdi Mercredi Jeudi Vendredi Samedi );
 
@@ -140,6 +145,8 @@
 <p>And locally for months:</p>
 
 <pre><code>  print localtime-&gt;month(@months);</code></pre>
+
+<p>Or to populate with your current system locale call: Time::Piece-&gt;use_locale();</p>
 
 <h2 id="Date-Calculations">Date Calculations</h2>
 
@@ -162,10 +169,18 @@
 
 <p>In addition to adding seconds, there are two APIs for adding months and years:</p>
 
-<pre><code>    $t-&gt;add_months(6);
-    $t-&gt;add_years(5);</code></pre>
+<pre><code>    $t = $t-&gt;add_months(6);
+    $t = $t-&gt;add_years(5);</code></pre>
 
 <p>The months and years can be negative for subtractions. Note that there is some &quot;strange&quot; behaviour when adding and subtracting months at the ends of months. Generally when the resulting month is shorter than the starting month then the number of overlap days is added. For example subtracting a month from 2008-03-31 will not result in 2008-02-31 as this is an impossible date. Instead you will get 2008-03-02. This appears to be consistent with other date manipulation tools.</p>
+
+<h2 id="Truncation">Truncation</h2>
+
+<p>Calling the <code>truncate</code> method returns a copy of the object but with the time truncated to the start of the supplied unit.</p>
+
+<pre><code>    $t = $t-&gt;truncate(to =&gt; &#39;day&#39;);</code></pre>
+
+<p>This example will set the time to midnight on the same date which <code>$t</code> had previously. Allowed values for the &quot;to&quot; parameter are: &quot;year&quot;, &quot;quarter&quot;, &quot;month&quot;, &quot;day&quot;, &quot;hour&quot;, &quot;minute&quot; and &quot;second&quot;.</p>
 
 <h2 id="Date-Comparisons">Date Comparisons</h2>
 
@@ -188,7 +203,28 @@
 
 <p>For more information see &quot;man strptime&quot;, which should be on all unix systems.</p>
 
-<p>Alternatively look here: http://www.unix.com/man-page/FreeBSD/3/strftime/</p>
+<p>Alternatively look here: <a href="http://www.unix.com/man-page/FreeBSD/3/strftime/">http://www.unix.com/man-page/FreeBSD/3/strftime/</a></p>
+
+<h3 id="CAVEAT-A-a-B-b-and-friends">CAVEAT %A, %a, %B, %b, and friends</h3>
+
+<p>Time::Piece::strptime by default can only parse American English date names. Meanwhile, Time::Piece-&gt;strftime() will return date names that use the current configured system locale. This means dates returned by strftime might not be able to be parsed by strptime. This is the default behavior and can be overridden by calling Time::Piece-&gt;use_locale(). This builds a list of the current locale&#39;s day and month names which strptime will use to parse with. Note this is a global override and will affect all Time::Piece instances.</p>
+
+<p>For instance with a German locale:</p>
+
+<pre><code>    localtime-&gt;day_list();</code></pre>
+
+<p>Returns</p>
+
+<pre><code>    ( &#39;Sun&#39;, &#39;Mon&#39;, &#39;Tue&#39;, &#39;Wed&#39;, &#39;Thu&#39;, &#39;Fri&#39;, &#39;Sat&#39; )</code></pre>
+
+<p>While:</p>
+
+<pre><code>    Time::Piece-&gt;use_locale();
+    localtime-&gt;day_list();</code></pre>
+
+<p>Returns</p>
+
+<pre><code>    ( &#39;So&#39;, &#39;Mo&#39;, &#39;Di&#39;, &#39;Mi&#39;, &#39;Do&#39;, &#39;Fr&#39;, &#39;Sa&#39; )</code></pre>
 
 <h2 id="YYYY-MM-DDThh:mm:ss">YYYY-MM-DDThh:mm:ss</h2>
 
@@ -232,7 +268,7 @@
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p>The excellent Calendar FAQ at http://www.tondering.dk/claus/calendar.html</p>
+<p>The excellent Calendar FAQ at <a href="http://www.tondering.dk/claus/calendar.html">http://www.tondering.dk/claus/calendar.html</a></p>
 
 <h1 id="BUGS">BUGS</h1>
 

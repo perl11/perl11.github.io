@@ -1,0 +1,496 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@osx201.apple.com" />
+</head>
+
+<body style="background-color: white">
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#Security">Security</a>
+    <ul>
+      <li><a href="#Set-umask-0600-before-calling-mkstemp">Set umask(0600) before calling mkstemp</a></li>
+      <li><a href="#Disallow-illegal-glob-with-embedded-NUL">Disallow illegal glob with embedded NUL</a></li>
+      <li><a href="#Follow-chroot-with-chdir">Follow chroot with chdir(&quot;/&quot;)</a></li>
+      <li><a href="#CVE-2017-12837-Heap-buffer-overflow-in-regular-expression-compiler">[CVE-2017-12837] Heap buffer overflow in regular expression compiler</a></li>
+      <li><a href="#CVE-2017-12883-Buffer-over-read-in-regular-expression-parser">[CVE-2017-12883] Buffer over-read in regular expression parser</a></li>
+      <li><a href="#CVE-2017-12814-ENV-key-stack-buffer-overflow-on-Windows">[CVE-2017-12814] $ENV{$key} stack buffer overflow on Windows</a></li>
+    </ul>
+  </li>
+  <li><a href="#Modules-and-Pragmata">Modules and Pragmata</a>
+    <ul>
+      <li><a href="#Updated-Modules-and-Pragmata">Updated Modules and Pragmata</a></li>
+    </ul>
+  </li>
+  <li><a href="#Testing">Testing</a></li>
+  <li><a href="#Selected-Bug-Fixes">Selected Bug Fixes</a></li>
+  <li><a href="#Platform-Support">Platform Support</a>
+    <ul>
+      <li><a href="#Platform-Specific-Notes">Platform-Specific Notes</a></li>
+    </ul>
+  </li>
+  <li><a href="#Acknowledgements">Acknowledgements</a></li>
+  <li><a href="#Reporting-Bugs">Reporting Bugs</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>perl5243cdelta - what is new for cperl v5.24.3</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This document describes the differences between the cperl 5.24.2 and the cperl 5.24.3 releases.</p>
+
+<p>If you are upgrading from an earlier release such as v5.24.1c, first read <a href="/cperl/perl5242cdelta.html">perl5242cdelta</a>, which describes differences between v5.24.1c and v5.24.2c</p>
+
+<h1 id="Security">Security</h1>
+
+<h2 id="Set-umask-0600-before-calling-mkstemp">Set umask(0600) before calling mkstemp</h2>
+
+<p>POSIX 2008 demands such an umask, but it is still problematic on Solaris, HP-UX and AIX and older libcs, e.g. glibc &lt;= 2.06. The old umask 0177 was insecure.</p>
+
+<h2 id="Disallow-illegal-glob-with-embedded-NUL">Disallow illegal glob with embedded NUL</h2>
+
+<p>E.g. <code>&lt;$fh\000&gt;</code> throws now the safe syscalls warning, and errors with <code>Glob not terminated</code>, and does not pass the illegal glob path to the internal or external glob.</p>
+
+<p>See <a href="https://github.com/perl11/cperl/issues/342">[cperl #342]</a></p>
+
+<h2 id="Follow-chroot-with-chdir">Follow chroot with chdir(&quot;/&quot;)</h2>
+
+<p>Fixed two security issues with the chroot op:</p>
+
+<p>* fail on embedded NUL in the chroot argument. Set <code>errno</code> to EINVAL.</p>
+
+<p>* If a call to chroot is not followed by a call to chdir(&quot;/&quot;) the chroot jail confinement can be violated. In Perl_pp_chroot: A call to chroot followed by an operation that may escape from the chroot jail. Coverity CID #165302 Insecure chroot.</p>
+
+<h2 id="CVE-2017-12837-Heap-buffer-overflow-in-regular-expression-compiler">[CVE-2017-12837] Heap buffer overflow in regular expression compiler</h2>
+
+<p>Compiling certain regular expression patterns with the case-insensitive modifier could cause a heap buffer overflow and crash perl. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131582">[perl #131582]</a></p>
+
+<h2 id="CVE-2017-12883-Buffer-over-read-in-regular-expression-parser">[CVE-2017-12883] Buffer over-read in regular expression parser</h2>
+
+<p>For certain types of syntax error in a regular expression pattern, the error message could either contain the contents of a random, possibly large, chunk of memory, or could crash perl. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131598">[perl #131598]</a></p>
+
+<h2 id="CVE-2017-12814-ENV-key-stack-buffer-overflow-on-Windows">[CVE-2017-12814] <code>$ENV{$key}</code> stack buffer overflow on Windows</h2>
+
+<p>A possible stack buffer overflow in the <code>%ENV</code> code on Windows has been fixed by removing the buffer completely since it was superfluous anyway. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131665">[perl #131665]</a></p>
+
+<h1 id="Modules-and-Pragmata">Modules and Pragmata</h1>
+
+<h2 id="Updated-Modules-and-Pragmata">Updated Modules and Pragmata</h2>
+
+<dl>
+
+<dt id="Archive::Tar-2.26"><a href="/cperl/lib/Archive/Tar.html">Archive::Tar</a> 2.26</dt>
+<dd>
+
+<p>&#39;0&#39; is a valid name for an archive, change &#39;iter&#39; to check definedness. See <a href="https://metacpan.org/changes/distribution/Archive-Tar">https://metacpan.org/changes/distribution/Archive-Tar</a></p>
+
+</dd>
+<dt id="Attribute::Handlers-0.99_01"><a href="/cperl/lib/Attribute/Handlers.html">Attribute::Handlers</a> 0.99_01</dt>
+<dd>
+
+<p>pod updates</p>
+
+</dd>
+<dt id="B::C-1.55_06"><a href="/cperl/lib/B/C.html">B::C</a> 1.55_06</dt>
+<dd>
+
+</dd>
+<dt id="B::Debug-1.26"><a>B::Debug</a> 1.26</dt>
+<dd>
+
+</dd>
+<dt id="bignum-0.47c"><a href="/cperl/lib/bignum.html">bignum</a> 0.47c</dt>
+<dd>
+
+</dd>
+<dt id="Compress::Raw::Bzip2-2.074"><a href="/cperl/lib/Compress/Raw/Bzip2.html">Compress::Raw::Bzip2</a> 2.074</dt>
+<dd>
+
+<p>plus our FLAG_APPEND_OUTPUT patches</p>
+
+</dd>
+<dt id="Compress::Raw::Zlib-2.076_01"><a href="/cperl/lib/Compress/Raw/Zlib.html">Compress::Raw::Zlib</a> 2.076_01</dt>
+<dd>
+
+<p>plus our patches. https://github.com/madler/zlib/pull/329</p>
+
+</dd>
+<dt id="Config-6.23"><a>Config</a> 6.23</dt>
+<dd>
+
+</dd>
+<dt id="Config::Perl::V-0.29_01"><a href="/cperl/lib/Config/Perl/V.html">Config::Perl::V</a> 0.29_01</dt>
+<dd>
+
+</dd>
+<dt id="CPAN-2.18_01"><a href="/cperl/lib/CPAN.html">CPAN</a> 2.18_01</dt>
+<dd>
+
+<p>Update from upstream 2.16, plus keep our cperl and secure YAML:::XS support.</p>
+
+</dd>
+<dt id="Cpanel::JSON::XS-3.0240"><a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> 3.0240</dt>
+<dd>
+
+<p>Simplify <code>allow_singlequote</code> check, coverity cid #165321. Remove logical dead code.</p>
+
+</dd>
+<dt id="DB_File-1.840"><a href="/cperl/lib/DB_File.html">DB_File</a> 1.840</dt>
+<dd>
+
+<p>But skip UpDowngrade() on CORE for reproducible builds</p>
+
+</dd>
+<dt id="Devel::PPPort-3.36_04"><a href="/cperl/lib/Devel/PPPort.html">Devel::PPPort</a> 3.36_04</dt>
+<dd>
+
+</dd>
+<dt id="Digest::SHA-6.01"><a href="/cperl/lib/Digest/SHA.html">Digest::SHA</a> 6.01</dt>
+<dd>
+
+</dd>
+<dt id="Encode-2.93"><a href="/cperl/lib/Encode.html">Encode</a> 2.93</dt>
+<dd>
+
+</dd>
+<dt id="experimental-0.019_01c"><a href="/cperl/lib/experimental.html">experimental</a> 0.019_01c</dt>
+<dd>
+
+</dd>
+<dt id="ExtUtils::CBuilder-0.280230"><a href="/cperl/lib/ExtUtils/CBuilder.html">ExtUtils::CBuilder</a> 0.280230</dt>
+<dd>
+
+</dd>
+<dt id="ExtUtils::Constant-0.24_01"><a href="/cperl/lib/ExtUtils/Constant.html">ExtUtils::Constant</a> 0.24_01</dt>
+<dd>
+
+</dd>
+<dt id="ExtUtils::Install-2.14"><a href="/cperl/lib/ExtUtils/Install.html">ExtUtils::Install</a> 2.14</dt>
+<dd>
+
+</dd>
+<dt id="ExtUtils::MakeMaker-8.30_04c"><a href="/cperl/lib/ExtUtils/MakeMaker.html">ExtUtils::MakeMaker</a> 8.30_04c</dt>
+<dd>
+
+</dd>
+<dt id="ExtUtils::ParseXS-3.36_03"><a href="/cperl/lib/ExtUtils/ParseXS.html">ExtUtils::ParseXS</a> 3.36_03</dt>
+<dd>
+
+</dd>
+<dt id="File::Fetch-0.56"><a href="/cperl/lib/File/Fetch.html">File::Fetch</a> 0.56</dt>
+<dd>
+
+<p>hpux should not use lftp. Switch test URL from www.cpan.org to httpbin.org</p>
+
+</dd>
+<dt id="File::Path-3.15_01c"><a href="/cperl/lib/File/Path.html">File::Path</a> 3.15_01c</dt>
+<dd>
+
+<p>Remove erroneous documentation. Correct skip count for Windows. Comment out two TODO tests. Make subdirectory names used in tests more random</p>
+
+</dd>
+<dt id="Filter::Simple-0.94"><a href="/cperl/lib/Filter/Simple.html">Filter::Simple</a> 0.94</dt>
+<dd>
+
+<p>Various small documentation fixes. Filter::Simple was erroneously signalling eof if it encountered a &lsquo;no MyFilter&rsquo; right after &lsquo;use&rsquo;: use MyFilter; no MyFilter; In this case it should simply not filter anything.</p>
+
+</dd>
+<dt id="Filter-1.58"><a>Filter</a> 1.58</dt>
+<dd>
+
+<p>XSLoader, our. defer Carp. add filter_read_exact tests.</p>
+
+</dd>
+<dt id="Getopt::Long-2.5"><a href="/cperl/lib/Getopt/Long.html">Getopt::Long</a> 2.5</dt>
+<dd>
+
+</dd>
+<dt id="IO-1.38"><a href="/cperl/lib/IO.html">IO</a> 1.38</dt>
+<dd>
+
+<p>from latest cperl.</p>
+
+</dd>
+<dt id="IO::Compress::Base-2.074"><a href="/cperl/lib/IO/Compress/Base.html">IO::Compress::Base</a> 2.074</dt>
+<dd>
+
+<p>ISA fixes for c3 (by cperl) [cpan #120239]</p>
+
+<p>cperl: Keep our t/encode.pl fixes</p>
+
+</dd>
+<dt id="IO::Socket::IP-0.39_02"><a href="/cperl/lib/IO/Socket/IP.html">IO::Socket::IP</a> 0.39_02</dt>
+<dd>
+
+<p>Fix new Autovivified hash slice warning. Keep demand-load Carp patch.</p>
+
+</dd>
+<dt id="IPC::Cmd-0.98"><a href="/cperl/lib/IPC/Cmd.html">IPC::Cmd</a> 0.98</dt>
+<dd>
+
+<p>flapping 01_IPC-Cmd.t appveyor test</p>
+
+<p>Enhancements: Added wait_loop_callback for run_forked()</p>
+
+<p>Bug fixes: Only search in curdir in can_run() when on Win32 RT#105601</p>
+
+</dd>
+<dt id="JSON::PP-2.97001_04"><a href="/cperl/lib/JSON/PP.html">JSON::PP</a> 2.97001_04</dt>
+<dd>
+
+<p>Merged 2.97001 from cpan with ours.</p>
+
+</dd>
+<dt id="Locale::Codes-3.55"><a>Locale::Codes</a> 3.55</dt>
+<dd>
+
+<p>Deprecated from CORE with 5.28.</p>
+
+</dd>
+<dt id="Math::BigInt-1.999811_01"><a href="/cperl/lib/Math/BigInt.html">Math::BigInt</a> 1.999811_01</dt>
+<dd>
+
+<p>See <a href="https://github.com/rurban/Math-BigInt">https://github.com/rurban/Math-BigInt</a></p>
+
+</dd>
+<dt id="Math::BigInt::FastCalc-0.5006"><a href="/cperl/lib/Math/BigInt/FastCalc.html">Math::BigInt::FastCalc</a> 0.5006</dt>
+<dd>
+
+<p>2 new tests files from Math-BigInt.</p>
+
+<p>Math::BigInt::FastCalc is now a subclass of Math::BigInt::Calc, so remove aliases like *Math::BigInt::FastCalc::_xxx = \&amp;Math::BigInt::Calc::_xxx.</p>
+
+<p>Use OO-calls rather than function calls. (i.e slower but overridable)</p>
+
+</dd>
+<dt id="Math::BigRat-0.2613"><a href="/cperl/lib/Math/BigRat.html">Math::BigRat</a> 0.2613</dt>
+<dd>
+
+<p>Fix problem with second operand being changed in multiplication (CPAN RT #121139).</p>
+
+<p>And keep our cperl test fixes. See github.com:rurban/Math-BigRat branch cperl</p>
+
+</dd>
+<dt id="Module::CoreList-5.20180101c"><a href="/cperl/lib/Module/CoreList.html">Module::CoreList</a> 5.20180101c</dt>
+<dd>
+
+</dd>
+<dt id="Net::Domain-3.11_01"><a href="/cperl/lib/Net/Domain.html">Net::Domain</a> 3.11_01</dt>
+<dd>
+
+<p>cperl fix for darwin to use hostname, suse fix for utf8 Net::Cmd</p>
+
+</dd>
+<dt id="Net::Ping-2.63"><a href="/cperl/lib/Net/Ping.html">Net::Ping</a> 2.63</dt>
+<dd>
+
+</dd>
+<dt id="Pod::Man-4.10"><a href="/cperl/lib/Pod/Man.html">Pod::Man</a> 4.10</dt>
+<dd>
+
+</dd>
+<dt id="Pod::Perldoc-3.28"><a href="/cperl/lib/Pod/Perldoc.html">Pod::Perldoc</a> 3.28</dt>
+<dd>
+
+</dd>
+<dt id="Pod::Simple-4.36c"><a href="/cperl/lib/Pod/Simple.html">Pod::Simple</a> 4.36c</dt>
+<dd>
+
+</dd>
+<dt id="Scalar::Util-1.49_10"><a href="/cperl/lib/Scalar/Util.html">Scalar::Util</a> 1.49_10</dt>
+<dd>
+
+</dd>
+<dt id="Search::Dict-1.07_01"><a href="/cperl/lib/Search/Dict.html">Search::Dict</a> 1.07_01</dt>
+<dd>
+
+</dd>
+<dt id="SelectSaver-1.02_01"><a href="/cperl/lib/SelectSaver.html">SelectSaver</a> 1.02_01</dt>
+<dd>
+
+<p>3-arg open</p>
+
+</dd>
+<dt id="SelfLoader-1.24"><a href="/cperl/lib/SelfLoader.html">SelfLoader</a> 1.24</dt>
+<dd>
+
+</dd>
+<dt id="Storable-3.05_14"><a href="/cperl/lib/Storable.html">Storable</a> 3.05_14</dt>
+<dd>
+
+<p>Updated from 3.01, many critical fixes.</p>
+
+</dd>
+<dt id="Test::Harness-3.39"><a href="/cperl/lib/Test/Harness.html">Test::Harness</a> 3.39</dt>
+<dd>
+
+</dd>
+<dt id="Thread::Queue-3.12"><a href="/cperl/lib/Thread/Queue.html">Thread::Queue</a> 3.12</dt>
+<dd>
+
+</dd>
+<dt id="threads-2.18_01"><a href="/cperl/lib/threads.html">threads</a> 2.18_01</dt>
+<dd>
+
+</dd>
+<dt id="threads::shared-1.57"><a href="/cperl/lib/threads/shared.html">threads::shared</a> 1.57</dt>
+<dd>
+
+</dd>
+<dt id="Time::HiRes-1.9751"><a href="/cperl/lib/Time/HiRes.html">Time::HiRes</a> 1.9751</dt>
+<dd>
+
+</dd>
+<dt id="Time::Piece-1.3203"><a href="/cperl/lib/Time/Piece.html">Time::Piece</a> 1.3203</dt>
+<dd>
+
+</dd>
+<dt id="Unicode::Collate-1.25_01"><a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a> 1.25_01</dt>
+<dd>
+
+</dd>
+<dt id="version-0.9918_02c"><a href="/cperl/lib/version.html">version</a> 0.9918_02c</dt>
+<dd>
+
+</dd>
+<dt id="VMS::DCLsym-1.09"><a>VMS::DCLsym</a> 1.09</dt>
+<dd>
+
+</dd>
+<dt id="VMS::Stdio-2.44_01"><a>VMS::Stdio</a> 2.44_01</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="Testing">Testing</h1>
+
+<ul>
+
+<li><p><i>t/porting/cmp_version.t</i> was fixed together with EUMM to handle parsing versions from filehandles. Backported.</p>
+
+</li>
+</ul>
+
+<h1 id="Selected-Bug-Fixes">Selected Bug Fixes</h1>
+
+<ul>
+
+<li><p>Fixed wrong <code>panic: distributed hash flood</code> when dealing with large <code>%^H</code> hints hashes, with &gt;127 entries, such as <code>_charnames.pm</code> in <code>Regexp::Common</code>. Fixed the logic dealing with such a hints hash. <a href="https://github.com/perl11/cperl/issues/350">[cperl #350]</a>.</p>
+
+</li>
+<li><p>Fixed return type of <code>DynaLoader::dl_find_symbol_anywhere()</code>, the address, not the name. <a href="https://github.com/perl11/cperl/issues/352">[cperl #352]</a>.</p>
+
+</li>
+<li><p>Some regular expression parsing glitches could lead to assertion failures with regular expressions such as <code>/(?&lt;=/</code> and <code>/(?&lt;!/</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128170">[perl #128170]</a></p>
+
+</li>
+<li><p>In v5.24.0c <code>fchown</code> was changed not to accept negative one as an argument because in some platforms that is an error. However, in some other platforms that is an acceptable argument. This change has been reverted. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128967">[perl #128967]</a>.</p>
+
+</li>
+<li><p>A regression in Perl 5.24 with <code>tr/\N{U+...}/foo/</code> when the code point was between 128 and 255 has been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128734">[perl #128734]</a>.</p>
+
+</li>
+<li><p>A vulnerability in Perl&#39;s <code>sprintf</code> implementation has been fixed by avoiding a possible memory wrap. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131260">[perl #131260]</a></p>
+
+</li>
+<li><p>The parser could sometimes crash if a bareword came after <code>evalbytes</code>. <a href="https://rt.perl.org/Public/Bug/Display.html?id=129196">[perl #129196]</a></p>
+
+</li>
+<li><p>Many issues relating to <code>printf &quot;%a&quot;</code> of hexadecimal floating point were fixed. In addition, the &quot;subnormals&quot; (formerly known as &quot;denormals&quot;) floating point numbers are now supported both with the plain IEEE 754 floating point numbers (64-bit or 128-bit) and the x86 80-bit &quot;extended precision&quot;. Note that subnormal hexadecimal floating point literals will give a warning about &quot;exponent underflow&quot;. <a href="https://rt.perl.org/Public/Bug/Display.html?id=128843">[perl #128843]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128888">[perl #128888]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128889">[perl #128889]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128890">[perl #128890]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128893">[perl #128893]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128909">[perl #128909]</a> <a href="https://rt.perl.org/Public/Bug/Display.html?id=128919">[perl #128919]</a></p>
+
+</li>
+<li><p>Fixed a place where the regex parser was not setting the syntax error correctly on a syntactically incorrect pattern. <a href="https://rt.perl.org/Public/Bug/Display.html?id=129122">[perl #129122]</a></p>
+
+</li>
+<li><p>Fixed a memory leak in list assign from/to magic values, added with v5.23.6. <a href="https://rt.perl.org/Public/Bug/Display.html?id=130766">[perl #130766]</a></p>
+
+</li>
+</ul>
+
+<h1 id="Platform-Support">Platform Support</h1>
+
+<h2 id="Platform-Specific-Notes">Platform-Specific Notes</h2>
+
+<dl>
+
+<dt id="VMS">VMS</dt>
+<dd>
+
+<ul>
+
+<li><p><code>configure.com</code> now recognizes the VSI-branded C compiler.</p>
+
+</li>
+</ul>
+
+</dd>
+<dt id="Windows">Windows</dt>
+<dd>
+
+<ul>
+
+<li><p>Building XS modules with GCC 6 in a 64-bit build of Perl failed due to incorrect mapping of <code>strtoll</code> and <code>strtoull</code>. This has now been fixed. <a href="https://rt.perl.org/Public/Bug/Display.html?id=131726">[perl #131726]</a> <a href="https://rt.cpan.org/Public/Bug/Display.html?id=121683">[cpan #121683]</a> <a href="https://rt.cpan.org/Public/Bug/Display.html?id=122353">[cpan #122353]</a></p>
+
+</li>
+</ul>
+
+</dd>
+</dl>
+
+<h1 id="Acknowledgements">Acknowledgements</h1>
+
+<p>cperl 5.24.3 represents approximately 13 months of development since cperl 5.24.2c and contains approximately 190,000 lines of changes across 1,200 files from 12 authors.</p>
+
+<p>Excluding auto-generated files, documentation and release tools, there were approximately 75,000 lines of changes to 830 .pm, .t, .c and .h files.</p>
+
+<p>The following people are known to have contributed the improvements that became cperl 5.24.3:</p>
+
+<p>Reini Urban, Jarkko Hietaniemi, Karl Williamson, David Mitchell, Steve Hay, Craig A. Berry, James E Keenan, Dan Collins, Slaven Rezic, Tony Cook, Steven Humphrey, Dave Cross.</p>
+
+<p>The list above is almost certainly incomplete as it is automatically generated from version control history including the perl and cperl repos. In particular, it does not include the names of the (very much appreciated) contributors who reported issues to the Perl bug tracker and the cperl github issues.</p>
+
+<p>Many of the changes included in this version originated in the CPAN modules included in Perl&#39;s core. We&#39;re grateful to the entire CPAN community for helping Perl to flourish.</p>
+
+<p>For a more complete list of all of Perl&#39;s historical contributors, please see the <i>AUTHORS</i> file in the Perl source distribution.</p>
+
+<p>Generated this with:</p>
+
+<pre><code>    cperl Porting/acknowledgements.pl cperl-5.24.2..HEAD -c</code></pre>
+
+<h1 id="Reporting-Bugs">Reporting Bugs</h1>
+
+<p>If you find what you think is a bug, you might check the articles recently posted to the comp.lang.perl.misc newsgroup and the perl bug database at <a href="https://rt.perl.org/">https://rt.perl.org/</a> . There may also be information at <a href="http://www.perl.org/">http://www.perl.org/</a> , the Perl Home Page.</p>
+
+<p>If you believe you have an unreported bug, please run the <a>cperlbug</a> program included with your release. Be sure to trim your bug down to a tiny but sufficient test case. Your bug report, along with the output of <code>perl -V</code>, will be sent off to perlbug@perl.org to be analysed by the Perl porting team.</p>
+
+<p>If you think it&#39;s a cperl specific bug or trust the cperl developers more please file an issue at <a href="https://github.com/perl11/cperl/issues">https://github.com/perl11/cperl/issues</a>.</p>
+
+<p>If the bug you are reporting has security implications which make it inappropriate to send to a publicly archived mailing list, then see <a href="/cperl/perlsec.html#SECURITY-VULNERABILITY-CONTACT-INFORMATION">&quot;SECURITY VULNERABILITY CONTACT INFORMATION&quot; in perlsec</a> For details of how to report the issue.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>The <i>Changes</i> file for an explanation of how to view exhaustive details on what changed.</p>
+
+<p>The <i>INSTALL</i> file for how to build Perl.</p>
+
+<p>The <i>README</i> file for general stuff.</p>
+
+<p>The <i>Artistic</i> and <i>Copying</i> files for copyright information.</p>
+
+
+</body>
+
+</html>
+
+
