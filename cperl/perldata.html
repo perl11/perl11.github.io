@@ -39,7 +39,6 @@
         </ul>
       </li>
       <li><a href="#Typeglobs-and-Filehandles">Typeglobs and Filehandles   </a></li>
-      <li><a href="#Shaped-arrays">Shaped arrays</a></li>
     </ul>
   </li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
@@ -97,7 +96,7 @@
 
 <p>cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers.</p>
 
-<p>With cperl all utf8 identifiers and literals are parsed and stored as normalized NFC variants, which prevents from various TR39 and TR36 unicode confusable and spoofing security problems. However, prio to cperl 5.27.1 dynamically created symbols via string refs were not normalized. <code>${&quot;$decomposed&quot;}</code> stayed decomposed. Since cperl 5.27.1 under use strict names the dynamic run-time rules match the static parser rules. Normalization is similar to Perl 6 and Python 3, but Perl 6 normalized to their own NFG format and Python 3 normalizes to the non-canonical NFKC format. See <a href="http://www.unicode.org/reports/tr36/">http://www.unicode.org/reports/tr36/</a> and <a href="http://www.unicode.org/reports/tr39">http://www.unicode.org/reports/tr39</a>.</p>
+<p>With cperl all utf8 identifiers and literals are parsed and stored as normalized NFC variants, which prevents from various TR39 and TR36 unicode confusable and spoofing security problems. However, dynamically created symbols via string refs are not normalized. <code>${&quot;$decomposed&quot;}</code> stays decomposed. This is similar to Python 3, but Python 3 normalizes to the non-canonical NFKC. See <a href="http://www.unicode.org/reports/tr36/">http://www.unicode.org/reports/tr36/</a> and <a href="http://www.unicode.org/reports/tr39">http://www.unicode.org/reports/tr39</a>.</p>
 
 <p>Also with cperl mixed scripts in unicode identifiers are forbidden, but they can be declared via <code>use utf8 (Scriptnames...);</code>. The &#39;Common&#39;, &#39;Latin&#39; and &#39;Inherited&#39; scripts are always allowed and don&#39;t need to be declared. Also the following combinations are allowed without any declaration: Latin + Hangul + Han (:Korean), Latin + Katakana + Hiregana (::Japanese) and Latin + Han + Bopomofo (:Hanb). And some more recommended and aspirational scripts, which are not excluded, except Cyrillic and Greek. See <a href="/cperl/lib/utf8.html#Valid-scripts">&quot;Valid scripts&quot; in utf8</a>.</p>
 
@@ -192,8 +191,6 @@
 
 <p>Since 5.16 up and until cperl v5.25.2c, binary names were silently allowed in names, such symbols and packages. Before 5.16 names were silently stripped, since v5.25.2c names are stripped with a prominent security warning.</p>
 
-<p>Since cperl 5.27.1 under use strict names, the parsing rules are enforced even with dynamically created identifiers.</p>
-
 <h2 id="Context">Context   </h2>
 
 <p>The interpretation of operations and values in Perl sometimes depends on the requirements of the context around the operation or value. There are two major contexts: list and scalar. Certain operations return list values in contexts wanting a list, and scalar values otherwise. If this is true of an operation it will be mentioned in the documentation for that operation. In other words, Perl overloads certain operations based on whether the expected return value is singular or plural. Some words in English work this way, like &quot;fish&quot; and &quot;sheep&quot;.</p>
@@ -220,7 +217,7 @@
 
 <p>Scalars aren&#39;t necessarily one thing or another. Unless using <a href="#Constant-and-typed-lexical-variables">coretypes</a> there&#39;s no place to declare a scalar variable to be of type &quot;string&quot;, type &quot;number&quot;, type &quot;reference&quot;, or anything else. Because of the automatic conversion of scalars, operations that return scalars don&#39;t need to care (and in fact, cannot care) whether their caller is looking for a string, a number, or a reference. Perl is a contextually polymorphic language whose scalars can be strings, numbers, or references (which includes objects). Although strings and numbers are considered pretty much the same thing for nearly all purposes, references are strongly-typed, uncastable pointers with builtin reference-counting and destructor invocation.</p>
 
-<p>          A scalar value is interpreted as FALSE in the Boolean sense if it is undefined, the null string or the number 0 (or its string equivalent, &quot;0&quot;), and TRUE if it is anything else. The Boolean context is just a special kind of scalar context where no conversion to a string or a number is ever performed. Negation of a true value by <code>!</code> or <code>not</code> returns a special false value. When evaluated as a string it is treated as <code>&quot;&quot;</code>, but as a number, it is treated as 0. Most Perl operators that return true or false behave this way.</p>
+<p>A scalar value is interpreted as FALSE in the Boolean sense if it is undefined, the null string or the number 0 (or its string equivalent, &quot;0&quot;), and TRUE if it is anything else. The Boolean context is just a special kind of scalar context where no conversion to a string or a number is ever performed.     </p>
 
 <p>There are actually two varieties of null strings (sometimes referred to as &quot;empty&quot; strings), a defined one and an undefined one. The defined version is just a string of length zero, such as <code>&quot;&quot;</code>. The undefined version is the value that indicates that there is no real value for something, such as when there was an error, or at end of file, or when you refer to an uninitialized variable or element of an array or hash. Although in early versions of Perl, an undefined scalar could become defined when first used in a place expecting a defined value, this no longer happens except for rare cases of autovivification as explained in <a href="/cperl/perlref.html">perlref</a>. You can use the defined() operator to determine whether a scalar value is defined (this has no meaning on arrays or hashes), and the undef() operator to produce an undefined value.     </p>
 
@@ -256,7 +253,7 @@
 
 <pre><code>    $element_count = scalar(@whatever);</code></pre>
 
-<p>If you evaluate a hash in scalar context, it returns a false value if the hash is empty. If there are any key/value pairs, it returns a true value. A more precise definition is version dependent.</p>
+<p>If you evaluate a hash in scalar context, it returns false if the hash is empty. If there are any key/value pairs, it returns true. A more precise definition is version dependent.</p>
 
 <p>Prior to Perl 5.25 the value returned was a string consisting of the number of used buckets and the number of allocated buckets, separated by a slash. This is pretty much useful only to find out whether Perl&#39;s internal hashing algorithm is performing poorly on your data set. For example, you stick 10,000 things in a hash, but evaluating %HASH in scalar context reveals <code>&quot;1/16&quot;</code>, which means only one out of sixteen buckets has been touched, and presumably contains all 10,000 of your items. This isn&#39;t supposed to happen.</p>
 
@@ -575,20 +572,6 @@
 <pre><code>    # values in %args take priority over %config_defaults
     %config = (%config_defaults, %args);</code></pre>
 
-<p>Hashes need to be assigned from list pairs. Under <code>use warnings &#39;misc&#39;</code> an odd number of list elements is warned with &quot;Odd number of elements in hash assignment&quot;. Since cperl 5.27 under <code>use strict</code> hash assignment from lists must be from pairs, and from map even from an empty or single pair only.</p>
-
-<pre><code>    {
-      no strict;
-      my %h = (0..2); # warning
-      my %h = map {$_} (0..1); # warning
-    }
-    {
-      use strict;
-      my %h = (0..2);          # error
-      my %h = map {$_} (0..1); # error
-      my %h = map {$_=&gt;1, $_+1=&gt;1} (0..1); # error
-    }</code></pre>
-
 <h2 id="Subscripts">Subscripts</h2>
 
 <p>An array can be accessed one scalar at a time by specifying a dollar sign (<code>$</code>), then the name of the array (without the leading <code>@</code>), then the subscript inside square brackets. For example:</p>
@@ -649,7 +632,7 @@
                    = (0xff0000, 0x0000ff, 0x00ff00);
     ($folks[0], $folks[-1]) = ($folks[-1], $folks[0]);</code></pre>
 
-<p>Since changing a slice changes the original array or hash that it&#39;s slicing, a <code>foreach</code> construct will alter some - or even all - of the values of the array or hash.</p>
+<p>Since changing a slice changes the original array or hash that it&#39;s slicing, a <code>foreach</code> construct will alter some--or even all--of the values of the array or hash.</p>
 
 <pre><code>    foreach (@array[ 4 .. 10 ]) { s/peter/paul/ } 
 
@@ -674,7 +657,7 @@
         printf &quot;%-8s %s\n&quot;, $user, $home;
     }</code></pre>
 
-<p>As noted earlier in this document, the scalar sense of list assignment is the number of elements on the right-hand side of the assignment. The null list contains no elements, so when the password file is exhausted, the result is 0, not 2. A slice always behaves like the list of its elements. I.e. a hash slice as for loop list modifies the elements, but a hash slice as subroutine arguments not.</p>
+<p>As noted earlier in this document, the scalar sense of list assignment is the number of elements on the right-hand side of the assignment. The null list contains no elements, so when the password file is exhausted, the result is 0, not 2.</p>
 
 <p>Slices in scalar context return the last item of the slice.</p>
 
@@ -691,12 +674,9 @@
 
 <pre><code>    %h = (blonk =&gt; 2, foo =&gt; 3, squink =&gt; 5, bar =&gt; 8);
     %subset = %h{&#39;foo&#39;, &#39;bar&#39;}; # key/value hash slice
-    # %subset is now (foo =&gt; 3, bar =&gt; 8)
-    %removed = delete %h{&#39;foo&#39;, &#39;bar&#39;};
-    # %removed is now (foo =&gt; 3, bar =&gt; 8)
-    # %h is now (blonk =&gt; 2, squink =&gt; 5)</code></pre>
+    # %subset is now (foo =&gt; 3, bar =&gt; 8)</code></pre>
 
-<p>However, the result of such a slice cannot be localized or used in assignment. These are otherwise very much consistent with hash slices using the @ symbol.</p>
+<p>However, the result of such a slice cannot be localized, deleted or used in assignment. These are otherwise very much consistent with hash slices using the @ symbol.</p>
 
 <h3 id="Index-Value-Array-Slices">Index/Value Array Slices</h3>
 
@@ -704,12 +684,7 @@
 
 <pre><code>    @a = &quot;a&quot;..&quot;z&quot;;
     @list = %a[3,4,6];
-    # @list is now (3, &quot;d&quot;, 4, &quot;e&quot;, 6, &quot;g&quot;)
-    @removed = delete %a[3,4,6]
-    # @removed is now (3, &quot;d&quot;, 4, &quot;e&quot;, 6, &quot;g&quot;)
-    # @list[3,4,6] are now undef</code></pre>
-
-<p>Note that calling <a href="/cperl/perlfunc.html#delete-EXPR"><code>delete</code></a> on array values is strongly discouraged.</p>
+    # @list is now (3, &quot;d&quot;, 4, &quot;e&quot;, 6, &quot;g&quot;)</code></pre>
 
 <h2 id="Typeglobs-and-Filehandles">Typeglobs and Filehandles   </h2>
 
@@ -764,23 +739,6 @@
 <p>Note that if an initialized scalar variable is used instead the result is different: <code>my $fh=&#39;zzz&#39;; open($fh, ...)</code> is equivalent to <code>open( *{&#39;zzz&#39;}, ...)</code>. <code>use strict &#39;refs&#39;</code> forbids such practice.</p>
 
 <p>Another way to create anonymous filehandles is with the Symbol module or with the IO::Handle module and its ilk. These modules have the advantage of not hiding different types of the same name during the local(). See the bottom of <a href="/cperl/perlfunc.html#open">&quot;open&quot; in perlfunc</a> for an example.</p>
-
-<h2 id="Shaped-arrays">Shaped arrays</h2>
-
-<p>Lexical array declarations can contain the number of elements, which will lead to compile-bound checks, and faster run-time ops, omitting the otherwise necessary out-of-bounds check.</p>
-
-<pre><code>  my @a[20];
-  my @a[] = (0,1,2);</code></pre>
-
-<p>Shaped arrays are pre-initialized according to its type and cannot change the size. Attempts are caught at compile-time and run-time. Negative constant indices are converted to positive at compile-time.</p>
-
-<p>cperl-only, see <a href="/cperl/perlcperl.html#Typed-and-shaped-arrays">&quot;Typed and shaped arrays&quot; in perlcperl</a>.</p>
-
-<p>The <code>:const</code> attribute also creates a shaped array.</p>
-
-<pre><code>    my @a :const = (1,2);  # shaped as int @a[2]</code></pre>
-
-<p>See <a href="/cperl/perlcperl.html#const-for-all">&quot;:const for all&quot; in perlcperl</a>.</p>
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 

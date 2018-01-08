@@ -127,23 +127,7 @@
 
 <li><p><code>$num_octets = utf8::upgrade($string)</code></p>
 
-<p>(Since Perl v5.8.0) Converts in-place the internal representation of the string from an octet sequence in the native encoding (Latin-1 or EBCDIC) to UTF-8. The logical character sequence itself is unchanged. If <i>$string</i> is already upgraded, then this is a no-op. Returns the number of octets necessary to represent the string as UTF-8.</p>
-
-<p>If your code needs to be compatible with versions of perl without <code>use feature &#39;unicode_strings&#39;;</code>, you can force Unicode semantics on a given string:</p>
-
-<pre><code>  # force unicode semantics for $string without the
-  # &quot;unicode_strings&quot; feature
-  utf8::upgrade($string);</code></pre>
-
-<p>For example:</p>
-
-<pre><code>  # without explicit or implicit use feature &#39;unicode_strings&#39;
-  my $x = &quot;\xDF&quot;;    # LATIN SMALL LETTER SHARP S
-  $x =~ /ss/i;       # won&#39;t match
-  my $y = uc($x);    # won&#39;t convert
-  utf8::upgrade($x);
-  $x =~ /ss/i;       # matches
-  my $z = uc($x);    # converts to &quot;SS&quot;</code></pre>
+<p>(Since Perl v5.8.0) Converts in-place the internal representation of the string from an octet sequence in the native encoding (Latin-1 or EBCDIC) to UTF-8. The logical character sequence itself is unchanged. If <i>$string</i> is already stored as UTF-8, then this is a no-op. Returns the number of octets necessary to represent the string as UTF-8. Can be used to make sure that the UTF-8 flag is on, so that <code>\w</code> or <code>lc()</code> work as Unicode on strings containing non-ASCII characters whose code points are below 256.</p>
 
 <p><b>Note that this function does not handle arbitrary encodings</b>; use <a href="/cperl/lib/Encode.html">Encode</a> instead.</p>
 
@@ -156,14 +140,6 @@
 
 <p>Returns true on success.</p>
 
-<p>If your code expects an octet sequence this can be used to validate that you&#39;ve received one:</p>
-
-<pre><code>  # throw an exception if not representable as octets
-  utf8::downgrade($string)
-
-  # or do your own error handling
-  utf8::downgrade($string, 1) or die &quot;string must be octets&quot;;</code></pre>
-
 <p><b>Note that this function does not handle arbitrary encodings</b>; use <a href="/cperl/lib/Encode.html">Encode</a> instead.</p>
 
 </li>
@@ -171,15 +147,10 @@
 
 <p>(Since Perl v5.8.0) Converts in-place the character sequence to the corresponding octet sequence in UTF-8. That is, every (possibly wide) character gets replaced with a sequence of one or more characters that represent the individual UTF-8 bytes of the character. The UTF8 flag is turned off. Returns nothing.</p>
 
-<pre><code> my $x = &quot;\x{100}&quot;; # $x contains one character, with ord 0x100
- utf8::encode($x);  # $x contains two characters, with ords (on
+<pre><code> my $a = &quot;\x{100}&quot;; # $a contains one character, with ord 0x100
+ utf8::encode($a);  # $a contains two characters, with ords (on
                     # ASCII platforms) 0xc4 and 0x80.  On EBCDIC
                     # 1047, this would instead be 0x8C and 0x41.</code></pre>
-
-<p>Similar to:</p>
-
-<pre><code>  use Encode;
-  $x = Encode::encode(&quot;utf8&quot;, $x);</code></pre>
 
 <p><b>Note that this function does not handle arbitrary encodings</b>; use <a href="/cperl/lib/Encode.html">Encode</a> instead.</p>
 
@@ -188,11 +159,11 @@
 
 <p>(Since Perl v5.8.0) Attempts to convert in-place the octet sequence encoded as UTF-8 to the corresponding character sequence. That is, it replaces each sequence of characters in the string whose ords represent a valid UTF-8 byte sequence, with the corresponding single character. The UTF-8 flag is turned on only if the source string contains multiple-byte UTF-8 characters. If <i>$string</i> is invalid as UTF-8, returns false; otherwise returns true.</p>
 
-<pre><code> my $x = &quot;\xc4\x80&quot;; # $x contains two characters, with ords
+<pre><code> my $a = &quot;\xc4\x80&quot;; # $a contains two characters, with ords
                      # 0xc4 and 0x80
- utf8::decode($x);   # On ASCII platforms, $x contains one char,
+ utf8::decode($a);   # On ASCII platforms, $a contains one char,
                      # with ord 0x100.   Since these bytes aren&#39;t
-                     # legal UTF-EBCDIC, on EBCDIC platforms, $x is
+                     # legal UTF-EBCDIC, on EBCDIC platforms, $a is
                      # unchanged and the function returns FALSE.</code></pre>
 
 <p><b>Note that this function does not handle arbitrary encodings</b>; use <a href="/cperl/lib/Encode.html">Encode</a> instead.</p>
@@ -218,20 +189,12 @@
 </li>
 <li><p><code>$flag = utf8::is_utf8($string)</code></p>
 
-<p>(Since Perl 5.8.1) Test whether <i>$string</i> is marked internally as encoded in UTF-8. Functionally the same as <code>Encode::is_utf8($string)</code>.</p>
-
-<p>Typically only necessary for debugging and testing, if you need to dump the internals of an SV, <a href="/cperl/lib/Devel/Peek.html">Devel::Peek&#39;s</a> Dump() provides more detail in a compact form.</p>
-
-<p>If you still think you need this outside of debugging, testing or dealing with filenames, you should probably read <a href="/cperl/perlunitut.html">perlunitut</a> and <a href="/cperl/perlunifaq.html#What-is-the-UTF8-flag">&quot;What is &quot;the UTF8 flag&quot;?&quot; in perlunifaq</a>.</p>
-
-<p>Don&#39;t use this flag as a marker to distinguish character and binary data, that should be decided for each variable when you write your code.</p>
-
-<p>To force unicode semantics in code portable to perl 5.8 and 5.10, call <code>utf8::upgrade($string)</code> unconditionally.</p>
+<p>(Since Perl 5.8.1) Test whether <i>$string</i> is marked internally as encoded in UTF-8. Functionally the same as <code>Encode::is_utf8()</code>.</p>
 
 </li>
 <li><p><code>$flag = utf8::valid($string)</code></p>
 
-<p>[INTERNAL] Test whether <i>$string</i> is in a consistent state regarding UTF-8. Will return true if it is well-formed UTF-8 and has the UTF-8 flag on <b>or</b> if <i>$string</i> is held as bytes (both these states are &#39;consistent&#39;). Main reason for this routine is to allow Perl&#39;s test suite to check that operations have left strings in a consistent state.</p>
+<p>[INTERNAL] Test whether <i>$string</i> is in a consistent state regarding UTF-8. Will return true if it is well-formed UTF-8 and has the UTF-8 flag on <b>or</b> if <i>$string</i> is held as bytes (both these states are &#39;consistent&#39;). Main reason for this routine is to allow Perl&#39;s test suite to check that operations have left strings in a consistent state. You most probably want to use <code>utf8::is_utf8()</code> instead.</p>
 
 </li>
 <li><p><code>$bool = utf8::valid_script($script)</code></p>

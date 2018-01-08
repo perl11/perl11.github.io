@@ -29,7 +29,7 @@
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
-<pre><code> # dtrace -Zn &#39;perl::sub-entry, perl::sub-return {trace(copyinstr(arg0))}&#39;
+<pre><code> # dtrace -Zn &#39;perl::sub-entry, perl::sub-return { trace(copyinstr(arg0)) }&#39;
  dtrace: description &#39;perl::sub-entry, perl::sub-return &#39; matched 10 probes
 
  # perl -E &#39;sub outer { inner(@_) } sub inner { say shift } outer(&quot;hello&quot;)&#39;
@@ -50,11 +50,11 @@
 
 <p>DTrace is a framework for comprehensive system- and application-level tracing. Perl is a DTrace <i>provider</i>, meaning it exposes several <i>probes</i> for instrumentation. You can use these in conjunction with kernel-level probes, as well as probes from other providers such as MySQL, in order to diagnose software defects, or even just your application&#39;s bottlenecks, from user-land calls, to binaries, up into kernel calls.</p>
 
-<p>Perl needs to be compiled with the <code>-Dusedtrace</code> option in order to make use of the provided probes. While DTrace aims to have no overhead when its instrumentation is not active, Perl&#39;s support itself cannot uphold that guarantee, so it is built without DTrace probes under most systems. One notable exception is that Mac OS X builds with <code>-Dusedtrace</code> by default, and ships a <i>/usr/bin/perl</i> with DTrace support enabled.</p>
+<p>Perl must be compiled with the <code>-Dusedtrace</code> option in order to make use of the provided probes. While DTrace aims to have no overhead when its instrumentation is not active, Perl&#39;s support itself cannot uphold that guarantee, so it is built without DTrace probes under most systems. One notable exception is that Mac OS X ships a <i>/usr/bin/perl</i> with DTrace support enabled.</p>
 
-<p>Currently DTrace is known to be ported to Solaris, Mac OS X, FreeBSD, DragonFLY BSD, NetBSD, and on linux there is a unstable port via a <i>dtrace4linux</i> at <a href="https://crtags.blogspot.de/">https://crtags.blogspot.de/</a>, but see <a href="https://github.com/agentzh/perl-systemtap-toolkit">https://github.com/agentzh/perl-systemtap-toolkit</a> instead.</p>
+<p>Currently DTrace is known to be ported to Solaris, Mac OS X, FreeBSD, DragonFLY BSD, NetBSD, and on linux there is a unstable port via a dtrace4linux at <a href="https://crtags.blogspot.de/">https://crtags.blogspot.de/</a>.</p>
 
-<p>On most systems you need to run it as root: <code>sudo dtrace</code>, and beware that probes are global. Prefer to use pid-specific probes, beginning with <code>perl$target:::</code>.</p>
+<p>On Mac OS X you need to run it as root: <code>sudo dtrace</code>.</p>
 
 <h1 id="HISTORY">HISTORY</h1>
 
@@ -87,7 +87,7 @@
 <dt id="c">5.25.3c</dt>
 <dd>
 
-<p><code>loading-file</code>, <code>loaded-file</code> renamed to <code>load-entry</code>, <code>load-return</code>. Added <code>glob-entry</code>, <code>glob-return</code>, <code>hash-entry</code>, <code>hash-return</code> probes. Added more examples.</p>
+<p><code>loading-file</code>, <code>loaded-file</code> renamed to <code>load-entry</code>, <code>load-return</code>. Added more examples.</p>
 
 </dd>
 </dl>
@@ -101,7 +101,7 @@
 
 <p>Traces the entry of any subroutine. Note that all of the variables refer to the subroutine that is being invoked; there is currently no way to get ahold of any information about the subroutine&#39;s <i>caller</i> from a DTrace action.</p>
 
-<pre><code> perl$target:::sub-entry {
+<pre><code> :*perl*::sub-entry {
      printf(&quot;%s::%s entered at %s line %d\n&quot;,
            copyinstr(arg3), copyinstr(arg0), copyinstr(arg1), arg2);
  }</code></pre>
@@ -112,7 +112,7 @@
 
 <p>Traces the exit of any subroutine. Note that all of the variables refer to the subroutine that is returning; there is currently no way to get ahold of any information about the subroutine&#39;s <i>caller</i> from a DTrace action.</p>
 
-<pre><code> perl$target:::sub-return {
+<pre><code> :*perl*::sub-return {
      printf(&quot;%s::%s returned at %s line %d\n&quot;,
            copyinstr(arg3), copyinstr(arg0), copyinstr(arg1), arg2);
  }</code></pre>
@@ -123,7 +123,7 @@
 
 <p>Traces changes to Perl&#39;s interpreter state. You can internalize this as tracing changes to Perl&#39;s <code>${^GLOBAL_PHASE}</code> variable, especially since the values for <code>NEWPHASE</code> and <code>OLDPHASE</code> are the strings that <code>${^GLOBAL_PHASE}</code> reports.</p>
 
-<pre><code> perl$target:::phase-change {
+<pre><code> :*perl*::phase-change {
      printf(&quot;Phase changed from %s to %s\n&quot;,
          copyinstr(arg1), copyinstr(arg0));
  }</code></pre>
@@ -134,7 +134,7 @@
 
 <p>Traces the execution of each opcode in the Perl runloop. This probe is fired before the opcode is executed. When the Perl debugger is enabled, the DTrace probe is fired <i>after</i> the debugger hooks (but still before the opcode itself is executed).</p>
 
-<pre><code> perl$target:::op-entry {
+<pre><code> :*perl*::op-entry {
      printf(&quot;About to execute opcode %s\n&quot;, copyinstr(arg0));
  }</code></pre>
 
@@ -144,7 +144,7 @@
 
 <p>Fires when Perl is about to load an individual file, whether from <code>use</code>, <code>require</code>, or <code>do</code>. This probe fires before the file is read from disk. The filename argument is converted to local filesystem paths instead of providing <code>Module::Name</code>-style names.</p>
 
-<pre><code> perl$target:::load-entry {
+<pre><code> :*perl*:load-entry {
      printf(&quot;About to load %s\n&quot;, copyinstr(arg0));
  }</code></pre>
 
@@ -154,62 +154,8 @@
 
 <p>Fires when Perl has successfully loaded an individual file, whether from <code>use</code>, <code>require</code>, or <code>do</code>. This probe fires after the file is read from disk and its contents evaluated. The filename argument is converted to local filesystem paths instead of providing <code>Module::Name</code>-style names.</p>
 
-<pre><code> perl$target:::load-return {
+<pre><code> :*perl*:load-return {
      printf(&quot;Successfully loaded %s\n&quot;, copyinstr(arg0));
- }</code></pre>
-
-</dd>
-<dt id="glob-entry-MODE-NAME">glob-entry(MODE, NAME)</dt>
-<dd>
-
-<p>Fires when Perl is performing a glob lookup.</p>
-
-<pre><code>  MODE 0: gv_init
-       1: gv_add (empty name)
-       2: gv_fetch
-       3: gv_fetchmeth
-
- perl$target:::glob-entry {
-     printf(&quot;glob lookup mode %d: %s\n&quot;, arg0, copyinstr(arg1));
- }</code></pre>
-
-</dd>
-<dt id="glob-return-MODE-NAME">glob-return(MODE, NAME)</dt>
-<dd>
-
-<p>Fires when Perl finished a glob lookup. For MODE see <a href="#glob-entry-MODE-NAME">&quot;glob-entry(MODE, NAME)&quot;</a>.</p>
-
-<pre><code> perl$target:::glob-return {
-   printf(&quot;glob lookup mode: %d: %s done\n&quot;, arg0, copyinstr(arg1));
- }</code></pre>
-
-</dd>
-<dt id="hash-entry-MODE-KEY">hash-entry(MODE, KEY)</dt>
-<dd>
-
-<p>Fires when Perl is performing an internal hash-table lookup.</p>
-
-<pre><code>  MODE 0: hv_fetch
-       1: hv_store
-       2: hv_exists
-       3: hv_delete
-
- perl$target:::hash-entry {
-     printf(&quot;hash lookup mode %d {%s}\n&quot;, arg0, copyinstr(arg1));
- }</code></pre>
-
-<p>Example to print the sum of operations by type:</p>
-
-<pre><code>  $ sudo dtrace -qn &quot;hash-entry{@[arg0]=count()}&quot; -c&quot;perl script.pl&quot;</code></pre>
-
-</dd>
-<dt id="hash-return-MODE-KEY">hash-return(MODE, KEY)</dt>
-<dd>
-
-<p>Fires when Perl finished an internal hash-table lookup. For MODE see <a href="#hash-entry-MODE-KEY">&quot;hash-entry(MODE, KEY)&quot;</a>.</p>
-
-<pre><code> perl$target:::hash-return {
-   printf(&quot;hash lookup mode %d {%s} done\n&quot;, arg0, copyinstr(arg1));
  }</code></pre>
 
 </dd>
@@ -222,8 +168,7 @@
 <dt id="Most-frequently-called-functions">Most frequently called functions</dt>
 <dd>
 
-<pre><code> # dtrace -qZn &#39;sub-entry { @[strjoin(strjoin(copyinstr(arg3),&quot;::&quot;),
-                  copyinstr(arg0))] = count() } END {trunc(@, 10)}&#39;
+<pre><code> # dtrace -qZn &#39;sub-entry { @[strjoin(strjoin(copyinstr(arg3),&quot;::&quot;),copyinstr(arg0))] = count() } END {trunc(@, 10)}&#39;
 
  Class::MOP::Attribute::slots                                    400
  Try::Tiny::catch                                                411
@@ -263,8 +208,7 @@
 <dt id="Function-calls-during-interpreter-cleanup">Function calls during interpreter cleanup</dt>
 <dd>
 
-<pre><code> # dtrace -Zn &#39;phase-change /copyinstr(arg0) == &quot;END&quot;/ { self-&gt;ending = 1 }
-               sub-entry /self-&gt;ending/ { trace(copyinstr(arg0)) }&#39;
+<pre><code> # dtrace -Zn &#39;phase-change /copyinstr(arg0) == &quot;END&quot;/ { self-&gt;ending = 1 } sub-entry /self-&gt;ending/ { trace(copyinstr(arg0)) }&#39;
 
  CPU     ID                    FUNCTION:NAME
    1  77214       Perl_pp_entersub:sub-entry   END
@@ -277,11 +221,7 @@
 <dt id="System-calls-at-compile-time">System calls at compile time</dt>
 <dd>
 
-<pre><code> # dtrace -qZn &#39;phase-change
-     /copyinstr(arg0) == &quot;START&quot;/ { self-&gt;interesting = 1 }
-     phase-change /copyinstr(arg0) == &quot;RUN&quot;/ { self-&gt;interesting = 0 }
-     syscall::: /self-&gt;interesting/ { @[probefunc] = count() }
-     END { trunc(@, 3) }&#39;
+<pre><code> # dtrace -qZn &#39;phase-change /copyinstr(arg0) == &quot;START&quot;/ { self-&gt;interesting = 1 } phase-change /copyinstr(arg0) == &quot;RUN&quot;/ { self-&gt;interesting = 0 } syscall::: /self-&gt;interesting/ { @[probefunc] = count() } END { trunc(@, 3) }&#39;
 
  lseek                                                           310
  read                                                            374
@@ -291,10 +231,7 @@
 <dt id="Perl-functions-that-execute-the-most-opcodes">Perl functions that execute the most opcodes</dt>
 <dd>
 
-<pre><code> # dtrace -qZn &#39;sub-entry { self-&gt;fqn = strjoin(copyinstr(arg3),
-                            strjoin(&quot;::&quot;, copyinstr(arg0))) }
-                op-entry /self-&gt;fqn != &quot;&quot;/ { @[self-&gt;fqn] = count() }
-                END { trunc(@, 3) }&#39;
+<pre><code> # dtrace -qZn &#39;sub-entry { self-&gt;fqn = strjoin(copyinstr(arg3), strjoin(&quot;::&quot;, copyinstr(arg0))) } op-entry /self-&gt;fqn != &quot;&quot;/ { @[self-&gt;fqn] = count() } END { trunc(@, 3) }&#39;
 
  warnings::unimport                                             4589
  Exporter::Heavy::_rebuild_cache                                5039
@@ -304,15 +241,9 @@
 <dt id="How-much-time-is-spent-in-an-op-on-average">How much time is spent in an op on average</dt>
 <dd>
 
-<pre><code> # dtrace -qZn &quot;BEGIN{self-&gt;prev=0;}
-                op-entry { myop = copyinstr(arg0); curtime = timestamp;
-                           elapsed = self-&gt;prev ? curtime - self-&gt;prev : 0;
-                           @[myop]=avg(elapsed); self-&gt;prev = curtime;}
-                END { trunc(@, 15); printf(\&quot;\nTime (avg ns)\n\&quot;);
-                      printa(\&quot;%10s\t%@8u\n\&quot;, @);}&quot;
-          -c&#39;./miniperl -Ilib -E0&#39;
+<pre><code> # dtrace -qZn &quot;BEGIN{self-&gt;prev=0;} op-entry { myop = copyinstr(arg0); curtime = timestamp; elapsed = self-&gt;prev ? curtime - self-&gt;prev : 0; @[myop]=avg(elapsed); self-&gt;prev = curtime;} END { trunc(@, 15); printf(\&quot;\nTime (avg ns)\n\&quot;); printa(\&quot;%10s\t%@8u\n\&quot;, @);}&quot; -c&#39;./miniperl -Ilib -E0&#39;
 
-                 Time (avg ns)
+  Time (avg ns)
     pushmark        2149
      sassign        2160
   multideref        2176
@@ -330,93 +261,6 @@
    nextstate       10073</code></pre>
 
 <p>See <i>Porting/op.d</i> for a bigger example, with count() and quantize().</p>
-
-<p><code>sudo dtrace -s Porting/op.d -c&#39;./miniperl -Ilib -E0&#39;</code></p>
-
-</dd>
-<dt id="What-hash-operations-dominate">What hash operations dominate</dt>
-<dd>
-
-<p>Number of modes:</p>
-
-<pre><code> # sudo dtrace -n &quot;hash-entry{@[arg0]=count()}&quot; -c&quot;./miniperl -Ilib script.pl&quot;
-
-                3               15  # DELETE
-                2               39  # EXISTS
-                1              125  # STORE
-                0              724  # FETCH</code></pre>
-
-<p>Time spent (on average):</p>
-
-<pre><code> # sudo dtrace -qn &quot;BEGIN{self-&gt;ts=0}hash-entry{self-&gt;ts=timestamp}
-                    hash-return{@[arg0]=avg(timestamp-self-&gt;ts)}&quot;
-               -c&quot;./miniperl -Ilib script.pl&quot;
-
-                0             1000  # FETCH
-                2             1014  # EXISTS
-                1             1111  # STORE
-                3             1641  # DELETE</code></pre>
-
-<p>See <i>mydtrace.h</i> for the modes.</p>
-
-</dd>
-<dt id="glob-gv-call-statistics">glob/gv call statistics</dt>
-<dd>
-
-<pre><code> # sudo dtrace -qn &quot;BEGIN{self-&gt;ts=0} glob-entry{self-&gt;ts=timestamp}
-                    glob-return{ts=timestamp-self-&gt;ts;@a[arg0]=avg(ts);
-                                @q[arg0]=quantize(ts);@c[arg0]=count()}&quot;
-               -c&quot;./miniperl -Ilib autodoc.pl&quot;</code></pre>
-
-<p>average time per mode (ns):</p>
-
-<pre><code>                1             1234  # ADD
-                0             1417  # INIT
-                2             3055  # FETCH
-                3             4150  # FETCHMETH</code></pre>
-
-<p>time spent per mode (ns):</p>
-
-<pre><code>                3 # FETCHMETH
-           value  ------------- Distribution ------------- count
-            1024 |                                         0
-            2048 |@@@@@@@@@@@@@                            1
-            4096 |@@@@@@@@@@@@@@@@@@@@@@@@@@@              2
-            8192 |                                         0
-
-                1 # ADD
-           value  ------------- Distribution ------------- count
-             256 |                                         0
-             512 |@@@@@@@@@@@@@@@@@@@@@@@@@                67
-            1024 |@@@@@@@@@@@                              31
-            2048 |@@@                                      8
-            4096 |@                                        2
-            8192 |                                         0
-
-                0 # INIT
-           value  ------------- Distribution ------------- count
-             256 |                                         0
-             512 |@                                        8
-            1024 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@     273
-            2048 |@@                                       16
-            4096 |                                         3
-            8192 |                                         0
-
-                2 # FETCH
-           value  ------------- Distribution ------------- count
-            1024 |                                         0
-            2048 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    224
-            4096 |@@                                       13
-            8192 |                                         3
-           16384 |                                         1
-           32768 |                                         0</code></pre>
-
-<p>sum of glob calls:</p>
-
-<pre><code>                3                3  # FETCHMETH
-                1              108  # ADD
-                2              241  # FETCH
-                0              300  # INIT</code></pre>
 
 </dd>
 </dl>
@@ -453,7 +297,7 @@
 
 <h1 id="AUTHORS">AUTHORS</h1>
 
-<p>Shawn M Moore <code>sartak@gmail.com</code>, Reini Urban <code>rurban@cpan.org</code></p>
+<p>Shawn M Moore <code>sartak@gmail.com</code></p>
 
 
 </body>

@@ -106,7 +106,7 @@
 
 <p>If no <code>return</code> is found and if the last statement is an expression, its value is returned. If the last statement is a loop control structure like a <code>foreach</code> or a <code>while</code>, the returned value is unspecified. The empty sub returns the empty list.   </p>
 
-<p>Aside from <a href="#Signatures">&quot;Signatures&quot;</a> Perl does not have named formal parameters. In practice all you do is assign to a <code>my()</code> list of these. Variables that aren&#39;t declared to be private are global variables. For gory details on creating private variables, see <a href="#Private-Variables-via-my">&quot;Private Variables via my()&quot;</a> and <a href="#Temporary-Values-via-local">&quot;Temporary Values via local()&quot;</a>. To create protected environments for a set of functions in a separate package (and probably a separate file), see <a href="/cperl/perlmod.html#Packages">&quot;Packages&quot; in perlmod</a>.  </p>
+<p>Aside from an experimental facility (see <a href="#Signatures">&quot;Signatures&quot;</a> below), Perl does not have named formal parameters. In practice all you do is assign to a <code>my()</code> list of these. Variables that aren&#39;t declared to be private are global variables. For gory details on creating private variables, see <a href="#Private-Variables-via-my">&quot;Private Variables via my()&quot;</a> and <a href="#Temporary-Values-via-local">&quot;Temporary Values via local()&quot;</a>. To create protected environments for a set of functions in a separate package (and probably a separate file), see <a href="/cperl/perlmod.html#Packages">&quot;Packages&quot; in perlmod</a>.  </p>
 
 <p>Example:</p>
 
@@ -407,29 +407,7 @@
         return $left + int($right);
     }</code></pre>
 
-<p>The types may also be declared as attribute</p>
-
-<pre><code>    sub foo ($left :int, $right :str) :int {
-        return $left + int($right);
-    }</code></pre>
-
-<p>Those types must be existing classes or packages. Those additional types declarations help the compiler to produce better code and to throw early compile-time errors if possible.</p>
-
-<p>With methods the first parameter, the <code>$self</code> invocant does not need to be declared. For another variable than the default <code>$self</code>, the <code>:</code> invocant suffix is used:</p>
-
-<pre><code>    method foo :int {
-        return $self-&gt;{foo};
-    }
-
-    method bar ($this:, $baz?) {
-        return $this-&gt;{bar};
-    }</code></pre>
-
-<p><code>$self</code> is not added with <code>sub</code> and the <code>:method</code> attribute.</p>
-
-<pre><code>    sub baz ($self, $bar?) :method {
-        return $self-&gt;{baz};
-    }</code></pre>
+<p>Those types must be existing packages. Those additional types declarations help the compiler to produce better code and to throw early compile-time errors if possible.</p>
 
 <h2 id="Private-Variables-via-my">Private Variables via my()       </h2>
 
@@ -579,7 +557,7 @@
 
 <p>Also, since <code>$x</code> is lexical, it can&#39;t be reached or modified by any Perl code outside.</p>
 
-<p>When combined with variable declaration, simple assignment to <code>state</code> variables (as in <code>state $x = 42</code>) is executed only the first time. When such statements are evaluated subsequent times, the assignment is ignored. The behavior of assignment to <code>state</code> declarations where the left hand side of the assignment involves any parentheses is currently undefined.</p>
+<p>When combined with variable declaration, simple scalar assignment to <code>state</code> variables (as in <code>state $x = 42</code>) is executed only the first time. When such statements are evaluated subsequent times, the assignment is ignored. The behavior of this sort of assignment to non-scalar variables is undefined.</p>
 
 <h3 id="Persistent-variables-with-closures">Persistent variables with closures</h3>
 
@@ -815,29 +793,12 @@
     my sub bar { ... }
     bar();              # calls &quot;my&quot; sub</code></pre>
 
-<p>You can&#39;t (directly) write a recursive lexical subroutine:</p>
-
-<pre><code>    # WRONG
-    my sub baz {
-        baz();
-    }</code></pre>
-
-<p>This example fails because <code>baz()</code> refers to the package/global subroutine <code>baz</code>, not the lexical subroutine currently being defined.</p>
-
-<p>The solution is to use <a href="/cperl/perlfunc.html#SUB__"><code>__SUB__</code></a>:</p>
-
-<pre><code>    my sub baz {
-        __SUB__-&gt;();    # calls itself
-    }</code></pre>
-
-<p>It is possible to predeclare a lexical subroutine. The <code>sub foo {...}</code> subroutine definition syntax respects any previous <code>my sub;</code> or <code>state sub;</code> declaration. Using this to define recursive subroutines is a bad idea, however:</p>
+<p>To use a lexical subroutine from inside the subroutine itself, you must predeclare it. The <code>sub foo {...}</code> subroutine definition syntax respects any previous <code>my sub;</code> or <code>state sub;</code> declaration.</p>
 
 <pre><code>    my sub baz;         # predeclaration
     sub baz {           # define the &quot;my&quot; sub
-        baz();          # WRONG: calls itself, but leaks memory
+        baz();          # recursive call
     }</code></pre>
-
-<p>Just like <code>my $f; $f = sub { $f-&gt;() }</code>, this example leaks memory. The name <code>baz</code> is a reference to the subroutine, and the subroutine uses the name <code>baz</code>; they keep each other alive (see <a href="/cperl/perlref.html#Circular-References">&quot;Circular References&quot; in perlref</a>).</p>
 
 <h3 id="state-sub-vs-my-sub"><code>state sub</code> vs <code>my sub</code></h3>
 

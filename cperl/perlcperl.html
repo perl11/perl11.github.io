@@ -25,12 +25,11 @@
       <li><a href="#Undo-constant-folding-i_opt-de-optimization">Undo constant folding i_opt de-optimization</a></li>
       <li><a href="#Undo-support-for-binary-names">Undo support for binary names</a></li>
       <li><a href="#Warn-on-0shellcode-attempts-for-names">Warn on \0shellcode attempts for names</a></li>
-      <li><a href="#strict-names">strict names</a></li>
+      <li><a href="#strict-names-NY">strict names (NY)</a></li>
       <li><a href="#TR39-confusable-names">TR39 confusable names</a></li>
       <li><a href="#Undo-the-double-readonly-system">Undo the double readonly system</a></li>
       <li><a href="#Fix-the-hashes">Fix the hashes</a></li>
       <li><a href="#Compile-time-attribute-hooks">Compile-time attribute hooks</a></li>
-      <li><a href="#Run-time-attribute-variables">Run-time attribute variables</a></li>
       <li><a href="#coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</a></li>
       <li><a href="#native-unboxed-types:-int-uint-num-str-NY">native unboxed types: int, uint, num, str (NY)</a></li>
       <li><a href="#types">types</a></li>
@@ -40,7 +39,6 @@
           <li><a href="#Static-method-calls">Static method calls</a></li>
         </ul>
       </li>
-      <li><a href="#Proper-object-system">Proper object system</a></li>
       <li><a href="#Typed-and-shaped-arrays">Typed and shaped arrays</a></li>
       <li><a href="#Typed-and-shaped-hashes-NY">Typed and shaped hashes (NY)</a></li>
       <li><a href="#Inlined-functions-NY">Inlined functions (NY)</a></li>
@@ -66,14 +64,15 @@
         </ul>
       </li>
       <li><a href="#Remove-Attribute::Handler-from-core">Remove Attribute::Handler from core</a></li>
-      <li><a href="#libffi-in-core">libffi in core</a></li>
     </ul>
   </li>
   <li><a href="#Longer-term-goals">Longer term goals</a>
     <ul>
       <li><a href="#Faster-functions-and-method-calls">Faster functions and method calls</a></li>
-      <li><a href="#tailcall-elimination">tailcall elimination</a></li>
+      <li><a href="#tailcall-eliminiation">tailcall eliminiation</a></li>
+      <li><a href="#Proper-object-system">Proper object system</a></li>
       <li><a href="#Macros">Macros</a></li>
+      <li><a href="#libffi-in-core">libffi in core</a></li>
       <li><a href="#Editor-integration">Editor integration</a></li>
       <li><a href="#Jit">Jit</a></li>
       <li><a href="#Optimize-the-vm-the-runloop">Optimize the vm, the runloop</a></li>
@@ -302,11 +301,11 @@
 
 <p>For easier implementation we support subattributes, <code>:&lt;type&gt;</code> only, not the other possible syntax variants <code>=&gt; type</code> or <code>returns type</code>.</p>
 
-<p>There are just a few semantic conflicts. Note that we can use the builtin attributes <code>:lvalue</code>, <code>:method</code>, <code>:const</code> also here.</p>
+<p>There are just a few semantic conflicts. Note that we can use the builtin attributes <code>:lvalue</code>, <code>:method</code>, <code>:const</code> and <code>:unsigned</code> also here.</p>
 
 <p><code>:const</code> does not mean constant result, it rather means constant subroutine. Having this constant means that the compiler is able to inline it without run-time checks if it has changed.</p>
 
-<p><code>:unsigned</code> as coretype or <code>:uint</code>? As sub attribute it could mean strictly typed to a return result of <code>UV</code>, like <code>:int :unsigned</code>, where the <code>:int</code> is optional. <code>:-unsigned</code> would mean <code>:int</code> then, return a signed int. <code>:unsigned</code> could also be no coretype, just a hint for <code>:int</code>, and without <code>:int</code> it will just be an attribute, not a strictly checked coretype. This decision is still open. For now we use <code>:uint</code>.</p>
+<p><code>:unsigned</code> as coretype or not? As sub attribute it could mean strictly typed to a return result of <code>UV</code>, like <code>:int :unsigned</code>, where the <code>:int</code> is optional. <code>:-unsigned</code> would mean <code>:int</code> then, return a signed int. <code>:unsigned</code> could also be no coretype, just a hint for <code>:int</code>, and without <code>:int</code> it will just be an attribute, not a strictly checked coretype. This decision is still open.</p>
 
 </dd>
 <dt id="Add-call-by-ref-via-arg"><b>Add call by-ref via \$arg</b></dt>
@@ -355,16 +354,12 @@
 <p>which violated the existing error message: &quot;Not enough arguments for &quot;</p>
 
 </dd>
-<dt id="Support-default-self-invocant-with-methods"><b>Support default $self invocant with methods</b></dt>
+<dt id="Support-default-self-invocant-with-methods-NY"><b>Support default $self invocant with methods (NY)</b></dt>
 <dd>
 
-<p>If a method is declared via <code>method</code> the <code>$self</code> argument is used as default invocant argument name, which can be overridden via the <code>($class: $args,...)</code> colon syntax.</p>
+<p>If a method is declared as such (via <code>method</code> or <code>sub :method</code>) the <code>$self</code> argument is used as default invocant argument name, which can be overridden via the <code>($class: $args,...)</code> colon syntax.</p>
 
-<pre><code>    method adder ($a) { $self-&gt;add + $a; }</code></pre>
-
-<p>With the method attribute you have to provide it:</p>
-
-<pre><code>    sub adder ($self, $a) :method { $self-&gt;add + $a; }</code></pre>
+<pre><code>    sub adder ($a) :method { $self-&gt;{add} + $a; }</code></pre>
 
 </dd>
 <dt id="Add-:pure-attribute-for-subroutines"><b>Add :pure attribute for subroutines</b></dt>
@@ -373,6 +368,12 @@
 <p>You can flag a function as purely functional, without any side-effects, to allow further compiler optimizations. Note that pure functions may throw, but may not access globals or do IO.</p>
 
 <p>A pure function only reacts to its input arguments and will always return the same value with the same arguments, thus can be safely memoized or constant-folded or inlined without having to embed them into ENTER/LEAVE blocks.</p>
+
+</dd>
+<dt id="Parse-signatures-with-the-parser-not-undocumented-functions-NY"><b>Parse signatures with the parser, not undocumented functions (NY)</b></dt>
+<dd>
+
+<p><i>We&#39;ll see later on this one. Maybe keep it as horrible as it is now.</i></p>
 
 </dd>
 <dt id="Improved-error-reporting"><b>Improved error reporting</b></dt>
@@ -403,8 +404,6 @@
 <p><code>...</code> denotes a slurpy unnamed signature, and <code>...</code> in a otherwise non-empy function body denotes passing those arguments efficiently to the next function. Internally <code>...</code> does not need to copy the values into a temporay array, we just need to pass the argument stack position down to the next calls using <code>...</code>. By using <code>...</code> instead of <code>@_</code> we can avoid copying the values to <code>@_</code>, we only need the stack index, not all the values.</p>
 
 <pre><code>    sub foometh($self, ...) { func(...) }</code></pre>
-
-<p>In an extern sub declaration, the <code>...</code> denotes varargs as in C.</p>
 
 </dd>
 <dt id="strict-prototype-and-signature-syntax-no-pragmas-required"><b>strict prototype and signature syntax, no pragmas required.</b></dt>
@@ -455,7 +454,7 @@
 
 <p>Perl5 had long-standing problems with lexical <code>$_</code> since the introduction of the SASSIGN optimization via OA_TARGLEX and OPpTARGET_MY in 2002.</p>
 
-<p>cperl fixed this (it was using a wrong bit-testing, using AND as OR) and work is ongoing to harmonize further internal code exceptions and code-smell, e.g. SASSIGN, given/when and the match functions, everything with nested blocks.</p>
+<p>cperl fixed this (it was using a wrong bit-testing, using AND as OR) and work is ongoing to harmonize further internal code exceptions and code-smell, e.g. SASSIGN, given/when and the match functions.</p>
 
 <h2 id="Undo-B-bootstrap-breakage">Undo B bootstrap breakage</h2>
 
@@ -491,9 +490,11 @@
 
 <p>cperl has a new &#39;security&#39; warnings category, which bypasses STDERR capture and also tries to log the remote user IP.</p>
 
-<h2 id="strict-names">strict names</h2>
+<h2 id="strict-names-NY">strict names (NY)</h2>
 
-<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use <a href="/cperl/lib/strict.html">strict</a>.</p>
+<p>With <code>use strict &quot;names&quot;</code> we do not accept unparsable symbols created from strings. This is a new run-time error for use strict.</p>
+
+<p>There&#39;s currently no room for an explicit <code>use strict &#39;names&#39;</code> hint due to a bad strict implementation. But later when we freed some <code>PL_hint</code> bits to hold strict defaults we can add support for that.</p>
 
 <h2 id="TR39-confusable-names">TR39 confusable names</h2>
 
@@ -519,9 +520,9 @@
 
 <p>For the old hash tables use the new default strategy PERL_PERTURB_KEYS_TOP to move each found bucket to the top of the chain. This is how you usually implement a slow hash table with linked lists.</p>
 
-<p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem in the collision handling, not by using extremely slow hash functions and obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
+<p>Use fast hash functions, not secure slow ones. We get security by fixing the algorithmic problem, not by obscuring the users and fellow developers. We properly analyzed many hash functions and hash tables, for security and speed. The fastest, FNV1a, was the one the fellow developer schmorp choose <i>by his guts</i> in his stableperl fork.</p>
 
-<p>Provide a Configure argument to define the hash function: <code>-Dhash_func=FNV1A</code></p>
+<p>Provide a Configure argument to define the hash function: -Dhash_func=FNV1A</p>
 
 <p>Make the load factor definable, and change the default from 100% to 90%, which was tested as superior. Use <code>-Accflags=&#39;-DHV_FILL_RATE=100&#39;</code> for the old behavior.</p>
 
@@ -535,15 +536,11 @@
 
 <p>Provide a special <code>:const</code> hash table type to enable optimizations to perfect hashes. With <code>study %hash</code> you can do the similar costly optimizations on non-const hashes at run-time to allow faster key access.</p>
 
-<p>Added support for restricted hashes, esp. stashes which we needed for our class implementation, to detect wrong fields at compile-time already. restricted hashes are not properly supported in perl5.</p>
+<p>Added support for restricted hashes, esp. stashes which we need for our class implementation, to detect wrong fields at compile-time already.</p>
 
 <h2 id="Compile-time-attribute-hooks">Compile-time attribute hooks</h2>
 
-<p>Added a <code>CHECK_SCALAR_ATTRIBUTES</code> callback. Add native <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>, ... attributes for all new core types. This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrote-critical-core-modules-in-C-as-builtins">&quot;Rewrote critical core modules in C as builtins&quot;</a> below.</p>
-
-<h2 id="Run-time-attribute-variables">Run-time attribute variables</h2>
-
-<p>cperl defers the <code>attribute-&gt;import</code> call from compile-time to run-time with non-constant attribute arguments. See <a href="http://perl11.org/blog/attributes-args.html">http://perl11.org/blog/attributes-args.html</a>.</p>
+<p>Added a <code>CHECK_SCALAR_ATTRIBUTES</code> callback. Add native <code>:const</code>, <code>:int</code>, <code>:num</code>, <code>:str</code>, ... attributes for all new core types. This is basically a read-only <code>MODIFY_*_ATTRIBUTES</code> hook at compile-time with a better name to disassociate from the run-time check of <code>FETCH_*_ATTRIBUTES</code> with <code>my</code> lexicals. See also <a href="#Rewrite-critical-core-modules-in-C-as-builtins">&quot;Rewrite critical core modules in C as builtins&quot;</a> below.</p>
 
 <h2 id="coretypes:-Int-UInt-Num-Str">coretypes: Int, UInt, Num, Str</h2>
 
@@ -567,7 +564,7 @@
 
 <p>With PERL_NATIVE_TYPES enabled, most literal constants are stored as native types, native type declarations are a promise not a hint, and the optimizations involves up- and downgrading of data and ops in possible native chains. This leads to much tighter native expressions, with performance and memory gains. (3x less memory, ~3x faster).</p>
 
-<p>For the builtin FFI we provide also FFI-specific native types, like int32, int64, uint32, uint64, ptr and more.</p>
+<p>For the builtin FFI we will also provide FFI-specific native types, like int32, int64, uint32, uint64 and ptr.</p>
 
 <p>See <a href="/cperl/perltypes.html#native-types">&quot;native types&quot; in perltypes</a>.</p>
 
@@ -597,18 +594,6 @@
 <h2 id="const-for-all">:const for all</h2>
 
 <p>Our <code>:const</code> attribute applies to all data types: scalar, arrays, hash, functions, packages + classes. <code>:const</code> hashes should of course be perfect, i.e. optimized to constant-time lookup, eliminating hash collisions.</p>
-
-<p>The following declarations are all compile-time assigned, and allow subsequent constant folding on all usages. I.e. const assignments with all constant rhs values.</p>
-
-<pre><code>    my $i :const = 1;
-    our $i :const = 1;
-    my @a :const = (1);    # also sets the array shaped as int @a[1]
-    my @a :const = (1,2);  # shaped as int @a[2]
-    my @a :const = (0..2); # shaped as int @a[3]</code></pre>
-
-<p>With non-constant right-hand side values the assignment is done at run-time and as thus only writes are caught at compile-time, but constant folding is not available. Hashes are also not yet compile-time assigned.</p>
-
-<p>:const arrays with values of unique types will be optimized to native shaped arrays. See <a href="#Typed-and-shaped-arrays">&quot;Typed and shaped arrays&quot;</a>.</p>
 
 <p>See <a href="/cperl/perltypes.html#const">&quot;:const&quot; in perltypes</a>.</p>
 
@@ -644,32 +629,16 @@
 
 <p>When the method is defined directly in the package, it is not possible to inject another package at run-time into the method search, thus the method call is optimized from a dynamic method dispatch to a normal static function call.</p>
 
-<h2 id="Proper-object-system">Proper object system</h2>
-
-<p>No, not Moose, rather perl6 without the antics. Closer to Mouse though, which is currently the recommended OO. Mouse with a perl6-like syntax. Rather an optimizable perl6-like object system in core, similar to an extended base/fields OO with pseudohashes, roles, mop and multi-dispatch. See <a href="/cperl/perlclass.html">perlclass</a>.</p>
-
-<p>Provide a simple MOP for reflection purposes, but not yet for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in perl6 or p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
-
-<p>Support multi-dispatch in perl6 syntax and optimize for early-bound method calls with typed arguments and closed classes.</p>
-
-<p>Class dispatch is via C3, not the old depth-first left-to-right mro implementation. Many old core modules have broken inheritance, so C3 could not yet be enabled as default.</p>
-
-<p>For type inference the special Mu methods <code>new</code> and <code>CREATE</code> are detected and cause the left-hand side of a lexical assignment to progate its type into the lexical.</p>
-
 <h2 id="Typed-and-shaped-arrays">Typed and shaped arrays</h2>
 
 <p>Enable faster array access, uniformly typed array values, use less memory (cache friendly), help the type system. See <a href="/cperl/perltypes.html">perltypes</a>.</p>
 
-<p>Type arrays specify the uniform type of the values. Typed arrays with native types use much less memory and provide faster direct access. Natively typed arrays allow access and passing as arguments to external C functions.</p>
+<p>Type arrays specify the uniform type of the values. Typed arrays with native types use much less memory and provide faster direct access.</p>
 
 <p>Shaped arrays define a compile-time constant &quot;shape&quot;, the size, which cannot be changed. All values are pre-initialized.</p>
 
 <pre><code>  my int @a[20];         # or
   my @a[20] :int;</code></pre>
-
-<p>The number of elements can be compile-time computed from the elements of a rhs list of all constant expressions, similar to the initialization of :const arrays. See <a href="#const-for-all">&quot;:const for all&quot;</a>.</p>
-
-<pre><code>  my @a[] = (0..2);</code></pre>
 
 <p>With known indices the compiler can omit bounds checks on array accesses.</p>
 
@@ -678,7 +647,7 @@
 
 <p>Here <code>$a[$_]</code> uses the unchecked aelem_u operator, because the index <code>$_</code> cannot be out of bounds.</p>
 
-<p>Shaped arrays are pre-initialized according to its type and cannot change the size. Attempts are caught at compile-time and run-time. With constant or type-checked indices in range the access op is optimized to omit the bounds check, via unchecked aelem_u variants. Negative constant indices are converted to positive at compile-time.</p>
+<p>Shaped arrays are pre-initialized according to its type and cannot change the size. Attempts are caught at compile-time or run-time. With constant or type-checked indices in range the access op is optimized to omit the bounds check, via unchecked aelem_u variants. Negative constant indices are converted to positive at compile-time.</p>
 
 <h2 id="Typed-and-shaped-hashes-NY">Typed and shaped hashes (NY)</h2>
 
@@ -720,8 +689,6 @@
 
 <p><i>strict.pm</i> is only provided for documentation, <code>$INC{&#39;strict.pm&#39;} = &#39;xsutils.c&#39;</code> With a list of wrong tags only the wrong tags are reportyed one-by-one, and not together. All other functionality stays the same.</p>
 
-<p>strict hash two new modes: strict hashpairs and names.</p>
-
 <h3 id="attributes-0.26_01c-as-builtin">attributes 0.26_01c as builtin</h3>
 
 <p>Starting with cperl (based on Perl 5.22) <a href="/cperl/lib/attributes.html">attributes</a> is now again a builtin XS module. There&#39;s no need to dynaload it at parse time.</p>
@@ -729,8 +696,6 @@
 <p><i>attributes.pm</i> moved back to <i>lib/attributes.pm</i> and is only provided for documentation and import.</p>
 
 <p><code>CHECK_<i>type</i>_ATTRIBUTES</code> is a new compile-time hook, like a readonly variant of <code>MODIFY_<i>type</i>_ATTRIBUTES</code>, or the compile-time variant of <code>FETCH_<i>type</i>_ATTRIBUTES</code>.</p>
-
-<p>Attribute arguments can now be variables, deferred from compile-time to run-time.</p>
 
 <p>There are several new builtin attributes:</p>
 
@@ -740,7 +705,7 @@
 <dd>
 
 </dd>
-<dt id="unsigned-for-all-integer-types-sets-SvIsUV_on-off"><b>unsigned for all integer types, sets SvIsUV_on|off</b></dt>
+<dt id="unsigned-for-all-integer-types-sets-SvIsUV_on-off"><b>:unsigned for all integer types, sets SvIsUV_on|off</b></dt>
 <dd>
 
 </dd>
@@ -748,10 +713,6 @@
 <dd>
 
 <p>and stored for lexical types and subroutine return types.</p>
-
-</dd>
-<dt id="some-new-FFI-attributes"><b>some new FFI attributes</b></dt>
-<dd>
 
 </dd>
 </dl>
@@ -786,7 +747,7 @@
 
 <p>The <a href="http://search.cpan.org/dist/B-C/">B::C</a> testsuite runs too long for cpan users, and it needs to be developed in sync to avoid typical 6 months wait-time after a core change. The compiler is smoked on all smoker platforms (linux 64bit, linux -m32, darwin, windows 32+64bit).</p>
 
-<p>Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer. <i>.pmc</i> handling has been extended for reflection inside a .pmc, needed for the jit cache.</p>
+<p>Maybe provide python-like precompiled <code>ByteCache</code> <i>.pmc</i> as default. You could pre-compile then modules with higher optimization levels, esp. the type inferencer.</p>
 
 <p>Maybe include a <code>Data::Compile</code> module to dump only data without all the code to a shared library, and possibly <a href="https://github.com/rurban/Perfect-Hash">Perfect::Hash</a> and a new <i>ph.c</i> to create and optimize readonly hashes, which is needed for the shared XS hashes of Config, warnings and unicode tables.</p>
 
@@ -826,29 +787,27 @@
 
 <p>This evals all attributes at compile-time. Discourage its usage.</p>
 
-<h2 id="libffi-in-core">libffi in core</h2>
-
-<p>Declare extern functions and libraries and call them. There&#39;s no need for XS and seperate compilation for most bindings. Not everybody has a compiler, the very same compiler perl was compiled with. libffi is the slowest ffi library, but has the best platform support, as it is integrated with gcc for java jni support.</p>
-
-<pre><code>   extern sub atoi(str $s) :int;
-   extern sub itoa(int $s) :str;
-   extern sub printf(str $s, ...);</code></pre>
-
-<p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not. And we prefer the more natural C-like syntax over the more obscure perl6 syntax.</p>
-
-<p>The alternative syntax to <code>extern sub</code> is via the <code>:native</code> sub attribute, which does allow options, as in <code>sub atoi(str $s) :int :native($libc);</code>.</p>
-
-<p>Later with a jit in core we would not need the external <i>libffi</i> dependency.</p>
-
 <h1 id="Longer-term-goals">Longer term goals</h1>
 
 <h2 id="Faster-functions-and-method-calls">Faster functions and method calls</h2>
 
 <p>Optionally omit caller, @_, freetmps, exception handler when possible, i.e. no string eval&#39;s are present in the body, the compiler can detect it or the right compiler hint is given.</p>
 
-<h2 id="tailcall-elimination">tailcall elimination</h2>
+<h2 id="tailcall-eliminiation">tailcall eliminiation</h2>
 
 <p>Detect tail positions and replace the call with a fast goto. This needs to be in core, not as external module. Without tailcall elimination handling longer lists leads to stack exhaustion. python did the same mistake as p5p by enforcing a new context for every goto. goto to signatures are now real fast tailcalls.</p>
+
+<h2 id="Proper-object-system">Proper object system</h2>
+
+<p>No, not Moose, but close. Closer to Mouse though, which is currently the recommended OO. Mouse with a perl6-like syntax. Rather an optimizable perl6-like object system in core, similar to an extended base/fields OO with pseudohashes, roles and multi-dispatch.</p>
+
+<p>Provide a simple MOP for reflection purposes, bot not for overrides, i.e. metaobjects for classes, proper class and method syntax, anonymous classes by pointer not name, proper multi dispatch with types, roles, class and method lookup by pointer, not by name. Create native optimized shapes via mixins as in perl6 or p2 (an enhanced bless). Lexical methods are private, optimize dispatch for single inheritance. i.e the convenient class syntax extends on a single class only, classes are finalizable by the calling application.</p>
+
+<p>Support multi-dispatch in perl6 syntax and optimize for early-bound method calls with typed arguments and closed classes.</p>
+
+<p>Dispatch is via C3, not the old depth-first left-to-right mro implementation. Many old core modules have broken inheritance, so C3 could not yet be enabled as default.</p>
+
+<p>For type inference we will need to make <code>new</code> a special keyword, which is a shortcut for <code>bless</code> with a fixed classname. <code>bless</code> can use computed classnames and thus enforces dynamic types.</p>
 
 <h2 id="Macros">Macros</h2>
 
@@ -868,15 +827,29 @@
 
 <p>See the <i>feature/gh261-macros</i> branch.</p>
 
+<h2 id="libffi-in-core">libffi in core</h2>
+
+<p>Declare extern functions and libraries and call them. There&#39;s no need for XS and seperate compilation for most bindings. Not everybody has a compiler, the very same compiler perl was compiled with. libffi is the slowest ffi library, but has the best platform support, as it is integrated with gcc for java jni support.</p>
+
+<pre><code>   extern sub atoi(str $s):int;
+   extern sub itoa(int $s):str;
+   extern sub printf(str $s, ...):void;</code></pre>
+
+<p>Note that this deviates from perl6 synatx with <code>is native</code>, but perl6 uses the <code>is</code> traits for all function attributes, which we do not. And we prefer the more natural C-like syntax over the more obscure perl6 syntax.</p>
+
+<p>The alternative syntax would be via a <code>:native</code> attribute, which would allow options, as in <code>sub atoi(str $s):int :native($libc);</code>.</p>
+
+<p>But with the jit in core we would not need the external libffi dependency.</p>
+
 <h2 id="Editor-integration">Editor integration</h2>
 
-<p>With type inference we can provide a much nicer development environment which also supports the debugger. <b>plsense</b> for emacs should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
+<p>With type inference we can provide a much nicer development environment, which also supports the debugger. <b>plsense</b> should give type feedback. I&#39;m thinking of a port of <b>ZeroBrane Studio</b> for perl. This means provide core support for the needed serializers and introspection facilities.</p>
 
 <h2 id="Jit">Jit</h2>
 
 <p>Add a jit for the easiest platforms, and provide dynamic javascript-based optimizations when stacks need to be replaced. Jit&#39;s are a bit overrated. a fast bytecode loop can easily beat a jit and optimizing compiler, see luajit2, <a href="http://www.emulators.com/docs/nx25_nostradamus.htm">http://www.emulators.com/docs/nx25_nostradamus.htm</a> or <a href="http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html">http://nominolo.blogspot.de/2012/07/implementing-fast-interpreters.html</a></p>
 
-<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations. Currently we are trying a simple llvm based method jit, which kicks in after counting methods and loops (similar to unladen-swallow and pyston, just smaller and faster), and inlines some <code>pp</code> runtime functions and hereby eliminations to function intro, parameter and return overhead, and then can apply the usual optimizations applied to the bodies without the call overhead.</p>
+<p>A tracing jit, and not a method jit sounds best, together with the inliner, native op sequences and loop optimizations. Currently we are trying a simple llvm based method jit, which kicks in after counting methods and loops (similar to unladen-swallow and pyston), and inlines some <code>pp</code> runtime functions and hereby eliminations to function intro, parameter and return overhead, and then can apply the usual optimizations applied to the bodies without the call overhead.</p>
 
 <h2 id="Optimize-the-vm-the-runloop">Optimize the vm, the runloop</h2>
 
@@ -940,22 +913,20 @@
 
 <dl>
 
-<dt id="classes"><b>classes</b></dt>
+<dt id="classes-not-yet"><b>classes (not yet)</b></dt>
 <dd>
 
-<p>A true perl6-like and efficient object system is in work, and a lot of support had been added already: Core and User-types, handling of restricted stashes, parsing the new syntax, efficient fields and compile-time role composition.</p>
+<p>A true perl6-like and efficient object system is in work, but not yet enabled publicly, but internally a lot of support had been added already: Core and User-types, handling of restricted stashes and compile-time inheritance. It supports the perl6-like syntax for class, method, has, roles (mixins, compile-time composable classes), method modifiers (:before, :after, :around), multiple type dispatch (multi, no need to overload methods), finalizable classes (compile-time optimizations) and easier perl6-like syntax, which closely resembles early perl6 designs, Damian Conway&#39;s perl5i and <code>Moose</code> without its massive overhead.</p>
 
-<p>One cannot just add classes and objects to core without a type system first.</p>
+<p>There&#39;s no <b>MOP</b> (meta-object protocol), but reflection. There&#39;s no need to override the internal behavior of the object system, the dispatch, the class and role layout.</p>
 
-<p>It supports the perl6-like syntax for class, method, has, roles (mixins, compile-time composable classes), is, does, finalized classes (compile-time optimizations). Later method modifiers (:before, :after, :around), multiple type dispatch (multi, no need to overload methods), and easier perl6-like syntax, which closely resembles early perl6 designs, Damian Conway&#39;s perl5i and <code>Moose</code>, without its massive overhead.</p>
-
-<p>See <a href="/cperl/perlclass.html">perlclass</a></p>
+<p>See <a>perlclass</a> (NY)</p>
 
 </dd>
 <dt id="types1"><b>types</b></dt>
 <dd>
 
-<p>Types are optional, and make code safer, faster and better documented. cperl includes builtin coretypes, native ffi types, user-defined types and type dispatch, checks, subtype relationships, inference and optimizations on user-defined functions and methods, for XS and PP. Later native aggregate types for arrays, hashes and native classes (structs).</p>
+<p>cperl includes builtin coretypes, and later native types, user-defined types and type dispatch, checks, subtype relationships, inference and optimizations on user-defined functions and methods, for XS and PP.</p>
 
 <p>See <a href="/cperl/perltypes.html">perltypes</a></p>
 
@@ -1010,7 +981,7 @@
 
 <h1 id="Type-links">Type links</h1>
 
-<p>Most dynamic languages are currently in the process to get type support. This happened for perl5 at around 2002, but was never properly led (the developers had to leave p5p) and was then destroyed with 5.10, and then actively blocked for decades. You cannot do an object system without types.</p>
+<p>Most dynamic languages are currently in the process to get type support. This happened for perl5 at around 2002, but was never properly led (the developers had to leave p5p) and was then destroyed with 5.10, and then actively blocked for decades.</p>
 
 <dl>
 
