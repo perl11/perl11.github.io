@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['b',['b',['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ab2d05693952610f937e5acb3c4a8fa1b',1,'b():&#160;syntax.c']]],
   ['boolean_5fname',['BOOLEAN_NAME',['../d4/ddb/objmodel_8c.html#a40a34919d846bd5e054de08b653e27e3',1,'objmodel.c']]],
   ['bytes_5falign',['BYTES_ALIGN',['../d1/db0/string_8c.html#a24c85e6e863a435d368a0d444434107b',1,'string.c']]],
   ['bytes_5fchunk',['BYTES_CHUNK',['../d1/db0/string_8c.html#ab9452682446088dbaf264d24e6cda879',1,'string.c']]],

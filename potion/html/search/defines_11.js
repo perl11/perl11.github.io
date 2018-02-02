@@ -7,7 +7,6 @@ var searchData=
   ['sig_5fexpr_5fmsg',['SIG_EXPR_MSG',['../d2/d47/compile_8c.html#ae22b9133dea54b4dc71a98651992ea66',1,'compile.c']]],
   ['src_5ftuple_5fat',['SRC_TUPLE_AT',['../d2/d47/compile_8c.html#a3349ae3cedaf27042690e11ba6b40309',1,'compile.c']]],
   ['stack_5fmax',['STACK_MAX',['../de/de9/vm_8c.html#a27b296fccb4da1e9cfcf1f9c810e619e',1,'vm.c']]],
-  ['stringify',['STRINGIFY',['../de/de9/vm_8c.html#aaba147344d60f707eef54bd8cd116854',1,'vm.c']]],
   ['swap',['SWAP',['../dc/d33/table_8c.html#aac9153aee4bdb92701df902e06a74eb3',1,'table.c']]],
   ['switch_5fend',['SWITCH_END',['../de/de9/vm_8c.html#a886e28203c262455d99122704a9f0be9',1,'vm.c']]],
   ['switch_5fstart',['SWITCH_START',['../de/de9/vm_8c.html#afcab46b56d9082d983c0b03989e590ee',1,'vm.c']]]

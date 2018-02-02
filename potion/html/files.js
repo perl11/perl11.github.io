@@ -20,6 +20,7 @@ var files =
     [ "number.c", "de/d2f/number_8c.html", "de/d2f/number_8c" ],
     [ "objmodel.c", "d4/ddb/objmodel_8c.html", "d4/ddb/objmodel_8c" ],
     [ "opcodes.h", "d3/de6/opcodes_8h.html", "d3/de6/opcodes_8h" ],
+    [ "pcg_basic.c", "d8/dcd/pcg__basic_8c.html", "d8/dcd/pcg__basic_8c" ],
     [ "potion.c", "d5/d1a/potion_8c.html", "d5/d1a/potion_8c" ],
     [ "potion.h", "dd/d07/potion_8h.html", "dd/d07/potion_8h" ],
     [ "primitive.c", "df/d8d/primitive_8c.html", "df/d8d/primitive_8c" ],

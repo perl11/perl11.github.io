@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['khint_5ft',['khint_t',['../d2/deb/khash_8h.html#a16631ac6535cfad33ad40ad038d05911',1,'khash.h']]],
-  ['khiter_5ft',['khiter_t',['../d2/deb/khash_8h.html#a3583e51109969a55bff12293f468da5e',1,'khash.h']]]
+  ['greg',['GREG',['../df/d2c/syntax_8c.html#a91bc3c46fd1ee5b28860bf9e46b568f5',1,'syntax.c']]]
 ];

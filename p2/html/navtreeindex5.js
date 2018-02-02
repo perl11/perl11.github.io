@@ -1,7 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"dd/d07/potion_8h.html#a14b97f408a759d89d44315c4a09871c1":[6,0,26,132],
-"dd/d07/potion_8h.html#a155551c7be68fc3bcdda232f9fc81ad8":[6,0,26,299],
 "dd/d07/potion_8h.html#a15b67716fb794cd4d36e47b78066caf1":[6,0,26,27],
 "dd/d07/potion_8h.html#a15b883c85b3f6c5efd82ac28b9c8ec19":[6,0,26,229],
 "dd/d07/potion_8h.html#a166b78c8b3fbb9f710464b640b8dea66":[6,0,26,246],
@@ -52,7 +50,6 @@ var NAVTREEINDEX5 =
 "dd/d07/potion_8h.html#a36487c345a8754f5ba408c469ffe6bcc":[6,0,26,275],
 "dd/d07/potion_8h.html#a367f0e65db47df12c76112d3d31dea58":[6,0,26,147],
 "dd/d07/potion_8h.html#a3696d84390d1e544c67e94e09223aff3":[6,0,26,37],
-"dd/d07/potion_8h.html#a379eb2d85edbd0feb194ade07f646dc4":[6,0,26,162],
 "dd/d07/potion_8h.html#a37ee127c6b7c3763cf9705e18182e0de":[6,0,26,88],
 "dd/d07/potion_8h.html#a38ddc306fe6e98a5ee2112b061793981":[6,0,26,33],
 "dd/d07/potion_8h.html#a3950b3dc3d6dbbfb9ff721cf34ec49cd":[6,0,26,169],
@@ -100,6 +97,7 @@ var NAVTREEINDEX5 =
 "dd/d07/potion_8h.html#a5bf8843c35fa0e86977c2fa4719dbfc9":[6,0,26,118],
 "dd/d07/potion_8h.html#a5dc440252f67907b3b90463dc0f3a0be":[6,0,26,181],
 "dd/d07/potion_8h.html#a5dfc6ce1f183a351d4727c5e4cf4a6a6":[6,0,26,289],
+"dd/d07/potion_8h.html#a5f11775e5acaee5914ab2a32b4afd8ad":[6,0,26,163],
 "dd/d07/potion_8h.html#a5f510dc2505a9d00ad7052f674b670d7":[6,0,26,277],
 "dd/d07/potion_8h.html#a5f89bd5e67e108c3e9b3ed303fda32ef":[6,0,26,218],
 "dd/d07/potion_8h.html#a60013a7af1b4b92387bdc441d3514f90":[6,0,26,293],
@@ -249,5 +247,7 @@ var NAVTREEINDEX5 =
 "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a79af01e41e95cf68645c72737bfdf6bc":[6,0,26,164,15],
 "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a8259af6fb4271566edebadc69332e61e":[6,0,26,164,21],
 "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a85f84b8ef5ddee418fe56edebc181db8":[6,0,26,164,4],
-"dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a941b1d8abfa2830fdab3c780daa98a5e":[6,0,26,164,31]
+"dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a941b1d8abfa2830fdab3c780daa98a5e":[6,0,26,164,31],
+"dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a98fd0f03b38f6590eb28c3fe81a46631":[6,0,26,164,30],
+"dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9aaffa5b82fd0e3441dd95a940c709127e":[6,0,26,164,34]
 };

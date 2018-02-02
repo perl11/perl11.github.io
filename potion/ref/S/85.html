@@ -1,348 +1,597 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>lib/readline/win32fixes.h</title>
+<title>lib/readline/win32fixes.c</title>
 <meta name='robots' content='noindex,nofollow' />
-<meta name='generator' content='GLOBAL-6.5.1' />
+<meta name='generator' content='GLOBAL-6.5.7' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/204.html'>lib</a>/<a href='../files/205.html'>readline</a>/win32fixes.h</h2>
-<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/208.html'>lib</a>/<a href='../files/209.html'>readline</a>/win32fixes.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L31'>[^]</a><a href='#L530'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
-<h2 class='header'><a href='../J/39.html' title='Multiple included from 2 places.'>INCLUDED FROM</a></h2>
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L31' title='Defined at 31.'>w32initWinSock</a></li>
+<li><a href='#L48' title='Defined at 48.'>sigaction</a></li>
+<li><a href='#L62' title='Defined at 62.'>kill</a></li>
+<li><a href='#L83' title='Defined at 83.'>fsync</a></li>
+<li><a href='#L110' title='Defined at 110.'>wait3</a></li>
+<li><a href='#L118' title='Defined at 118.'>replace_random</a></li>
+<li><a href='#L131' title='Defined at 131.'>replace_setsockopt</a></li>
+<li><a href='#L136' title='Defined at 136.'>replace_ftruncate</a></li>
+<li><a href='#L154' title='Defined at 154.'>replace_rename</a></li>
+<li><a href='#L183' title='Defined at 183.'>win32_proxy_threadproc</a></li>
+<li><a href='#L195' title='Defined at 195.'>pthread_create</a></li>
+<li><a href='#L223' title='Defined at 223.'>pthread_detach</a></li>
+<li><a href='#L228' title='Defined at 228.'>pthread_self</a></li>
+<li><a href='#L232' title='Defined at 232.'>win32_pthread_join</a></li>
+<li><a href='#L250' title='Defined at 250.'>pthread_cond_init</a></li>
+<li><a href='#L275' title='Defined at 275.'>pthread_cond_destroy</a></li>
+<li><a href='#L282' title='Defined at 282.'>pthread_cond_wait</a></li>
+<li><a href='#L339' title='Defined at 339.'>pthread_cond_signal</a></li>
+<li><a href='#L362' title='Defined at 362.'>fork</a></li>
+<li><a href='#L367' title='Defined at 367.'>getrusage</a></li>
+<li><a href='#L424' title='Defined at 424.'>gettimeofday</a></li>
+<li><a href='#L461' title='Defined at 461.'>wstrtod</a></li>
+<li><a href='#L505' title='Defined at 505.'>strerror_r</a></li>
+<li><a href='#L530' title='Defined at 530.'>wsa_strerror</a></li>
+</ol>
 <hr />
 <pre>
 <a id='L1' name='L1'></a><em class='comment'>/*</em>
 <a id='L2' name='L2'></a><em class='comment'>* Modified by Henry Rawas (henryr@schakra.com)</em>
 <a id='L3' name='L3'></a><em class='comment'>*  - make it compatible with Visual Studio builds</em>
 <a id='L4' name='L4'></a><em class='comment'>*  - added wstrtod to handle INF, NAN</em>
-<a id='L5' name='L5'></a><em class='comment'>*  - added support for using IOCP with sockets</em>
-<a id='L6' name='L6'></a><em class='comment'>*/</em>
-<a id='L7' name='L7'></a>
-<a id='L8' name='L8'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L9' title='Defined at 9 in lib/readline/win32fixes.h.'>WIN32FIXES_H</a>
-<a id='L9' name='L9'></a><em class='sharp'>#define</em> <a href='../S/85.html#L8' title='Referred from 8 in lib/readline/win32fixes.h.'>WIN32FIXES_H</a>
+<a id='L5' name='L5'></a><em class='comment'>*  - added gettimeofday routine</em>
+<a id='L6' name='L6'></a><em class='comment'>*  - modified rename to retry after failure</em>
+<a id='L7' name='L7'></a><em class='comment'>*/</em>
+<a id='L8' name='L8'></a>
+<a id='L9' name='L9'></a><em class='sharp'>#ifdef</em> <a href='../S/86.html#L13' title='Defined at 13 in lib/readline/win32fixes.h.'>_WIN32</a>
 <a id='L10' name='L10'></a>
-<a id='L11' name='L11'></a><em class='sharp'>#ifdef</em> WIN32
-<a id='L12' name='L12'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L13' title='Defined at 13 in lib/readline/win32fixes.h.'>_WIN32</a>
-<a id='L13' name='L13'></a><em class='sharp'>#define</em> <a href='../R/578.html' title='Multiple referred from 22 places.'>_WIN32</a>
-<a id='L14' name='L14'></a><em class='sharp'>#endif</em>
-<a id='L15' name='L15'></a><em class='sharp'>#endif</em>
-<a id='L16' name='L16'></a>
-<a id='L17' name='L17'></a><em class='sharp'>#ifdef</em> <a href='../S/85.html#L13' title='Defined at 13 in lib/readline/win32fixes.h.'>_WIN32</a>
-<a id='L18' name='L18'></a><em class='sharp'>#define</em> WIN32_LEAN_AND_MEAN
-<a id='L19' name='L19'></a><em class='sharp'>#define</em> NOGDI
-<a id='L20' name='L20'></a><em class='sharp'>#define</em> __USE_W32_SOCKETS
-<a id='L21' name='L21'></a>
-<a id='L22' name='L22'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
-<a id='L23' name='L23'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
-<a id='L24' name='L24'></a><em class='sharp'>#include</em> &lt;io.h&gt;
-<a id='L25' name='L25'></a><em class='sharp'>#include</em> &lt;signal.h&gt;
-<a id='L26' name='L26'></a><em class='sharp'>#include</em> &lt;sys/types.h&gt;
-<a id='L27' name='L27'></a><em class='sharp'>#ifndef</em> <a href='../D/168.html' title='Multiple defined in 2 places.'>FD_SETSIZE</a>
-<a id='L28' name='L28'></a><em class='sharp'>#define</em> <a href='../R/153.html' title='Multiple referred from 2 places.'>FD_SETSIZE</a> 16000
-<a id='L29' name='L29'></a><em class='sharp'>#endif</em>
-<a id='L30' name='L30'></a><em class='sharp'>#include</em> &lt;winsock2.h&gt;  <em class='comment'>/* setsocketopt */</em>
-<a id='L31' name='L31'></a><em class='sharp'>#include</em> &lt;ws2tcpip.h&gt;
-<a id='L32' name='L32'></a><em class='sharp'>#include</em> &lt;windows.h&gt;
-<a id='L33' name='L33'></a><em class='sharp'>#include</em> &lt;float.h&gt;
-<a id='L34' name='L34'></a><em class='sharp'>#include</em> &lt;fcntl.h&gt;    <em class='comment'>/* _O_BINARY */</em>
-<a id='L35' name='L35'></a><em class='sharp'>#include</em> &lt;limits.h&gt;  <em class='comment'>/* INT_MAX */</em>
-<a id='L36' name='L36'></a><em class='sharp'>#include</em> &lt;process.h&gt;
-<a id='L37' name='L37'></a><em class='sharp'>#include</em> &lt;sys/types.h&gt;
-<a id='L38' name='L38'></a>
-<a id='L39' name='L39'></a><em class='comment'>// mingw32 only</em>
-<a id='L40' name='L40'></a><em class='comment'>//#if !defined(__MINGW_SCANF_FORMAT)</em>
-<a id='L41' name='L41'></a><em class='comment'>//#include "fmacros.h"</em>
-<a id='L42' name='L42'></a><em class='comment'>//#endif</em>
+<a id='L11' name='L11'></a><em class='sharp'>#include</em> &lt;process.h&gt;
+<a id='L12' name='L12'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
+<a id='L13' name='L13'></a><em class='sharp'>#include</em> &lt;errno.h&gt;
+<a id='L14' name='L14'></a><em class='sharp'>#ifndef</em> <a href='../D/168.html' title='Multiple defined in 2 places.'>FD_SETSIZE</a>
+<a id='L15' name='L15'></a><em class='sharp'>#  define</em> <a href='../R/153.html' title='Multiple referred from 2 places.'>FD_SETSIZE</a> 16000
+<a id='L16' name='L16'></a><em class='sharp'>#endif</em>
+<a id='L17' name='L17'></a><em class='sharp'>#include</em> &lt;winsock2.h&gt;
+<a id='L18' name='L18'></a><em class='sharp'>#include</em> &lt;windows.h&gt;
+<a id='L19' name='L19'></a><em class='sharp'>#include</em> &lt;signal.h&gt;
+<a id='L20' name='L20'></a><em class='sharp'>#include</em> &lt;time.h&gt;
+<a id='L21' name='L21'></a><em class='sharp'>#include</em> &lt;locale.h&gt;
+<a id='L22' name='L22'></a><em class='sharp'>#include</em> &lt;math.h&gt;
+<a id='L23' name='L23'></a><em class='sharp'>#include</em> "<a href='86.html'>win32fixes.h</a>"
+<a id='L24' name='L24'></a>
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a><em class='comment'>/* Redefined here to avoid redis.h so it can be used in other projects */</em>
+<a id='L27' name='L27'></a><em class='sharp'>#define</em> <a href='../R/207.html' title='Multiple referred from 12 places.'>NOTUSED</a>(V) ((<strong class='reserved'>void</strong>) V)
+<a id='L28' name='L28'></a><em class='sharp'>#define</em> <a href='../S/85.html#L208' title='Referred from 208 in lib/readline/win32fixes.c.'>THREAD_STACK_SIZE</a> (1024*1024*4)
+<a id='L29' name='L29'></a>
+<a id='L30' name='L30'></a><em class='comment'>/* Winsock requires library initialization on startup  */</em>
+<a id='L31' name='L31'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L285' title='Referred from 285 in lib/readline/win32fixes.h.'>w32initWinSock</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L32' name='L32'></a>
+<a id='L33' name='L33'></a>    WSADATA t_wsa;
+<a id='L34' name='L34'></a>    WORD wVers;
+<a id='L35' name='L35'></a>    <strong class='reserved'>int</strong> iError;
+<a id='L36' name='L36'></a>
+<a id='L37' name='L37'></a>    wVers = MAKEWORD(2, 2);
+<a id='L38' name='L38'></a>    iError = WSAStartup(wVers, &amp;t_wsa);
+<a id='L39' name='L39'></a>
+<a id='L40' name='L40'></a>    <strong class='reserved'>if</strong>(iError != NO_ERROR || LOBYTE(t_wsa.wVersion) != 2 || HIBYTE(t_wsa.wVersion) != 2 ) <em class='brace'>{</em>
+<a id='L41' name='L41'></a>        <strong class='reserved'>return</strong> 0; <em class='comment'>/* not done; check WSAGetLastError() for error number */</em>
+<a id='L42' name='L42'></a>    <em class='brace'>}</em>;
 <a id='L43' name='L43'></a>
-<a id='L44' name='L44'></a><em class='sharp'>#define</em> fseeko <a href='../S/85.html#L60' title='Defined at 60 in lib/readline/win32fixes.h.'>fseeko64</a>
-<a id='L45' name='L45'></a><em class='sharp'>#define</em> ftello <a href='../S/85.html#L59' title='Defined at 59 in lib/readline/win32fixes.h.'>ftello64</a>
+<a id='L44' name='L44'></a>    <strong class='reserved'>return</strong> 1;
+<a id='L45' name='L45'></a><em class='brace'>}</em>
 <a id='L46' name='L46'></a>
-<a id='L47' name='L47'></a><em class='sharp'>#define</em> <strong class='reserved'>inline</strong> <strong class='reserved'>__inline</strong>
-<a id='L48' name='L48'></a>
-<a id='L49' name='L49'></a><em class='sharp'>#undef</em> ftruncate
-<a id='L50' name='L50'></a><em class='sharp'>#define</em> ftruncate <a href='../S/84.html#L136' title='Defined at 136 in lib/readline/win32fixes.c.'>replace_ftruncate</a>
-<a id='L51' name='L51'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L52' title='Defined at 52 in lib/readline/win32fixes.h.'>off64_t</a>
-<a id='L52' name='L52'></a><em class='sharp'>#define</em> <a href='../R/798.html' title='Multiple referred from 3 places.'>off64_t</a> off_t
-<a id='L53' name='L53'></a><em class='sharp'>#endif</em>
-<a id='L54' name='L54'></a>
-<a id='L55' name='L55'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L136' title='Defined at 136 in lib/readline/win32fixes.c.'>replace_ftruncate</a>(<strong class='reserved'>int</strong> fd, <a href='../S/85.html#L52' title='Defined at 52 in lib/readline/win32fixes.h.'>off64_t</a> length);
-<a id='L56' name='L56'></a>
+<a id='L47' name='L47'></a><em class='comment'>/* Behaves as posix, works without ifdefs, makes compiler happy */</em>
+<a id='L48' name='L48'></a><strong class='reserved'>int</strong> <a href='../D/1562.html' title='Multiple defined in 2 places.'>sigaction</a>(<strong class='reserved'>int</strong> sig, <strong class='reserved'>struct</strong> <a href='../D/1562.html' title='Multiple defined in 2 places.'>sigaction</a> *in, <strong class='reserved'>struct</strong> <a href='../R/1213.html' title='Multiple referred from 2 places.'>sigaction</a> *out) <em class='brace'>{</em>
+<a id='L49' name='L49'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(out);
+<a id='L50' name='L50'></a>
+<a id='L51' name='L51'></a>    <em class='comment'>/* When the SA_SIGINFO flag is set in sa_flags then sa_sigaction</em>
+<a id='L52' name='L52'></a><em class='comment'>     * is used. Otherwise, sa_handler is used */</em>
+<a id='L53' name='L53'></a>    <strong class='reserved'>if</strong> (in-&gt;sa_flags &amp; <a href='../S/86.html#L174' title='Defined at 174 in lib/readline/win32fixes.h.'>SA_SIGINFO</a>)
+<a id='L54' name='L54'></a>        signal(sig, in-&gt;sa_sigaction);
+<a id='L55' name='L55'></a>    <strong class='reserved'>else</strong>
+<a id='L56' name='L56'></a>        signal(sig, in-&gt;sa_handler);
 <a id='L57' name='L57'></a>
-<a id='L58' name='L58'></a><em class='sharp'>#define</em> <a href='../R/1203.html' title='Multiple referred from 4 places.'>snprintf</a> _snprintf
-<a id='L59' name='L59'></a><em class='sharp'>#define</em> <a href='../S/85.html#L45' title='Referred from 45 in lib/readline/win32fixes.h.'>ftello64</a> _ftelli64
-<a id='L60' name='L60'></a><em class='sharp'>#define</em> <a href='../S/85.html#L44' title='Referred from 44 in lib/readline/win32fixes.h.'>fseeko64</a> _fseeki64
-<a id='L61' name='L61'></a><em class='sharp'>#define</em> <a href='../S/80.html#L256' title='Referred from 256 in lib/readline/linenoise.c.'>strcasecmp</a> _stricmp
-<a id='L62' name='L62'></a><em class='sharp'>#define</em> strtoll _strtoi64
-<a id='L63' name='L63'></a><em class='sharp'>#ifndef</em> _MATH_H_
-<a id='L64' name='L64'></a><em class='sharp'>  #define</em> isnan _isnan
-<a id='L65' name='L65'></a><em class='sharp'>  #define</em> isfinite _finite
-<a id='L66' name='L66'></a><em class='sharp'>  #define</em> isinf(x) (!_finite(x))
-<a id='L67' name='L67'></a><em class='sharp'>#endif</em>
-<a id='L68' name='L68'></a><em class='sharp'>#define</em> lseek64 lseek
-<a id='L69' name='L69'></a><em class='comment'>/* following defined to choose little endian byte order */</em>
-<a id='L70' name='L70'></a><em class='sharp'>#define</em> __i386__ 1
-<a id='L71' name='L71'></a><em class='sharp'>#if</em> !<strong class='reserved'>defined</strong>(<a href='../S/85.html#L72' title='Defined at 72 in lib/readline/win32fixes.h.'>va_copy</a>)
-<a id='L72' name='L72'></a><em class='sharp'>#define</em> <a href='../S/85.html#L71' title='Referred from 71 in lib/readline/win32fixes.h.'>va_copy</a>(d,s)  d = (s)
-<a id='L73' name='L73'></a><em class='sharp'>#endif</em>
-<a id='L74' name='L74'></a>
-<a id='L75' name='L75'></a><em class='sharp'>#define</em> sleep(x) Sleep((x)*1000)
-<a id='L76' name='L76'></a>
-<a id='L77' name='L77'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L78' title='Defined at 78 in lib/readline/win32fixes.h.'>__RTL_GENRANDOM</a>
-<a id='L78' name='L78'></a><em class='sharp'>#define</em> <a href='../S/85.html#L77' title='Referred from 77 in lib/readline/win32fixes.h.'>__RTL_GENRANDOM</a> 1
-<a id='L79' name='L79'></a><strong class='reserved'>typedef</strong> BOOLEAN (_stdcall* RtlGenRandomFunc)(<strong class='reserved'>void</strong> * RandomBuffer, ULONG RandomBufferLength);
-<a id='L80' name='L80'></a><em class='sharp'>#endif</em>
-<a id='L81' name='L81'></a>RtlGenRandomFunc RtlGenRandom;
-<a id='L82' name='L82'></a>
-<a id='L83' name='L83'></a><em class='sharp'>#define</em> random() (<strong class='reserved'>long</strong>)<a href='../S/84.html#L118' title='Defined at 118 in lib/readline/win32fixes.c.'>replace_random</a>()
-<a id='L84' name='L84'></a><em class='sharp'>#define</em> rand() <a href='../S/84.html#L118' title='Defined at 118 in lib/readline/win32fixes.c.'>replace_random</a>()
-<a id='L85' name='L85'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L118' title='Defined at 118 in lib/readline/win32fixes.c.'>replace_random</a>();
+<a id='L58' name='L58'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L59' name='L59'></a><em class='brace'>}</em>
+<a id='L60' name='L60'></a>
+<a id='L61' name='L61'></a><em class='comment'>/* Terminates process, implemented only for SIGKILL */</em>
+<a id='L62' name='L62'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L281' title='Referred from 281 in lib/readline/win32fixes.h.'>kill</a>(<a href='../S/86.html#L197' title='Defined at 197 in lib/readline/win32fixes.h.'>pid_t</a> pid, <strong class='reserved'>int</strong> sig) <em class='brace'>{</em>
+<a id='L63' name='L63'></a>
+<a id='L64' name='L64'></a>    <strong class='reserved'>if</strong> (sig == <a href='../S/86.html#L152' title='Defined at 152 in lib/readline/win32fixes.h.'>SIGKILL</a>) <em class='brace'>{</em>
+<a id='L65' name='L65'></a>
+<a id='L66' name='L66'></a>        HANDLE h = OpenProcess(PROCESS_TERMINATE, 0, pid);
+<a id='L67' name='L67'></a>
+<a id='L68' name='L68'></a>        <strong class='reserved'>if</strong> (!TerminateProcess(h, 127)) <em class='brace'>{</em>
+<a id='L69' name='L69'></a>            errno = EINVAL; <em class='comment'>/* GetLastError() */</em>
+<a id='L70' name='L70'></a>            CloseHandle(h);
+<a id='L71' name='L71'></a>            <strong class='reserved'>return</strong> -1;
+<a id='L72' name='L72'></a>        <em class='brace'>}</em>;
+<a id='L73' name='L73'></a>
+<a id='L74' name='L74'></a>        CloseHandle(h);
+<a id='L75' name='L75'></a>        <strong class='reserved'>return</strong> 0;
+<a id='L76' name='L76'></a>    <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L77' name='L77'></a>        errno = EINVAL;
+<a id='L78' name='L78'></a>        <strong class='reserved'>return</strong> -1;
+<a id='L79' name='L79'></a>    <em class='brace'>}</em>;
+<a id='L80' name='L80'></a><em class='brace'>}</em>
+<a id='L81' name='L81'></a>
+<a id='L82' name='L82'></a><em class='comment'>/* Forced write to disk */</em>
+<a id='L83' name='L83'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L282' title='Referred from 282 in lib/readline/win32fixes.h.'>fsync</a> (<strong class='reserved'>int</strong> fd) <em class='brace'>{</em>
+<a id='L84' name='L84'></a>    HANDLE h = (HANDLE) _get_osfhandle(fd);
+<a id='L85' name='L85'></a>    DWORD err;
 <a id='L86' name='L86'></a>
-<a id='L87' name='L87'></a><em class='comment'>//#if !defined(ssize_t)</em>
-<a id='L88' name='L88'></a><em class='comment'>//typedef int ssize_t;</em>
-<a id='L89' name='L89'></a><em class='comment'>//#endif</em>
-<a id='L90' name='L90'></a>
-<a id='L91' name='L91'></a><em class='sharp'>#if</em> !<strong class='reserved'>defined</strong>(<a href='../S/85.html#L92' title='Defined at 92 in lib/readline/win32fixes.h.'>mode_t</a>)
-<a id='L92' name='L92'></a><em class='sharp'>#define</em> <a href='../R/792.html' title='Multiple referred from 3 places.'>mode_t</a> <strong class='reserved'>long</strong>
-<a id='L93' name='L93'></a><em class='sharp'>#endif</em>
-<a id='L94' name='L94'></a>
-<a id='L95' name='L95'></a><em class='sharp'>#if</em> !<strong class='reserved'>defined</strong>(<a href='../S/85.html#L97' title='Defined at 97 in lib/readline/win32fixes.h.'>u_int32_t</a>)
-<a id='L96' name='L96'></a><em class='comment'>/* sha1 */</em>
-<a id='L97' name='L97'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>unsigned</strong> __int32 <a href='../S/85.html#L95' title='Referred from 95 in lib/readline/win32fixes.h.'>u_int32_t</a>;
-<a id='L98' name='L98'></a><em class='sharp'>#endif</em>
+<a id='L87' name='L87'></a>    <strong class='reserved'>if</strong> (h == INVALID_HANDLE_VALUE) <em class='brace'>{</em>
+<a id='L88' name='L88'></a>        errno = EBADF;
+<a id='L89' name='L89'></a>        <strong class='reserved'>return</strong> -1;
+<a id='L90' name='L90'></a>    <em class='brace'>}</em>
+<a id='L91' name='L91'></a>
+<a id='L92' name='L92'></a>    <strong class='reserved'>if</strong> (!FlushFileBuffers(h)) <em class='brace'>{</em>
+<a id='L93' name='L93'></a>        <em class='comment'>/* Windows error -&gt; Unix */</em>
+<a id='L94' name='L94'></a>        err = GetLastError();
+<a id='L95' name='L95'></a>        <strong class='reserved'>switch</strong> (err) <em class='brace'>{</em>
+<a id='L96' name='L96'></a>            <strong class='reserved'>case</strong> ERROR_INVALID_HANDLE:
+<a id='L97' name='L97'></a>            errno = EINVAL;
+<a id='L98' name='L98'></a>            <strong class='reserved'>break</strong>;
 <a id='L99' name='L99'></a>
-<a id='L100' name='L100'></a><em class='comment'>/* Redis calls usleep(1) to give thread some time</em>
-<a id='L101' name='L101'></a><em class='comment'>* Sleep(0) should do the same on windows</em>
-<a id='L102' name='L102'></a><em class='comment'>* In other cases, usleep is called with milisec resolution,</em>
-<a id='L103' name='L103'></a><em class='comment'>* which can be directly translated to winapi Sleep() */</em>
-<a id='L104' name='L104'></a><em class='sharp'>#undef</em> usleep
-<a id='L105' name='L105'></a><em class='sharp'>#define</em> usleep(x) (x == 1) ? Sleep(0) : Sleep((<strong class='reserved'>int</strong>)((x)/1000))
-<a id='L106' name='L106'></a>
-<a id='L107' name='L107'></a><em class='sharp'>#define</em> <a href='../R/802.html' title='Multiple referred from 18 places.'>pipe</a>(fds) _pipe(fds, 8192, _O_BINARY|_O_NOINHERIT)
+<a id='L100' name='L100'></a>            <strong class='reserved'>default</strong>:
+<a id='L101' name='L101'></a>            errno = EIO;
+<a id='L102' name='L102'></a>        <em class='brace'>}</em>
+<a id='L103' name='L103'></a>        <strong class='reserved'>return</strong> -1;
+<a id='L104' name='L104'></a>    <em class='brace'>}</em>
+<a id='L105' name='L105'></a>
+<a id='L106' name='L106'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L107' name='L107'></a><em class='brace'>}</em>
 <a id='L108' name='L108'></a>
-<a id='L109' name='L109'></a><em class='comment'>/* Processes */</em>
-<a id='L110' name='L110'></a><em class='sharp'>#define</em> <a href='../S/84.html#L114' title='Referred from 114 in lib/readline/win32fixes.c.'>waitpid</a>(pid,statusp,options) _cwait (statusp, pid, WAIT_CHILD)
-<a id='L111' name='L111'></a>
-<a id='L112' name='L112'></a><em class='sharp'>#define</em> WAIT_T <strong class='reserved'>int</strong>
-<a id='L113' name='L113'></a><em class='sharp'>#define</em> <a href='../R/549.html' title='Multiple referred from 2 places.'>WTERMSIG</a>(x) ((x) &amp; 0xff) <em class='comment'>/* or: SIGABRT ?? */</em>
-<a id='L114' name='L114'></a><em class='sharp'>#define</em> WCOREDUMP(x) 0
-<a id='L115' name='L115'></a><em class='sharp'>#define</em> WEXITSTATUS(x) (((x) &gt;&gt; 8) &amp; 0xff) <em class='comment'>/* or: (x) ?? */</em>
-<a id='L116' name='L116'></a><em class='sharp'>#define</em> WIFSIGNALED(x) (<a href='../S/85.html#L113' title='Defined at 113 in lib/readline/win32fixes.h.'>WTERMSIG</a> (x) != 0) <em class='comment'>/* or: ((x) == 3) ?? */</em>
-<a id='L117' name='L117'></a><em class='sharp'>#define</em> WIFEXITED(x) (<a href='../S/85.html#L113' title='Defined at 113 in lib/readline/win32fixes.h.'>WTERMSIG</a> (x) == 0) <em class='comment'>/* or: ((x) != 3) ?? */</em>
-<a id='L118' name='L118'></a><em class='sharp'>#define</em> WIFSTOPPED(x) 0
-<a id='L119' name='L119'></a>
-<a id='L120' name='L120'></a><em class='sharp'>#define</em> WNOHANG 1
-<a id='L121' name='L121'></a>
-<a id='L122' name='L122'></a><em class='comment'>/* file mapping */</em>
-<a id='L123' name='L123'></a><em class='sharp'>#define</em> <a href='../S/12.html#L92' title='Referred from 92 in core/contrib.c.'>PROT_READ</a> 1
-<a id='L124' name='L124'></a><em class='sharp'>#define</em> <a href='../S/12.html#L92' title='Referred from 92 in core/contrib.c.'>PROT_WRITE</a> 2
-<a id='L125' name='L125'></a>
-<a id='L126' name='L126'></a><em class='sharp'>#define</em> <a href='../S/12.html#L94' title='Referred from 94 in core/contrib.c.'>MAP_FAILED</a>   (<strong class='reserved'>void</strong> *) -1
-<a id='L127' name='L127'></a>
-<a id='L128' name='L128'></a><em class='sharp'>#define</em> MAP_SHARED 1
-<a id='L129' name='L129'></a><em class='sharp'>#define</em> <a href='../S/12.html#L93' title='Referred from 93 in core/contrib.c.'>MAP_PRIVATE</a> 2
-<a id='L130' name='L130'></a>
-<a id='L131' name='L131'></a><em class='comment'>/* rusage */</em>
-<a id='L132' name='L132'></a><em class='sharp'>#define</em> <a href='../S/84.html#L379' title='Referred from 379 in lib/readline/win32fixes.c.'>RUSAGE_SELF</a>     0
-<a id='L133' name='L133'></a><em class='sharp'>#define</em> <a href='../S/84.html#L391' title='Referred from 391 in lib/readline/win32fixes.c.'>RUSAGE_CHILDREN</a> (-1)
+<a id='L109' name='L109'></a><em class='comment'>/* Missing wait3() implementation */</em>
+<a id='L110' name='L110'></a><a href='../S/86.html#L197' title='Defined at 197 in lib/readline/win32fixes.h.'>pid_t</a> <a href='../S/86.html#L283' title='Referred from 283 in lib/readline/win32fixes.h.'>wait3</a>(<strong class='reserved'>int</strong> *stat_loc, <strong class='reserved'>int</strong> options, <strong class='reserved'>void</strong> *<a href='../S/86.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a>) <em class='brace'>{</em>
+<a id='L111' name='L111'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(stat_loc);
+<a id='L112' name='L112'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(options);
+<a id='L113' name='L113'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(<a href='../S/86.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a>);
+<a id='L114' name='L114'></a>    <strong class='reserved'>return</strong> (<a href='../S/86.html#L197' title='Defined at 197 in lib/readline/win32fixes.h.'>pid_t</a>) <a href='../S/86.html#L110' title='Defined at 110 in lib/readline/win32fixes.h.'>waitpid</a>((intptr_t) -1, 0, WAIT_FLAGS);
+<a id='L115' name='L115'></a><em class='brace'>}</em>
+<a id='L116' name='L116'></a>
+<a id='L117' name='L117'></a><em class='comment'>/* Replace MS C rtl rand which is 15bit with 32 bit */</em>
+<a id='L118' name='L118'></a><strong class='reserved'>int</strong> <a href='../R/1206.html' title='Multiple referred from 3 places.'>replace_random</a>() <em class='brace'>{</em>
+<a id='L119' name='L119'></a>    <strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong> x=0;
+<a id='L120' name='L120'></a>    <strong class='reserved'>if</strong> (RtlGenRandom == NULL) <em class='brace'>{</em>
+<a id='L121' name='L121'></a>        <em class='comment'>// load proc if not loaded</em>
+<a id='L122' name='L122'></a>        HMODULE lib = LoadLibraryA("advapi32.dll");
+<a id='L123' name='L123'></a>        RtlGenRandom = (RtlGenRandomFunc)GetProcAddress(lib, "SystemFunction036");
+<a id='L124' name='L124'></a>        <strong class='reserved'>if</strong> (RtlGenRandom == NULL) <strong class='reserved'>return</strong> 1;
+<a id='L125' name='L125'></a>    <em class='brace'>}</em>
+<a id='L126' name='L126'></a>    RtlGenRandom(&amp;x, <strong class='reserved'>sizeof</strong>(UINT_MAX));
+<a id='L127' name='L127'></a>    <strong class='reserved'>return</strong> (<strong class='reserved'>int</strong>)(x &gt;&gt; 1);
+<a id='L128' name='L128'></a><em class='brace'>}</em>
+<a id='L129' name='L129'></a>
+<a id='L130' name='L130'></a><em class='comment'>/* BSD sockets compatibile replacement */</em>
+<a id='L131' name='L131'></a><strong class='reserved'>int</strong> <a href='../R/1208.html' title='Multiple referred from 2 places.'>replace_setsockopt</a>(<strong class='reserved'>int</strong> socket, <strong class='reserved'>int</strong> level, <strong class='reserved'>int</strong> optname, <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *optval, socklen_t optlen) <em class='brace'>{</em>
+<a id='L132' name='L132'></a>    <strong class='reserved'>return</strong> (<a href='../S/86.html#L234' title='Defined at 234 in lib/readline/win32fixes.h.'>setsockopt</a>)((SOCKET)socket, level, optname, (<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *)optval, optlen);
+<a id='L133' name='L133'></a><em class='brace'>}</em>
 <a id='L134' name='L134'></a>
-<a id='L135' name='L135'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L136' title='Defined at 136 in lib/readline/win32fixes.h.'>_RUSAGE_T_</a>
-<a id='L136' name='L136'></a><em class='sharp'>#define</em> <a href='../S/85.html#L135' title='Referred from 135 in lib/readline/win32fixes.h.'>_RUSAGE_T_</a>
-<a id='L137' name='L137'></a><strong class='reserved'>struct</strong> <a href='../R/1198.html' title='Multiple referred from 6 places.'>rusage</a> <em class='brace'>{</em>
-<a id='L138' name='L138'></a>    <strong class='reserved'>struct</strong> timeval ru_utime;    <em class='comment'>/* user time used */</em>
-<a id='L139' name='L139'></a>    <strong class='reserved'>struct</strong> timeval ru_stime;    <em class='comment'>/* system time used */</em>
-<a id='L140' name='L140'></a><em class='brace'>}</em>;
-<a id='L141' name='L141'></a><em class='sharp'>#endif</em>
-<a id='L142' name='L142'></a>
-<a id='L143' name='L143'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L367' title='Defined at 367 in lib/readline/win32fixes.c.'>getrusage</a>(<strong class='reserved'>int</strong> who, <strong class='reserved'>struct</strong> <a href='../S/85.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a> * <a href='../S/85.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a>);
+<a id='L135' name='L135'></a><em class='comment'>/* set size with 64bit support */</em>
+<a id='L136' name='L136'></a><strong class='reserved'>int</strong> <a href='../R/1205.html' title='Multiple referred from 2 places.'>replace_ftruncate</a>(<strong class='reserved'>int</strong> fd, <a href='../S/86.html#L52' title='Defined at 52 in lib/readline/win32fixes.h.'>off64_t</a> length) <em class='brace'>{</em>
+<a id='L137' name='L137'></a>    HANDLE h = (HANDLE) _get_osfhandle (fd);
+<a id='L138' name='L138'></a>    LARGE_INTEGER l, o;
+<a id='L139' name='L139'></a>
+<a id='L140' name='L140'></a>    <strong class='reserved'>if</strong> (h == INVALID_HANDLE_VALUE) <em class='brace'>{</em>
+<a id='L141' name='L141'></a>        errno = EBADF;
+<a id='L142' name='L142'></a>        <strong class='reserved'>return</strong> -1;
+<a id='L143' name='L143'></a>    <em class='brace'>}</em>
 <a id='L144' name='L144'></a>
-<a id='L145' name='L145'></a><em class='comment'>/* Signals */</em>
-<a id='L146' name='L146'></a><em class='sharp'>#define</em> SIGNULL  0 <em class='comment'>/* Null      Check access to pid*/</em>
-<a id='L147' name='L147'></a><em class='sharp'>#define</em> SIGHUP   1 <em class='comment'>/* Hangup    Terminate; can be trapped*/</em>
-<a id='L148' name='L148'></a><em class='sharp'>#define</em> SIGINT   2 <em class='comment'>/* Interrupt Terminate; can be trapped */</em>
-<a id='L149' name='L149'></a><em class='sharp'>#define</em> SIGQUIT  3 <em class='comment'>/* Quit      Terminate with core dump; can be trapped */</em>
-<a id='L150' name='L150'></a><em class='sharp'>#define</em> SIGTRAP  5
-<a id='L151' name='L151'></a><em class='sharp'>#define</em> SIGBUS   7
-<a id='L152' name='L152'></a><em class='sharp'>#define</em> <a href='../S/84.html#L64' title='Referred from 64 in lib/readline/win32fixes.c.'>SIGKILL</a>  9 <em class='comment'>/* Kill      Forced termination; cannot be trapped */</em>
-<a id='L153' name='L153'></a><em class='sharp'>#define</em> SIGPIPE 13
-<a id='L154' name='L154'></a><em class='sharp'>#define</em> SIGALRM 14
-<a id='L155' name='L155'></a><em class='sharp'>#define</em> SIGTERM 15 <em class='comment'>/* Terminate Terminate; can be trapped  */</em>
-<a id='L156' name='L156'></a><em class='sharp'>#define</em> SIGSTOP 17
-<a id='L157' name='L157'></a><em class='sharp'>#define</em> SIGTSTP 18
-<a id='L158' name='L158'></a><em class='sharp'>#define</em> SIGCONT 19
-<a id='L159' name='L159'></a><em class='sharp'>#define</em> SIGCHLD 20
-<a id='L160' name='L160'></a><em class='sharp'>#define</em> SIGTTIN 21
-<a id='L161' name='L161'></a><em class='sharp'>#define</em> SIGTTOU 22
-<a id='L162' name='L162'></a><em class='sharp'>#define</em> SIGABRT 22
-<a id='L163' name='L163'></a><em class='comment'>/* #define SIGSTOP      24 / * Pause the process; cannot be trapped */</em>
-<a id='L164' name='L164'></a><em class='comment'>/* #define SIGTSTP      25 / * Terminal stop    Pause the process; can be trapped */</em>
-<a id='L165' name='L165'></a><em class='comment'>/* #define SIGCONT      26 */</em>
-<a id='L166' name='L166'></a><em class='sharp'>#define</em> SIGWINCH 28
-<a id='L167' name='L167'></a><em class='sharp'>#define</em> SIGUSR1  30
-<a id='L168' name='L168'></a><em class='sharp'>#define</em> SIGUSR2  31
-<a id='L169' name='L169'></a>
-<a id='L170' name='L170'></a><em class='sharp'>#define</em> ucontext_t <strong class='reserved'>void</strong>*
-<a id='L171' name='L171'></a>
-<a id='L172' name='L172'></a><em class='sharp'>#define</em> SA_NOCLDSTOP    0x00000001u
-<a id='L173' name='L173'></a><em class='sharp'>#define</em> SA_NOCLDWAIT    0x00000002u
-<a id='L174' name='L174'></a><em class='sharp'>#define</em> <a href='../S/84.html#L53' title='Referred from 53 in lib/readline/win32fixes.c.'>SA_SIGINFO</a>      0x00000004u
-<a id='L175' name='L175'></a><em class='sharp'>#define</em> SA_ONSTACK      0x08000000u
-<a id='L176' name='L176'></a><em class='sharp'>#define</em> SA_RESTART      0x10000000u
-<a id='L177' name='L177'></a><em class='sharp'>#define</em> <a href='../S/85.html#L179' title='Referred from 179 in lib/readline/win32fixes.h.'>SA_NODEFER</a>      0x40000000u
-<a id='L178' name='L178'></a><em class='sharp'>#define</em> <a href='../S/85.html#L180' title='Referred from 180 in lib/readline/win32fixes.h.'>SA_RESETHAND</a>    0x80000000u
-<a id='L179' name='L179'></a><em class='sharp'>#define</em> SA_NOMASK       <a href='../S/85.html#L177' title='Defined at 177 in lib/readline/win32fixes.h.'>SA_NODEFER</a>
-<a id='L180' name='L180'></a><em class='sharp'>#define</em> SA_ONESHOT      <a href='../S/85.html#L178' title='Defined at 178 in lib/readline/win32fixes.h.'>SA_RESETHAND</a>
-<a id='L181' name='L181'></a><em class='sharp'>#define</em> SA_RESTORER     0x04000000
-<a id='L182' name='L182'></a>
-<a id='L183' name='L183'></a>
-<a id='L184' name='L184'></a><em class='sharp'>#define</em> sigemptyset(pset)    (*(pset) = 0)
-<a id='L185' name='L185'></a><em class='sharp'>#define</em> sigfillset(pset)     (*(pset) = (<strong class='reserved'>unsigned</strong> <strong class='reserved'>int</strong>)-1)
-<a id='L186' name='L186'></a><em class='sharp'>#define</em> sigaddset(pset, num) (*(pset) |= (1L&lt;&lt;(num)))
-<a id='L187' name='L187'></a><em class='sharp'>#define</em> sigdelset(pset, num) (*(pset) &amp;= ~(1L&lt;&lt;(num)))
-<a id='L188' name='L188'></a><em class='sharp'>#define</em> sigismember(pset, num) (*(pset) &amp; (1L&lt;&lt;(num)))
-<a id='L189' name='L189'></a>
-<a id='L190' name='L190'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L191' title='Defined at 191 in lib/readline/win32fixes.h.'>SIG_SETMASK</a>
-<a id='L191' name='L191'></a><em class='sharp'>#define</em> <a href='../S/85.html#L190' title='Referred from 190 in lib/readline/win32fixes.h.'>SIG_SETMASK</a> (0)
-<a id='L192' name='L192'></a><em class='sharp'>#define</em> SIG_BLOCK   (1)
-<a id='L193' name='L193'></a><em class='sharp'>#define</em> SIG_UNBLOCK (2)
-<a id='L194' name='L194'></a><em class='sharp'>#endif</em> <em class='comment'>/*SIG_SETMASK*/</em>
-<a id='L195' name='L195'></a>
-<a id='L196' name='L196'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>void</strong> (*__p_sig_fn_t)(<strong class='reserved'>int</strong>);
-<a id='L197' name='L197'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>int</strong> <a href='../R/800.html' title='Multiple referred from 5 places.'>pid_t</a>;
-<a id='L198' name='L198'></a>
-<a id='L199' name='L199'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L200' title='Defined at 200 in lib/readline/win32fixes.h.'>_SIGSET_T_</a>
-<a id='L200' name='L200'></a><em class='sharp'>#define</em> <a href='../S/85.html#L199' title='Referred from 199 in lib/readline/win32fixes.h.'>_SIGSET_T_</a>
-<a id='L201' name='L201'></a><em class='sharp'>#ifdef</em> _WIN64
-<a id='L202' name='L202'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong> <strong class='reserved'>long</strong> <a href='../S/85.html#L208' title='Referred from 208 in lib/readline/win32fixes.h.'>_sigset_t</a>;
-<a id='L203' name='L203'></a><em class='sharp'>#else</em>
-<a id='L204' name='L204'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>unsigned</strong> <strong class='reserved'>long</strong> <a href='../S/85.html#L208' title='Referred from 208 in lib/readline/win32fixes.h.'>_sigset_t</a>;
+<a id='L145' name='L145'></a>    l.QuadPart = length;
+<a id='L146' name='L146'></a>
+<a id='L147' name='L147'></a>    <strong class='reserved'>if</strong> (!SetFilePointerEx(h, l, &amp;o, FILE_BEGIN)) <strong class='reserved'>return</strong> -1;
+<a id='L148' name='L148'></a>    <strong class='reserved'>if</strong> (!SetEndOfFile(h)) <strong class='reserved'>return</strong> -1;
+<a id='L149' name='L149'></a>
+<a id='L150' name='L150'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L151' name='L151'></a><em class='brace'>}</em>
+<a id='L152' name='L152'></a>
+<a id='L153' name='L153'></a><em class='comment'>/* Rename which works on Windows when file exists */</em>
+<a id='L154' name='L154'></a><strong class='reserved'>int</strong> <a href='../R/1207.html' title='Multiple referred from 2 places.'>replace_rename</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *src, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *dst) <em class='brace'>{</em>
+<a id='L155' name='L155'></a>    <em class='comment'>/* anti-virus may lock file - error code 5. Retry until it works or get a different error */</em>
+<a id='L156' name='L156'></a>    <strong class='reserved'>int</strong> retries = 50;
+<a id='L157' name='L157'></a>    <strong class='reserved'>while</strong> (1) <em class='brace'>{</em>
+<a id='L158' name='L158'></a>        <strong class='reserved'>if</strong> (MoveFileEx(src, dst, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH)) <em class='brace'>{</em>
+<a id='L159' name='L159'></a>            <strong class='reserved'>return</strong> 0;
+<a id='L160' name='L160'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <em class='brace'>{</em>
+<a id='L161' name='L161'></a>            errno = GetLastError();
+<a id='L162' name='L162'></a>            <strong class='reserved'>if</strong> (errno != 5) <strong class='reserved'>break</strong>;
+<a id='L163' name='L163'></a>            retries--;
+<a id='L164' name='L164'></a>            <strong class='reserved'>if</strong> (retries == 0) <em class='brace'>{</em>
+<a id='L165' name='L165'></a>                retries = 50;
+<a id='L166' name='L166'></a>                Sleep(10);
+<a id='L167' name='L167'></a>            <em class='brace'>}</em>
+<a id='L168' name='L168'></a>        <em class='brace'>}</em>
+<a id='L169' name='L169'></a>    <em class='brace'>}</em>
+<a id='L170' name='L170'></a>    <em class='comment'>/* On error we will return generic error code without GetLastError() */</em>
+<a id='L171' name='L171'></a>    <strong class='reserved'>return</strong> -1;
+<a id='L172' name='L172'></a><em class='brace'>}</em>
+<a id='L173' name='L173'></a>
+<a id='L174' name='L174'></a><em class='sharp'>#if</em> 0
+<a id='L175' name='L175'></a><em class='comment'>/* Proxy structure to pass func and arg to thread */</em>
+<a id='L176' name='L176'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <a href='../R/1220.html' title='Multiple referred from 2 places.'>thread_params</a>
+<a id='L177' name='L177'></a><em class='brace'>{</em>
+<a id='L178' name='L178'></a>    <strong class='reserved'>void</strong> *(*func)(<strong class='reserved'>void</strong> *);
+<a id='L179' name='L179'></a>    <strong class='reserved'>void</strong> * arg;
+<a id='L180' name='L180'></a><em class='brace'>}</em> <a href='../R/1220.html' title='Multiple referred from 2 places.'>thread_params</a>;
+<a id='L181' name='L181'></a>
+<a id='L182' name='L182'></a><em class='comment'>/* Proxy function by windows thread requirements */</em>
+<a id='L183' name='L183'></a><strong class='reserved'>static</strong> <strong class='reserved'>unsigned</strong> __stdcall <a href='../S/85.html#L209' title='Referred from 209 in lib/readline/win32fixes.c.'>win32_proxy_threadproc</a>(<strong class='reserved'>void</strong> *arg) <em class='brace'>{</em>
+<a id='L184' name='L184'></a>
+<a id='L185' name='L185'></a>    <a href='../D/1577.html' title='Multiple defined in 2 places.'>thread_params</a> *p = (<a href='../D/1577.html' title='Multiple defined in 2 places.'>thread_params</a> *) arg;
+<a id='L186' name='L186'></a>    p-&gt;func(p-&gt;arg);
+<a id='L187' name='L187'></a>
+<a id='L188' name='L188'></a>    <em class='comment'>/* Dealocate params */</em>
+<a id='L189' name='L189'></a>    free(p);
+<a id='L190' name='L190'></a>
+<a id='L191' name='L191'></a>    _endthreadex(0);
+<a id='L192' name='L192'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L193' name='L193'></a><em class='brace'>}</em>
+<a id='L194' name='L194'></a>
+<a id='L195' name='L195'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L260' title='Referred from 260 in lib/readline/win32fixes.h.'>pthread_create</a>(<a href='../S/86.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> *thread, <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *unused,
+<a id='L196' name='L196'></a>           <strong class='reserved'>void</strong> *(*start_routine)(<strong class='reserved'>void</strong>*), <strong class='reserved'>void</strong> *arg) <em class='brace'>{</em>
+<a id='L197' name='L197'></a>    HANDLE h;
+<a id='L198' name='L198'></a>    <a href='../D/1577.html' title='Multiple defined in 2 places.'>thread_params</a> *params = (<a href='../D/1577.html' title='Multiple defined in 2 places.'>thread_params</a> *)malloc(<strong class='reserved'>sizeof</strong>(<a href='../D/1577.html' title='Multiple defined in 2 places.'>thread_params</a>));
+<a id='L199' name='L199'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(unused);
+<a id='L200' name='L200'></a>
+<a id='L201' name='L201'></a>    params-&gt;func = start_routine;
+<a id='L202' name='L202'></a>    params-&gt;arg  = arg;
+<a id='L203' name='L203'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L204' title='Defined at 204 in lib/readline/win32fixes.c.'>STACK_SIZE_PARAM_IS_A_RESERVATION</a>
+<a id='L204' name='L204'></a><em class='sharp'># define</em> <a href='../R/516.html' title='Multiple referred from 2 places.'>STACK_SIZE_PARAM_IS_A_RESERVATION</a> 4096
 <a id='L205' name='L205'></a><em class='sharp'>#endif</em>
-<a id='L206' name='L206'></a><em class='sharp'>#endif</em> <em class='comment'>/* _SIGSET_T_ */</em>
-<a id='L207' name='L207'></a><em class='sharp'>#ifndef</em> _POSIX
-<a id='L208' name='L208'></a><em class='sharp'># define</em> <a href='../S/85.html#L213' title='Referred from 213 in lib/readline/win32fixes.h.'>sigset_t</a> <a href='../D/691.html' title='Multiple defined in 2 places.'>_sigset_t</a>
-<a id='L209' name='L209'></a><em class='sharp'>#endif</em>
-<a id='L210' name='L210'></a>
-<a id='L211' name='L211'></a><strong class='reserved'>struct</strong> <a href='../R/1201.html' title='Multiple referred from 2 places.'>sigaction</a> <em class='brace'>{</em>
-<a id='L212' name='L212'></a>    <strong class='reserved'>int</strong>          sa_flags;
-<a id='L213' name='L213'></a>    <a href='../S/85.html#L208' title='Defined at 208 in lib/readline/win32fixes.h.'>sigset_t</a>     sa_mask;
-<a id='L214' name='L214'></a>    __p_sig_fn_t sa_handler;
-<a id='L215' name='L215'></a>    __p_sig_fn_t sa_sigaction;
-<a id='L216' name='L216'></a><em class='brace'>}</em>;
+<a id='L206' name='L206'></a>
+<a id='L207' name='L207'></a>    h =(HANDLE) _beginthreadex(NULL,  <em class='comment'>/* Security not used */</em>
+<a id='L208' name='L208'></a>                               <a href='../S/85.html#L28' title='Defined at 28 in lib/readline/win32fixes.c.'>THREAD_STACK_SIZE</a>, <em class='comment'>/* Set custom stack size */</em>
+<a id='L209' name='L209'></a>                               <a href='../S/85.html#L183' title='Defined at 183 in lib/readline/win32fixes.c.'>win32_proxy_threadproc</a>,  <em class='comment'>/* calls win32 stdcall proxy */</em>
+<a id='L210' name='L210'></a>                               params, <em class='comment'>/* real threadproc is passed as paremeter */</em>
+<a id='L211' name='L211'></a>                               <a href='../S/85.html#L204' title='Defined at 204 in lib/readline/win32fixes.c.'>STACK_SIZE_PARAM_IS_A_RESERVATION</a>,  <em class='comment'>/* reserve stack */</em>
+<a id='L212' name='L212'></a>                               thread <em class='comment'>/* returned thread id */</em>
+<a id='L213' name='L213'></a>                );
+<a id='L214' name='L214'></a>
+<a id='L215' name='L215'></a>    <strong class='reserved'>if</strong> (!h)
+<a id='L216' name='L216'></a>        <strong class='reserved'>return</strong> errno;
 <a id='L217' name='L217'></a>
-<a id='L218' name='L218'></a><strong class='reserved'>int</strong> <a href='../D/1549.html' title='Multiple defined in 2 places.'>sigaction</a>(<strong class='reserved'>int</strong> sig, <strong class='reserved'>struct</strong> <a href='../D/1549.html' title='Multiple defined in 2 places.'>sigaction</a> *in, <strong class='reserved'>struct</strong> <a href='../D/1549.html' title='Multiple defined in 2 places.'>sigaction</a> *out);
-<a id='L219' name='L219'></a>
-<a id='L220' name='L220'></a><em class='comment'>/* Sockets */</em>
+<a id='L218' name='L218'></a>    CloseHandle(h);
+<a id='L219' name='L219'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L220' name='L220'></a><em class='brace'>}</em>
 <a id='L221' name='L221'></a>
-<a id='L222' name='L222'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L223' title='Defined at 223 in lib/readline/win32fixes.h.'>ECONNRESET</a>
-<a id='L223' name='L223'></a><em class='sharp'>#define</em> <a href='../S/85.html#L222' title='Referred from 222 in lib/readline/win32fixes.h.'>ECONNRESET</a> WSAECONNRESET
-<a id='L224' name='L224'></a><em class='sharp'>#endif</em>
-<a id='L225' name='L225'></a>
-<a id='L226' name='L226'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L227' title='Defined at 227 in lib/readline/win32fixes.h.'>EINPROGRESS</a>
-<a id='L227' name='L227'></a><em class='sharp'>#define</em> <a href='../S/85.html#L226' title='Referred from 226 in lib/readline/win32fixes.h.'>EINPROGRESS</a> WSAEINPROGRESS
-<a id='L228' name='L228'></a><em class='sharp'>#endif</em>
-<a id='L229' name='L229'></a>
-<a id='L230' name='L230'></a><em class='sharp'>#ifndef</em> <a href='../S/85.html#L231' title='Defined at 231 in lib/readline/win32fixes.h.'>ETIMEDOUT</a>
-<a id='L231' name='L231'></a><em class='sharp'>#define</em> <a href='../S/85.html#L230' title='Referred from 230 in lib/readline/win32fixes.h.'>ETIMEDOUT</a> WSAETIMEDOUT
-<a id='L232' name='L232'></a><em class='sharp'>#endif</em>
-<a id='L233' name='L233'></a>
-<a id='L234' name='L234'></a><em class='sharp'>#define</em> <a href='../S/84.html#L132' title='Referred from 132 in lib/readline/win32fixes.c.'>setsockopt</a>(a,b,c,d,e) <a href='../S/84.html#L131' title='Defined at 131 in lib/readline/win32fixes.c.'>replace_setsockopt</a>(a,b,c,d,e)
-<a id='L235' name='L235'></a>
-<a id='L236' name='L236'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L131' title='Defined at 131 in lib/readline/win32fixes.c.'>replace_setsockopt</a>(<strong class='reserved'>int</strong> socket, <strong class='reserved'>int</strong> level, <strong class='reserved'>int</strong> optname,
-<a id='L237' name='L237'></a>                     <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *optval, socklen_t optlen);
-<a id='L238' name='L238'></a>
-<a id='L239' name='L239'></a><em class='sharp'>#define</em> rename(a,b) <a href='../S/84.html#L154' title='Defined at 154 in lib/readline/win32fixes.c.'>replace_rename</a>(a,b)
-<a id='L240' name='L240'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L154' title='Defined at 154 in lib/readline/win32fixes.c.'>replace_rename</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *src, <strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *dest);
-<a id='L241' name='L241'></a>
-<a id='L242' name='L242'></a><em class='comment'>//threads avoiding pthread.h</em>
-<a id='L243' name='L243'></a>
-<a id='L244' name='L244'></a><em class='sharp'>#define</em> <a href='../R/1187.html' title='Multiple referred from 2 places.'>pthread_mutex_t</a> CRITICAL_SECTION
-<a id='L245' name='L245'></a><em class='sharp'>#define</em> pthread_attr_t ssize_t
-<a id='L246' name='L246'></a>
-<a id='L247' name='L247'></a><em class='sharp'>#define</em> pthread_mutex_init(a,b) (InitializeCriticalSectionAndSpinCount((a), 0x80000400),0)
-<a id='L248' name='L248'></a><em class='sharp'>#define</em> pthread_mutex_destroy(a) DeleteCriticalSection((a))
-<a id='L249' name='L249'></a><em class='sharp'>#define</em> pthread_mutex_lock EnterCriticalSection
-<a id='L250' name='L250'></a><em class='sharp'>#define</em> pthread_mutex_unlock LeaveCriticalSection
-<a id='L251' name='L251'></a>
-<a id='L252' name='L252'></a><em class='sharp'>#define</em> pthread_equal(t1, t2) ((t1) == (t2))
-<a id='L253' name='L253'></a>
-<a id='L254' name='L254'></a><em class='sharp'>#define</em> pthread_attr_init(x) (*(x) = 0)
-<a id='L255' name='L255'></a><em class='sharp'>#define</em> pthread_attr_getstacksize(x, y) (*(y) = *(x))
-<a id='L256' name='L256'></a><em class='sharp'>#define</em> pthread_attr_setstacksize(x, y) (*(x) = y)
-<a id='L257' name='L257'></a>
-<a id='L258' name='L258'></a><em class='sharp'>#define</em> <a href='../R/1189.html' title='Multiple referred from 7 places.'>pthread_t</a> u_int
-<a id='L259' name='L259'></a>
-<a id='L260' name='L260'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L195' title='Defined at 195 in lib/readline/win32fixes.c.'>pthread_create</a>(<a href='../S/85.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> *thread, <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *unused,
-<a id='L261' name='L261'></a>                    <strong class='reserved'>void</strong> *(*start_routine)(<strong class='reserved'>void</strong>*), <strong class='reserved'>void</strong> *arg);
+<a id='L222' name='L222'></a><em class='comment'>/* Noop in windows */</em>
+<a id='L223' name='L223'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L278' title='Referred from 278 in lib/readline/win32fixes.h.'>pthread_detach</a> (<a href='../S/86.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> thread) <em class='brace'>{</em>
+<a id='L224' name='L224'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(thread);
+<a id='L225' name='L225'></a>    <strong class='reserved'>return</strong> 0; <em class='comment'>/* noop */</em>
+<a id='L226' name='L226'></a>  <em class='brace'>}</em>
+<a id='L227' name='L227'></a>
+<a id='L228' name='L228'></a><a href='../S/86.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> <a href='../S/86.html#L263' title='Referred from 263 in lib/readline/win32fixes.h.'>pthread_self</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L229' name='L229'></a>        <strong class='reserved'>return</strong> GetCurrentThreadId();
+<a id='L230' name='L230'></a><em class='brace'>}</em>
+<a id='L231' name='L231'></a>
+<a id='L232' name='L232'></a><strong class='reserved'>int</strong> win32_pthread_join(<a href='../S/86.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> *thread, <strong class='reserved'>void</strong> **value_ptr)  <em class='brace'>{</em>
+<a id='L233' name='L233'></a>    <strong class='reserved'>int</strong> result;
+<a id='L234' name='L234'></a>    HANDLE h = OpenThread(SYNCHRONIZE, FALSE, *thread);
+<a id='L235' name='L235'></a>    <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(value_ptr);
+<a id='L236' name='L236'></a>
+<a id='L237' name='L237'></a>    <strong class='reserved'>switch</strong> (WaitForSingleObject(h, INFINITE)) <em class='brace'>{</em>
+<a id='L238' name='L238'></a>            <strong class='reserved'>case</strong> WAIT_OBJECT_0:
+<a id='L239' name='L239'></a>                    result = 0;
+<a id='L240' name='L240'></a>            <strong class='reserved'>case</strong> WAIT_ABANDONED:
+<a id='L241' name='L241'></a>                    result = EINVAL;
+<a id='L242' name='L242'></a>            <strong class='reserved'>default</strong>:
+<a id='L243' name='L243'></a>                    result = GetLastError();
+<a id='L244' name='L244'></a>    <em class='brace'>}</em>
+<a id='L245' name='L245'></a>
+<a id='L246' name='L246'></a>    CloseHandle(h);
+<a id='L247' name='L247'></a>    <strong class='reserved'>return</strong> result;
+<a id='L248' name='L248'></a><em class='brace'>}</em>
+<a id='L249' name='L249'></a>
+<a id='L250' name='L250'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L273' title='Referred from 273 in lib/readline/win32fixes.h.'>pthread_cond_init</a>(<a href='../S/86.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond, <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *unused) <em class='brace'>{</em>
+<a id='L251' name='L251'></a>        <a href='../D/228.html' title='Multiple defined in 2 places.'>NOTUSED</a>(unused);
+<a id='L252' name='L252'></a>        cond-&gt;waiters = 0;
+<a id='L253' name='L253'></a>        cond-&gt;was_broadcast = 0;
+<a id='L254' name='L254'></a>
+<a id='L255' name='L255'></a>        InitializeCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L256' name='L256'></a>
+<a id='L257' name='L257'></a>        cond-&gt;sema = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
+<a id='L258' name='L258'></a>        <strong class='reserved'>if</strong> (!cond-&gt;sema) <em class='brace'>{</em>
+<a id='L259' name='L259'></a>            errno = GetLastError();
+<a id='L260' name='L260'></a>            <strong class='reserved'>return</strong> -1;
+<a id='L261' name='L261'></a>        <em class='brace'>}</em>
 <a id='L262' name='L262'></a>
-<a id='L263' name='L263'></a><a href='../S/85.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> <a href='../S/84.html#L228' title='Defined at 228 in lib/readline/win32fixes.c.'>pthread_self</a>(<strong class='reserved'>void</strong>);
-<a id='L264' name='L264'></a>
-<a id='L265' name='L265'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <em class='brace'>{</em>
-<a id='L266' name='L266'></a>    CRITICAL_SECTION waiters_lock;
-<a id='L267' name='L267'></a>    LONG waiters;
-<a id='L268' name='L268'></a>    <strong class='reserved'>int</strong> was_broadcast;
-<a id='L269' name='L269'></a>    HANDLE sema;
-<a id='L270' name='L270'></a>    HANDLE continue_broadcast;
-<a id='L271' name='L271'></a><em class='brace'>}</em> <a href='../R/1183.html' title='Multiple referred from 8 places.'>pthread_cond_t</a>;
-<a id='L272' name='L272'></a>
-<a id='L273' name='L273'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L250' title='Defined at 250 in lib/readline/win32fixes.c.'>pthread_cond_init</a>(<a href='../S/85.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond, <strong class='reserved'>const</strong> <strong class='reserved'>void</strong> *unused);
-<a id='L274' name='L274'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L275' title='Defined at 275 in lib/readline/win32fixes.c.'>pthread_cond_destroy</a>(<a href='../S/85.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond);
-<a id='L275' name='L275'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L282' title='Defined at 282 in lib/readline/win32fixes.c.'>pthread_cond_wait</a>(<a href='../S/85.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond, <a href='../S/85.html#L244' title='Defined at 244 in lib/readline/win32fixes.h.'>pthread_mutex_t</a> *mutex);
-<a id='L276' name='L276'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L339' title='Defined at 339 in lib/readline/win32fixes.c.'>pthread_cond_signal</a>(<a href='../S/85.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond);
-<a id='L277' name='L277'></a>
-<a id='L278' name='L278'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L223' title='Defined at 223 in lib/readline/win32fixes.c.'>pthread_detach</a> (<a href='../S/85.html#L258' title='Defined at 258 in lib/readline/win32fixes.h.'>pthread_t</a> thread);
-<a id='L279' name='L279'></a>
-<a id='L280' name='L280'></a><em class='comment'>/* Misc Unix -&gt; Win32 */</em>
-<a id='L281' name='L281'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L62' title='Defined at 62 in lib/readline/win32fixes.c.'>kill</a>(<a href='../S/85.html#L197' title='Defined at 197 in lib/readline/win32fixes.h.'>pid_t</a> pid, <strong class='reserved'>int</strong> sig);
-<a id='L282' name='L282'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L83' title='Defined at 83 in lib/readline/win32fixes.c.'>fsync</a> (<strong class='reserved'>int</strong> fd);
-<a id='L283' name='L283'></a><a href='../S/85.html#L197' title='Defined at 197 in lib/readline/win32fixes.h.'>pid_t</a> <a href='../S/84.html#L110' title='Defined at 110 in lib/readline/win32fixes.c.'>wait3</a>(<strong class='reserved'>int</strong> *stat_loc, <strong class='reserved'>int</strong> options, <strong class='reserved'>void</strong> *<a href='../S/85.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a>);
+<a id='L263' name='L263'></a>        cond-&gt;continue_broadcast = CreateEvent(NULL,    <em class='comment'>/* security */</em>
+<a id='L264' name='L264'></a>                                FALSE,                  <em class='comment'>/* auto-reset */</em>
+<a id='L265' name='L265'></a>                                FALSE,                  <em class='comment'>/* not signaled */</em>
+<a id='L266' name='L266'></a>                                NULL);                  <em class='comment'>/* name */</em>
+<a id='L267' name='L267'></a>        <strong class='reserved'>if</strong> (!cond-&gt;continue_broadcast) <em class='brace'>{</em>
+<a id='L268' name='L268'></a>            errno = GetLastError();
+<a id='L269' name='L269'></a>            <strong class='reserved'>return</strong> -1;
+<a id='L270' name='L270'></a>        <em class='brace'>}</em>
+<a id='L271' name='L271'></a>
+<a id='L272' name='L272'></a>        <strong class='reserved'>return</strong> 0;
+<a id='L273' name='L273'></a><em class='brace'>}</em>
+<a id='L274' name='L274'></a>
+<a id='L275' name='L275'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L274' title='Referred from 274 in lib/readline/win32fixes.h.'>pthread_cond_destroy</a>(<a href='../S/86.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond) <em class='brace'>{</em>
+<a id='L276' name='L276'></a>        CloseHandle(cond-&gt;sema);
+<a id='L277' name='L277'></a>        CloseHandle(cond-&gt;continue_broadcast);
+<a id='L278' name='L278'></a>        DeleteCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L279' name='L279'></a>        <strong class='reserved'>return</strong> 0;
+<a id='L280' name='L280'></a><em class='brace'>}</em>
+<a id='L281' name='L281'></a>
+<a id='L282' name='L282'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L275' title='Referred from 275 in lib/readline/win32fixes.h.'>pthread_cond_wait</a>(<a href='../S/86.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond, <a href='../S/86.html#L244' title='Defined at 244 in lib/readline/win32fixes.h.'>pthread_mutex_t</a> *mutex) <em class='brace'>{</em>
+<a id='L283' name='L283'></a>        <strong class='reserved'>int</strong> last_waiter;
 <a id='L284' name='L284'></a>
-<a id='L285' name='L285'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L31' title='Defined at 31 in lib/readline/win32fixes.c.'>w32initWinSock</a>(<strong class='reserved'>void</strong>);
-<a id='L286' name='L286'></a><em class='comment'>/* int inet_aton(const char *cp_arg, struct in_addr *addr) */</em>
-<a id='L287' name='L287'></a>
-<a id='L288' name='L288'></a><em class='comment'>/* redis-check-dump  */</em>
-<a id='L289' name='L289'></a><em class='comment'>//void *mmap(void *start, size_t length, int prot, int flags, int fd, off offset);</em>
-<a id='L290' name='L290'></a><em class='comment'>//int munmap(void *start, size_t length);</em>
-<a id='L291' name='L291'></a>
-<a id='L292' name='L292'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L362' title='Defined at 362 in lib/readline/win32fixes.c.'>fork</a>(<strong class='reserved'>void</strong>);
-<a id='L293' name='L293'></a><em class='comment'>//int gettimeofday(struct timeval *tv, struct timezone *tz);</em>
-<a id='L294' name='L294'></a>
-<a id='L295' name='L295'></a><em class='comment'>/* strtod does not handle Inf and Nan</em>
-<a id='L296' name='L296'></a><em class='comment'>We need to do the check before calling strtod */</em>
-<a id='L297' name='L297'></a><em class='sharp'>#undef</em> <a href='../S/22.html#L26' title='Referred from 26 in core/number.c.'>strtod</a>
-<a id='L298' name='L298'></a><em class='sharp'>#define</em> <a href='../S/22.html#L26' title='Referred from 26 in core/number.c.'>strtod</a>(nptr, eptr) <a href='../S/84.html#L461' title='Defined at 461 in lib/readline/win32fixes.c.'>wstrtod</a>((nptr), (eptr))
+<a id='L285' name='L285'></a>        EnterCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L286' name='L286'></a>        cond-&gt;waiters++;
+<a id='L287' name='L287'></a>        LeaveCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L288' name='L288'></a>
+<a id='L289' name='L289'></a>        <em class='comment'>/*</em>
+<a id='L290' name='L290'></a><em class='comment'>         * Unlock external mutex and wait for signal.</em>
+<a id='L291' name='L291'></a><em class='comment'>         * NOTE: we've held mutex locked long enough to increment</em>
+<a id='L292' name='L292'></a><em class='comment'>         * waiters count above, so there's no problem with</em>
+<a id='L293' name='L293'></a><em class='comment'>         * leaving mutex unlocked before we wait on semaphore.</em>
+<a id='L294' name='L294'></a><em class='comment'>         */</em>
+<a id='L295' name='L295'></a>        LeaveCriticalSection(mutex);
+<a id='L296' name='L296'></a>
+<a id='L297' name='L297'></a>        <em class='comment'>/* let's wait - ignore return value */</em>
+<a id='L298' name='L298'></a>        WaitForSingleObject(cond-&gt;sema, INFINITE);
 <a id='L299' name='L299'></a>
-<a id='L300' name='L300'></a><strong class='reserved'>double</strong> <a href='../S/84.html#L461' title='Defined at 461 in lib/readline/win32fixes.c.'>wstrtod</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *nptr, <strong class='reserved'>char</strong> **eptr);
-<a id='L301' name='L301'></a>
-<a id='L302' name='L302'></a>
-<a id='L303' name='L303'></a><em class='comment'>/* structs and functions for using IOCP with windows sockets */</em>
-<a id='L304' name='L304'></a>
-<a id='L305' name='L305'></a><em class='comment'>/* need callback on write complete. aeWinSendReq is used to pass parameters */</em>
-<a id='L306' name='L306'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> aeWinSendReq <em class='brace'>{</em>
-<a id='L307' name='L307'></a>    <strong class='reserved'>void</strong> *client;
-<a id='L308' name='L308'></a>    <strong class='reserved'>void</strong> *data;
-<a id='L309' name='L309'></a>    <strong class='reserved'>char</strong> *buf;
-<a id='L310' name='L310'></a>    <strong class='reserved'>int</strong> len;
-<a id='L311' name='L311'></a><em class='brace'>}</em> aeWinSendReq;
-<a id='L312' name='L312'></a>
-<a id='L313' name='L313'></a>
-<a id='L314' name='L314'></a><strong class='reserved'>int</strong> aeWinSocketAttach(<strong class='reserved'>int</strong> fd);
-<a id='L315' name='L315'></a><strong class='reserved'>int</strong> aeWinSocketDetach(<strong class='reserved'>int</strong> fd, <strong class='reserved'>int</strong> shutd);
-<a id='L316' name='L316'></a><strong class='reserved'>int</strong> aeWinReceiveDone(<strong class='reserved'>int</strong> fd);
-<a id='L317' name='L317'></a><strong class='reserved'>int</strong> aeWinSocketSend(<strong class='reserved'>int</strong> fd, <strong class='reserved'>char</strong> *buf, <strong class='reserved'>int</strong> len, <strong class='reserved'>int</strong> flags,
-<a id='L318' name='L318'></a>                    <strong class='reserved'>void</strong> *eventLoop, <strong class='reserved'>void</strong> *client, <strong class='reserved'>void</strong> *data, <strong class='reserved'>void</strong> *proc);
-<a id='L319' name='L319'></a><strong class='reserved'>int</strong> aeWinListen(SOCKET sock, <strong class='reserved'>int</strong> backlog);
-<a id='L320' name='L320'></a><strong class='reserved'>int</strong> aeWinAccept(<strong class='reserved'>int</strong> fd, <strong class='reserved'>struct</strong> sockaddr *sa, socklen_t *len);
-<a id='L321' name='L321'></a>
-<a id='L322' name='L322'></a><strong class='reserved'>int</strong> <a href='../S/84.html#L505' title='Defined at 505 in lib/readline/win32fixes.c.'>strerror_r</a>(<strong class='reserved'>int</strong> err, <strong class='reserved'>char</strong>* buf, size_t buflen);
-<a id='L323' name='L323'></a><strong class='reserved'>char</strong> *<a href='../S/84.html#L530' title='Defined at 530 in lib/readline/win32fixes.c.'>wsa_strerror</a>(<strong class='reserved'>int</strong> err);
-<a id='L324' name='L324'></a>
-<a id='L325' name='L325'></a><em class='sharp'>#endif</em> <em class='comment'>/* WIN32 */</em>
-<a id='L326' name='L326'></a><em class='sharp'>#endif</em> <em class='comment'>/* WIN32FIXES_H */</em>
+<a id='L300' name='L300'></a>        <em class='comment'>/*</em>
+<a id='L301' name='L301'></a><em class='comment'>         * Decrease waiters count. If we are the last waiter, then we must</em>
+<a id='L302' name='L302'></a><em class='comment'>         * notify the broadcasting thread that it can continue.</em>
+<a id='L303' name='L303'></a><em class='comment'>         * But if we continued due to cond_signal, we do not have to do that</em>
+<a id='L304' name='L304'></a><em class='comment'>         * because the signaling thread knows that only one waiter continued.</em>
+<a id='L305' name='L305'></a><em class='comment'>         */</em>
+<a id='L306' name='L306'></a>        EnterCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L307' name='L307'></a>        cond-&gt;waiters--;
+<a id='L308' name='L308'></a>        last_waiter = cond-&gt;was_broadcast &amp;&amp; cond-&gt;waiters == 0;
+<a id='L309' name='L309'></a>        LeaveCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L310' name='L310'></a>
+<a id='L311' name='L311'></a>        <strong class='reserved'>if</strong> (last_waiter) <em class='brace'>{</em>
+<a id='L312' name='L312'></a>                <em class='comment'>/*</em>
+<a id='L313' name='L313'></a><em class='comment'>                 * cond_broadcast was issued while mutex was held. This means</em>
+<a id='L314' name='L314'></a><em class='comment'>                 * that all other waiters have continued, but are contending</em>
+<a id='L315' name='L315'></a><em class='comment'>                 * for the mutex at the end of this function because the</em>
+<a id='L316' name='L316'></a><em class='comment'>                 * broadcasting thread did not leave cond_broadcast, yet.</em>
+<a id='L317' name='L317'></a><em class='comment'>                 * (This is so that it can be sure that each waiter has</em>
+<a id='L318' name='L318'></a><em class='comment'>                 * consumed exactly one slice of the semaphor.)</em>
+<a id='L319' name='L319'></a><em class='comment'>                 * The last waiter must tell the broadcasting thread that it</em>
+<a id='L320' name='L320'></a><em class='comment'>                 * can go on.</em>
+<a id='L321' name='L321'></a><em class='comment'>                 */</em>
+<a id='L322' name='L322'></a>                SetEvent(cond-&gt;continue_broadcast);
+<a id='L323' name='L323'></a>                <em class='comment'>/*</em>
+<a id='L324' name='L324'></a><em class='comment'>                 * Now we go on to contend with all other waiters for</em>
+<a id='L325' name='L325'></a><em class='comment'>                 * the mutex. Auf in den Kampf!</em>
+<a id='L326' name='L326'></a><em class='comment'>                 */</em>
+<a id='L327' name='L327'></a>        <em class='brace'>}</em>
+<a id='L328' name='L328'></a>        <em class='comment'>/* lock external mutex again */</em>
+<a id='L329' name='L329'></a>        EnterCriticalSection(mutex);
+<a id='L330' name='L330'></a>
+<a id='L331' name='L331'></a>        <strong class='reserved'>return</strong> 0;
+<a id='L332' name='L332'></a><em class='brace'>}</em>
+<a id='L333' name='L333'></a>
+<a id='L334' name='L334'></a><em class='comment'>/*</em>
+<a id='L335' name='L335'></a><em class='comment'> * IMPORTANT: This implementation requires that pthread_cond_signal</em>
+<a id='L336' name='L336'></a><em class='comment'> * is called while the mutex is held that is used in the corresponding</em>
+<a id='L337' name='L337'></a><em class='comment'> * pthread_cond_wait calls!</em>
+<a id='L338' name='L338'></a><em class='comment'> */</em>
+<a id='L339' name='L339'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L276' title='Referred from 276 in lib/readline/win32fixes.h.'>pthread_cond_signal</a>(<a href='../S/86.html#L271' title='Defined at 271 in lib/readline/win32fixes.h.'>pthread_cond_t</a> *cond) <em class='brace'>{</em>
+<a id='L340' name='L340'></a>        <strong class='reserved'>int</strong> have_waiters;
+<a id='L341' name='L341'></a>
+<a id='L342' name='L342'></a>        EnterCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L343' name='L343'></a>        have_waiters = cond-&gt;waiters &gt; 0;
+<a id='L344' name='L344'></a>        LeaveCriticalSection(&amp;cond-&gt;waiters_lock);
+<a id='L345' name='L345'></a>
+<a id='L346' name='L346'></a>        <em class='comment'>/*</em>
+<a id='L347' name='L347'></a><em class='comment'>         * Signal only when there are waiters</em>
+<a id='L348' name='L348'></a><em class='comment'>         */</em>
+<a id='L349' name='L349'></a>        <strong class='reserved'>if</strong> (have_waiters)
+<a id='L350' name='L350'></a>                <strong class='reserved'>return</strong> ReleaseSemaphore(cond-&gt;sema, 1, NULL) ?
+<a id='L351' name='L351'></a>                        0 : GetLastError();
+<a id='L352' name='L352'></a>        <strong class='reserved'>else</strong>
+<a id='L353' name='L353'></a>                <strong class='reserved'>return</strong> 0;
+<a id='L354' name='L354'></a><em class='brace'>}</em>
+<a id='L355' name='L355'></a><em class='sharp'>#endif</em>
+<a id='L356' name='L356'></a>
+<a id='L357' name='L357'></a><em class='comment'>/* Redis forks to perform background writing */</em>
+<a id='L358' name='L358'></a><em class='comment'>/* fork() on unix will split process in two */</em>
+<a id='L359' name='L359'></a><em class='comment'>/* marking memory pages as Copy-On-Write so */</em>
+<a id='L360' name='L360'></a><em class='comment'>/* child process will have data snapshot.   */</em>
+<a id='L361' name='L361'></a><em class='comment'>/* Windows has no support for fork().       */</em>
+<a id='L362' name='L362'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L292' title='Referred from 292 in lib/readline/win32fixes.h.'>fork</a>(<strong class='reserved'>void</strong>) <em class='brace'>{</em>
+<a id='L363' name='L363'></a>  <strong class='reserved'>return</strong> -1;
+<a id='L364' name='L364'></a> <em class='brace'>}</em>
+<a id='L365' name='L365'></a>
+<a id='L366' name='L366'></a><em class='comment'>/* Redis CPU GetProcessTimes -&gt; rusage  */</em>
+<a id='L367' name='L367'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L143' title='Referred from 143 in lib/readline/win32fixes.h.'>getrusage</a>(<strong class='reserved'>int</strong> who, <strong class='reserved'>struct</strong> <a href='../S/86.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a> * r) <em class='brace'>{</em>
+<a id='L368' name='L368'></a>
+<a id='L369' name='L369'></a>   FILETIME starttime, exittime, kerneltime, usertime;
+<a id='L370' name='L370'></a>   ULARGE_INTEGER li;
+<a id='L371' name='L371'></a>
+<a id='L372' name='L372'></a>   <strong class='reserved'>if</strong> (r == NULL) <em class='brace'>{</em>
+<a id='L373' name='L373'></a>       errno = EFAULT;
+<a id='L374' name='L374'></a>       <strong class='reserved'>return</strong> -1;
+<a id='L375' name='L375'></a>   <em class='brace'>}</em>
+<a id='L376' name='L376'></a>
+<a id='L377' name='L377'></a>   memset(r, 0, <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/86.html#L137' title='Defined at 137 in lib/readline/win32fixes.h.'>rusage</a>));
+<a id='L378' name='L378'></a>
+<a id='L379' name='L379'></a>   <strong class='reserved'>if</strong> (who == <a href='../S/86.html#L132' title='Defined at 132 in lib/readline/win32fixes.h.'>RUSAGE_SELF</a>) <em class='brace'>{</em>
+<a id='L380' name='L380'></a>     <strong class='reserved'>if</strong> (!GetProcessTimes(GetCurrentProcess(),
+<a id='L381' name='L381'></a>                        &amp;starttime,
+<a id='L382' name='L382'></a>                        &amp;exittime,
+<a id='L383' name='L383'></a>                        &amp;kerneltime,
+<a id='L384' name='L384'></a>                        &amp;usertime))
+<a id='L385' name='L385'></a>     <em class='brace'>{</em>
+<a id='L386' name='L386'></a>         errno = EFAULT;
+<a id='L387' name='L387'></a>         <strong class='reserved'>return</strong> -1;
+<a id='L388' name='L388'></a>     <em class='brace'>}</em>
+<a id='L389' name='L389'></a>   <em class='brace'>}</em>
+<a id='L390' name='L390'></a>
+<a id='L391' name='L391'></a>   <strong class='reserved'>if</strong> (who == <a href='../S/86.html#L133' title='Defined at 133 in lib/readline/win32fixes.h.'>RUSAGE_CHILDREN</a>) <em class='brace'>{</em>
+<a id='L392' name='L392'></a>        <em class='comment'>/* Childless on windows */</em>
+<a id='L393' name='L393'></a>        starttime.dwLowDateTime = 0;
+<a id='L394' name='L394'></a>        starttime.dwHighDateTime = 0;
+<a id='L395' name='L395'></a>        exittime.dwLowDateTime = 0;
+<a id='L396' name='L396'></a>        exittime.dwHighDateTime = 0;
+<a id='L397' name='L397'></a>        kerneltime.dwLowDateTime  = 0;
+<a id='L398' name='L398'></a>        kerneltime.dwHighDateTime  = 0;
+<a id='L399' name='L399'></a>        usertime.dwLowDateTime = 0;
+<a id='L400' name='L400'></a>        usertime.dwHighDateTime = 0;
+<a id='L401' name='L401'></a>   <em class='brace'>}</em>
+<a id='L402' name='L402'></a>    memcpy(&amp;li, &amp;kerneltime, <strong class='reserved'>sizeof</strong>(FILETIME));
+<a id='L403' name='L403'></a>    li.QuadPart /= 10L;
+<a id='L404' name='L404'></a>    r-&gt;ru_stime.tv_sec = (<strong class='reserved'>long</strong>)(li.QuadPart / 1000000L);
+<a id='L405' name='L405'></a>    r-&gt;ru_stime.tv_usec = (<strong class='reserved'>long</strong>)(li.QuadPart % 1000000L);
+<a id='L406' name='L406'></a>
+<a id='L407' name='L407'></a>    memcpy(&amp;li, &amp;usertime, <strong class='reserved'>sizeof</strong>(FILETIME));
+<a id='L408' name='L408'></a>    li.QuadPart /= 10L;
+<a id='L409' name='L409'></a>    r-&gt;ru_utime.tv_sec = (<strong class='reserved'>long</strong>)(li.QuadPart / 1000000L);
+<a id='L410' name='L410'></a>    r-&gt;ru_utime.tv_usec = (<strong class='reserved'>long</strong>)(li.QuadPart % 1000000L);
+<a id='L411' name='L411'></a>
+<a id='L412' name='L412'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L413' name='L413'></a><em class='brace'>}</em>
+<a id='L414' name='L414'></a>
+<a id='L415' name='L415'></a><em class='sharp'>#define</em> <a href='../S/85.html#L439' title='Referred from 439 in lib/readline/win32fixes.c.'>DELTA_EPOCH_IN_MICROSECS</a>  11644473600000000Ui64
+<a id='L416' name='L416'></a>
+<a id='L417' name='L417'></a><em class='sharp'>#if</em> 0
+<a id='L418' name='L418'></a><strong class='reserved'>struct</strong> <a href='../R/1221.html' title='Multiple referred from 3 places.'>timezone</a>
+<a id='L419' name='L419'></a><em class='brace'>{</em>
+<a id='L420' name='L420'></a>  <strong class='reserved'>int</strong>  tz_minuteswest; <em class='comment'>/* minutes W of Greenwich */</em>
+<a id='L421' name='L421'></a>  <strong class='reserved'>int</strong>  tz_dsttime;     <em class='comment'>/* type of dst correction */</em>
+<a id='L422' name='L422'></a><em class='brace'>}</em>;
+<a id='L423' name='L423'></a>
+<a id='L424' name='L424'></a><strong class='reserved'>int</strong> <a href='../R/737.html' title='Multiple referred from 2 places.'>gettimeofday</a>(<strong class='reserved'>struct</strong> timeval *tv, <strong class='reserved'>struct</strong> <a href='../S/85.html#L418' title='Defined at 418 in lib/readline/win32fixes.c.'>timezone</a> *tz)
+<a id='L425' name='L425'></a><em class='brace'>{</em>
+<a id='L426' name='L426'></a>  FILETIME ft;
+<a id='L427' name='L427'></a>  <strong class='reserved'>unsigned</strong> __int64 tmpres = 0;
+<a id='L428' name='L428'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>int</strong> tzflag;
+<a id='L429' name='L429'></a>
+<a id='L430' name='L430'></a>  <strong class='reserved'>if</strong> (NULL != tv)
+<a id='L431' name='L431'></a>  <em class='brace'>{</em>
+<a id='L432' name='L432'></a>    GetSystemTimeAsFileTime(&amp;ft);
+<a id='L433' name='L433'></a>
+<a id='L434' name='L434'></a>    tmpres |= ft.dwHighDateTime;
+<a id='L435' name='L435'></a>    tmpres &lt;&lt;= 32;
+<a id='L436' name='L436'></a>    tmpres |= ft.dwLowDateTime;
+<a id='L437' name='L437'></a>
+<a id='L438' name='L438'></a>    <em class='comment'>/*converting file time to unix epoch*/</em>
+<a id='L439' name='L439'></a>    tmpres -= <a href='../S/85.html#L415' title='Defined at 415 in lib/readline/win32fixes.c.'>DELTA_EPOCH_IN_MICROSECS</a>; 
+<a id='L440' name='L440'></a>    tmpres /= 10;  <em class='comment'>/*convert into microseconds*/</em>
+<a id='L441' name='L441'></a>    tv-&gt;tv_sec = (<strong class='reserved'>long</strong>)(tmpres / 1000000UL);
+<a id='L442' name='L442'></a>    tv-&gt;tv_usec = (<strong class='reserved'>long</strong>)(tmpres % 1000000UL);
+<a id='L443' name='L443'></a>  <em class='brace'>}</em>
+<a id='L444' name='L444'></a>
+<a id='L445' name='L445'></a>  <strong class='reserved'>if</strong> (NULL != tz)
+<a id='L446' name='L446'></a>  <em class='brace'>{</em>
+<a id='L447' name='L447'></a>    <strong class='reserved'>if</strong> (!tzflag)
+<a id='L448' name='L448'></a>    <em class='brace'>{</em>
+<a id='L449' name='L449'></a>      _tzset();
+<a id='L450' name='L450'></a>      tzflag++;
+<a id='L451' name='L451'></a>    <em class='brace'>}</em>
+<a id='L452' name='L452'></a>    tz-&gt;tz_minuteswest = _timezone / 60;
+<a id='L453' name='L453'></a>    tz-&gt;tz_dsttime = _daylight;
+<a id='L454' name='L454'></a>  <em class='brace'>}</em>
+<a id='L455' name='L455'></a>
+<a id='L456' name='L456'></a>  <strong class='reserved'>return</strong> 0;
+<a id='L457' name='L457'></a><em class='brace'>}</em>
+<a id='L458' name='L458'></a><em class='comment'>//#endif</em>
+<a id='L459' name='L459'></a>
+<a id='L460' name='L460'></a><strong class='reserved'>static</strong> _locale_t clocale = NULL;
+<a id='L461' name='L461'></a><strong class='reserved'>double</strong> <a href='../R/1237.html' title='Multiple referred from 2 places.'>wstrtod</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *nptr, <strong class='reserved'>char</strong> **eptr) <em class='brace'>{</em>
+<a id='L462' name='L462'></a>    <strong class='reserved'>double</strong> d;
+<a id='L463' name='L463'></a>    <strong class='reserved'>char</strong> *leptr;
+<a id='L464' name='L464'></a><em class='sharp'>#if</em> 0
+<a id='L465' name='L465'></a>    <strong class='reserved'>if</strong> (clocale == NULL)
+<a id='L466' name='L466'></a>        clocale = _create_locale(LC_ALL, "C");
+<a id='L467' name='L467'></a><em class='sharp'>#endif</em>
+<a id='L468' name='L468'></a>    d = _strtod_l(nptr, &amp;leptr, clocale);
+<a id='L469' name='L469'></a>    <em class='comment'>/* if 0, check if input was inf */</em>
+<a id='L470' name='L470'></a>    <strong class='reserved'>if</strong> (d == 0 &amp;&amp; nptr == leptr) <em class='brace'>{</em>
+<a id='L471' name='L471'></a>        <strong class='reserved'>int</strong> neg = 0;
+<a id='L472' name='L472'></a>        <strong class='reserved'>while</strong> (isspace(*nptr))
+<a id='L473' name='L473'></a>            nptr++;
+<a id='L474' name='L474'></a>        <strong class='reserved'>if</strong> (*nptr == '+')
+<a id='L475' name='L475'></a>            nptr++;
+<a id='L476' name='L476'></a>        <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (*nptr == '-') <em class='brace'>{</em>
+<a id='L477' name='L477'></a>            nptr++;
+<a id='L478' name='L478'></a>            neg = 1;
+<a id='L479' name='L479'></a>        <em class='brace'>}</em>
+<a id='L480' name='L480'></a>
+<a id='L481' name='L481'></a>        <strong class='reserved'>if</strong> (strnicmp("INF", nptr, 3) == 0) <em class='brace'>{</em>
+<a id='L482' name='L482'></a>            <strong class='reserved'>if</strong> (eptr != NULL) <em class='brace'>{</em>
+<a id='L483' name='L483'></a>                <strong class='reserved'>if</strong> (strnicmp("INFINITE", nptr, 8) == 0)
+<a id='L484' name='L484'></a>                    *eptr = (<strong class='reserved'>char</strong>*)(nptr + 8);
+<a id='L485' name='L485'></a>                <strong class='reserved'>else</strong>
+<a id='L486' name='L486'></a>                    *eptr = (<strong class='reserved'>char</strong>*)(nptr + 3);
+<a id='L487' name='L487'></a>            <em class='brace'>}</em>
+<a id='L488' name='L488'></a>            <strong class='reserved'>if</strong> (neg == 1)
+<a id='L489' name='L489'></a>                <strong class='reserved'>return</strong> -HUGE_VAL;
+<a id='L490' name='L490'></a>            <strong class='reserved'>else</strong>
+<a id='L491' name='L491'></a>                <strong class='reserved'>return</strong> HUGE_VAL;
+<a id='L492' name='L492'></a>        <em class='brace'>}</em> <strong class='reserved'>else</strong> <strong class='reserved'>if</strong> (strnicmp("NAN", nptr, 3) == 0) <em class='brace'>{</em>
+<a id='L493' name='L493'></a>            <strong class='reserved'>if</strong> (eptr != NULL)
+<a id='L494' name='L494'></a>                *eptr = (<strong class='reserved'>char</strong>*)(nptr + 3);
+<a id='L495' name='L495'></a>            <em class='comment'>/* create a NaN : 0 * infinity*/</em>
+<a id='L496' name='L496'></a>            d = HUGE_VAL;
+<a id='L497' name='L497'></a>            <strong class='reserved'>return</strong> d * 0;
+<a id='L498' name='L498'></a>        <em class='brace'>}</em>
+<a id='L499' name='L499'></a>    <em class='brace'>}</em>
+<a id='L500' name='L500'></a>    <strong class='reserved'>if</strong> (eptr != NULL)
+<a id='L501' name='L501'></a>        *eptr = leptr;
+<a id='L502' name='L502'></a>    <strong class='reserved'>return</strong> d;
+<a id='L503' name='L503'></a><em class='brace'>}</em>
+<a id='L504' name='L504'></a>
+<a id='L505' name='L505'></a><strong class='reserved'>int</strong> <a href='../S/86.html#L322' title='Referred from 322 in lib/readline/win32fixes.h.'>strerror_r</a>(<strong class='reserved'>int</strong> err, <strong class='reserved'>char</strong>* buf, size_t buflen) <em class='brace'>{</em>
+<a id='L506' name='L506'></a>    <strong class='reserved'>int</strong> size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
+<a id='L507' name='L507'></a>                            FORMAT_MESSAGE_IGNORE_INSERTS,
+<a id='L508' name='L508'></a>                            NULL,
+<a id='L509' name='L509'></a>                            err,
+<a id='L510' name='L510'></a>                            0,
+<a id='L511' name='L511'></a>                            buf,
+<a id='L512' name='L512'></a>                            (DWORD)buflen,
+<a id='L513' name='L513'></a>                            NULL);
+<a id='L514' name='L514'></a>    <strong class='reserved'>if</strong> (size == 0) <em class='brace'>{</em>
+<a id='L515' name='L515'></a>        <strong class='reserved'>char</strong>* strerr = strerror(err);
+<a id='L516' name='L516'></a>        <strong class='reserved'>if</strong> (strlen(strerr) &gt;= buflen) <em class='brace'>{</em>
+<a id='L517' name='L517'></a>            errno = ERANGE;
+<a id='L518' name='L518'></a>            <strong class='reserved'>return</strong> -1;
+<a id='L519' name='L519'></a>        <em class='brace'>}</em>
+<a id='L520' name='L520'></a>        strcpy(buf, strerr);
+<a id='L521' name='L521'></a>    <em class='brace'>}</em>
+<a id='L522' name='L522'></a>    <strong class='reserved'>if</strong> (size &gt; 2 &amp;&amp; buf[size - 2] == '\r') <em class='brace'>{</em>
+<a id='L523' name='L523'></a>        <em class='comment'>/* remove extra CRLF */</em>
+<a id='L524' name='L524'></a>        buf[size - 2] = '\0';
+<a id='L525' name='L525'></a>    <em class='brace'>}</em>
+<a id='L526' name='L526'></a>    <strong class='reserved'>return</strong> 0;
+<a id='L527' name='L527'></a><em class='brace'>}</em>
+<a id='L528' name='L528'></a>
+<a id='L529' name='L529'></a><strong class='reserved'>char</strong> wsa_strerror_buf[128];
+<a id='L530' name='L530'></a><strong class='reserved'>char</strong> *<a href='../S/86.html#L323' title='Referred from 323 in lib/readline/win32fixes.h.'>wsa_strerror</a>(<strong class='reserved'>int</strong> err) <em class='brace'>{</em>
+<a id='L531' name='L531'></a>    <strong class='reserved'>int</strong> size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
+<a id='L532' name='L532'></a>                            FORMAT_MESSAGE_IGNORE_INSERTS,
+<a id='L533' name='L533'></a>                            NULL,
+<a id='L534' name='L534'></a>                            err,
+<a id='L535' name='L535'></a>                            0,
+<a id='L536' name='L536'></a>                            wsa_strerror_buf,
+<a id='L537' name='L537'></a>                            128,
+<a id='L538' name='L538'></a>                            NULL);
+<a id='L539' name='L539'></a>    <strong class='reserved'>if</strong> (size == 0) <strong class='reserved'>return</strong> strerror(err);
+<a id='L540' name='L540'></a>    <strong class='reserved'>if</strong> (size &gt; 2 &amp;&amp; wsa_strerror_buf[size - 2] == '\r') <em class='brace'>{</em>
+<a id='L541' name='L541'></a>        <em class='comment'>/* remove extra CRLF */</em>
+<a id='L542' name='L542'></a>        wsa_strerror_buf[size - 2] = '\0';
+<a id='L543' name='L543'></a>    <em class='brace'>}</em>
+<a id='L544' name='L544'></a>    <strong class='reserved'>return</strong> wsa_strerror_buf;
+<a id='L545' name='L545'></a><em class='brace'>}</em>
+<a id='L546' name='L546'></a><em class='sharp'>#endif</em> <em class='comment'>//0</em>
+<a id='L547' name='L547'></a>
+<a id='L548' name='L548'></a><em class='sharp'>#endif</em> <em class='comment'>//_WIN32</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L31'>[^]</a><a href='#L530'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

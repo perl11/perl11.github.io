@@ -1,4 +1,0 @@
-var searchData=
-[
-  ['v',['v',['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c'],['../df/d2c/syntax_8c.html#a38bf1e5e0427bdeba2b469eea9befc23',1,'v():&#160;syntax.c']]]
-];

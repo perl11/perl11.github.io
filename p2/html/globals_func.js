@@ -8,5 +8,6 @@ var globals_func =
     [ "m", "globals_func_m.html", null ],
     [ "n", "globals_func_n.html", null ],
     [ "p", "globals_func_p.html", null ],
-    [ "t", "globals_func_t.html", null ]
+    [ "t", "globals_func_t.html", null ],
+    [ "y", "globals_func_y.html", null ]
 ];

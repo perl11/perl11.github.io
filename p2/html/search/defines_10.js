@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['p',['p',['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c'],['../df/d2c/syntax_8c.html#ade66e4ccafbc33b117610bbc0d85feb0',1,'p():&#160;syntax.c']]],
   ['p2_5ffunc',['P2_FUNC',['../d4/d32/p2_8h.html#a7b9443175f442b061a784f5f31415ee4',1,'p2.h']]],
   ['p2_5fmajor',['P2_MAJOR',['../d4/d32/p2_8h.html#a228a7d6b9e68d2bcb0324db54c833a21',1,'p2.h']]],
   ['p2_5fminor',['P2_MINOR',['../d4/d32/p2_8h.html#a4472b61d9ebad5c7a96e88557dbd91b8',1,'p2.h']]],
@@ -141,6 +142,7 @@ var searchData=
   ['pn_5fvtable',['PN_VTABLE',['../dd/d07/potion_8h.html#ad303df4a17eda78803d5f22a3b499d04',1,'potion.h']]],
   ['pn_5fvtype',['PN_VTYPE',['../dd/d07/potion_8h.html#a3c0767990aa846514c719797282e0c96',1,'potion.h']]],
   ['pn_5fzero',['PN_ZERO',['../dd/d07/potion_8h.html#ab3972e316f033ddf152185e67014fc81',1,'potion.h']]],
+  ['potion_5fargs_5fdir',['POTION_ARGS_DIR',['../db/d16/config_8h.html#abe90386fbd1e150540e803a1fefad952',1,'config.h']]],
   ['potion_5farm',['POTION_ARM',['../dd/d07/potion_8h.html#a3a6a49f4ab6a0f784c027f3f787cd822',1,'potion.h']]],
   ['potion_5fbirth_5fsize',['POTION_BIRTH_SIZE',['../d0/daa/gc_8h.html#a4087294250263f6432ee60bec62fb914',1,'gc.h']]],
   ['potion_5fcc',['POTION_CC',['../db/d16/config_8h.html#acaf0e857581d8d418d85d3e0335ef092',1,'config.h']]],
@@ -160,7 +162,6 @@ var searchData=
   ['potion_5fjit',['POTION_JIT',['../db/d16/config_8h.html#ac5a253de521fa039cac7f59bee839043',1,'config.h']]],
   ['potion_5fjit_5fname',['POTION_JIT_NAME',['../db/d16/config_8h.html#a005dc80cef01584875711c0f819badac',1,'config.h']]],
   ['potion_5fjit_5ftarget',['POTION_JIT_TARGET',['../db/d16/config_8h.html#a099aaecb3d238f5655019e2849072637',1,'config.h']]],
-  ['potion_5fldflags',['POTION_LDFLAGS',['../db/d16/config_8h.html#a8a3bbb36ff7366bf78bd9882edc8a2d0',1,'config.h']]],
   ['potion_5flibext',['POTION_LIBEXT',['../db/d16/config_8h.html#a91d4db31b26ba38119062e488992b1e9',1,'config.h']]],
   ['potion_5floadext',['POTION_LOADEXT',['../db/d16/config_8h.html#acb51147f9d1e2351e89491bffc1fe0c7',1,'config.h']]],
   ['potion_5fmajor',['POTION_MAJOR',['../db/d16/config_8h.html#a1b6e1b76135e5aa5272de2f9d221e4d7',1,'POTION_MAJOR():&#160;config.h'],['../df/dfc/version_8h.html#a1b6e1b76135e5aa5272de2f9d221e4d7',1,'POTION_MAJOR():&#160;version.h']]],

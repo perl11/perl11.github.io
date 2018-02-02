@@ -1,531 +1,305 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>tools/tree.c</title>
+<title>tools/greg.y</title>
 <meta name='robots' content='noindex,nofollow' />
-<meta name='generator' content='GLOBAL-6.5.1' />
+<meta name='generator' content='GLOBAL-6.5.7' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/208.html'>tools</a>/tree.c</h2>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L38'>[^]</a><a href='#L443'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
-<hr />
-<h2 class='header'>DEFINITIONS</h2>
-This source file includes following definitions.
-<ol>
-<li><a href='#L38' title='Defined at 38.'>_newNode</a></li>
-<li><a href='#L47' title='Defined at 47.'>makeRule</a></li>
-<li><a href='#L58' title='Defined at 58.'>findRule</a></li>
-<li><a href='#L72' title='Defined at 72.'>beginRule</a></li>
-<li><a href='#L78' title='Defined at 78.'>Rule_setExpression</a></li>
-<li><a href='#L90' title='Defined at 90.'>makeVariable</a></li>
-<li><a href='#L104' title='Defined at 104.'>makeName</a></li>
-<li><a href='#L113' title='Defined at 113.'>makeDot</a></li>
-<li><a href='#L118' title='Defined at 118.'>makeCharacter</a></li>
-<li><a href='#L125' title='Defined at 125.'>makeString</a></li>
-<li><a href='#L132' title='Defined at 132.'>makeClass</a></li>
-<li><a href='#L139' title='Defined at 139.'>makeAction</a></li>
-<li><a href='#L159' title='Defined at 159.'>makePredicate</a></li>
-<li><a href='#L166' title='Defined at 166.'>makeError</a></li>
-<li><a href='#L174' title='Defined at 174.'>makeAlternate</a></li>
-<li><a href='#L188' title='Defined at 188.'>Alternate_append</a></li>
-<li><a href='#L199' title='Defined at 199.'>makeSequence</a></li>
-<li><a href='#L213' title='Defined at 213.'>Sequence_append</a></li>
-<li><a href='#L224' title='Defined at 224.'>makePeekFor</a></li>
-<li><a href='#L231' title='Defined at 231.'>makePeekNot</a></li>
-<li><a href='#L238' title='Defined at 238.'>makeQuery</a></li>
-<li><a href='#L245' title='Defined at 245.'>makeStar</a></li>
-<li><a href='#L252' title='Defined at 252.'>makePlus</a></li>
-<li><a href='#L265' title='Defined at 265.'>dumpStack</a></li>
-<li><a href='#L277' title='Defined at 277.'>push</a></li>
-<li><a href='#L287' title='Defined at 287.'>top</a></li>
-<li><a href='#L293' title='Defined at 293.'>pop</a></li>
-<li><a href='#L303' title='Defined at 303.'>Node_fprint</a></li>
-<li><a href='#L350' title='Defined at 350.'>Node_print</a></li>
-<li><a href='#L352' title='Defined at 352.'>Rule_fprint</a></li>
-<li><a href='#L364' title='Defined at 364.'>Rule_print</a></li>
-<li><a href='#L366' title='Defined at 366.'>Rule_free</a></li>
-<li><a href='#L443' title='Defined at 443.'>freeRules</a></li>
-</ol>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/212.html'>tools</a>/greg.y</h2>
+<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>/* Copyright (c) 2007 by Ian Piumarta</em>
-<a id='L2' name='L2'></a><em class='comment'> * Copyright (c) 2013 by perl11 org</em>
-<a id='L3' name='L3'></a><em class='comment'> * All rights reserved.</em>
-<a id='L4' name='L4'></a><em class='comment'> * </em>
-<a id='L5' name='L5'></a><em class='comment'> * Permission is hereby granted, free of charge, to any person obtaining a</em>
-<a id='L6' name='L6'></a><em class='comment'> * copy of this software and associated documentation files (the 'Software'),</em>
-<a id='L7' name='L7'></a><em class='comment'> * to deal in the Software without restriction, including without limitation</em>
-<a id='L8' name='L8'></a><em class='comment'> * the rights to use, copy, modify, merge, publish, distribute, and/or sell</em>
-<a id='L9' name='L9'></a><em class='comment'> * copies of the Software, and to permit persons to whom the Software is</em>
-<a id='L10' name='L10'></a><em class='comment'> * furnished to do so, provided that the above copyright notice(s) and this</em>
-<a id='L11' name='L11'></a><em class='comment'> * permission notice appear in all copies of the Software.  Acknowledgement</em>
-<a id='L12' name='L12'></a><em class='comment'> * of the use of this Software in supporting documentation would be</em>
-<a id='L13' name='L13'></a><em class='comment'> * appreciated but is not required.</em>
-<a id='L14' name='L14'></a><em class='comment'> * </em>
-<a id='L15' name='L15'></a><em class='comment'> * THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.</em>
-<a id='L16' name='L16'></a><em class='comment'> * </em>
-<a id='L17' name='L17'></a><em class='comment'> * Last edited: 2013-10-01 12:19:49 rurban</em>
-<a id='L18' name='L18'></a><em class='comment'> */</em>
-<a id='L19' name='L19'></a>
-<a id='L20' name='L20'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
-<a id='L21' name='L21'></a><em class='sharp'>#include</em> &lt;stdlib.h&gt;
-<a id='L22' name='L22'></a><em class='sharp'>#include</em> &lt;string.h&gt;
-<a id='L23' name='L23'></a><em class='sharp'>#include</em> &lt;assert.h&gt;
-<a id='L24' name='L24'></a>
-<a id='L25' name='L25'></a><em class='sharp'>#include</em> "<a href='196.html'>greg.h</a>"
-<a id='L26' name='L26'></a>
-<a id='L27' name='L27'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *actions= 0;
-<a id='L28' name='L28'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *rules= 0;
-<a id='L29' name='L29'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *thisRule= 0;
-<a id='L30' name='L30'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *start= 0;
+<a id='L1' name='L1'></a># -*- mode: antlr; tab-width:8 -*-
+<a id='L2' name='L2'></a># LE Grammar for LE Grammars
+<a id='L3' name='L3'></a># 
+<a id='L4' name='L4'></a># Copyright (c) 2007 by Ian Piumarta
+<a id='L5' name='L5'></a># Copyright (c) 2011 by Amos Wenger nddrylliog@gmail.com
+<a id='L6' name='L6'></a># Copyright (c) 2013 by perl11 org
+<a id='L7' name='L7'></a># All rights reserved.
+<a id='L8' name='L8'></a># 
+<a id='L9' name='L9'></a># Permission is hereby granted, free of charge, to any person obtaining a
+<a id='L10' name='L10'></a># copy of this software and associated documentation files (the 'Software'),
+<a id='L11' name='L11'></a># to deal in the Software without restriction, including without limitation
+<a id='L12' name='L12'></a># the rights to use, copy, modify, merge, publish, distribute, and/or sell
+<a id='L13' name='L13'></a># copies of the Software, and to permit persons to whom the Software is
+<a id='L14' name='L14'></a># furnished to do so, provided that the above copyright notice(s) and this
+<a id='L15' name='L15'></a># permission notice appear in all copies of the Software.  Acknowledgement
+<a id='L16' name='L16'></a># of the use of this Software in supporting documentation would be
+<a id='L17' name='L17'></a># appreciated but is not required.
+<a id='L18' name='L18'></a># 
+<a id='L19' name='L19'></a># THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
+<a id='L20' name='L20'></a># 
+<a id='L21' name='L21'></a># Last edited: 2013-10-01 11:36:41 rurban
+<a id='L22' name='L22'></a>
+<a id='L23' name='L23'></a><strong class='reserved'>%{</strong>
+<a id='L24' name='L24'></a><em class='sharp'># include</em> "<a href='200.html'>greg.h</a>"
+<a id='L25' name='L25'></a>
+<a id='L26' name='L26'></a><em class='sharp'># include</em> &lt;unistd.h&gt;
+<a id='L27' name='L27'></a><em class='sharp'># include</em> &lt;libgen.h&gt;
+<a id='L28' name='L28'></a><em class='sharp'># include</em> &lt;assert.h&gt;
+<a id='L29' name='L29'></a>
+<a id='L30' name='L30'></a>  <strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> <a href='../R/171.html' title='Multiple referred from 5 places.'>Header</a>;
 <a id='L31' name='L31'></a>
-<a id='L32' name='L32'></a>FILE *output= 0;
-<a id='L33' name='L33'></a>
-<a id='L34' name='L34'></a><strong class='reserved'>int</strong> actionCount= 0;
-<a id='L35' name='L35'></a><strong class='reserved'>int</strong> ruleCount= 0;
-<a id='L36' name='L36'></a><strong class='reserved'>int</strong> lastToken= -1;
-<a id='L37' name='L37'></a>
-<a id='L38' name='L38'></a><strong class='reserved'>static</strong> <strong class='reserved'>inline</strong> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../S/201.html#L45' title='Referred from 45 in tools/tree.c.'>_newNode</a>(<a href='../S/196.html#L31' title='Defined at 31 in tools/greg.h.'>NodeType</a> type, <strong class='reserved'>int</strong> size)
-<a id='L39' name='L39'></a><em class='brace'>{</em>
-<a id='L40' name='L40'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= calloc(1, size);
-<a id='L41' name='L41'></a>  node-&gt;type= type;
-<a id='L42' name='L42'></a>  <strong class='reserved'>return</strong> node;
-<a id='L43' name='L43'></a><em class='brace'>}</em>
-<a id='L44' name='L44'></a>
-<a id='L45' name='L45'></a><em class='sharp'>#define</em> <a href='../R/794.html' title='Multiple referred from 17 places.'>newNode</a>(T)      <a href='../S/201.html#L38' title='Defined at 38 in tools/tree.c.'>_newNode</a>(T, <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> T))
-<a id='L46' name='L46'></a>
-<a id='L47' name='L47'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/785.html' title='Multiple referred from 2 places.'>makeRule</a>(<strong class='reserved'>char</strong> *name, <strong class='reserved'>int</strong> defined)
-<a id='L48' name='L48'></a><em class='brace'>{</em>
-<a id='L49' name='L49'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a>);
-<a id='L50' name='L50'></a>  node-&gt;rule.name= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(name);
-<a id='L51' name='L51'></a>  node-&gt;rule.id= ++ruleCount;
-<a id='L52' name='L52'></a>  node-&gt;rule.flags= defined ? <a href='../S/196.html#L34' title='Defined at 34 in tools/greg.h.'>RuleUsed</a> : 0;
-<a id='L53' name='L53'></a>  node-&gt;rule.next= rules;
-<a id='L54' name='L54'></a>  rules= node;
-<a id='L55' name='L55'></a>  <strong class='reserved'>return</strong> node;
-<a id='L56' name='L56'></a><em class='brace'>}</em>
+<a id='L32' name='L32'></a>  <strong class='reserved'>struct</strong> <a href='../R/171.html' title='Multiple referred from 5 places.'>Header</a> <em class='brace'>{</em>
+<a id='L33' name='L33'></a>    <strong class='reserved'>char</strong>   *text;
+<a id='L34' name='L34'></a>    <a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> *next;
+<a id='L35' name='L35'></a>  <em class='brace'>}</em>;
+<a id='L36' name='L36'></a>
+<a id='L37' name='L37'></a>  <strong class='reserved'>int</strong>   verboseFlag= 0;
+<a id='L38' name='L38'></a>
+<a id='L39' name='L39'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>char</strong>   *trailer= 0;
+<a id='L40' name='L40'></a>  <strong class='reserved'>static</strong> <a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> *headers= 0;
+<a id='L41' name='L41'></a>  <strong class='reserved'>static</strong> <strong class='reserved'>char</strong>   *deftrailer= "\n\
+<a id='L42' name='L42'></a>#ifdef YY_MAIN\n\
+<a id='L43' name='L43'></a>int main()\n\
+<a id='L44' name='L44'></a>{\n\
+<a id='L45' name='L45'></a>  GREG g;\n\
+<a id='L46' name='L46'></a>  yyinit(&amp;g);\n\
+<a id='L47' name='L47'></a>  while (yyparse(&amp;g));\n\
+<a id='L48' name='L48'></a>  yydeinit(&amp;g);\n\
+<a id='L49' name='L49'></a>  return 0;\n\
+<a id='L50' name='L50'></a>}\n\
+<a id='L51' name='L51'></a>#endif\n\
+<a id='L52' name='L52'></a>";
+<a id='L53' name='L53'></a>
+<a id='L54' name='L54'></a>  <strong class='reserved'>void</strong> makeHeader(<strong class='reserved'>char</strong> *text);
+<a id='L55' name='L55'></a>  <strong class='reserved'>void</strong> makeTrailer(<strong class='reserved'>char</strong> *text);
+<a id='L56' name='L56'></a><strong class='reserved'>%}</strong>
 <a id='L57' name='L57'></a>
-<a id='L58' name='L58'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/712.html' title='Multiple referred from 4 places.'>findRule</a>(<strong class='reserved'>char</strong> *name, <strong class='reserved'>int</strong> defined)
-<a id='L59' name='L59'></a><em class='brace'>{</em>
-<a id='L60' name='L60'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *n;
-<a id='L61' name='L61'></a>  <strong class='reserved'>char</strong> *ptr;
-<a id='L62' name='L62'></a>  <strong class='reserved'>for</strong> (ptr= name;  *ptr;  ptr++) <strong class='reserved'>if</strong> ('-' == *ptr) *ptr= '_';
-<a id='L63' name='L63'></a>  <strong class='reserved'>for</strong> (n= rules;  n;  n= n-&gt;any.next)
-<a id='L64' name='L64'></a>    <em class='brace'>{</em>
-<a id='L65' name='L65'></a>      assert(<a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a> == n-&gt;type);
-<a id='L66' name='L66'></a>      <strong class='reserved'>if</strong> (!strcmp(name, n-&gt;rule.name))
-<a id='L67' name='L67'></a>        <strong class='reserved'>return</strong> n;
-<a id='L68' name='L68'></a>    <em class='brace'>}</em>
-<a id='L69' name='L69'></a>  <strong class='reserved'>return</strong> <a href='../S/201.html#L47' title='Defined at 47 in tools/tree.c.'>makeRule</a>(name, defined);
-<a id='L70' name='L70'></a><em class='brace'>}</em>
-<a id='L71' name='L71'></a>
-<a id='L72' name='L72'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/697.html' title='Multiple referred from 2 places.'>beginRule</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *rule)
-<a id='L73' name='L73'></a><em class='brace'>{</em>
-<a id='L74' name='L74'></a>  actionCount= 0;
-<a id='L75' name='L75'></a>  <strong class='reserved'>return</strong> thisRule= rule;
-<a id='L76' name='L76'></a><em class='brace'>}</em>
-<a id='L77' name='L77'></a>
-<a id='L78' name='L78'></a><strong class='reserved'>void</strong> <a href='../R/498.html' title='Multiple referred from 2 places.'>Rule_setExpression</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node, <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *expression)
-<a id='L79' name='L79'></a><em class='brace'>{</em>
-<a id='L80' name='L80'></a>  assert(node);
-<a id='L81' name='L81'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L82' name='L82'></a>  <a href='../S/201.html#L350' title='Defined at 350 in tools/tree.c.'>Node_print</a>(node);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, " [%d]&lt;- ", node-&gt;type);  <a href='../S/201.html#L350' title='Defined at 350 in tools/tree.c.'>Node_print</a>(expression);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "\n");
-<a id='L83' name='L83'></a><em class='sharp'>#endif</em>
-<a id='L84' name='L84'></a>  assert(<a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a> == node-&gt;type);
-<a id='L85' name='L85'></a>  node-&gt;rule.expression= expression;
-<a id='L86' name='L86'></a>  <strong class='reserved'>if</strong> (!start || !strcmp(node-&gt;rule.name, "start"))
-<a id='L87' name='L87'></a>    start= node;
-<a id='L88' name='L88'></a><em class='brace'>}</em>
+<a id='L58' name='L58'></a># Hierarchical syntax
+<a id='L59' name='L59'></a>
+<a id='L60' name='L60'></a>grammar=        - ( declaration | definition )+ trailer? <a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-file
+<a id='L61' name='L61'></a>
+<a id='L62' name='L62'></a>declaration=    '%{' &lt; ( !'%}' . )* &gt; RPERCENT          <em class='brace'>{</em> makeHeader(yytext); <em class='brace'>}</em>                                         #<em class='brace'>{</em>YYACCEPT<em class='brace'>}</em>
+<a id='L63' name='L63'></a>
+<a id='L64' name='L64'></a>trailer=        '%%' &lt; .* &gt;                             <em class='brace'>{</em> makeTrailer(yytext); <em class='brace'>}</em>                                        #<em class='brace'>{</em>YYACCEPT<em class='brace'>}</em>
+<a id='L65' name='L65'></a>
+<a id='L66' name='L66'></a>definition=     s:identifier                            <em class='brace'>{</em> <strong class='reserved'>if</strong> (<a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L72' title='Defined at 72 in tools/tree.c.'>beginRule</a>(<a href='../S/205.html#L58' title='Defined at 58 in tools/tree.c.'>findRule</a>(yytext, s)))-&gt;rule.expression)
+<a id='L67' name='L67'></a>                                                            <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "rule '%s' redefined\n", yytext); <em class='brace'>}</em>
+<a id='L68' name='L68'></a>                EQUAL expression                        <em class='brace'>{</em> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e= <a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>();  <a href='../S/205.html#L78' title='Defined at 78 in tools/tree.c.'>Rule_setExpression</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>(), e); <em class='brace'>}</em>
+<a id='L69' name='L69'></a>                SEMICOLON?                                                                                              #<em class='brace'>{</em>YYACCEPT<em class='brace'>}</em>
+<a id='L70' name='L70'></a>
+<a id='L71' name='L71'></a>expression=     sequence (BAR sequence                  <em class='brace'>{</em> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *f= <a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>();  <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L188' title='Defined at 188 in tools/tree.c.'>Alternate_append</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>(), f)); <em class='brace'>}</em>
+<a id='L72' name='L72'></a>                            )*
+<a id='L73' name='L73'></a>
+<a id='L74' name='L74'></a>sequence=       error (error                            <em class='brace'>{</em> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *f= <a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>();  <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L213' title='Defined at 213 in tools/tree.c.'>Sequence_append</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>(), f)); <em class='brace'>}</em>
+<a id='L75' name='L75'></a>                          )*
+<a id='L76' name='L76'></a>
+<a id='L77' name='L77'></a>error=          prefix  (TILDE action                   <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L166' title='Defined at 166 in tools/tree.c.'>makeError</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>(), yytext)); <em class='brace'>}</em>
+<a id='L78' name='L78'></a>                        )?
+<a id='L79' name='L79'></a>
+<a id='L80' name='L80'></a>prefix=         AND action                              <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L159' title='Defined at 159 in tools/tree.c.'>makePredicate</a>(yytext)); <em class='brace'>}</em>
+<a id='L81' name='L81'></a>|               AND suffix                              <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L224' title='Defined at 224 in tools/tree.c.'>makePeekFor</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>())); <em class='brace'>}</em>
+<a id='L82' name='L82'></a>|               NOT suffix                              <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L231' title='Defined at 231 in tools/tree.c.'>makePeekNot</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>())); <em class='brace'>}</em>
+<a id='L83' name='L83'></a>|                   suffix
+<a id='L84' name='L84'></a>
+<a id='L85' name='L85'></a>suffix=         primary (QUESTION                       <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L238' title='Defined at 238 in tools/tree.c.'>makeQuery</a>(<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>())); <em class='brace'>}</em>
+<a id='L86' name='L86'></a>                        | STAR                          <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L245' title='Defined at 245 in tools/tree.c.'>makeStar</a> (<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>())); <em class='brace'>}</em>
+<a id='L87' name='L87'></a>                        | PLUS                          <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L252' title='Defined at 252 in tools/tree.c.'>makePlus</a> (<a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>())); <em class='brace'>}</em>
+<a id='L88' name='L88'></a>                        )?
 <a id='L89' name='L89'></a>
-<a id='L90' name='L90'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/789.html' title='Multiple referred from 2 places.'>makeVariable</a>(<strong class='reserved'>char</strong> *name)
-<a id='L91' name='L91'></a><em class='brace'>{</em>
-<a id='L92' name='L92'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node;
-<a id='L93' name='L93'></a>  assert(thisRule);
-<a id='L94' name='L94'></a>  <strong class='reserved'>for</strong> (node= thisRule-&gt;rule.variables;  node;  node= node-&gt;variable.next)
-<a id='L95' name='L95'></a>    <strong class='reserved'>if</strong> (!strcmp(name, node-&gt;variable.name))
-<a id='L96' name='L96'></a>      <strong class='reserved'>return</strong> node;
-<a id='L97' name='L97'></a>  node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/614.html' title='Multiple defined in 2 places.'>Variable</a>);
-<a id='L98' name='L98'></a>  node-&gt;variable.name= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(name);
-<a id='L99' name='L99'></a>  node-&gt;variable.next= thisRule-&gt;rule.variables;
-<a id='L100' name='L100'></a>  thisRule-&gt;rule.variables= node;
-<a id='L101' name='L101'></a>  <strong class='reserved'>return</strong> node;
-<a id='L102' name='L102'></a><em class='brace'>}</em>
-<a id='L103' name='L103'></a>
-<a id='L104' name='L104'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/779.html' title='Multiple referred from 3 places.'>makeName</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *rule)
-<a id='L105' name='L105'></a><em class='brace'>{</em>
-<a id='L106' name='L106'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/229.html' title='Multiple defined in 2 places.'>Name</a>);
-<a id='L107' name='L107'></a>  node-&gt;name.rule= rule;
-<a id='L108' name='L108'></a>  node-&gt;name.variable= 0;
-<a id='L109' name='L109'></a>  rule-&gt;rule.flags |= <a href='../S/196.html#L34' title='Defined at 34 in tools/greg.h.'>RuleUsed</a>;
-<a id='L110' name='L110'></a>  <strong class='reserved'>return</strong> node;
-<a id='L111' name='L111'></a><em class='brace'>}</em>
-<a id='L112' name='L112'></a>
-<a id='L113' name='L113'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/777.html' title='Multiple referred from 2 places.'>makeDot</a>(<strong class='reserved'>void</strong>)
-<a id='L114' name='L114'></a><em class='brace'>{</em>
-<a id='L115' name='L115'></a>  <strong class='reserved'>return</strong> <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/155.html' title='Multiple defined in 2 places.'>Dot</a>);
-<a id='L116' name='L116'></a><em class='brace'>}</em>
-<a id='L117' name='L117'></a>
-<a id='L118' name='L118'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../S/196.html#L100' title='Referred from 100 in tools/greg.h.'>makeCharacter</a>(<strong class='reserved'>char</strong> *text)
-<a id='L119' name='L119'></a><em class='brace'>{</em>
-<a id='L120' name='L120'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/73.html' title='Multiple defined in 2 places.'>Character</a>);
-<a id='L121' name='L121'></a>  node-&gt;character.value= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L122' name='L122'></a>  <strong class='reserved'>return</strong> node;
-<a id='L123' name='L123'></a><em class='brace'>}</em>
+<a id='L90' name='L90'></a>primary=        identifier                              <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L90' title='Defined at 90 in tools/tree.c.'>makeVariable</a>(yytext)); <em class='brace'>}</em>
+<a id='L91' name='L91'></a>                COLON identifier !EQUAL                 <em class='brace'>{</em> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *name= <a href='../S/205.html#L104' title='Defined at 104 in tools/tree.c.'>makeName</a>(<a href='../S/205.html#L58' title='Defined at 58 in tools/tree.c.'>findRule</a>(yytext, 0));  name-&gt;name.variable= <a href='../S/205.html#L293' title='Defined at 293 in tools/tree.c.'>pop</a>();  <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(name); <em class='brace'>}</em>
+<a id='L92' name='L92'></a>|               identifier !EQUAL                       <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L104' title='Defined at 104 in tools/tree.c.'>makeName</a>(<a href='../S/205.html#L58' title='Defined at 58 in tools/tree.c.'>findRule</a>(yytext, 0))); <em class='brace'>}</em>
+<a id='L93' name='L93'></a>|               OPEN expression CLOSE
+<a id='L94' name='L94'></a>|               literal                                 <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L125' title='Defined at 125 in tools/tree.c.'>makeString</a>(yytext)); <em class='brace'>}</em>
+<a id='L95' name='L95'></a>|               class                                   <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L132' title='Defined at 132 in tools/tree.c.'>makeClass</a>(yytext)); <em class='brace'>}</em>
+<a id='L96' name='L96'></a>|               DOT                                     <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L113' title='Defined at 113 in tools/tree.c.'>makeDot</a>()); <em class='brace'>}</em>
+<a id='L97' name='L97'></a>|               action                                  <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L139' title='Defined at 139 in tools/tree.c.'>makeAction</a>(yytext)); <em class='brace'>}</em>
+<a id='L98' name='L98'></a>|               BEGIN                                   <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L159' title='Defined at 159 in tools/tree.c.'>makePredicate</a>("YY_BEGIN")); <em class='brace'>}</em>
+<a id='L99' name='L99'></a>|               END                                     <em class='brace'>{</em> <a href='../S/205.html#L277' title='Defined at 277 in tools/tree.c.'>push</a>(<a href='../S/205.html#L159' title='Defined at 159 in tools/tree.c.'>makePredicate</a>("YY_END")); <em class='brace'>}</em>
+<a id='L100' name='L100'></a>
+<a id='L101' name='L101'></a># Lexical syntax
+<a id='L102' name='L102'></a>
+<a id='L103' name='L103'></a>identifier=     &lt; [-a-zA-Z_][-a-zA-Z_0-9]* &gt; -
+<a id='L104' name='L104'></a>
+<a id='L105' name='L105'></a>literal=        ['] &lt; ( !['] char )* &gt; ['] -   #'
+<a id='L106' name='L106'></a>|               ["] &lt; ( !["] char )* &gt; ["] -
+<a id='L107' name='L107'></a>
+<a id='L108' name='L108'></a>class=          '[' &lt; ( !']' range )* &gt; ']' -
+<a id='L109' name='L109'></a>
+<a id='L110' name='L110'></a>range=          char '-' char | char
+<a id='L111' name='L111'></a>
+<a id='L112' name='L112'></a>char=           '\\' [-abefnrtv'"\[\]\\]
+<a id='L113' name='L113'></a>|               '\\' 'x'[0-9A-Fa-f][0-9A-Fa-f]
+<a id='L114' name='L114'></a>|               '\\' 'x'[0-9A-Fa-f]
+<a id='L115' name='L115'></a>|               '\\' [0-3][0-7][0-7]
+<a id='L116' name='L116'></a>|               '\\' [0-7][0-7]?
+<a id='L117' name='L117'></a>|               !'\\' .
+<a id='L118' name='L118'></a>
+<a id='L119' name='L119'></a>
+<a id='L120' name='L120'></a>action=         '{' &lt; braces* &gt; '}' -
+<a id='L121' name='L121'></a>
+<a id='L122' name='L122'></a>braces=         '{' braces* '}'
+<a id='L123' name='L123'></a>|               !'}' .
 <a id='L124' name='L124'></a>
-<a id='L125' name='L125'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/788.html' title='Multiple referred from 2 places.'>makeString</a>(<strong class='reserved'>char</strong> *text)
-<a id='L126' name='L126'></a><em class='brace'>{</em>
-<a id='L127' name='L127'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/597.html' title='Multiple defined in 2 places.'>String</a>);
-<a id='L128' name='L128'></a>  node-&gt;string.value= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L129' name='L129'></a>  <strong class='reserved'>return</strong> node;
-<a id='L130' name='L130'></a><em class='brace'>}</em>
-<a id='L131' name='L131'></a>
-<a id='L132' name='L132'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/776.html' title='Multiple referred from 2 places.'>makeClass</a>(<strong class='reserved'>char</strong> *text)
-<a id='L133' name='L133'></a><em class='brace'>{</em>
-<a id='L134' name='L134'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/74.html' title='Multiple defined in 2 places.'>Class</a>);
-<a id='L135' name='L135'></a>  node-&gt;cclass.value= (<strong class='reserved'>unsigned</strong> <strong class='reserved'>char</strong> *)<a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L136' name='L136'></a>  <strong class='reserved'>return</strong> node;
-<a id='L137' name='L137'></a><em class='brace'>}</em>
-<a id='L138' name='L138'></a>
-<a id='L139' name='L139'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/772.html' title='Multiple referred from 2 places.'>makeAction</a>(<strong class='reserved'>char</strong> *text)
-<a id='L140' name='L140'></a><em class='brace'>{</em>
-<a id='L141' name='L141'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/60.html' title='Multiple defined in 2 places.'>Action</a>);
-<a id='L142' name='L142'></a>  <strong class='reserved'>char</strong> name[1024];
-<a id='L143' name='L143'></a>  assert(thisRule);
-<a id='L144' name='L144'></a>  sprintf(name, "_%d_%s", ++actionCount, thisRule-&gt;rule.name);
-<a id='L145' name='L145'></a>  node-&gt;action.name= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(name);
-<a id='L146' name='L146'></a>  node-&gt;action.text= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L147' name='L147'></a>  node-&gt;action.list= actions;
-<a id='L148' name='L148'></a>  node-&gt;action.rule= thisRule;
-<a id='L149' name='L149'></a>  actions= node;
-<a id='L150' name='L150'></a>  <em class='brace'>{</em>
-<a id='L151' name='L151'></a>    <strong class='reserved'>char</strong> *ptr;
-<a id='L152' name='L152'></a>    <strong class='reserved'>for</strong> (ptr= node-&gt;action.text;  *ptr;  ++ptr)
-<a id='L153' name='L153'></a>      <strong class='reserved'>if</strong> ('$' == ptr[0] &amp;&amp; '$' == ptr[1])
-<a id='L154' name='L154'></a>        ptr[1]= ptr[0]= 'y';
-<a id='L155' name='L155'></a>  <em class='brace'>}</em>
-<a id='L156' name='L156'></a>  <strong class='reserved'>return</strong> node;
-<a id='L157' name='L157'></a><em class='brace'>}</em>
-<a id='L158' name='L158'></a>
-<a id='L159' name='L159'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/783.html' title='Multiple referred from 4 places.'>makePredicate</a>(<strong class='reserved'>char</strong> *text)
-<a id='L160' name='L160'></a><em class='brace'>{</em>
-<a id='L161' name='L161'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/511.html' title='Multiple defined in 2 places.'>Predicate</a>);
-<a id='L162' name='L162'></a>  node-&gt;predicate.text= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L163' name='L163'></a>  <strong class='reserved'>return</strong> node;
-<a id='L164' name='L164'></a><em class='brace'>}</em>
-<a id='L165' name='L165'></a>
-<a id='L166' name='L166'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/778.html' title='Multiple referred from 2 places.'>makeError</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e, <strong class='reserved'>char</strong> *text)
-<a id='L167' name='L167'></a><em class='brace'>{</em>
-<a id='L168' name='L168'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/165.html' title='Multiple defined in 2 places.'>Error</a>);
-<a id='L169' name='L169'></a>  node-&gt;error.element= e;
-<a id='L170' name='L170'></a>  node-&gt;error.text= <a href='../S/80.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
-<a id='L171' name='L171'></a>  <strong class='reserved'>return</strong> node;
-<a id='L172' name='L172'></a><em class='brace'>}</em>
-<a id='L173' name='L173'></a>
-<a id='L174' name='L174'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/773.html' title='Multiple referred from 2 places.'>makeAlternate</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L175' name='L175'></a><em class='brace'>{</em>
-<a id='L176' name='L176'></a>  <strong class='reserved'>if</strong> (<a href='../D/61.html' title='Multiple defined in 2 places.'>Alternate</a> != e-&gt;type)
-<a id='L177' name='L177'></a>    <em class='brace'>{</em>
-<a id='L178' name='L178'></a>      <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/61.html' title='Multiple defined in 2 places.'>Alternate</a>);
-<a id='L179' name='L179'></a>      assert(e);
-<a id='L180' name='L180'></a>      assert(!e-&gt;any.next);
-<a id='L181' name='L181'></a>      node-&gt;alternate.first=
-<a id='L182' name='L182'></a>        node-&gt;alternate.last= e;
-<a id='L183' name='L183'></a>      <strong class='reserved'>return</strong> node;
-<a id='L184' name='L184'></a>    <em class='brace'>}</em>
-<a id='L185' name='L185'></a>  <strong class='reserved'>return</strong> e;
-<a id='L186' name='L186'></a><em class='brace'>}</em>
-<a id='L187' name='L187'></a>
-<a id='L188' name='L188'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/58.html' title='Multiple referred from 2 places.'>Alternate_append</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *a, <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L189' name='L189'></a><em class='brace'>{</em>
-<a id='L190' name='L190'></a>  assert(a);
-<a id='L191' name='L191'></a>  a= <a href='../S/201.html#L174' title='Defined at 174 in tools/tree.c.'>makeAlternate</a>(a);
-<a id='L192' name='L192'></a>  assert(a-&gt;alternate.last);
-<a id='L193' name='L193'></a>  assert(e);
-<a id='L194' name='L194'></a>  a-&gt;alternate.last-&gt;any.next= e;
-<a id='L195' name='L195'></a>  a-&gt;alternate.last= e;
-<a id='L196' name='L196'></a>  <strong class='reserved'>return</strong> a;
-<a id='L197' name='L197'></a><em class='brace'>}</em>
-<a id='L198' name='L198'></a>
-<a id='L199' name='L199'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/786.html' title='Multiple referred from 2 places.'>makeSequence</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L200' name='L200'></a><em class='brace'>{</em>
-<a id='L201' name='L201'></a>  <strong class='reserved'>if</strong> (<a href='../D/594.html' title='Multiple defined in 2 places.'>Sequence</a> != e-&gt;type)
-<a id='L202' name='L202'></a>    <em class='brace'>{</em>
-<a id='L203' name='L203'></a>      <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/594.html' title='Multiple defined in 2 places.'>Sequence</a>);
-<a id='L204' name='L204'></a>      assert(e);
-<a id='L205' name='L205'></a>      assert(!e-&gt;any.next);
-<a id='L206' name='L206'></a>      node-&gt;sequence.first=
-<a id='L207' name='L207'></a>        node-&gt;sequence.last= e;
-<a id='L208' name='L208'></a>      <strong class='reserved'>return</strong> node;
-<a id='L209' name='L209'></a>    <em class='brace'>}</em>
-<a id='L210' name='L210'></a>  <strong class='reserved'>return</strong> e;
-<a id='L211' name='L211'></a><em class='brace'>}</em>
+<a id='L125' name='L125'></a>EQUAL=          '=' -
+<a id='L126' name='L126'></a>COLON=          ':' -
+<a id='L127' name='L127'></a>SEMICOLON=      ';' -
+<a id='L128' name='L128'></a>BAR=            '|' -
+<a id='L129' name='L129'></a>AND=            '&amp;' -
+<a id='L130' name='L130'></a>NOT=            '!' -
+<a id='L131' name='L131'></a>QUESTION=       '?' -
+<a id='L132' name='L132'></a>STAR=           '*' -
+<a id='L133' name='L133'></a>PLUS=           '+' -
+<a id='L134' name='L134'></a>OPEN=           '(' -
+<a id='L135' name='L135'></a>CLOSE=          ')' -
+<a id='L136' name='L136'></a>DOT=            '.' -
+<a id='L137' name='L137'></a>BEGIN=          '&lt;' -
+<a id='L138' name='L138'></a>END=            '&gt;' -
+<a id='L139' name='L139'></a>TILDE=          '~' -
+<a id='L140' name='L140'></a>RPERCENT=       '%}' -
+<a id='L141' name='L141'></a>
+<a id='L142' name='L142'></a>-=              (space | comment)*
+<a id='L143' name='L143'></a>space=          ' ' | '\t' | <a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-line
+<a id='L144' name='L144'></a>comment=        '#' (!<a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-line .)* <a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-line
+<a id='L145' name='L145'></a><a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-line=    '\r\n' | '\n' | '\r'
+<a id='L146' name='L146'></a><a href='../S/197.html#L198' title='Defined at 198 in tools/compile.c.'>end</a>-of-file=    !.
+<a id='L147' name='L147'></a>
+<a id='L148' name='L148'></a><strong class='reserved'>%%</strong>
+<a id='L149' name='L149'></a>
+<a id='L150' name='L150'></a>void makeHeader(char *text)
+<a id='L151' name='L151'></a><em class='brace'>{</em>
+<a id='L152' name='L152'></a>  <a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> *header= (<a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> *)malloc(<strong class='reserved'>sizeof</strong>(<a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a>));
+<a id='L153' name='L153'></a>  header-&gt;text= <a href='../S/81.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
+<a id='L154' name='L154'></a>  header-&gt;next= headers;
+<a id='L155' name='L155'></a>  headers= header;
+<a id='L156' name='L156'></a><em class='brace'>}</em>
+<a id='L157' name='L157'></a>
+<a id='L158' name='L158'></a>void makeTrailer(char *text)
+<a id='L159' name='L159'></a><em class='brace'>{</em>
+<a id='L160' name='L160'></a>  trailer= <a href='../S/81.html#L238' title='Defined at 238 in lib/readline/linenoise.c.'>strdup</a>(text);
+<a id='L161' name='L161'></a><em class='brace'>}</em>
+<a id='L162' name='L162'></a>
+<a id='L163' name='L163'></a>static void version(char *name)
+<a id='L164' name='L164'></a><em class='brace'>{</em>
+<a id='L165' name='L165'></a>  printf("%s version %d.%d.%d\n", name, <a href='../S/200.html#L27' title='Defined at 27 in tools/greg.h.'>GREG_MAJOR</a>, <a href='../S/200.html#L28' title='Defined at 28 in tools/greg.h.'>GREG_MINOR</a>, <a href='../S/200.html#L29' title='Defined at 29 in tools/greg.h.'>GREG_LEVEL</a>);
+<a id='L166' name='L166'></a><em class='brace'>}</em>
+<a id='L167' name='L167'></a>
+<a id='L168' name='L168'></a>static void usage(char *name)
+<a id='L169' name='L169'></a><em class='brace'>{</em>
+<a id='L170' name='L170'></a>  version(name);
+<a id='L171' name='L171'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "usage: %s [&lt;option&gt;...] [&lt;file&gt;...]\n", name);
+<a id='L172' name='L172'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "where &lt;option&gt; can be\n");
+<a id='L173' name='L173'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "  -h          print this help information\n");
+<a id='L174' name='L174'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "  -o &lt;ofile&gt;  write output to &lt;ofile&gt;\n");
+<a id='L175' name='L175'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "  -v          be verbose\n");
+<a id='L176' name='L176'></a><em class='sharp'>#ifdef</em> <a href='../S/26.html#L71' title='Defined at 71 in core/potion.h.'>YY_DEBUG</a>
+<a id='L177' name='L177'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "  -vv         be more verbose\n");
+<a id='L178' name='L178'></a><em class='sharp'>#endif</em>
+<a id='L179' name='L179'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "  -V          print version number and exit\n");
+<a id='L180' name='L180'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "if no &lt;file&gt; is given, input is read from stdin\n");
+<a id='L181' name='L181'></a>  <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "if no &lt;ofile&gt; is given, output is written to stdout\n");
+<a id='L182' name='L182'></a>  exit(1);
+<a id='L183' name='L183'></a><em class='brace'>}</em>
+<a id='L184' name='L184'></a>
+<a id='L185' name='L185'></a>int <a href='../D/935.html' title='Multiple defined in 4 places.'>main</a>(int argc, char **argv)
+<a id='L186' name='L186'></a><em class='brace'>{</em>
+<a id='L187' name='L187'></a>  GREG *G;
+<a id='L188' name='L188'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *n;
+<a id='L189' name='L189'></a>  <strong class='reserved'>int</strong>   c;
+<a id='L190' name='L190'></a>
+<a id='L191' name='L191'></a>  output= stdout;
+<a id='L192' name='L192'></a>
+<a id='L193' name='L193'></a>  <strong class='reserved'>while</strong> (-1 != (c= getopt(argc, argv, "Vho:v")))
+<a id='L194' name='L194'></a>    <em class='brace'>{</em>
+<a id='L195' name='L195'></a>      <strong class='reserved'>switch</strong> (c)
+<a id='L196' name='L196'></a>        <em class='brace'>{</em>
+<a id='L197' name='L197'></a>        <strong class='reserved'>case</strong> 'V':
+<a id='L198' name='L198'></a>          version(basename(argv[0]));
+<a id='L199' name='L199'></a>          exit(0);
+<a id='L200' name='L200'></a>
+<a id='L201' name='L201'></a>        <strong class='reserved'>case</strong> 'h':
+<a id='L202' name='L202'></a>          usage(basename(argv[0]));
+<a id='L203' name='L203'></a>          <strong class='reserved'>break</strong>;
+<a id='L204' name='L204'></a>
+<a id='L205' name='L205'></a>        <strong class='reserved'>case</strong> 'o':
+<a id='L206' name='L206'></a>          <strong class='reserved'>if</strong> (!(output= fopen(optarg, "w")))
+<a id='L207' name='L207'></a>            <em class='brace'>{</em>
+<a id='L208' name='L208'></a>              perror(optarg);
+<a id='L209' name='L209'></a>              exit(1);
+<a id='L210' name='L210'></a>            <em class='brace'>}</em>
+<a id='L211' name='L211'></a>          <strong class='reserved'>break</strong>;
 <a id='L212' name='L212'></a>
-<a id='L213' name='L213'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/524.html' title='Multiple referred from 2 places.'>Sequence_append</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *a, <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L214' name='L214'></a><em class='brace'>{</em>
-<a id='L215' name='L215'></a>  assert(a);
-<a id='L216' name='L216'></a>  a= <a href='../S/201.html#L199' title='Defined at 199 in tools/tree.c.'>makeSequence</a>(a);
-<a id='L217' name='L217'></a>  assert(a-&gt;sequence.last);
-<a id='L218' name='L218'></a>  assert(e);
-<a id='L219' name='L219'></a>  a-&gt;sequence.last-&gt;any.next= e;
-<a id='L220' name='L220'></a>  a-&gt;sequence.last= e;
-<a id='L221' name='L221'></a>  <strong class='reserved'>return</strong> a;
-<a id='L222' name='L222'></a><em class='brace'>}</em>
-<a id='L223' name='L223'></a>
-<a id='L224' name='L224'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/780.html' title='Multiple referred from 2 places.'>makePeekFor</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L225' name='L225'></a><em class='brace'>{</em>
-<a id='L226' name='L226'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/502.html' title='Multiple defined in 2 places.'>PeekFor</a>);
-<a id='L227' name='L227'></a>  node-&gt;peekFor.element= e;
-<a id='L228' name='L228'></a>  <strong class='reserved'>return</strong> node;
-<a id='L229' name='L229'></a><em class='brace'>}</em>
-<a id='L230' name='L230'></a>
-<a id='L231' name='L231'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/781.html' title='Multiple referred from 2 places.'>makePeekNot</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L232' name='L232'></a><em class='brace'>{</em>
-<a id='L233' name='L233'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/503.html' title='Multiple defined in 2 places.'>PeekNot</a>);
-<a id='L234' name='L234'></a>  node-&gt;peekNot.element= e;
-<a id='L235' name='L235'></a>  <strong class='reserved'>return</strong> node;
-<a id='L236' name='L236'></a><em class='brace'>}</em>
-<a id='L237' name='L237'></a>
-<a id='L238' name='L238'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/784.html' title='Multiple referred from 2 places.'>makeQuery</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L239' name='L239'></a><em class='brace'>{</em>
-<a id='L240' name='L240'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/512.html' title='Multiple defined in 2 places.'>Query</a>);
-<a id='L241' name='L241'></a>  node-&gt;query.element= e;
-<a id='L242' name='L242'></a>  <strong class='reserved'>return</strong> node;
-<a id='L243' name='L243'></a><em class='brace'>}</em>
-<a id='L244' name='L244'></a>
-<a id='L245' name='L245'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/787.html' title='Multiple referred from 2 places.'>makeStar</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L246' name='L246'></a><em class='brace'>{</em>
-<a id='L247' name='L247'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/596.html' title='Multiple defined in 2 places.'>Star</a>);
-<a id='L248' name='L248'></a>  node-&gt;star.element= e;
-<a id='L249' name='L249'></a>  <strong class='reserved'>return</strong> node;
-<a id='L250' name='L250'></a><em class='brace'>}</em>
-<a id='L251' name='L251'></a>
-<a id='L252' name='L252'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/782.html' title='Multiple referred from 2 places.'>makePlus</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *e)
-<a id='L253' name='L253'></a><em class='brace'>{</em>
-<a id='L254' name='L254'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node= <a href='../S/201.html#L45' title='Defined at 45 in tools/tree.c.'>newNode</a>(<a href='../D/504.html' title='Multiple defined in 2 places.'>Plus</a>);
-<a id='L255' name='L255'></a>  node-&gt;plus.element= e;
-<a id='L256' name='L256'></a>  <strong class='reserved'>return</strong> node;
-<a id='L257' name='L257'></a><em class='brace'>}</em>
-<a id='L258' name='L258'></a>
+<a id='L213' name='L213'></a>        <strong class='reserved'>case</strong> 'v':
+<a id='L214' name='L214'></a>          verboseFlag++;
+<a id='L215' name='L215'></a>          <strong class='reserved'>break</strong>;
+<a id='L216' name='L216'></a>
+<a id='L217' name='L217'></a>        <strong class='reserved'>default</strong>:
+<a id='L218' name='L218'></a>          <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "for usage try: %s -h\n", argv[0]);
+<a id='L219' name='L219'></a>          exit(1);
+<a id='L220' name='L220'></a>        <em class='brace'>}</em>
+<a id='L221' name='L221'></a>    <em class='brace'>}</em>
+<a id='L222' name='L222'></a>  argc -= optind;
+<a id='L223' name='L223'></a>  argv += optind;
+<a id='L224' name='L224'></a>
+<a id='L225' name='L225'></a>  G = yyparse_new(NULL);
+<a id='L226' name='L226'></a><em class='sharp'>#ifdef</em> <a href='../S/26.html#L71' title='Defined at 71 in core/potion.h.'>YY_DEBUG</a>
+<a id='L227' name='L227'></a>  <strong class='reserved'>if</strong> (verboseFlag &gt; 0) <em class='brace'>{</em> yydebug = <a href='../S/29.html#L46' title='Defined at 46 in core/syntax.y.'>YYDEBUG_PARSE</a>;
+<a id='L228' name='L228'></a>    <strong class='reserved'>if</strong> (verboseFlag &gt; 1) yydebug = <a href='../S/29.html#L46' title='Defined at 46 in core/syntax.y.'>YYDEBUG_PARSE</a> + <a href='../S/29.html#L47' title='Defined at 47 in core/syntax.y.'>YYDEBUG_VERBOSE</a>;
+<a id='L229' name='L229'></a>  <em class='brace'>}</em>
+<a id='L230' name='L230'></a><em class='sharp'>#endif</em>
+<a id='L231' name='L231'></a>
+<a id='L232' name='L232'></a>  <strong class='reserved'>if</strong> (argc)
+<a id='L233' name='L233'></a>    <em class='brace'>{</em>
+<a id='L234' name='L234'></a>      <strong class='reserved'>for</strong> (;  argc;  --argc, ++argv)
+<a id='L235' name='L235'></a>        <em class='brace'>{</em>
+<a id='L236' name='L236'></a>          <strong class='reserved'>if</strong> (strcmp(*argv, "-"))
+<a id='L237' name='L237'></a>            <em class='brace'>{</em>
+<a id='L238' name='L238'></a>              G-&gt;filename= *argv;
+<a id='L239' name='L239'></a>              <strong class='reserved'>if</strong> (!(G-&gt;input= fopen(G-&gt;filename, "r")))
+<a id='L240' name='L240'></a>                <em class='brace'>{</em>
+<a id='L241' name='L241'></a>                  perror(G-&gt;filename);
+<a id='L242' name='L242'></a>                  exit(1);
+<a id='L243' name='L243'></a>                <em class='brace'>}</em>
+<a id='L244' name='L244'></a>            <em class='brace'>}</em>
+<a id='L245' name='L245'></a>          <strong class='reserved'>if</strong> (!<a href='../D/1600.html' title='Multiple defined in 2 places.'>yyparse</a>(G))
+<a id='L246' name='L246'></a>            YY_ERROR("syntax error");
+<a id='L247' name='L247'></a>          <strong class='reserved'>if</strong> (G-&gt;input != stdin)
+<a id='L248' name='L248'></a>            fclose(G-&gt;input);
+<a id='L249' name='L249'></a>        <em class='brace'>}</em>
+<a id='L250' name='L250'></a>    <em class='brace'>}</em>
+<a id='L251' name='L251'></a>  <strong class='reserved'>else</strong>
+<a id='L252' name='L252'></a>    <strong class='reserved'>if</strong> (!<a href='../D/1600.html' title='Multiple defined in 2 places.'>yyparse</a>(G))
+<a id='L253' name='L253'></a>      YY_ERROR("syntax error");
+<a id='L254' name='L254'></a>  yyparse_free(G);
+<a id='L255' name='L255'></a>
+<a id='L256' name='L256'></a>  <strong class='reserved'>if</strong> (verboseFlag)
+<a id='L257' name='L257'></a>    <strong class='reserved'>for</strong> (n= rules;  n;  n= n-&gt;any.next)
+<a id='L258' name='L258'></a>      <a href='../S/205.html#L364' title='Defined at 364 in tools/tree.c.'>Rule_print</a>(n);
 <a id='L259' name='L259'></a>
-<a id='L260' name='L260'></a><strong class='reserved'>static</strong> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a>  *stack[1024];
-<a id='L261' name='L261'></a><strong class='reserved'>static</strong> <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> **stackPointer= stack;
-<a id='L262' name='L262'></a>
-<a id='L263' name='L263'></a>
-<a id='L264' name='L264'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L265' name='L265'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/707.html' title='Multiple referred from 2 places.'>dumpStack</a>(<strong class='reserved'>void</strong>)
-<a id='L266' name='L266'></a><em class='brace'>{</em>
-<a id='L267' name='L267'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> **p;
-<a id='L268' name='L268'></a>  <strong class='reserved'>for</strong> (p= stack + 1;  p &lt;= stackPointer;  ++p)
-<a id='L269' name='L269'></a>    <em class='brace'>{</em>
-<a id='L270' name='L270'></a>      <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "### %ld\t", p - stack);
-<a id='L271' name='L271'></a>      <a href='../S/201.html#L350' title='Defined at 350 in tools/tree.c.'>Node_print</a>(*p);
-<a id='L272' name='L272'></a>      <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "\n");
-<a id='L273' name='L273'></a>    <em class='brace'>}</em>
-<a id='L274' name='L274'></a><em class='brace'>}</em>
-<a id='L275' name='L275'></a><em class='sharp'>#endif</em>
-<a id='L276' name='L276'></a>
-<a id='L277' name='L277'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/1190.html' title='Multiple referred from 20 places.'>push</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)
-<a id='L278' name='L278'></a><em class='brace'>{</em>
-<a id='L279' name='L279'></a>  assert(node);
-<a id='L280' name='L280'></a>  assert(stackPointer &lt; stack + 1023);
-<a id='L281' name='L281'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L282' name='L282'></a>  <a href='../S/201.html#L265' title='Defined at 265 in tools/tree.c.'>dumpStack</a>();  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, " PUSH ");  <a href='../S/201.html#L350' title='Defined at 350 in tools/tree.c.'>Node_print</a>(node);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "\n");
-<a id='L283' name='L283'></a><em class='sharp'>#endif</em>
-<a id='L284' name='L284'></a>  <strong class='reserved'>return</strong> *++stackPointer= node;
+<a id='L260' name='L260'></a>  <a href='../S/197.html#L926' title='Defined at 926 in tools/compile.c.'>Rule_compile_c_header</a>();
+<a id='L261' name='L261'></a>
+<a id='L262' name='L262'></a>  <strong class='reserved'>while</strong> (headers) <em class='brace'>{</em>
+<a id='L263' name='L263'></a>    <a href='../D/186.html' title='Multiple defined in 2 places.'>Header</a> *tmp = headers;
+<a id='L264' name='L264'></a>    <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(output, "%s\n", headers-&gt;text);
+<a id='L265' name='L265'></a>    free(headers-&gt;text);
+<a id='L266' name='L266'></a>    tmp= headers-&gt;next;
+<a id='L267' name='L267'></a>    free(headers);
+<a id='L268' name='L268'></a>    headers= tmp;
+<a id='L269' name='L269'></a>  <em class='brace'>}</em>
+<a id='L270' name='L270'></a>
+<a id='L271' name='L271'></a>  <strong class='reserved'>if</strong> (rules) <em class='brace'>{</em>
+<a id='L272' name='L272'></a>    <a href='../S/197.html#L996' title='Defined at 996 in tools/compile.c.'>Rule_compile_c</a>(rules);
+<a id='L273' name='L273'></a>    <a href='../S/205.html#L443' title='Defined at 443 in tools/tree.c.'>freeRules</a>();
+<a id='L274' name='L274'></a>  <em class='brace'>}</em>
+<a id='L275' name='L275'></a>
+<a id='L276' name='L276'></a>  <strong class='reserved'>if</strong> (trailer) <em class='brace'>{</em>
+<a id='L277' name='L277'></a>    fputs(trailer, output);
+<a id='L278' name='L278'></a>    fputs("\n", output);
+<a id='L279' name='L279'></a>    free(trailer);
+<a id='L280' name='L280'></a>  <em class='brace'>}</em>
+<a id='L281' name='L281'></a>  <strong class='reserved'>else</strong>
+<a id='L282' name='L282'></a>    fputs(deftrailer, output);
+<a id='L283' name='L283'></a>
+<a id='L284' name='L284'></a>  <strong class='reserved'>return</strong> 0;
 <a id='L285' name='L285'></a><em class='brace'>}</em>
-<a id='L286' name='L286'></a>
-<a id='L287' name='L287'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../S/196.html#L116' title='Referred from 116 in tools/greg.h.'>top</a>(<strong class='reserved'>void</strong>)
-<a id='L288' name='L288'></a><em class='brace'>{</em>
-<a id='L289' name='L289'></a>  assert(stackPointer &gt; stack);
-<a id='L290' name='L290'></a>  <strong class='reserved'>return</strong> *stackPointer;
-<a id='L291' name='L291'></a><em class='brace'>}</em>
-<a id='L292' name='L292'></a>
-<a id='L293' name='L293'></a><a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *<a href='../R/810.html' title='Multiple referred from 11 places.'>pop</a>(<strong class='reserved'>void</strong>)
-<a id='L294' name='L294'></a><em class='brace'>{</em>
-<a id='L295' name='L295'></a>  assert(stackPointer &gt; stack);
-<a id='L296' name='L296'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L297' name='L297'></a>  <a href='../S/201.html#L265' title='Defined at 265 in tools/tree.c.'>dumpStack</a>();  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, " POP\n");
-<a id='L298' name='L298'></a><em class='sharp'>#endif</em>
-<a id='L299' name='L299'></a>  <strong class='reserved'>return</strong> *stackPointer--;
-<a id='L300' name='L300'></a><em class='brace'>}</em>
-<a id='L301' name='L301'></a>
-<a id='L302' name='L302'></a>
-<a id='L303' name='L303'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../R/212.html' title='Multiple referred from 11 places.'>Node_fprint</a>(FILE *stream, <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)
-<a id='L304' name='L304'></a><em class='brace'>{</em>
-<a id='L305' name='L305'></a>  assert(node);
-<a id='L306' name='L306'></a>  <strong class='reserved'>switch</strong> (node-&gt;type)
-<a id='L307' name='L307'></a>    <em class='brace'>{</em>
-<a id='L308' name='L308'></a>    <strong class='reserved'>case</strong> <a href='../S/196.html#L31' title='Defined at 31 in tools/greg.h.'>Freed</a>:         <strong class='reserved'>return</strong>;
-<a id='L309' name='L309'></a>    <strong class='reserved'>case</strong> <a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a>:          <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " %s", node-&gt;rule.name);                                <strong class='reserved'>break</strong>;
-<a id='L310' name='L310'></a>    <strong class='reserved'>case</strong> <a href='../D/614.html' title='Multiple defined in 2 places.'>Variable</a>:      <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " %s", node-&gt;variable.name);                            <strong class='reserved'>break</strong>;
-<a id='L311' name='L311'></a>    <strong class='reserved'>case</strong> <a href='../D/229.html' title='Multiple defined in 2 places.'>Name</a>:          <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " %s", node-&gt;name.rule-&gt;rule.name);                     <strong class='reserved'>break</strong>;
-<a id='L312' name='L312'></a>    <strong class='reserved'>case</strong> <a href='../D/155.html' title='Multiple defined in 2 places.'>Dot</a>:           <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " .");                                                  <strong class='reserved'>break</strong>;
-<a id='L313' name='L313'></a>    <strong class='reserved'>case</strong> <a href='../D/73.html' title='Multiple defined in 2 places.'>Character</a>:     <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " '%s'", node-&gt;character.value);                        <strong class='reserved'>break</strong>;
-<a id='L314' name='L314'></a>    <strong class='reserved'>case</strong> <a href='../D/597.html' title='Multiple defined in 2 places.'>String</a>:        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " \"%s\"", node-&gt;string.value);                         <strong class='reserved'>break</strong>;
-<a id='L315' name='L315'></a>    <strong class='reserved'>case</strong> <a href='../D/74.html' title='Multiple defined in 2 places.'>Class</a>:         <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " [%s]", node-&gt;cclass.value);                           <strong class='reserved'>break</strong>;
-<a id='L316' name='L316'></a>    <strong class='reserved'>case</strong> <a href='../D/60.html' title='Multiple defined in 2 places.'>Action</a>:        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " { %s }", node-&gt;action.text);                          <strong class='reserved'>break</strong>;
-<a id='L317' name='L317'></a>    <strong class='reserved'>case</strong> <a href='../D/511.html' title='Multiple defined in 2 places.'>Predicate</a>:     <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " ?{ %s }", node-&gt;action.text);                         <strong class='reserved'>break</strong>;
-<a id='L318' name='L318'></a>    <strong class='reserved'>case</strong> <a href='../D/165.html' title='Multiple defined in 2 places.'>Error</a>:         <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " ~{ %s }", node-&gt;error.text);                          <strong class='reserved'>break</strong>;
-<a id='L319' name='L319'></a>
-<a id='L320' name='L320'></a>    <strong class='reserved'>case</strong> <a href='../D/61.html' title='Multiple defined in 2 places.'>Alternate</a>:     node= node-&gt;alternate.first;
-<a id='L321' name='L321'></a>                        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " (");
-<a id='L322' name='L322'></a>                        <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node);
-<a id='L323' name='L323'></a>                        <strong class='reserved'>while</strong> ((node= node-&gt;any.next))
-<a id='L324' name='L324'></a>                          <em class='brace'>{</em>
-<a id='L325' name='L325'></a>                            <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " |");
-<a id='L326' name='L326'></a>                            <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node);
-<a id='L327' name='L327'></a>                          <em class='brace'>}</em>
-<a id='L328' name='L328'></a>                        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " )");
-<a id='L329' name='L329'></a>                        <strong class='reserved'>break</strong>;
-<a id='L330' name='L330'></a>
-<a id='L331' name='L331'></a>    <strong class='reserved'>case</strong> <a href='../D/594.html' title='Multiple defined in 2 places.'>Sequence</a>:      node= node-&gt;sequence.first;
-<a id='L332' name='L332'></a>                        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " (");
-<a id='L333' name='L333'></a>                        <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node);
-<a id='L334' name='L334'></a>                        <strong class='reserved'>while</strong> ((node= node-&gt;any.next))
-<a id='L335' name='L335'></a>                          <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node);
-<a id='L336' name='L336'></a>                        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " )");
-<a id='L337' name='L337'></a>                        <strong class='reserved'>break</strong>;
-<a id='L338' name='L338'></a>
-<a id='L339' name='L339'></a>    <strong class='reserved'>case</strong> <a href='../D/502.html' title='Multiple defined in 2 places.'>PeekFor</a>:       <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "&amp;");  <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;query.element);        <strong class='reserved'>break</strong>;
-<a id='L340' name='L340'></a>    <strong class='reserved'>case</strong> <a href='../D/503.html' title='Multiple defined in 2 places.'>PeekNot</a>:       <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "!");  <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;query.element);        <strong class='reserved'>break</strong>;
-<a id='L341' name='L341'></a>    <strong class='reserved'>case</strong> <a href='../D/512.html' title='Multiple defined in 2 places.'>Query</a>:         <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;query.element);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "?");        <strong class='reserved'>break</strong>;
-<a id='L342' name='L342'></a>    <strong class='reserved'>case</strong> <a href='../D/596.html' title='Multiple defined in 2 places.'>Star</a>:          <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;query.element);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "*");        <strong class='reserved'>break</strong>;
-<a id='L343' name='L343'></a>    <strong class='reserved'>case</strong> <a href='../D/504.html' title='Multiple defined in 2 places.'>Plus</a>:          <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;query.element);  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "+");        <strong class='reserved'>break</strong>;
-<a id='L344' name='L344'></a>    <strong class='reserved'>default</strong>:
-<a id='L345' name='L345'></a>      <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "\nunknown node type %d\n", node-&gt;type);
-<a id='L346' name='L346'></a>      exit(1);
-<a id='L347' name='L347'></a>    <em class='brace'>}</em>
-<a id='L348' name='L348'></a><em class='brace'>}</em>
-<a id='L349' name='L349'></a>
-<a id='L350' name='L350'></a><strong class='reserved'>void</strong> <a href='../R/213.html' title='Multiple referred from 4 places.'>Node_print</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)     <em class='brace'>{</em> <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stderr, node); <em class='brace'>}</em>
-<a id='L351' name='L351'></a>
-<a id='L352' name='L352'></a><strong class='reserved'>static</strong> <strong class='reserved'>void</strong> <a href='../S/201.html#L364' title='Referred from 364 in tools/tree.c.'>Rule_fprint</a>(FILE *stream, <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)
-<a id='L353' name='L353'></a><em class='brace'>{</em>
-<a id='L354' name='L354'></a>  assert(node);
-<a id='L355' name='L355'></a>  assert(<a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a> == node-&gt;type);
-<a id='L356' name='L356'></a>  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, "%s.%d =", node-&gt;rule.name, node-&gt;rule.id);
-<a id='L357' name='L357'></a>  <strong class='reserved'>if</strong> (node-&gt;rule.expression)
-<a id='L358' name='L358'></a>    <a href='../S/201.html#L303' title='Defined at 303 in tools/tree.c.'>Node_fprint</a>(stream, node-&gt;rule.expression);
-<a id='L359' name='L359'></a>  <strong class='reserved'>else</strong>
-<a id='L360' name='L360'></a>    <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " UNDEFINED");
-<a id='L361' name='L361'></a>  <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stream, " ;\n");
-<a id='L362' name='L362'></a><em class='brace'>}</em>
-<a id='L363' name='L363'></a>
-<a id='L364' name='L364'></a><strong class='reserved'>void</strong> <a href='../R/497.html' title='Multiple referred from 2 places.'>Rule_print</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)     <em class='brace'>{</em> <a href='../S/201.html#L352' title='Defined at 352 in tools/tree.c.'>Rule_fprint</a>(stderr, node); <em class='brace'>}</em>
-<a id='L365' name='L365'></a>
-<a id='L366' name='L366'></a><strong class='reserved'>void</strong> <a href='../R/496.html' title='Multiple referred from 8 places.'>Rule_free</a>(<a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *node)
-<a id='L367' name='L367'></a><em class='brace'>{</em>
-<a id='L368' name='L368'></a>  <strong class='reserved'>switch</strong> (node-&gt;type)
-<a id='L369' name='L369'></a>    <em class='brace'>{</em>
-<a id='L370' name='L370'></a>    <strong class='reserved'>case</strong> <a href='../S/196.html#L31' title='Defined at 31 in tools/greg.h.'>Freed</a>:         <strong class='reserved'>return</strong>;
-<a id='L371' name='L371'></a>    <strong class='reserved'>case</strong> <a href='../D/532.html' title='Multiple defined in 2 places.'>Rule</a>:
-<a id='L372' name='L372'></a>      <em class='brace'>{</em>
-<a id='L373' name='L373'></a>        <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *var= node-&gt;rule.variables;
-<a id='L374' name='L374'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L375' name='L375'></a>        <em class='comment'>//Rule_print(node);</em>
-<a id='L376' name='L376'></a>        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "free Rule %s.%d\n", node-&gt;rule.name, node-&gt;rule.id);
-<a id='L377' name='L377'></a><em class='sharp'>#endif</em>
-<a id='L378' name='L378'></a>        free(node-&gt;rule.name);
-<a id='L379' name='L379'></a>        <strong class='reserved'>while</strong> (var) <em class='brace'>{</em>
-<a id='L380' name='L380'></a>          <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *tmp= var-&gt;any.next; <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(var); var= tmp;
-<a id='L381' name='L381'></a>        <em class='brace'>}</em>
-<a id='L382' name='L382'></a>        <strong class='reserved'>if</strong> (node-&gt;rule.expression)
-<a id='L383' name='L383'></a>          <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(node-&gt;rule.expression);
-<a id='L384' name='L384'></a>        <strong class='reserved'>break</strong>;
-<a id='L385' name='L385'></a>      <em class='brace'>}</em>
-<a id='L386' name='L386'></a>    <strong class='reserved'>case</strong> <a href='../D/229.html' title='Multiple defined in 2 places.'>Name</a>:          <strong class='reserved'>break</strong>;
-<a id='L387' name='L387'></a>    <strong class='reserved'>case</strong> <a href='../D/614.html' title='Multiple defined in 2 places.'>Variable</a>:      free(node-&gt;variable.name);              <strong class='reserved'>break</strong>;
-<a id='L388' name='L388'></a>    <strong class='reserved'>case</strong> <a href='../D/155.html' title='Multiple defined in 2 places.'>Dot</a>:           <strong class='reserved'>break</strong>;
-<a id='L389' name='L389'></a>    <strong class='reserved'>case</strong> <a href='../D/73.html' title='Multiple defined in 2 places.'>Character</a>:     free(node-&gt;character.value);            <strong class='reserved'>break</strong>;
-<a id='L390' name='L390'></a>    <strong class='reserved'>case</strong> <a href='../D/597.html' title='Multiple defined in 2 places.'>String</a>:        free(node-&gt;string.value);               <strong class='reserved'>break</strong>;
-<a id='L391' name='L391'></a>    <strong class='reserved'>case</strong> <a href='../D/74.html' title='Multiple defined in 2 places.'>Class</a>:         free(node-&gt;cclass.value);               <strong class='reserved'>break</strong>;
-<a id='L392' name='L392'></a>    <strong class='reserved'>case</strong> <a href='../D/60.html' title='Multiple defined in 2 places.'>Action</a>:
-<a id='L393' name='L393'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L394' name='L394'></a>        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "free Action %s\n", node-&gt;action.name);
-<a id='L395' name='L395'></a><em class='sharp'>#endif</em>
-<a id='L396' name='L396'></a>        free(node-&gt;action.text); free(node-&gt;action.name);       <strong class='reserved'>break</strong>;
-<a id='L397' name='L397'></a>    <strong class='reserved'>case</strong> <a href='../D/511.html' title='Multiple defined in 2 places.'>Predicate</a>:     free(node-&gt;predicate.text);             <strong class='reserved'>break</strong>;
-<a id='L398' name='L398'></a>    <strong class='reserved'>case</strong> <a href='../D/165.html' title='Multiple defined in 2 places.'>Error</a>:         free(node-&gt;error.text);                 <strong class='reserved'>break</strong>;
-<a id='L399' name='L399'></a>    <strong class='reserved'>case</strong> <a href='../D/61.html' title='Multiple defined in 2 places.'>Alternate</a>:
-<a id='L400' name='L400'></a>      <em class='brace'>{</em>
-<a id='L401' name='L401'></a>        <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *root= node;
-<a id='L402' name='L402'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L403' name='L403'></a>        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "free Alternate %p\n", node);
-<a id='L404' name='L404'></a><em class='sharp'>#endif</em>
-<a id='L405' name='L405'></a>        node= node-&gt;alternate.first;
-<a id='L406' name='L406'></a>        <strong class='reserved'>while</strong> (node-&gt;any.next) <em class='brace'>{</em>
-<a id='L407' name='L407'></a>          <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *tmp= node-&gt;any.next; <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(node); node= tmp;
-<a id='L408' name='L408'></a>        <em class='brace'>}</em>
-<a id='L409' name='L409'></a>        <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(node);
-<a id='L410' name='L410'></a>        node= root;
-<a id='L411' name='L411'></a>        <strong class='reserved'>break</strong>;
-<a id='L412' name='L412'></a>      <em class='brace'>}</em>
-<a id='L413' name='L413'></a>    <strong class='reserved'>case</strong> <a href='../D/594.html' title='Multiple defined in 2 places.'>Sequence</a>:
-<a id='L414' name='L414'></a>      <em class='brace'>{</em>
-<a id='L415' name='L415'></a>        <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *root= node;
-<a id='L416' name='L416'></a><em class='sharp'>#ifdef</em> DEBUG
-<a id='L417' name='L417'></a>        <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "free Sequence %p\n", node);
-<a id='L418' name='L418'></a><em class='sharp'>#endif</em>
-<a id='L419' name='L419'></a>        node= node-&gt;sequence.first;
-<a id='L420' name='L420'></a>        <strong class='reserved'>while</strong> (node-&gt;any.next) <em class='brace'>{</em>
-<a id='L421' name='L421'></a>          <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *tmp= node-&gt;any.next; <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(node); node= tmp;
-<a id='L422' name='L422'></a>        <em class='brace'>}</em>
-<a id='L423' name='L423'></a>        <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(node);
-<a id='L424' name='L424'></a>        node= root;
-<a id='L425' name='L425'></a>        <strong class='reserved'>break</strong>;
-<a id='L426' name='L426'></a>      <em class='brace'>}</em>
-<a id='L427' name='L427'></a>    <strong class='reserved'>case</strong> <a href='../D/502.html' title='Multiple defined in 2 places.'>PeekFor</a>:       <strong class='reserved'>break</strong>;
-<a id='L428' name='L428'></a>    <strong class='reserved'>case</strong> <a href='../D/503.html' title='Multiple defined in 2 places.'>PeekNot</a>:       <strong class='reserved'>break</strong>;
-<a id='L429' name='L429'></a>    <strong class='reserved'>case</strong> <a href='../D/512.html' title='Multiple defined in 2 places.'>Query</a>:         <strong class='reserved'>break</strong>;
-<a id='L430' name='L430'></a>    <strong class='reserved'>case</strong> <a href='../D/596.html' title='Multiple defined in 2 places.'>Star</a>:          <strong class='reserved'>break</strong>;
-<a id='L431' name='L431'></a>    <strong class='reserved'>case</strong> <a href='../D/504.html' title='Multiple defined in 2 places.'>Plus</a>:          <strong class='reserved'>break</strong>;
-<a id='L432' name='L432'></a>    <strong class='reserved'>default</strong>:
-<a id='L433' name='L433'></a>      <a href='../D/858.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "\nunknown node type %d\n", node-&gt;type);
-<a id='L434' name='L434'></a>      <strong class='reserved'>return</strong>;
-<a id='L435' name='L435'></a>    <em class='brace'>}</em>
-<a id='L436' name='L436'></a>  assert(node);
-<a id='L437' name='L437'></a>  node-&gt;type = <a href='../S/196.html#L31' title='Defined at 31 in tools/greg.h.'>Freed</a>;
-<a id='L438' name='L438'></a><em class='sharp'>#ifndef</em> DD_CYCLE
-<a id='L439' name='L439'></a>  free(node);
-<a id='L440' name='L440'></a><em class='sharp'>#endif</em>
-<a id='L441' name='L441'></a><em class='brace'>}</em>
-<a id='L442' name='L442'></a>
-<a id='L443' name='L443'></a><strong class='reserved'>void</strong> <a href='../R/718.html' title='Multiple referred from 2 places.'>freeRules</a> (<strong class='reserved'>void</strong>) <em class='brace'>{</em>
-<a id='L444' name='L444'></a>  <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *n;
-<a id='L445' name='L445'></a>  <strong class='reserved'>for</strong> (n= rules; n; ) <em class='brace'>{</em>
-<a id='L446' name='L446'></a>    <strong class='reserved'>if</strong> (n-&gt;type &gt; 0) <em class='brace'>{</em>
-<a id='L447' name='L447'></a>      <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *tmp= n-&gt;any.next;
-<a id='L448' name='L448'></a>      <a href='../S/201.html#L366' title='Defined at 366 in tools/tree.c.'>Rule_free</a>(n);
-<a id='L449' name='L449'></a>      <strong class='reserved'>if</strong> (tmp)
-<a id='L450' name='L450'></a>        n= tmp-&gt;any.next;
-<a id='L451' name='L451'></a>      <strong class='reserved'>else</strong>
-<a id='L452' name='L452'></a>        n= NULL;
-<a id='L453' name='L453'></a>    <em class='brace'>}</em>
-<a id='L454' name='L454'></a>    <strong class='reserved'>else</strong> <em class='brace'>{</em>
-<a id='L455' name='L455'></a>      n= n-&gt;any.next;
-<a id='L456' name='L456'></a>    <em class='brace'>}</em>
-<a id='L457' name='L457'></a>  <em class='brace'>}</em>
-<a id='L458' name='L458'></a><em class='sharp'>#ifdef</em> DD_CYCLE
-<a id='L459' name='L459'></a>  <strong class='reserved'>for</strong> (n= rules; n; ) <em class='brace'>{</em>
-<a id='L460' name='L460'></a>    <strong class='reserved'>if</strong> (n-&gt;type == <a href='../S/196.html#L31' title='Defined at 31 in tools/greg.h.'>Freed</a>) <em class='brace'>{</em>
-<a id='L461' name='L461'></a>      <a href='../D/230.html' title='Multiple defined in 2 places.'>Node</a> *tmp= n-&gt;any.next;
-<a id='L462' name='L462'></a>      free(n);
-<a id='L463' name='L463'></a>      <strong class='reserved'>if</strong> (tmp)
-<a id='L464' name='L464'></a>        n= tmp-&gt;any.next;
-<a id='L465' name='L465'></a>      <strong class='reserved'>else</strong>
-<a id='L466' name='L466'></a>        n= NULL;
-<a id='L467' name='L467'></a>    <em class='brace'>}</em>
-<a id='L468' name='L468'></a>    <strong class='reserved'>else</strong> <em class='brace'>{</em>
-<a id='L469' name='L469'></a>      n= n-&gt;any.next;
-<a id='L470' name='L470'></a>    <em class='brace'>}</em>
-<a id='L471' name='L471'></a>  <em class='brace'>}</em>
-<a id='L472' name='L472'></a><em class='sharp'>#endif</em>
-<a id='L473' name='L473'></a><em class='brace'>}</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;]<a href='#L38'>[^]</a><a href='#L443'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

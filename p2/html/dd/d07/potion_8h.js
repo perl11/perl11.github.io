@@ -162,8 +162,8 @@ var potion_8h =
     [ "PNUniq", "dd/d07/potion_8h.html#ae9db0e8a5bb40175b8960e9f92fa68ca", null ],
     [ "Potion", "dd/d07/potion_8h.html#a8218d006431d872b014396d48f881023", null ],
     [ "PN", "dd/d07/potion_8h.html#a602546b9119b5381d9fcd29d457bd8d2", null ],
-    [ "PN_F", "dd/d07/potion_8h.html#a379eb2d85edbd0feb194ade07f646dc4", null ],
-    [ "OP_F", "dd/d07/potion_8h.html#a11be144d74b7c4b33f213cd493c9de97", null ],
+    [ "PN_F", "dd/d07/potion_8h.html#add34f8ce4d2a3a057fbef31b03608f87", null ],
+    [ "OP_F", "dd/d07/potion_8h.html#a5f11775e5acaee5914ab2a32b4afd8ad", null ],
     [ "PN_AST", "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9", [
       [ "AST_CODE", "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a7551e78e6bdc5979122ef0ff98c880e6", null ],
       [ "AST_VALUE", "dd/d07/potion_8h.html#abd861a9078fa784a777e29fdb4926ed9a71b22b1e88e50ef01fe77b5a488bfad1", null ],

@@ -1,82 +1,238 @@
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
-<title>lib/readline/linenoise.h</title>
+<title>lib/database.c</title>
 <meta name='robots' content='noindex,nofollow' />
-<meta name='generator' content='GLOBAL-6.3.4' />
+<meta name='generator' content='GLOBAL-6.5.7' />
 <meta http-equiv='Content-Style-Type' content='text/css' />
 <link rel='stylesheet' type='text/css' href='../style.css' />
 </head>
 <body>
-<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/198.html'>lib</a>/<a href='../files/199.html'>readline</a>/linenoise.h</h2>
-<em class='comment'>/* [&lt;][&gt;][^][v][top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<a id='TOP' name='TOP'></a><h2 class='header'><a href='../mains.html'>root</a>/<a href='../files/208.html'>lib</a>/database.c</h2>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L34'>[^]</a><a href='#L175'>[v]</a>[top]<a href='#BOTTOM'>[bottom]</a><a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 <hr />
-<h2 class='header'><a href='../J/36.html' title='Multiple included from 2 places.'>INCLUDED FROM</a></h2>
+<h2 class='header'>DEFINITIONS</h2>
+This source file includes following definitions.
+<ol>
+<li><a href='#L34' title='Defined at 34.'>potion_database_callback</a></li>
+<li><a href='#L55' title='Defined at 55.'>potion_sqlite_new</a></li>
+<li><a href='#L67' title='Defined at 67.'>potion_sqlite_exec</a></li>
+<li><a href='#L95' title='Defined at 95.'>potion_sqlite_gettable</a></li>
+<li><a href='#L136' title='Defined at 136.'>potion_sqlite_close</a></li>
+<li><a href='#L145' title='Defined at 145.'>potion_sqlite_open</a></li>
+<li><a href='#L162' title='Defined at 162.'>potion_sqlite_isopen</a></li>
+<li><a href='#L167' title='Defined at 167.'>potion_callback</a></li>
+<li><a href='#L175' title='Defined at 175.'>Potion_Init_database</a></li>
+</ol>
 <hr />
 <pre>
-<a id='L1' name='L1'></a><em class='comment'>/* linenoise.h -- guerrilla line editing library against the idea that a</em>
-<a id='L2' name='L2'></a><em class='comment'> * line editing lib needs to be 20,000 lines of C code.</em>
-<a id='L3' name='L3'></a><em class='comment'> *</em>
-<a id='L4' name='L4'></a><em class='comment'> * See linenoise.c for more information.</em>
-<a id='L5' name='L5'></a><em class='comment'> *</em>
-<a id='L6' name='L6'></a><em class='comment'> * ------------------------------------------------------------------------</em>
-<a id='L7' name='L7'></a><em class='comment'> *</em>
-<a id='L8' name='L8'></a><em class='comment'> * Copyright (c) 2010, Salvatore Sanfilippo &lt;antirez at gmail dot com&gt;</em>
-<a id='L9' name='L9'></a><em class='comment'> * Copyright (c) 2010, Pieter Noordhuis &lt;pcnoordhuis at gmail dot com&gt;</em>
-<a id='L10' name='L10'></a><em class='comment'> *</em>
-<a id='L11' name='L11'></a><em class='comment'> * All rights reserved.</em>
-<a id='L12' name='L12'></a><em class='comment'> * </em>
-<a id='L13' name='L13'></a><em class='comment'> * Redistribution and use in source and binary forms, with or without</em>
-<a id='L14' name='L14'></a><em class='comment'> * modification, are permitted provided that the following conditions are</em>
-<a id='L15' name='L15'></a><em class='comment'> * met:</em>
-<a id='L16' name='L16'></a><em class='comment'> * </em>
-<a id='L17' name='L17'></a><em class='comment'> *  *  Redistributions of source code must retain the above copyright</em>
-<a id='L18' name='L18'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer.</em>
-<a id='L19' name='L19'></a><em class='comment'> *</em>
-<a id='L20' name='L20'></a><em class='comment'> *  *  Redistributions in binary form must reproduce the above copyright</em>
-<a id='L21' name='L21'></a><em class='comment'> *     notice, this list of conditions and the following disclaimer in the</em>
-<a id='L22' name='L22'></a><em class='comment'> *     documentation and/or other materials provided with the distribution.</em>
-<a id='L23' name='L23'></a><em class='comment'> * </em>
-<a id='L24' name='L24'></a><em class='comment'> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS</em>
-<a id='L25' name='L25'></a><em class='comment'> * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT</em>
-<a id='L26' name='L26'></a><em class='comment'> * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR</em>
-<a id='L27' name='L27'></a><em class='comment'> * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT</em>
-<a id='L28' name='L28'></a><em class='comment'> * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,</em>
-<a id='L29' name='L29'></a><em class='comment'> * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT</em>
-<a id='L30' name='L30'></a><em class='comment'> * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,</em>
-<a id='L31' name='L31'></a><em class='comment'> * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY</em>
-<a id='L32' name='L32'></a><em class='comment'> * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</em>
-<a id='L33' name='L33'></a><em class='comment'> * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE</em>
-<a id='L34' name='L34'></a><em class='comment'> * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</em>
-<a id='L35' name='L35'></a><em class='comment'> */</em>
+<a id='L1' name='L1'></a><em class='comment'>/** \file lib/database.c</em>
+<a id='L2' name='L2'></a><em class='comment'>  sqlite3 binding</em>
+<a id='L3' name='L3'></a><em class='comment'>  \class Database</em>
+<a id='L4' name='L4'></a><em class='comment'></em>
+<a id='L5' name='L5'></a><em class='comment'>   provided by Peter Arthur</em>
+<a id='L6' name='L6'></a><em class='comment'>*/</em>
+<a id='L7' name='L7'></a><em class='sharp'>#include</em> "<a href='26.html'>potion.h</a>"
+<a id='L8' name='L8'></a><em class='sharp'>#include</em> &lt;sqlite3.h&gt;
+<a id='L9' name='L9'></a><em class='sharp'>#include</em> &lt;stdio.h&gt;
+<a id='L10' name='L10'></a>
+<a id='L11' name='L11'></a><em class='sharp'>#define</em> <a href='../R/294.html' title='Multiple referred from 15 places.'>PN_ALLOC</a>(V,T)        (T * <strong class='reserved'>volatile</strong>)<a href='../S/26.html#L691' title='Defined at 691 in core/potion.h.'>potion_gc_alloc</a>(P, V, <strong class='reserved'>sizeof</strong>(T))
+<a id='L12' name='L12'></a>
+<a id='L13' name='L13'></a><em class='sharp'>#define</em> <a href='../S/76.html#L101' title='Referred from 101 in lib/database.c.'>PN_GET_DATABASE</a>(t) ((<strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *)<a href='../S/26.html#L561' title='Defined at 561 in core/potion.h.'>potion_fwd</a>((<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)t))
+<a id='L14' name='L14'></a><a href='../S/26.html#L79' title='Defined at 79 in core/potion.h.'>PNType</a> PN_TDATABASE;
+<a id='L15' name='L15'></a>
+<a id='L16' name='L16'></a><strong class='reserved'>struct</strong> <a href='../R/274.html' title='Multiple referred from 7 places.'>PNDatabase</a> <em class='brace'>{</em>
+<a id='L17' name='L17'></a>  <a href='../D/392.html' title='Multiple defined in 2 places.'>PN_OBJECT_HEADER</a>;
+<a id='L18' name='L18'></a>  sqlite3 *db;
+<a id='L19' name='L19'></a><em class='brace'>}</em>;
+<a id='L20' name='L20'></a>
+<a id='L21' name='L21'></a><strong class='reserved'>struct</strong> <a href='../R/270.html' title='Multiple referred from 4 places.'>PNCallback</a> <em class='brace'>{</em>
+<a id='L22' name='L22'></a>  <a href='../D/392.html' title='Multiple defined in 2 places.'>PN_OBJECT_HEADER</a>;
+<a id='L23' name='L23'></a>  <a href='../S/26.html#L79' title='Defined at 79 in core/potion.h.'>PN_SIZE</a> siz;
+<a id='L24' name='L24'></a>  <a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P;
+<a id='L25' name='L25'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>     cb;
+<a id='L26' name='L26'></a><em class='brace'>}</em>;
+<a id='L27' name='L27'></a>
+<a id='L28' name='L28'></a><strong class='reserved'>const</strong> <strong class='reserved'>int</strong> CallbackSize = <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a>) - <strong class='reserved'>sizeof</strong>(<strong class='reserved'>struct</strong> <a href='../S/26.html#L317' title='Defined at 317 in core/potion.h.'>PNData</a>);
+<a id='L29' name='L29'></a>
+<a id='L30' name='L30'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L145' title='Defined at 145 in lib/database.c.'>potion_sqlite_open</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> path);
+<a id='L31' name='L31'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L167' title='Defined at 167 in lib/database.c.'>potion_callback</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> closure);
+<a id='L32' name='L32'></a>
+<a id='L33' name='L33'></a><strong class='reserved'>static</strong> <strong class='reserved'>int</strong>
+<a id='L34' name='L34'></a><a href='../S/76.html#L81' title='Referred from 81 in lib/database.c.'>potion_database_callback</a>(<strong class='reserved'>void</strong> *callback, <strong class='reserved'>int</strong> argc, <strong class='reserved'>char</strong> **argv, <strong class='reserved'>char</strong> **azColName) <em class='brace'>{</em>
+<a id='L35' name='L35'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a> * cbp = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a> *)callback;
 <a id='L36' name='L36'></a>
-<a id='L37' name='L37'></a><em class='sharp'>#ifndef</em> <a href='../S/76.html#L38' title='Defined at 38 in lib/readline/linenoise.h.'>__LINENOISE_H</a>
-<a id='L38' name='L38'></a><em class='sharp'>#define</em> <a href='../S/76.html#L37' title='Referred from 37 in lib/readline/linenoise.h.'>__LINENOISE_H</a>
+<a id='L37' name='L37'></a>  <strong class='reserved'>if</strong> (cbp != NULL) <em class='brace'>{</em>
+<a id='L38' name='L38'></a>    <a href='../S/26.html#L132' title='Defined at 132 in core/potion.h.'>vPN</a>(Closure) cb = <a href='../S/26.html#L168' title='Defined at 168 in core/potion.h.'>PN_IS_CLOSURE</a>(cbp-&gt;cb) ? <a href='../S/26.html#L216' title='Defined at 216 in core/potion.h.'>PN_CLOSURE</a>(cbp-&gt;cb) : NULL;
 <a id='L39' name='L39'></a>
-<a id='L40' name='L40'></a><em class='sharp'>#ifdef</em> <a href='../S/80.html#L13' title='Defined at 13 in lib/readline/win32fixes.h.'>_WIN32</a>
-<a id='L41' name='L41'></a><em class='sharp'>#  define</em> <a href='../R/796.html' title='Multiple referred from 6 places.'>off</a> off_t
-<a id='L42' name='L42'></a><em class='sharp'>#endif</em>
-<a id='L43' name='L43'></a>
-<a id='L44' name='L44'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>struct</strong> <a href='../R/762.html' title='Multiple referred from 5 places.'>linenoiseCompletions</a> <em class='brace'>{</em>
-<a id='L45' name='L45'></a>  size_t len;
-<a id='L46' name='L46'></a>  <strong class='reserved'>char</strong> **cvec;
-<a id='L47' name='L47'></a><em class='brace'>}</em> <a href='../R/762.html' title='Multiple referred from 5 places.'>linenoiseCompletions</a>;
-<a id='L48' name='L48'></a>
-<a id='L49' name='L49'></a><strong class='reserved'>typedef</strong> <strong class='reserved'>void</strong>(linenoiseCompletionCallback)(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *, <a href='../D/922.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *);
-<a id='L50' name='L50'></a><strong class='reserved'>void</strong> <a href='../S/75.html#L778' title='Defined at 778 in lib/readline/linenoise.c.'>linenoiseSetCompletionCallback</a>(linenoiseCompletionCallback *);
-<a id='L51' name='L51'></a><strong class='reserved'>void</strong> <a href='../S/75.html#L782' title='Defined at 782 in lib/readline/linenoise.c.'>linenoiseAddCompletion</a>(<a href='../D/922.html' title='Multiple defined in 2 places.'>linenoiseCompletions</a> *, <strong class='reserved'>char</strong> *);
-<a id='L52' name='L52'></a>
-<a id='L53' name='L53'></a><strong class='reserved'>char</strong> *<a href='../S/75.html#L754' title='Defined at 754 in lib/readline/linenoise.c.'>linenoise</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *prompt);
-<a id='L54' name='L54'></a><strong class='reserved'>int</strong> <a href='../S/75.html#L791' title='Defined at 791 in lib/readline/linenoise.c.'>linenoiseHistoryAdd</a>(<strong class='reserved'>const</strong> <strong class='reserved'>char</strong> *line);
-<a id='L55' name='L55'></a><strong class='reserved'>int</strong> <a href='../S/75.html#L812' title='Defined at 812 in lib/readline/linenoise.c.'>linenoiseHistorySetMaxLen</a>(<strong class='reserved'>int</strong> len);
-<a id='L56' name='L56'></a><strong class='reserved'>int</strong> <a href='../S/75.html#L834' title='Defined at 834 in lib/readline/linenoise.c.'>linenoiseHistorySave</a>(<strong class='reserved'>char</strong> *filename);
-<a id='L57' name='L57'></a><strong class='reserved'>int</strong> <a href='../S/75.html#L854' title='Defined at 854 in lib/readline/linenoise.c.'>linenoiseHistoryLoad</a>(<strong class='reserved'>char</strong> *filename);
-<a id='L58' name='L58'></a><strong class='reserved'>void</strong> <a href='../S/75.html#L497' title='Defined at 497 in lib/readline/linenoise.c.'>linenoiseClearScreen</a>(<strong class='reserved'>void</strong>);
-<a id='L59' name='L59'></a>
-<a id='L60' name='L60'></a><em class='sharp'>#endif</em> <em class='comment'>/* __LINENOISE_H */</em>
+<a id='L40' name='L40'></a>    <strong class='reserved'>if</strong> (cb) <em class='brace'>{</em>
+<a id='L41' name='L41'></a>      <a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P = cbp-&gt;P;
+<a id='L42' name='L42'></a>      <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> table = <a href='../S/30.html#L42' title='Defined at 42 in core/table.c.'>potion_table_empty</a>(P);
+<a id='L43' name='L43'></a>      <strong class='reserved'>int</strong> i;
+<a id='L44' name='L44'></a>      <strong class='reserved'>for</strong> (i = 0; i &lt; argc; i++) <em class='brace'>{</em>
+<a id='L45' name='L45'></a>        <a href='../S/30.html#L124' title='Defined at 124 in core/table.c.'>potion_table_put</a>(P, <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, table, <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>(azColName[i]),
+<a id='L46' name='L46'></a>                         argv[i] ? <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>(argv[i]) : <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L47' name='L47'></a>      <em class='brace'>}</em>
+<a id='L48' name='L48'></a>      <em class='comment'>// Now call the callback with the table</em>
+<a id='L49' name='L49'></a>      cb-&gt;method(P, (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cb, (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cb, (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)table);
+<a id='L50' name='L50'></a>    <em class='brace'>}</em>
+<a id='L51' name='L51'></a>  <em class='brace'>}</em>
+<a id='L52' name='L52'></a>  <strong class='reserved'>return</strong> 0;
+<a id='L53' name='L53'></a><em class='brace'>}</em>
+<a id='L54' name='L54'></a>
+<a id='L55' name='L55'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L180' title='Referred from 180 in lib/database.c.'>potion_sqlite_new</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> ign, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> path) <em class='brace'>{</em>
+<a id='L56' name='L56'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> * <strong class='reserved'>volatile</strong> self = <a href='../D/318.html' title='Multiple defined in 2 places.'>PN_ALLOC</a>(PN_TDATABASE, <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a>);
+<a id='L57' name='L57'></a>  self-&gt;db = NULL;
+<a id='L58' name='L58'></a>  <a href='../S/26.html#L222' title='Defined at 222 in core/potion.h.'>PN_TOUCH</a>(self);
+<a id='L59' name='L59'></a>  <strong class='reserved'>return</strong> <a href='../S/76.html#L145' title='Defined at 145 in lib/database.c.'>potion_sqlite_open</a>(P, cl, (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)self, path);
+<a id='L60' name='L60'></a><em class='brace'>}</em>
+<a id='L61' name='L61'></a>
+<a id='L62' name='L62'></a><em class='comment'>///\memberof Database</em>
+<a id='L63' name='L63'></a><em class='comment'>/// Executes the query statement and optionally calls the callback with the result.</em>
+<a id='L64' name='L64'></a><em class='comment'>///\param query PNString a SQL statement</em>
+<a id='L65' name='L65'></a><em class='comment'>///\param callback optional PNClosure with a PNTable row argument</em>
+<a id='L66' name='L66'></a><em class='comment'>///\return self or nil or an error</em>
+<a id='L67' name='L67'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L181' title='Referred from 181 in lib/database.c.'>potion_sqlite_exec</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> query, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> callback) <em class='brace'>{</em>
+<a id='L68' name='L68'></a>  <em class='comment'>//TODO: Proper error checking</em>
+<a id='L69' name='L69'></a>  <strong class='reserved'>if</strong> (!<a href='../S/26.html#L166' title='Defined at 166 in core/potion.h.'>PN_IS_STR</a>(query)) <em class='brace'>{</em>
+<a id='L70' name='L70'></a>    <strong class='reserved'>return</strong> <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L71' name='L71'></a>  <em class='brace'>}</em>
+<a id='L72' name='L72'></a>  <strong class='reserved'>char</strong> *zErrMsg = 0;
+<a id='L73' name='L73'></a>  <strong class='reserved'>int</strong> rc;
+<a id='L74' name='L74'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *db = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *)self;
+<a id='L75' name='L75'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a> *cb = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a>*)<a href='../S/76.html#L167' title='Defined at 167 in lib/database.c.'>potion_callback</a>(P, callback);
+<a id='L76' name='L76'></a>  <strong class='reserved'>if</strong> (db-&gt;db == NULL) <em class='brace'>{</em>
+<a id='L77' name='L77'></a>    <em class='comment'>//FIXME: Return a proper error</em>
+<a id='L78' name='L78'></a>    <strong class='reserved'>return</strong> <a href='../S/16.html#L261' title='Defined at 261 in core/internal.c.'>potion_io_error</a>(P, "exec");
+<a id='L79' name='L79'></a>  <em class='brace'>}</em>
+<a id='L80' name='L80'></a>  rc = sqlite3_exec(db-&gt;db, <a href='../D/418.html' title='Multiple defined in 2 places.'>PN_STR_PTR</a>(query),
+<a id='L81' name='L81'></a>                    <a href='../S/76.html#L34' title='Defined at 34 in lib/database.c.'>potion_database_callback</a>, cb, &amp;zErrMsg);
+<a id='L82' name='L82'></a>  <strong class='reserved'>if</strong> (rc != SQLITE_OK) <em class='brace'>{</em>
+<a id='L83' name='L83'></a>    <em class='comment'>// Convert to potion string and return it as an error</em>
+<a id='L84' name='L84'></a>    <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "SQL error: %s\n", zErrMsg);
+<a id='L85' name='L85'></a>    <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> e = <a href='../S/16.html#L261' title='Defined at 261 in core/internal.c.'>potion_io_error</a>(P, zErrMsg);
+<a id='L86' name='L86'></a>    sqlite3_free(zErrMsg);
+<a id='L87' name='L87'></a>    <strong class='reserved'>return</strong> e;
+<a id='L88' name='L88'></a>  <em class='brace'>}</em>
+<a id='L89' name='L89'></a>  <strong class='reserved'>return</strong> self;
+<a id='L90' name='L90'></a><em class='brace'>}</em>
+<a id='L91' name='L91'></a>
+<a id='L92' name='L92'></a><em class='comment'>///\memberof Database</em>
+<a id='L93' name='L93'></a><em class='comment'>///\param query PNString a select statement</em>
+<a id='L94' name='L94'></a><em class='comment'>///\return a tuple of all tables (rows)</em>
+<a id='L95' name='L95'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L182' title='Referred from 182 in lib/database.c.'>potion_sqlite_gettable</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> query) <em class='brace'>{</em>
+<a id='L96' name='L96'></a>  <em class='comment'>//TODO: Proper error checking</em>
+<a id='L97' name='L97'></a>  <strong class='reserved'>if</strong> (!<a href='../S/26.html#L166' title='Defined at 166 in core/potion.h.'>PN_IS_STR</a>(query)) <em class='brace'>{</em>
+<a id='L98' name='L98'></a>    <strong class='reserved'>return</strong> <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L99' name='L99'></a>  <em class='brace'>}</em>
+<a id='L100' name='L100'></a>  <strong class='reserved'>char</strong> *q = <a href='../D/418.html' title='Multiple defined in 2 places.'>PN_STR_PTR</a>(query);
+<a id='L101' name='L101'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *db = <a href='../S/76.html#L13' title='Defined at 13 in lib/database.c.'>PN_GET_DATABASE</a>(self);
+<a id='L102' name='L102'></a>  <strong class='reserved'>if</strong> (!db-&gt;db) <em class='brace'>{</em>
+<a id='L103' name='L103'></a>    <strong class='reserved'>return</strong> <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L104' name='L104'></a>  <em class='brace'>}</em>
+<a id='L105' name='L105'></a>  <strong class='reserved'>char</strong> **pazResult;    <em class='comment'>/* Results of the query */</em>
+<a id='L106' name='L106'></a>  <strong class='reserved'>int</strong> pnRow;           <em class='comment'>/* Number of result rows written here */</em>
+<a id='L107' name='L107'></a>  <strong class='reserved'>int</strong> pnColumn;        <em class='comment'>/* Number of result columns written here */</em>
+<a id='L108' name='L108'></a>  <strong class='reserved'>char</strong> *pzErrmsg;      <em class='comment'>/* Error msg written here */</em>
+<a id='L109' name='L109'></a>  <strong class='reserved'>int</strong> rc = sqlite3_get_table(db-&gt;db, q, &amp;pazResult,
+<a id='L110' name='L110'></a>                             &amp;pnRow, &amp;pnColumn, &amp;pzErrmsg);
+<a id='L111' name='L111'></a>  <em class='comment'>// Check for error</em>
+<a id='L112' name='L112'></a>  <strong class='reserved'>if</strong> (rc != SQLITE_OK) <em class='brace'>{</em>
+<a id='L113' name='L113'></a>    <em class='comment'>// Convert to potion string and return it as an error</em>
+<a id='L114' name='L114'></a>    <a href='../D/862.html' title='Multiple defined in 5 places.'>fprintf</a>(stderr, "SQL error: %s\n", pzErrmsg);
+<a id='L115' name='L115'></a>    <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> e = <a href='../S/16.html#L261' title='Defined at 261 in core/internal.c.'>potion_io_error</a>(P, pzErrmsg);
+<a id='L116' name='L116'></a>    sqlite3_free(pzErrmsg);
+<a id='L117' name='L117'></a>    <strong class='reserved'>return</strong> e;
+<a id='L118' name='L118'></a>  <em class='brace'>}</em>
+<a id='L119' name='L119'></a>  <em class='comment'>// Process the table</em>
+<a id='L120' name='L120'></a>  <strong class='reserved'>int</strong> i, j;
+<a id='L121' name='L121'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> tuple = <a href='../S/30.html#L291' title='Defined at 291 in core/table.c.'>potion_tuple_empty</a>(P);
+<a id='L122' name='L122'></a>  <em class='comment'>// Loop over each row</em>
+<a id='L123' name='L123'></a>  <strong class='reserved'>for</strong> (i = 1; i &lt;= pnRow; i++) <em class='brace'>{</em>
+<a id='L124' name='L124'></a>    <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> table = <a href='../S/30.html#L42' title='Defined at 42 in core/table.c.'>potion_table_empty</a>(P);
+<a id='L125' name='L125'></a>    <strong class='reserved'>for</strong> (j = 0; j &lt; pnColumn; j++) <em class='brace'>{</em>
+<a id='L126' name='L126'></a>      <strong class='reserved'>char</strong> *value = pazResult[i*pnColumn + j];
+<a id='L127' name='L127'></a>      <a href='../S/30.html#L124' title='Defined at 124 in core/table.c.'>potion_table_put</a>(P, <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>, table, <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>(pazResult[j]),
+<a id='L128' name='L128'></a>                       value ? <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>(value) : <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>);
+<a id='L129' name='L129'></a>    <em class='brace'>}</em>
+<a id='L130' name='L130'></a>    <a href='../S/26.html#L263' title='Defined at 263 in core/potion.h.'>PN_PUSH</a>(tuple, table);
+<a id='L131' name='L131'></a>  <em class='brace'>}</em>
+<a id='L132' name='L132'></a>    sqlite3_free_table(pazResult);
+<a id='L133' name='L133'></a>  <strong class='reserved'>return</strong> tuple;
+<a id='L134' name='L134'></a><em class='brace'>}</em>
+<a id='L135' name='L135'></a>
+<a id='L136' name='L136'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/1076.html' title='Multiple referred from 2 places.'>potion_sqlite_close</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L137' name='L137'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *db = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *)self;
+<a id='L138' name='L138'></a>  <strong class='reserved'>if</strong> (db-&gt;db) <em class='brace'>{</em>
+<a id='L139' name='L139'></a>    sqlite3_close(db-&gt;db);
+<a id='L140' name='L140'></a>    db-&gt;db = NULL;
+<a id='L141' name='L141'></a>  <em class='brace'>}</em>
+<a id='L142' name='L142'></a>  <strong class='reserved'>return</strong> self;
+<a id='L143' name='L143'></a><em class='brace'>}</em>
+<a id='L144' name='L144'></a>
+<a id='L145' name='L145'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/1081.html' title='Multiple referred from 3 places.'>potion_sqlite_open</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> path) <em class='brace'>{</em>
+<a id='L146' name='L146'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *db = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *)self;
+<a id='L147' name='L147'></a>  <em class='comment'>//TODO: Proper error checking</em>
+<a id='L148' name='L148'></a>  <strong class='reserved'>if</strong> (!<a href='../S/26.html#L166' title='Defined at 166 in core/potion.h.'>PN_IS_STR</a>(path)) <em class='brace'>{</em>
+<a id='L149' name='L149'></a>    <strong class='reserved'>return</strong> <a href='../S/26.html#L139' title='Defined at 139 in core/potion.h.'>PN_NIL</a>;
+<a id='L150' name='L150'></a>  <em class='brace'>}</em>
+<a id='L151' name='L151'></a>  <strong class='reserved'>if</strong> (db-&gt;db) <em class='brace'>{</em>
+<a id='L152' name='L152'></a>    <a href='../S/76.html#L136' title='Defined at 136 in lib/database.c.'>potion_sqlite_close</a>(P, cl, self);
+<a id='L153' name='L153'></a>  <em class='brace'>}</em>
+<a id='L154' name='L154'></a>  sqlite3 *sdb;
+<a id='L155' name='L155'></a>  <strong class='reserved'>int</strong> rc = sqlite3_open(<a href='../D/418.html' title='Multiple defined in 2 places.'>PN_STR_PTR</a>(path), &amp;sdb);
+<a id='L156' name='L156'></a>  <strong class='reserved'>if</strong> (rc)
+<a id='L157' name='L157'></a>    <strong class='reserved'>return</strong> <a href='../S/16.html#L261' title='Defined at 261 in core/internal.c.'>potion_io_error</a>(P, "open");
+<a id='L158' name='L158'></a>  db-&gt;db = sdb;
+<a id='L159' name='L159'></a>  <strong class='reserved'>return</strong> self;
+<a id='L160' name='L160'></a><em class='brace'>}</em>
+<a id='L161' name='L161'></a>
+<a id='L162' name='L162'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../S/76.html#L185' title='Referred from 185 in lib/database.c.'>potion_sqlite_isopen</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> cl, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> self) <em class='brace'>{</em>
+<a id='L163' name='L163'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *db = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L16' title='Defined at 16 in lib/database.c.'>PNDatabase</a> *)self;
+<a id='L164' name='L164'></a>  <strong class='reserved'>return</strong> db-&gt;db ? <a href='../S/26.html#L142' title='Defined at 142 in core/potion.h.'>PN_TRUE</a> : <a href='../S/26.html#L141' title='Defined at 141 in core/potion.h.'>PN_FALSE</a>;
+<a id='L165' name='L165'></a><em class='brace'>}</em>
+<a id='L166' name='L166'></a>
+<a id='L167' name='L167'></a><a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> <a href='../R/865.html' title='Multiple referred from 2 places.'>potion_callback</a>(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P, <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> closure) <em class='brace'>{</em>
+<a id='L168' name='L168'></a>  <strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a> *cb = (<strong class='reserved'>struct</strong> <a href='../S/76.html#L21' title='Defined at 21 in lib/database.c.'>PNCallback</a> *)<a href='../S/26.html#L756' title='Defined at 756 in core/potion.h.'>potion_data_alloc</a>(P, CallbackSize);
+<a id='L169' name='L169'></a>  cb-&gt;siz = CallbackSize; <em class='comment'>// To help out GC</em>
+<a id='L170' name='L170'></a>  cb-&gt;P = P;
+<a id='L171' name='L171'></a>  cb-&gt;cb = closure;
+<a id='L172' name='L172'></a>  <strong class='reserved'>return</strong> (<a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a>)cb;
+<a id='L173' name='L173'></a><em class='brace'>}</em>
+<a id='L174' name='L174'></a>
+<a id='L175' name='L175'></a><strong class='reserved'>void</strong> Potion_Init_database(<a href='../S/26.html#L80' title='Defined at 80 in core/potion.h.'>Potion</a> *P) <em class='brace'>{</em>
+<a id='L176' name='L176'></a>  <a href='../S/26.html#L81' title='Defined at 81 in core/potion.h.'>PN</a> db_vt = <a href='../S/23.html#L252' title='Defined at 252 in core/objmodel.c.'>potion_class</a>(P, 0, 0, 0);
+<a id='L177' name='L177'></a>  PN_TDATABASE = <a href='../S/23.html#L285' title='Defined at 285 in core/objmodel.c.'>potion_class_type</a>(P, db_vt);
+<a id='L178' name='L178'></a>  <a href='../S/23.html#L654' title='Defined at 654 in core/objmodel.c.'>potion_define_global</a>(P, <a href='../S/26.html#L210' title='Defined at 210 in core/potion.h.'>PN_STR</a>("Database"), db_vt);
+<a id='L179' name='L179'></a>
+<a id='L180' name='L180'></a>  <a href='../S/23.html#L245' title='Defined at 245 in core/objmodel.c.'>potion_type_constructor_is</a>(db_vt, <a href='../S/26.html#L219' title='Defined at 219 in core/potion.h.'>PN_FUNC</a>(<a href='../S/76.html#L55' title='Defined at 55 in lib/database.c.'>potion_sqlite_new</a>, "path=S"));
+<a id='L181' name='L181'></a>  <a href='../S/26.html#L780' title='Defined at 780 in core/potion.h.'>potion_method</a>(db_vt, "exec", <a href='../S/76.html#L67' title='Defined at 67 in lib/database.c.'>potion_sqlite_exec</a>, "query=S|callback=o");
+<a id='L182' name='L182'></a>  <a href='../S/26.html#L780' title='Defined at 780 in core/potion.h.'>potion_method</a>(db_vt, "gettable", <a href='../S/76.html#L95' title='Defined at 95 in lib/database.c.'>potion_sqlite_gettable</a>, "query=S");
+<a id='L183' name='L183'></a>  <a href='../S/26.html#L780' title='Defined at 780 in core/potion.h.'>potion_method</a>(db_vt, "close", <a href='../S/76.html#L136' title='Defined at 136 in lib/database.c.'>potion_sqlite_close</a>, 0);
+<a id='L184' name='L184'></a>  <a href='../S/26.html#L780' title='Defined at 780 in core/potion.h.'>potion_method</a>(db_vt, "open", <a href='../S/76.html#L145' title='Defined at 145 in lib/database.c.'>potion_sqlite_open</a>, "path=S");
+<a id='L185' name='L185'></a>  <a href='../S/26.html#L780' title='Defined at 780 in core/potion.h.'>potion_method</a>(db_vt, "open?", <a href='../S/76.html#L162' title='Defined at 162 in lib/database.c.'>potion_sqlite_isopen</a>, 0);
+<a id='L186' name='L186'></a><em class='brace'>}</em>
+<a id='L187' name='L187'></a>
+<a id='L188' name='L188'></a><em class='comment'>/*</em>
+<a id='L189' name='L189'></a><em class='comment'>load "database"</em>
+<a id='L190' name='L190'></a><em class='comment'></em>
+<a id='L191' name='L191'></a><em class='comment'>db = Database("database.db")</em>
+<a id='L192' name='L192'></a><em class='comment'>db exec "CREATE TABLE t (id INT, name TEXT)"</em>
+<a id='L193' name='L193'></a><em class='comment'>db exec "INSERT INTO t (id,name) VALUES (1,'New name')"</em>
+<a id='L194' name='L194'></a><em class='comment'>db close</em>
+<a id='L195' name='L195'></a><em class='comment'>db open? say</em>
+<a id='L196' name='L196'></a><em class='comment'>db open("database.db")</em>
+<a id='L197' name='L197'></a><em class='comment'>db open? say</em>
+<a id='L198' name='L198'></a><em class='comment'>db exec "INSERT INTO t (id,name) VALUES (2,'Old name')"</em>
+<a id='L199' name='L199'></a><em class='comment'>db exec "SELECT * FROM t" (row): row say.</em>
+<a id='L200' name='L200'></a><em class='comment'>db gettable "SELECT * FROM t" say</em>
+<a id='L201' name='L201'></a><em class='comment'>db open? say</em>
+<a id='L202' name='L202'></a><em class='comment'>db close</em>
+<a id='L203' name='L203'></a><em class='comment'></em>
+<a id='L204' name='L204'></a><em class='comment'>*/</em>
 </pre>
 <hr />
 <a id='BOTTOM' name='BOTTOM'></a>
-<em class='comment'>/* [&lt;][&gt;][^][v]<a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
+<em class='comment'>/* [&lt;][&gt;]<a href='#L34'>[^]</a><a href='#L175'>[v]</a><a href='#TOP'>[top]</a>[bottom]<a href='../mains.html'>[index]</a><a href='../help.html'>[help]</a> */</em>
 </body>
 </html>

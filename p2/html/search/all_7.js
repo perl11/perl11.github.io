@@ -13,5 +13,6 @@ var searchData=
   ['gc_5fprotect',['GC_PROTECT',['../db/dde/internal_8h.html#a0fbd98fa0abf7fa3706001773ef56d76',1,'internal.h']]],
   ['get',['GET',['../dc/d33/table_8c.html#aceadef70aa432003d4797ded0232c54b',1,'table.c']]],
   ['globalheadblock',['globalHeadBlock',['../d8/d48/bags_8c.html#a914e86535287532b86729f39bb8d7a2c',1,'bags.c']]],
-  ['glossary_2ehtml',['glossary.html',['../df/dce/glossary_8html.html',1,'']]]
+  ['glossary_2ehtml',['glossary.html',['../df/dce/glossary_8html.html',1,'']]],
+  ['greg',['GREG',['../df/d2c/syntax_8c.html#a91bc3c46fd1ee5b28860bf9e46b568f5',1,'syntax.c']]]
 ];

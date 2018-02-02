@@ -6,6 +6,7 @@ var searchData=
   ['chr',['chr',['../d1/dc2/struct_p_n_error.html#a79bfe57ccf8c1453033f960d6fd538f7',1,'PNError']]],
   ['cjmpc',['cjmpc',['../d1/d49/struct_p_n_loop.html#a0ad061578f7b2f025e7e897b556f2693',1,'PNLoop']]],
   ['cjmps',['cjmps',['../d1/d49/struct_p_n_loop.html#a87049cb385ac6d56f4da55db7ab67332',1,'PNLoop']]],
+  ['code',['code',['../d6/d0b/struct_p_n___o_p.html#a18cd282d64e1fa0d451428eb53e7f371',1,'PN_OP']]],
   ['collecting',['collecting',['../de/db4/struct_p_n_memory.html#a94e8c6d6f3c2777596c10d5b30063cdb',1,'PNMemory']]],
   ['cstack',['cstack',['../de/db4/struct_p_n_memory.html#aeecfba5a33e7d306de7f4d4e42ff8656',1,'PNMemory']]],
   ['ctor',['ctor',['../d7/de2/struct_p_n_vtable.html#acd792ff3f2b84f24ef9fe5ab0031cacc',1,'PNVtable']]]

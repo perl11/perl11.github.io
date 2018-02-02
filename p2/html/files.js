@@ -31,6 +31,7 @@ var files =
     [ "readline.c", "d3/d83/readline_8c.html", "d3/d83/readline_8c" ],
     [ "start.html", "dd/d56/start_8html.html", null ],
     [ "string.c", "d1/db0/string_8c.html", "d1/db0/string_8c" ],
+    [ "syntax.c", "df/d2c/syntax_8c.html", "df/d2c/syntax_8c" ],
     [ "table.c", "dc/d33/table_8c.html", "dc/d33/table_8c" ],
     [ "table.h", "dd/d98/table_8h.html", "dd/d98/table_8h" ],
     [ "version.h", "df/dfc/version_8h.html", "df/dfc/version_8h" ],
