@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>safeclib-3.3 and its new compile-time checks // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="safeclib-3.3 and its new compile-time checks" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/safeclib-3.3.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">safeclib-3.3 and its new compile-time checks</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/safeclib-3.3.html" class="article-date">
+                <time datetime='2018-03-03T00:00:00.000&#43;00:00' itemprop="datePublished">2018-03-03</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<p>In the previous
+<a href="foldcase.html">&ldquo;The sad state of foldcase and string comparisons&rdquo;</a>
+article I already mentioned my safeclib library improvements, for the
+surpringly rather unique ability to search for strings (with Unicode
+support).</p>
+
+<p>With the recent
+<a href="https://github.com/rurban/safeclib/releases/tag/v03032018">safeclib-3.3</a>
+release I made the almost same improvements as in cperl: Adding lots
+of compile-time checks and seperating them out of the run-time. Do less
+branching at run-time when the compiler can already prove that a
+certain branch or check was already done at compile-time. With cperl
+it is much easier, because there I can control both, the compiler and
+the run-time. All in one exectable.</p>
+
+<p>With safeclib, the user just includes safeclib via
+<code>#include &quot;safe_lib.h&quot;</code> and compiles and links it with his own compiler.
+There&rsquo;s it&rsquo;s much harder. Both clang and gcc do support such compile-time
+checks via <code>__builtin_object_size</code> (aka <strong>BOS</strong>) and the ill-designed
+<code>__builtin_choose_expr</code>, and clang-5+ can now even throw user-defined
+compile-time errors via <code>__attribute__((diagnose_if))</code>, which is
+extremely powerful and heavily used with safeclib-3.3.  All checks
+which were previously done at run-time, to check for NULL pointers,
+empty sizes, wrong size arguments for pointer sizes, overflows,
+pointer overlaps and wrong constant values are now done at
+compile-time with clang-5+. With a proper development environment,
+e.g. emacs with flycheck or flymake with a check-syntax target in your
+Makefile:</p>
+
+<pre><code># emacs flymake-mode
+check-syntax:
+    test -n &quot;$(CHK_SOURCES)&quot; &amp;&amp; \
+      $(COMPILE) -o /dev/null -S $(CHK_SOURCES)
+</code></pre>
+
+<p>Every wrong argument to a safeclib function is already warned about in
+your IDE. <img src="images/flymake-safec.png">
+On every keypress flymake runs the compiler on your C source via the
+<code>make check-syntax CHK_SOURCES=&quot;your-c-source.c&quot;</code> makefile target, and then
+displays warnings in blue and errors in red, with the message as mouse-over
+hover.</p>
+
+<p>strcat_s is defined in <code>safe_str_lib.h</code> like this:</p>
+
+<pre><code>EXTERN errno_t
+_strcat_s_chk(char * restrict dest, rsize_t dmax, const char * restrict src,
+              const size_t destbos)
+    BOS_CHK(dest) BOS_NULL(src);
+#define strcat_s(dest,dmax,src) _strcat_s_chk(dest,dmax,src,BOS(dest))
+</code></pre>
+
+<p>And the new compile-time checks <code>BOS_CHK(dest)</code> and <code>BOS_NULL(src)</code> are defined in <code>safe_compile.h</code> like this:</p>
+
+<pre><code>#define BOS_CHK(dest)                                                 \
+  __attribute__((diagnose_if(_BOS_OVR(dest,dmax), &quot;dest overflow&quot;, &quot;error&quot;))) \
+  __attribute__((diagnose_if(_BOS_NULL(dest), &quot;empty dest&quot;, &quot;error&quot;))) \
+  __attribute__((diagnose_if(_BOS_ZERO(dest,dmax), &quot;empty dest or dmax&quot;, &quot;error&quot;)))
+
+#define BOS_NULL(dest)                                                  \
+  __attribute__((diagnose_if(_BOS_NULL(dest), &quot;empty dest&quot;, &quot;error&quot;)))
+
+#define _BOS_OVR(dest,dmax)    (_BOS_KNOWN(dest) &amp;&amp; (size_t)(dmax) &gt; BOS(dest))
+#define _BOS_ZERO(dest,dmax)   ((_BOS_KNOWN(dest) &amp;&amp; BOS(dest) == 0) || (dmax) == 0)
+#define _BOS_NULL(dest)        ((_BOS_KNOWN(dest) &amp;&amp; BOS(dest) == 0) || !(dest))
+
+#define BOS(dest)  __builtin_object_size((dest),1)
+#define _BOS_KNOWN(dest)  ((size_t)BOS(dest) != BOS_UNKNOWN)
+#define BOS_UNKNOWN ((size_t)-1)
+</code></pre>
+
+<p>So whenever a string, dest, is known to have a constant size, and the
+size dmax is known to be constant at constant-folding time in the
+compiler, BOS will not return BOS_UNKNOWN and the check expression
+will be reduced to a constant integer, and a warning or error can be thrown.</p>
+
+<h1 id="todo-static-assert-constexpr">TODO static_assert/constexpr</h1>
+
+<p>With other compilers it&rsquo;s not that easy. Almost all other compilers do
+have BOS support for such constant-folding checks. But gcc will throw
+an error if any argument to a compile-time expression is unknown/not a
+constant, <code>constant_p</code> does not help for non-pointers and BOS is not
+known for <code>choose_expr</code> so it cannot be used.  Also
+<code>static_assert</code> is only a statement and not an expression. <code>constexpr</code> is
+only available to g++, not gcc.</p>
+
+<p>You can write your own <code>static_assert</code> as expression, the linux kernel
+has such tricks.</p>
+
+<p>E.g. you can define <code>memcpy_s</code> as such for gcc:</p>
+
+<pre><code>/* gcc bug: BOS is not a valid constant compile-time expression for gcc-7 */
+#define memcpy_s(dest,dmax,src,slen)               \
+    IFCONSTP(dmax, dmax != 0,                       \
+      IFCONSTP(dmax, dmax &lt; RSIZE_MAX_STR,          \
+        IFCONSTP(dest, dest != NULL,                \
+          IFCONSTP(src, src != NULL,                \
+            _memcpy_s_chk(dest,dmax,src,slen,BOS(dest),BOS(src)), \
+            &quot;src is null&quot;),                         \
+          &quot;dest is null&quot;),                          \
+        &quot;dmax &gt; max&quot;),                              \
+      &quot;dmax is zero&quot;)
+
+#define CONSTP(ptr) __builtin_constant_p(ptr)
+#define CHOOSE_EXPR(exp,ok,notok)    __builtin_choose_expr(exp,ok,notok)
+#define IFCONSTP(var,exp,ok,errmsg) \
+  CHOOSE_EXPR(CONSTP(var) ? (exp) : 1, (ok), &quot;&quot;errmsg[-1])
+</code></pre>
+
+<p><code>&quot;&quot;errmsg[-1]</code> will expand to <code>&quot;src is null&quot;[-1]</code> which be an illegal
+array access, and a compiler error error will be thrown with a useful
+error message. This <code>memcpy_s()</code> can be used within expressions, within
+comma-lists unlike <code>static_assert</code>.  But the problem is that some
+expressions in this nested check, like <code>dmax &gt; BOS(dest)</code> (&ldquo;dest
+overflow&rdquo;) will be invalid if the BOS is unknown.  The BOS for dest is
+only known for stack allocation and direct malloc using system malloc
+with <code>alloc_size</code> support, and if the variable is not passed into longer
+functions with insufficient compiler optimization levels, without
+proper var-tracking. So that the compiler cannot prove the size of a
+certain symbol, only its type.</p>
+
+<p>So only some errors can be detected with gcc at compile-time, not all
+run-time checks can be performed at compile-time, and as such the
+run-time has to do it with a ~10% performance degration.</p>
+
+<p>There&rsquo;s also Intel&rsquo;s MPX <strong>Pointer Bounds Checker</strong> using special
+registers and a hardware hash table for each pointer to hold the size
+of an array, to be able to do fast run-time bounds checks. <code>icc</code> has
+this since icc-15, gcc since 5. In gcc performant only since 5.3. But
+it is optional, not shipped with your packagers gcc. safeclib does
+throw such mpx violations if supported, but in practice it&rsquo;s very
+rarely supported. BOS checks are much more common and successful,
+esp. with clang-5+.</p>
+
+<p>The linux kernel compiletime assertions do look this:</p>
+
+<pre><code>#ifdef HAVE_STATIC_ASSERT
+# define __compiletime_assert(condition,msg,prefix,suffix) \
+    static_assert(condition,msg);
+#else
+/* linux kernel a-like compile checks */
+# if __has_attribute(error)
+#  define __compiletime_error(msg) __attribute__((error(msg)))
+#  define __compiletime_error_fallback(cond,msg) do { } while (0)
+# else
+#  define __compiletime_error(msg)
+#  define __compiletime_error_fallback(cond,msg)                         \
+         do { ((void)sizeof(char[1 - 2 * cond])); } while (0)
+# endif
+# define __compiletime_assert(condition, msg, prefix, suffix)           \
+    do {                                                                \
+        bool __cond = !(condition);                                     \
+        extern void prefix ## suffix(void) __compiletime_error(msg);    \
+        if (__cond) {                                                   \
+            prefix ## suffix();                                         \
+        }                                                               \
+        __compiletime_error_fallback(__cond, msg);                      \
+    } while (0)
+#endif
+#define _compiletime_assert(condition, msg, prefix, suffix)             \
+        __compiletime_assert(condition, msg, prefix, suffix)
+#define compiletime_assert(condition, msg)                              \
+        _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
+</code></pre>
+
+<p>and its usage would look like this:</p>
+
+<pre><code>#define CT_DEST_NULL(ptr) \
+    ({compiletime_assert(ptr != NULL, #ptr &quot; is null&quot;)},ptr)
+#define CT_DMAX_ZERO(var)\
+    ({compiletime_assert(var != 0, #var &quot; is zero&quot;)},var)
+</code></pre>
+
+<p>Instead of <code>__LINE__</code> as unique suffix, <code>__COUNTER__</code> would be better,
+esp. inside expressions, which can have multiple such asserts in a
+single line. e.g. a function call. The unique suffix is needed for the
+empty function with an <code>__attribute((error))</code> attribute to throw the
+user-defined error, similar to clang&rsquo;s diagnose_if.
+The <code>(void)sizeof(char[1 - 2 * cond]</code> bit throws the compile-time error
+if <code>cond</code> is false and returns the value if <code>cond</code> is true.</p>
+
+<p>The kernel has dirty thinks like this:</p>
+
+<pre><code>#define CT_DEST_NULL(ptr) ((void *)sizeof(struct { int:-!!(ptr); }))
+</code></pre>
+
+<p>with <code>!!(ptr)</code> collapsing the pointer value to a boolean to 0 or 1,
+with -1 being the invalid bitfield size, leading to the compile-time
+error. But this is hardly portable, and anon structs are not valid with
+<code>-pedantic</code>, which is used for safeclib.</p>
+
+<p>So why not using static_assert statement checks?</p>
+
+<p>This depends on the compiler ability to track the size of variables
+across function boundaries. We can only add the <code>static_assert</code> at the beginning
+of the body of our functions, e.g. <code>strcat_s</code></p>
+
+<pre><code>EXPORT errno_t
+_strcat_s_chk (char *restrict dest, rsize_t dmax, const char *restrict src,
+               size_t destbos)
+{
+    static_assert(dmax &lt;= destbos, &quot;dest overflow&quot;);
+    static_assert(dmax != 0, &quot;dmax is zero&quot;);
+    static_assert(dest != NULL, &quot;dest is null&quot;);
+    ...
+}
+</code></pre>
+
+<p>with <code>#define strcat_s(dest,dmax,src) _strcat_s_chk(dest,dmax,src,BOS(dest))</code>
+Very few optimizers will be able to deduce dmax to be a compile-time constant into
+<code>_strcat_s_chk</code>, even if we calculate BOS before calling the function and pass it into it.</p>
+
+<p>So <strong>gcc sucks big time when compared to clang</strong>.  Also when we benchmark
+our own <a href="https://github.com/rurban/safeclib/blob/master/tests/perf_memcpy_s.c">memcpy_s</a>
+implementation against the assembler optimized memcpy from
+libc. clang-5 can now easily vectorize and unrool the memcpy loop, and
+my own <code>memcpy_s()</code> in pure portable C is now as fast as the system
+<code>memcpy()</code>, even if my memcpy_s does perform all the necessary
+overflow and vailidity checks. The trick is that most of that checks
+are done at compile-time already. gcc is twice as slow.</p>
+
+<h1 id="freebsd-glibc-hate-for-the-constraint-handler-crap">FreeBSD/glibc hate for the constraint-handler &ldquo;crap&rdquo;</h1>
+
+<p>One reason why the secure C11 Annex K API is not yet added to the various
+libc&rsquo;s is not ony because it was written and designed by Microsoft.
+The public reason given is the mandatory constraint handler, which by
+default does nothing in case of errors. But it can be set to a
+user-defined handler, which logs those errors.</p>
+
+<p>With the new configure option <code>--disable-constraint-handler</code> you can
+now disable this feature and avoid this &ldquo;crap&rdquo;. But the performance
+win is not measurable, only the binary size will go down. Because all
+the static error strings will be left out of the <code>.cstrings</code> section
+in the binary. The performance is unchanged, because the handler is
+only called in case of errors.</p>
+
+<p>But bsd/glibc are proud of their various MALLOC hooks, via run-time
+getenv checks to help in bug hunting. The safeclib constraint handler
+mechanism is much more performant than this, but you need to recompile
+your software with a different constraint handler, or prepare such a
+getenv check and install a handler at run-time.
+There&rsquo;s no technical reason not to use it as designed.</p>
+
+<p>I&rsquo;ll certainly add lot of BOS checks to cperl also, esp. for XS
+programmers. It was extremely useful when developing apps with
+safeclib, and gcc is side-lined until they can come up with proper
+retpoline names and constant-folding support to catch errors when
+writing code, not in the test-suite or at the customer site.</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#todo-static-assert-constexpr">TODO static_assert/constexpr</a></li>
+<li><a href="#freebsd-glibc-hate-for-the-constraint-handler-crap">FreeBSD/glibc hate for the constraint-handler &ldquo;crap&rdquo;</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/foldcase.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">The sad state of foldcase and string comparisons&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

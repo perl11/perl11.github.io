@@ -7,8 +7,266 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Sat, 16 Sep 2017 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 03 Mar 2018 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>safeclib-3.3 and its new compile-time checks</title>
+      <link>http://perl11.org/blog/safeclib-3.3.html</link>
+      <pubDate>Sat, 03 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/safeclib-3.3.html</guid>
+      <description>
+
+&lt;p&gt;In the previous
+&lt;a href=&#34;foldcase.html&#34;&gt;&amp;ldquo;The sad state of foldcase and string comparisons&amp;rdquo;&lt;/a&gt;
+article I already mentioned my safeclib library improvements, for the
+surpringly rather unique ability to search for strings (with Unicode
+support).&lt;/p&gt;
+
+&lt;p&gt;With the recent
+&lt;a href=&#34;https://github.com/rurban/safeclib/releases/tag/v03032018&#34;&gt;safeclib-3.3&lt;/a&gt;
+release I made the almost same improvements as in cperl: Adding lots
+of compile-time checks and seperating them out of the run-time. Do less
+branching at run-time when the compiler can already prove that a
+certain branch or check was already done at compile-time. With cperl
+it is much easier, because there I can control both, the compiler and
+the run-time. All in one exectable.&lt;/p&gt;
+
+&lt;p&gt;With safeclib, the user just includes safeclib via
+&lt;code&gt;#include &amp;quot;safe_lib.h&amp;quot;&lt;/code&gt; and compiles and links it with his own compiler.
+There&amp;rsquo;s it&amp;rsquo;s much harder. Both clang and gcc do support such compile-time
+checks via &lt;code&gt;__builtin_object_size&lt;/code&gt; (aka &lt;strong&gt;BOS&lt;/strong&gt;) and the ill-designed
+&lt;code&gt;__builtin_choose_expr&lt;/code&gt;, and clang-5+ can now even throw user-defined
+compile-time errors via &lt;code&gt;__attribute__((diagnose_if))&lt;/code&gt;, which is
+extremely powerful and heavily used with safeclib-3.3.  All checks
+which were previously done at run-time, to check for NULL pointers,
+empty sizes, wrong size arguments for pointer sizes, overflows,
+pointer overlaps and wrong constant values are now done at
+compile-time with clang-5+. With a proper development environment,
+e.g. emacs with flycheck or flymake with a check-syntax target in your
+Makefile:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# emacs flymake-mode
+check-syntax:
+    test -n &amp;quot;$(CHK_SOURCES)&amp;quot; &amp;amp;&amp;amp; \
+      $(COMPILE) -o /dev/null -S $(CHK_SOURCES)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Every wrong argument to a safeclib function is already warned about in
+your IDE. &lt;img src=&#34;images/flymake-safec.png&#34;&gt;
+On every keypress flymake runs the compiler on your C source via the
+&lt;code&gt;make check-syntax CHK_SOURCES=&amp;quot;your-c-source.c&amp;quot;&lt;/code&gt; makefile target, and then
+displays warnings in blue and errors in red, with the message as mouse-over
+hover.&lt;/p&gt;
+
+&lt;p&gt;strcat_s is defined in &lt;code&gt;safe_str_lib.h&lt;/code&gt; like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;EXTERN errno_t
+_strcat_s_chk(char * restrict dest, rsize_t dmax, const char * restrict src,
+              const size_t destbos)
+    BOS_CHK(dest) BOS_NULL(src);
+#define strcat_s(dest,dmax,src) _strcat_s_chk(dest,dmax,src,BOS(dest))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And the new compile-time checks &lt;code&gt;BOS_CHK(dest)&lt;/code&gt; and &lt;code&gt;BOS_NULL(src)&lt;/code&gt; are defined in &lt;code&gt;safe_compile.h&lt;/code&gt; like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#define BOS_CHK(dest)                                                 \
+  __attribute__((diagnose_if(_BOS_OVR(dest,dmax), &amp;quot;dest overflow&amp;quot;, &amp;quot;error&amp;quot;))) \
+  __attribute__((diagnose_if(_BOS_NULL(dest), &amp;quot;empty dest&amp;quot;, &amp;quot;error&amp;quot;))) \
+  __attribute__((diagnose_if(_BOS_ZERO(dest,dmax), &amp;quot;empty dest or dmax&amp;quot;, &amp;quot;error&amp;quot;)))
+
+#define BOS_NULL(dest)                                                  \
+  __attribute__((diagnose_if(_BOS_NULL(dest), &amp;quot;empty dest&amp;quot;, &amp;quot;error&amp;quot;)))
+
+#define _BOS_OVR(dest,dmax)    (_BOS_KNOWN(dest) &amp;amp;&amp;amp; (size_t)(dmax) &amp;gt; BOS(dest))
+#define _BOS_ZERO(dest,dmax)   ((_BOS_KNOWN(dest) &amp;amp;&amp;amp; BOS(dest) == 0) || (dmax) == 0)
+#define _BOS_NULL(dest)        ((_BOS_KNOWN(dest) &amp;amp;&amp;amp; BOS(dest) == 0) || !(dest))
+
+#define BOS(dest)  __builtin_object_size((dest),1)
+#define _BOS_KNOWN(dest)  ((size_t)BOS(dest) != BOS_UNKNOWN)
+#define BOS_UNKNOWN ((size_t)-1)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;So whenever a string, dest, is known to have a constant size, and the
+size dmax is known to be constant at constant-folding time in the
+compiler, BOS will not return BOS_UNKNOWN and the check expression
+will be reduced to a constant integer, and a warning or error can be thrown.&lt;/p&gt;
+
+&lt;h1 id=&#34;todo-static-assert-constexpr&#34;&gt;TODO static_assert/constexpr&lt;/h1&gt;
+
+&lt;p&gt;With other compilers it&amp;rsquo;s not that easy. Almost all other compilers do
+have BOS support for such constant-folding checks. But gcc will throw
+an error if any argument to a compile-time expression is unknown/not a
+constant, &lt;code&gt;constant_p&lt;/code&gt; does not help for non-pointers and BOS is not
+known for &lt;code&gt;choose_expr&lt;/code&gt; so it cannot be used.  Also
+&lt;code&gt;static_assert&lt;/code&gt; is only a statement and not an expression. &lt;code&gt;constexpr&lt;/code&gt; is
+only available to g++, not gcc.&lt;/p&gt;
+
+&lt;p&gt;You can write your own &lt;code&gt;static_assert&lt;/code&gt; as expression, the linux kernel
+has such tricks.&lt;/p&gt;
+
+&lt;p&gt;E.g. you can define &lt;code&gt;memcpy_s&lt;/code&gt; as such for gcc:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/* gcc bug: BOS is not a valid constant compile-time expression for gcc-7 */
+#define memcpy_s(dest,dmax,src,slen)               \
+    IFCONSTP(dmax, dmax != 0,                       \
+      IFCONSTP(dmax, dmax &amp;lt; RSIZE_MAX_STR,          \
+        IFCONSTP(dest, dest != NULL,                \
+          IFCONSTP(src, src != NULL,                \
+            _memcpy_s_chk(dest,dmax,src,slen,BOS(dest),BOS(src)), \
+            &amp;quot;src is null&amp;quot;),                         \
+          &amp;quot;dest is null&amp;quot;),                          \
+        &amp;quot;dmax &amp;gt; max&amp;quot;),                              \
+      &amp;quot;dmax is zero&amp;quot;)
+
+#define CONSTP(ptr) __builtin_constant_p(ptr)
+#define CHOOSE_EXPR(exp,ok,notok)    __builtin_choose_expr(exp,ok,notok)
+#define IFCONSTP(var,exp,ok,errmsg) \
+  CHOOSE_EXPR(CONSTP(var) ? (exp) : 1, (ok), &amp;quot;&amp;quot;errmsg[-1])
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;&amp;quot;&amp;quot;errmsg[-1]&lt;/code&gt; will expand to &lt;code&gt;&amp;quot;src is null&amp;quot;[-1]&lt;/code&gt; which be an illegal
+array access, and a compiler error error will be thrown with a useful
+error message. This &lt;code&gt;memcpy_s()&lt;/code&gt; can be used within expressions, within
+comma-lists unlike &lt;code&gt;static_assert&lt;/code&gt;.  But the problem is that some
+expressions in this nested check, like &lt;code&gt;dmax &amp;gt; BOS(dest)&lt;/code&gt; (&amp;ldquo;dest
+overflow&amp;rdquo;) will be invalid if the BOS is unknown.  The BOS for dest is
+only known for stack allocation and direct malloc using system malloc
+with &lt;code&gt;alloc_size&lt;/code&gt; support, and if the variable is not passed into longer
+functions with insufficient compiler optimization levels, without
+proper var-tracking. So that the compiler cannot prove the size of a
+certain symbol, only its type.&lt;/p&gt;
+
+&lt;p&gt;So only some errors can be detected with gcc at compile-time, not all
+run-time checks can be performed at compile-time, and as such the
+run-time has to do it with a ~10% performance degration.&lt;/p&gt;
+
+&lt;p&gt;There&amp;rsquo;s also Intel&amp;rsquo;s MPX &lt;strong&gt;Pointer Bounds Checker&lt;/strong&gt; using special
+registers and a hardware hash table for each pointer to hold the size
+of an array, to be able to do fast run-time bounds checks. &lt;code&gt;icc&lt;/code&gt; has
+this since icc-15, gcc since 5. In gcc performant only since 5.3. But
+it is optional, not shipped with your packagers gcc. safeclib does
+throw such mpx violations if supported, but in practice it&amp;rsquo;s very
+rarely supported. BOS checks are much more common and successful,
+esp. with clang-5+.&lt;/p&gt;
+
+&lt;p&gt;The linux kernel compiletime assertions do look this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#ifdef HAVE_STATIC_ASSERT
+# define __compiletime_assert(condition,msg,prefix,suffix) \
+    static_assert(condition,msg);
+#else
+/* linux kernel a-like compile checks */
+# if __has_attribute(error)
+#  define __compiletime_error(msg) __attribute__((error(msg)))
+#  define __compiletime_error_fallback(cond,msg) do { } while (0)
+# else
+#  define __compiletime_error(msg)
+#  define __compiletime_error_fallback(cond,msg)                         \
+         do { ((void)sizeof(char[1 - 2 * cond])); } while (0)
+# endif
+# define __compiletime_assert(condition, msg, prefix, suffix)           \
+    do {                                                                \
+        bool __cond = !(condition);                                     \
+        extern void prefix ## suffix(void) __compiletime_error(msg);    \
+        if (__cond) {                                                   \
+            prefix ## suffix();                                         \
+        }                                                               \
+        __compiletime_error_fallback(__cond, msg);                      \
+    } while (0)
+#endif
+#define _compiletime_assert(condition, msg, prefix, suffix)             \
+        __compiletime_assert(condition, msg, prefix, suffix)
+#define compiletime_assert(condition, msg)                              \
+        _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and its usage would look like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#define CT_DEST_NULL(ptr) \
+    ({compiletime_assert(ptr != NULL, #ptr &amp;quot; is null&amp;quot;)},ptr)
+#define CT_DMAX_ZERO(var)\
+    ({compiletime_assert(var != 0, #var &amp;quot; is zero&amp;quot;)},var)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Instead of &lt;code&gt;__LINE__&lt;/code&gt; as unique suffix, &lt;code&gt;__COUNTER__&lt;/code&gt; would be better,
+esp. inside expressions, which can have multiple such asserts in a
+single line. e.g. a function call. The unique suffix is needed for the
+empty function with an &lt;code&gt;__attribute((error))&lt;/code&gt; attribute to throw the
+user-defined error, similar to clang&amp;rsquo;s diagnose_if.
+The &lt;code&gt;(void)sizeof(char[1 - 2 * cond]&lt;/code&gt; bit throws the compile-time error
+if &lt;code&gt;cond&lt;/code&gt; is false and returns the value if &lt;code&gt;cond&lt;/code&gt; is true.&lt;/p&gt;
+
+&lt;p&gt;The kernel has dirty thinks like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;#define CT_DEST_NULL(ptr) ((void *)sizeof(struct { int:-!!(ptr); }))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;with &lt;code&gt;!!(ptr)&lt;/code&gt; collapsing the pointer value to a boolean to 0 or 1,
+with -1 being the invalid bitfield size, leading to the compile-time
+error. But this is hardly portable, and anon structs are not valid with
+&lt;code&gt;-pedantic&lt;/code&gt;, which is used for safeclib.&lt;/p&gt;
+
+&lt;p&gt;So why not using static_assert statement checks?&lt;/p&gt;
+
+&lt;p&gt;This depends on the compiler ability to track the size of variables
+across function boundaries. We can only add the &lt;code&gt;static_assert&lt;/code&gt; at the beginning
+of the body of our functions, e.g. &lt;code&gt;strcat_s&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;EXPORT errno_t
+_strcat_s_chk (char *restrict dest, rsize_t dmax, const char *restrict src,
+               size_t destbos)
+{
+    static_assert(dmax &amp;lt;= destbos, &amp;quot;dest overflow&amp;quot;);
+    static_assert(dmax != 0, &amp;quot;dmax is zero&amp;quot;);
+    static_assert(dest != NULL, &amp;quot;dest is null&amp;quot;);
+    ...
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;with &lt;code&gt;#define strcat_s(dest,dmax,src) _strcat_s_chk(dest,dmax,src,BOS(dest))&lt;/code&gt;
+Very few optimizers will be able to deduce dmax to be a compile-time constant into
+&lt;code&gt;_strcat_s_chk&lt;/code&gt;, even if we calculate BOS before calling the function and pass it into it.&lt;/p&gt;
+
+&lt;p&gt;So &lt;strong&gt;gcc sucks big time when compared to clang&lt;/strong&gt;.  Also when we benchmark
+our own &lt;a href=&#34;https://github.com/rurban/safeclib/blob/master/tests/perf_memcpy_s.c&#34;&gt;memcpy_s&lt;/a&gt;
+implementation against the assembler optimized memcpy from
+libc. clang-5 can now easily vectorize and unrool the memcpy loop, and
+my own &lt;code&gt;memcpy_s()&lt;/code&gt; in pure portable C is now as fast as the system
+&lt;code&gt;memcpy()&lt;/code&gt;, even if my memcpy_s does perform all the necessary
+overflow and vailidity checks. The trick is that most of that checks
+are done at compile-time already. gcc is twice as slow.&lt;/p&gt;
+
+&lt;h1 id=&#34;freebsd-glibc-hate-for-the-constraint-handler-crap&#34;&gt;FreeBSD/glibc hate for the constraint-handler &amp;ldquo;crap&amp;rdquo;&lt;/h1&gt;
+
+&lt;p&gt;One reason why the secure C11 Annex K API is not yet added to the various
+libc&amp;rsquo;s is not ony because it was written and designed by Microsoft.
+The public reason given is the mandatory constraint handler, which by
+default does nothing in case of errors. But it can be set to a
+user-defined handler, which logs those errors.&lt;/p&gt;
+
+&lt;p&gt;With the new configure option &lt;code&gt;--disable-constraint-handler&lt;/code&gt; you can
+now disable this feature and avoid this &amp;ldquo;crap&amp;rdquo;. But the performance
+win is not measurable, only the binary size will go down. Because all
+the static error strings will be left out of the &lt;code&gt;.cstrings&lt;/code&gt; section
+in the binary. The performance is unchanged, because the handler is
+only called in case of errors.&lt;/p&gt;
+
+&lt;p&gt;But bsd/glibc are proud of their various MALLOC hooks, via run-time
+getenv checks to help in bug hunting. The safeclib constraint handler
+mechanism is much more performant than this, but you need to recompile
+your software with a different constraint handler, or prepare such a
+getenv check and install a handler at run-time.
+There&amp;rsquo;s no technical reason not to use it as designed.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ll certainly add lot of BOS checks to cperl also, esp. for XS
+programmers. It was extremely useful when developing apps with
+safeclib, and gcc is side-lined until they can come up with proper
+retpoline names and constant-folding support to catch errors when
+writing code, not in the test-suite or at the customer site.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>The sad state of foldcase and string comparisons</title>
