@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perliol - C API for Perl's implementation of IO in Layers.</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -435,13 +435,15 @@
 
 <p>Open should (perhaps indirectly) call <code>PerlIO_allocate()</code> to allocate a slot in the table and associate it with the layers information for the opened file, by calling <code>PerlIO_push</code>. The <i>layers</i> is an array of all the layers destined for the <code>PerlIO *</code>, and any arguments passed to them, <i>n</i> is the index into that array of the layer being called. The macro <code>PerlIOArg</code> will return a (possibly <code>NULL</code>) SV * for the argument passed to the layer.</p>
 
+<p>Where a layer opens or takes ownership of a file descriptor, that layer is responsible for getting the file descriptor&#39;s close-on-exec flag into the correct state. The flag should be clear for a file descriptor numbered less than or equal to <code>PL_maxsysfd</code>, and set for any file descriptor numbered higher. For thread safety, when a layer opens a new file descriptor it should if possible open it with the close-on-exec flag initially set.</p>
+
 <p>The <i>mode</i> string is an &quot;<code>fopen()</code>-like&quot; string which would match the regular expression <code>/^[I#]?[rwa]\+?[bt]?$/</code>.</p>
 
 <p>The <code>&#39;I&#39;</code> prefix is used during creation of <code>stdin</code>..<code>stderr</code> via special <code>PerlIO_fdopen</code> calls; the <code>&#39;#&#39;</code> prefix means that this is <code>sysopen</code> and that <i>imode</i> and <i>perm</i> should be passed to <code>PerlLIO_open3</code>; <code>&#39;r&#39;</code> means <b>r</b>ead, <code>&#39;w&#39;</code> means <b>w</b>rite and <code>&#39;a&#39;</code> means <b>a</b>ppend. The <code>&#39;+&#39;</code> suffix means that both reading and writing/appending are permitted. The <code>&#39;b&#39;</code> suffix means file should be binary, and <code>&#39;t&#39;</code> means it is text. (Almost all layers should do the IO in binary mode, and ignore the b/t bits. The <code>:crlf</code> layer should be pushed to handle the distinction.)</p>
 
 <p>If <i>old</i> is not <code>NULL</code> then this is a <code>PerlIO_reopen</code>. Perl itself does not use this (yet?) and semantics are a little vague.</p>
 
-<p>If <i>fd</i> not negative then it is the numeric file descriptor <i>fd</i>, which will be open in a manner compatible with the supplied mode string, the call is thus equivalent to <code>PerlIO_fdopen</code>. In this case <i>nargs</i> will be zero.</p>
+<p>If <i>fd</i> not negative then it is the numeric file descriptor <i>fd</i>, which will be open in a manner compatible with the supplied mode string, the call is thus equivalent to <code>PerlIO_fdopen</code>. In this case <i>nargs</i> will be zero. The file descriptor may have the close-on-exec flag either set or clear; it is the responsibility of the layer that takes ownership of it to get the flag into the correct state.</p>
 
 <p>If <i>nargs</i> is greater than zero then it gives the number of arguments passed to <code>open</code>, otherwise it will be 1 if for example <code>PerlIO_open</code> was called. In simple cases SvPV_nolen(*args) is the pathname to open.</p>
 

@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perlhacktips - Tips for Perl core C code hacking</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -48,6 +48,12 @@
       <li><a href="#AddressSanitizer">AddressSanitizer</a></li>
     </ul>
   </li>
+  <li><a href="#FUZZING">FUZZING</a>
+    <ul>
+      <li><a href="#afl-fuzz">afl-fuzz</a></li>
+      <li><a href="#LibFuzzer">LibFuzzer</a></li>
+    </ul>
+  </li>
   <li><a href="#PROFILING">PROFILING</a>
     <ul>
       <li><a href="#Gprof-Profiling">Gprof Profiling</a></li>
@@ -83,7 +89,7 @@
 
 <h1 id="COMMON-PROBLEMS">COMMON PROBLEMS</h1>
 
-<p>Perl source plays by ANSI C89 rules: no C99 (or C++) extensions. In some cases we have to take pre-ANSI requirements into consideration. You don&#39;t care about some particular platform having broken Perl? I hear there is still a strong demand for J2EE programmers.</p>
+<p>Perl source plays by ANSI C89 rules: no C99 (or C++) extensions. You don&#39;t care about some particular platform having broken Perl? I hear there is still a strong demand for J2EE programmers.</p>
 
 <h2 id="Perl-environment-problems">Perl environment problems</h2>
 
@@ -473,9 +479,6 @@
 <li><p>malloc(0), realloc(0), calloc(0, 0) are non-portable. To be portable allocate at least one byte. (In general you should rarely need to work at this low level, but instead use the various malloc wrappers.)</p>
 
 </li>
-<li><p>snprintf() - the return type is unportable. Use my_snprintf() instead.</p>
-
-</li>
 </ul>
 
 <h2 id="Security-problems">Security problems</h2>
@@ -501,9 +504,7 @@
 </li>
 <li><p>Do not use sprintf() or vsprintf()</p>
 
-<p>If you really want just plain byte strings, use my_snprintf() and my_vsnprintf() instead, which will try to use snprintf() and vsnprintf() if those safer APIs are available. If you want something fancier than a plain byte string, use <a href="/cperl/perlapi.html#form"><code>Perl_form</code>()</a> or SVs and <a href="/cperl/perlapi.html#sv_catpvf"><code>Perl_sv_catpvf()</code></a>.</p>
-
-<p>Note that glibc <code>printf()</code>, <code>sprintf()</code>, etc. are buggy before glibc version 2.17. They won&#39;t allow a <code>%.s</code> format with a precision to create a string that isn&#39;t valid UTF-8 if the current underlying locale of the program is UTF-8. What happens is that the <code>%s</code> and its operand are simply skipped without any notice. <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=6530">https://sourceware.org/bugzilla/show_bug.cgi?id=6530</a>.</p>
+<p>If you really want just plain byte strings, use snprintf() and vsnprintf() instead. If you want something fancier than a plain byte string, use <a href="/cperl/perlapi.html#form"><code>Perl_form</code>()</a> or SVs and <a href="/cperl/perlapi.html#sv_catpvf"><code>Perl_sv_catpvf()</code></a>.</p>
 
 </li>
 <li><p>Do not use atoi()</p>
@@ -713,7 +714,7 @@
     0x462669 in Perl_pp_add () at pp_hot.c:311
     311           dPOPTOPnnrl_ul;</code></pre>
 
-<p>We can also dump out this op: the current op is always stored in <code>PL_op</code>, and we can dump it with <code>Perl_op_dump</code>. This&#39;ll give us similar output to <a href="/cperl/lib/B/Debug.html">B::Debug</a>.</p>
+<p>We can also dump out this op: the current op is always stored in <code>PL_op</code>, and we can dump it with <code>Perl_op_dump</code>. This&#39;ll give us similar output to CPAN module B::Debug.</p>
 
 <pre><code>    (gdb) print Perl_op_dump(PL_op)
     {
@@ -781,7 +782,7 @@
 
 <p>Coverity (<a href="http://www.coverity.com/">http://www.coverity.com/</a>) is a product similar to lint and as a testbed for their product they periodically check several open source projects, and they give out accounts to open source developers to the defect databases.</p>
 
-<p>There is Coverity setup for the perl5 project: <a href="https://scan.coverity.com/projects/perl5">https://scan.coverity.com/projects/perl5</a></p>
+<p>There is Coverity setup for the perl5 project: <a href="https://scan.coverity.com/projects/perl5">https://scan.coverity.com/projects/perl5</a> and for cperl: <a href="https://scan.coverity.com/projects/perl11-cperl">https://scan.coverity.com/projects/perl11-cperl</a></p>
 
 <h2 id="HP-UX-cadvise-Code-Advisor">HP-UX cadvise (Code Advisor)</h2>
 
@@ -810,7 +811,7 @@
 
 <p>The <code>-ansi</code> (and its sidekick, <code>-pedantic</code>) would be nice to be on always, but unfortunately they are not safe on all platforms, they can for example cause fatal conflicts with the system headers (Solaris being a prime example). If Configure <code>-Dgccansipedantic</code> is used, the <code>cflags</code> frontend selects <code>-ansi -pedantic</code> for the platforms where they are known to be safe.</p>
 
-<p>Starting from Perl 5.9.4 the following extra flags are added:</p>
+<p>The following extra flags are added:</p>
 
 <ul>
 
@@ -820,7 +821,16 @@
 <li><p><code>-Wextra</code></p>
 
 </li>
-<li><p><code>-Wdeclaration-after-statement</code></p>
+<li><p><code>-Wc++-compat</code></p>
+
+</li>
+<li><p><code>-Wwrite-strings</code></p>
+
+</li>
+<li><p><code>-Werror=declaration-after-statement</code></p>
+
+</li>
+<li><p><code>-Werror=pointer-arith</code></p>
 
 </li>
 </ul>
@@ -829,9 +839,6 @@
 
 <ul>
 
-<li><p><code>-Wpointer-arith</code></p>
-
-</li>
 <li><p><code>-Wshadow</code></p>
 
 </li>
@@ -881,9 +888,7 @@
 
 <p>As system libraries (most notably glibc) are also triggering errors, valgrind allows to suppress such errors using suppression files. The default suppression file that comes with valgrind already catches a lot of them. Some additional suppressions are defined in <i>t/perl.supp</i>.</p>
 
-<p>To get valgrind and for more information see</p>
-
-<pre><code>    http://valgrind.org/</code></pre>
+<p>To get valgrind and for more information see <a href="http://valgrind.org/">http://valgrind.org/</a></p>
 
 <h2 id="AddressSanitizer">AddressSanitizer</h2>
 
@@ -921,7 +926,49 @@
 </li>
 </ul>
 
-<p>See also <a href="http://code.google.com/p/address-sanitizer/wiki/AddressSanitizer">http://code.google.com/p/address-sanitizer/wiki/AddressSanitizer</a>.</p>
+<p>See also <a href="https://github.com/google/sanitizers/wiki/AddressSanitizer">https://github.com/google/sanitizers/wiki/AddressSanitizer</a>.</p>
+
+<h1 id="FUZZING">FUZZING</h1>
+
+<h2 id="afl-fuzz">afl-fuzz</h2>
+
+<p>Install <a href="http://lcamtuf.coredump.cx/afl/">http://lcamtuf.coredump.cx/afl/</a> and read <a href="https://medium.com/@dgryski/fuzzing-perl-xs-modules-with-afl-4bfc2335dd90">https://medium.com/@dgryski/fuzzing-perl-xs-modules-with-afl-4bfc2335dd90</a>.</p>
+
+<p>On darwin and Windows recommended is the llvm_mode <code>CC=afl-clang-fast</code> variant. On MacPorts you need to build with <code>LLVM_CONFIG=llvm-config-mp-xx CC=clang-mp-xx CXX=clang++-mp-xx</code> and compile with <code>AFL_CC=clang-mp-xx</code>. With llvm be sure to use the very same <code>AFL_CC</code> settings. On linux/freebsd it&#39;s still about 20% faster due to a faster <code>fork()</code>.</p>
+
+<p>afl-fuzz creates variations of src files in the <code>-i</code> directory as input.</p>
+
+<p>My sample build cmdline for macports is this. On linux just leave out the <code>AFL_CC</code>.</p>
+
+<pre><code>    unset ASAN_OPTIONS
+    export ASAN_OPTIONS
+    export AFL_QUIET=1
+    export AFL_CC=clang-mp-3.8
+    ver=$(Porting/perl_version)
+    prefix=/usr/local
+    arch=`uname -s | tr A-Z a-z`
+    CC=afl-clang-fast archname=&quot;$arch-afl-clang-fast&quot; exesuffix=-afl \
+      ./Configure -sder -Dcc=&quot;$CC&quot; -Dld=&quot;$CC&quot; -Accflags=&quot;-DNO_MATHOMS -march=native&quot; \
+      -Doptimize=&quot;-O3 -g&quot; -Dmake=gmake \
+      -Darchname=&quot;$archname&quot; -Darchlib=&quot;$prefix/lib/cperl/$ver/$archname&quot; \
+      -Dsitebin=&quot;$prefix/lib/cperl/site_cperl/$ver/bin&quot; \
+      -Dscriptdir=&quot;$prefix/lib/cperl/$ver/bin&quot; \
+      -Dsitearch=&quot;$prefix/lib/cperl/site_cperl/$ver/$archname&quot; \
+      -Dperlpath=&quot;$prefix/bin/cperl$ver$exesuffix&quot; -Dstartperl=&quot;#!$prefix/bin/cperl$ver$exesuffix&quot; \
+      -Dinstallman1dir=none -Dinstallman3dir=none -Dinstallsiteman1dir=none -Dinstallsiteman3dir=none
+    make -s -j4 miniperl
+
+    afl-fuzz -i .fuzz-in -o .fuzz-out -x Porting/afl.dict -- ./miniperl</code></pre>
+
+<p>Fuzzing with <a href="#AddressSanitizer">asan</a> or <code>DEBUGGING</code> is also possible, but very slow.</p>
+
+<p>For testing an XS library and avoid the <code>fork()</code> overhead, check the <code>afl_persistent_loop</code> as described in the medium blog post and <a href="https://lcamtuf.blogspot.de/2015/06/new-in-afl-persistent-mode.html">https://lcamtuf.blogspot.de/2015/06/new-in-afl-persistent-mode.html</a></p>
+
+<h2 id="LibFuzzer">LibFuzzer</h2>
+
+<p>See <a href="http://llvm.org/docs/LibFuzzer.html">http://llvm.org/docs/LibFuzzer.html</a> with <code>-Accflags=-fsanitize=fuzzer</code>, esp. since clang-6.0.</p>
+
+<p>Contrary to afl-fuzz you need a compiled-in fuzz target <code>LLVMFuzzerTestOneInput</code>.</p>
 
 <h1 id="PROFILING">PROFILING</h1>
 
@@ -1016,7 +1063,7 @@
     do sh -c &quot;cd `dirname $file` &amp;&amp; gcov `basename $file .gcno`&quot;
     done</code></pre>
 
-<p>Useful options of <i>gcov</i> include <code>-b</code> which will summarise the basic block, branch, and function call coverage, and <code>-c</code> which instead of relative frequencies will use the actual counts. For more information on the use of <i>gcov</i> and basic block profiling with gcc, see the latest GNU CC manual. As of gcc 4.8, this is at <a href="http://gcc.gnu.org/onlinedocs/gcc/Gcov-Intro.html#Gcov-Intro">http://gcc.gnu.org/onlinedocs/gcc/Gcov-Intro.html#Gcov-Intro</a></p>
+<p>Useful options of <i>gcov</i> include <code>-b</code> which will summarise the basic block, branch, and function call coverage, and <code>-c</code> which instead of relative frequencies will use the actual counts. For more information on the use of <i>gcov</i> and basic block profiling with gcc, see the latest GNU CC manual at <a href="http://gcc.gnu.org/onlinedocs/gcc/Gcov-Intro.html#Gcov-Intro">http://gcc.gnu.org/onlinedocs/gcc/Gcov-Intro.html#Gcov-Intro</a></p>
 
 <h1 id="MISCELLANEOUS-TRICKS">MISCELLANEOUS TRICKS</h1>
 

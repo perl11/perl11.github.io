@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>I18N::Langinfo - query locale information</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -19,6 +19,7 @@
       <li><a href="#EXPORT">EXPORT</a></li>
     </ul>
   </li>
+  <li><a href="#BUGS">BUGS</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
@@ -34,7 +35,7 @@
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
-<p>The langinfo() function queries various locale information that can be used to localize output and user interfaces. The langinfo() requires one numeric argument that identifies the locale constant to query: if no argument is supplied, <code>$_</code> is used. The numeric constants appropriate to be used as arguments are exportable from I18N::Langinfo.</p>
+<p>The langinfo() function queries various locale information that can be used to localize output and user interfaces. It uses the current underlying locale, regardless of whether or not it was called from within the scope of <span style="white-space: nowrap;"><code>use locale</code></span>. The langinfo() requires one numeric argument that identifies the locale constant to query: if no argument is supplied, <code>$_</code> is used. The numeric constants appropriate to be used as arguments are exportable from I18N::Langinfo.</p>
 
 <p>The following example will import the langinfo() function itself and three constants to be used as arguments to langinfo(): a constant for the abbreviated first day of the week (the numbering starts from Sunday = 1) and two more constants for the affirmative and negative answers for a yes/no question in the current locale.</p>
 
@@ -47,13 +48,17 @@
 
 <p>In other words, in the &quot;C&quot; (or English) locale the above will probably print something like:</p>
 
-<pre><code>    Sun? [yes/no] </code></pre>
+<pre><code>    Sun? [yes/no]</code></pre>
 
 <p>but under a French locale</p>
 
-<pre><code>    dim? [oui/non] </code></pre>
+<pre><code>    dim? [oui/non]</code></pre>
 
-<p>The usually available constants are</p>
+<p>The usually available constants are as follows.</p>
+
+<ul>
+
+<li><p>For abbreviated and full length days of the week and months of the year:</p>
 
 <pre><code>    ABDAY_1 ABDAY_2 ABDAY_3 ABDAY_4 ABDAY_5 ABDAY_6 ABDAY_7
     ABMON_1 ABMON_2 ABMON_3 ABMON_4 ABMON_5 ABMON_6
@@ -62,42 +67,134 @@
     MON_1 MON_2 MON_3 MON_4 MON_5 MON_6
     MON_7 MON_8 MON_9 MON_10 MON_11 MON_12</code></pre>
 
-<p>for abbreviated and full length days of the week and months of the year,</p>
+</li>
+<li><p>For the date-time, date, and time formats used by the strftime() function (see <a href="/cperl/lib/POSIX.html">POSIX</a>):</p>
 
 <pre><code>    D_T_FMT D_FMT T_FMT</code></pre>
 
-<p>for the date-time, date, and time formats used by the strftime() function (see <a href="/cperl/lib/POSIX.html">POSIX</a>)</p>
+</li>
+<li><p>For the locales for which it makes sense to have ante meridiem and post meridiem time formats:</p>
 
 <pre><code>    AM_STR PM_STR T_FMT_AMPM</code></pre>
 
-<p>for the locales for which it makes sense to have ante meridiem and post meridiem time formats,</p>
+</li>
+<li><p>For the character code set being used (such as &quot;ISO8859-1&quot;, &quot;cp850&quot;, &quot;koi8-r&quot;, &quot;sjis&quot;, &quot;utf8&quot;, etc.), and for the currency string:</p>
 
-<pre><code>    CODESET CRNCYSTR RADIXCHAR</code></pre>
+<pre><code>    CODESET CRNCYSTR</code></pre>
 
-<p>for the character code set being used (such as &quot;ISO8859-1&quot;, &quot;cp850&quot;, &quot;koi8-r&quot;, &quot;sjis&quot;, &quot;utf8&quot;, etc.), for the currency string, for the radix character used between the integer and the fractional part of decimal numbers (yes, this is redundant with POSIX::localeconv())</p>
+</li>
+<li><p>For an alternate representation of digits, for the radix character used between the integer and the fractional part of decimal numbers, the group separator string for large-ish floating point numbers (yes, the final two are redundant with <a href="/cperl/lib/POSIX.html#localeconv">POSIX::localeconv()</a>):</p>
+
+<pre><code>    ALT_DIGITS RADIXCHAR THOUSEP</code></pre>
+
+</li>
+<li><p>For the affirmative and negative responses and expressions:</p>
 
 <pre><code>    YESSTR YESEXPR NOSTR NOEXPR</code></pre>
 
-<p>for the affirmative and negative responses and expressions, and</p>
+</li>
+<li><p>For the eras based on typically some ruler, such as the Japanese Emperor (naturally only defined in the appropriate locales):</p>
 
 <pre><code>    ERA ERA_D_FMT ERA_D_T_FMT ERA_T_FMT</code></pre>
 
-<p>for the Japanese Emperor eras (naturally only defined under Japanese locales).</p>
+</li>
+</ul>
 
-<p>See your <a href="http://man.he.net/man3/langinfo">langinfo(3)</a> for more information about the available constants. (Often this means having to look directly at the <i>langinfo.h</i> C header file.)</p>
+<p>Starting in Perl 5.28, this module is available even on systems that lack a native <code>nl_langinfo</code>. On such systems, it uses various methods to construct what that function, if present, would return. But there are potential glitches. These are the items that could be different:</p>
 
-<p>Note that unfortunately none of the above constants are guaranteed to be available on a particular platform. To be on the safe side you can wrap the import in an eval like this:</p>
+<dl>
 
-<pre><code>    eval {
-        require I18N::Langinfo;
-        I18N::Langinfo-&gt;import(qw(langinfo CODESET));
-        $codeset = langinfo(CODESET()); # note the ()
-    };
-    if ($@) { ... failed ... }</code></pre>
+<dt id="ERA"><code>ERA</code></dt>
+<dd>
+
+<p>Unimplemented, so returns <code>&quot;&quot;</code>.</p>
+
+</dd>
+<dt id="CODESET"><code>CODESET</code></dt>
+<dd>
+
+<p>Unimplemented, except on Windows, due to the vagaries of vendor locale names, returning <code>&quot;&quot;</code> on non-Windows.</p>
+
+</dd>
+<dt id="YESEXPR"><code>YESEXPR</code></dt>
+<dd>
+
+</dd>
+<dt id="YESSTR"><code>YESSTR</code></dt>
+<dd>
+
+</dd>
+<dt id="NOEXPR"><code>NOEXPR</code></dt>
+<dd>
+
+</dd>
+<dt id="NOSTR"><code>NOSTR</code></dt>
+<dd>
+
+<p>Only the values for English are returned. <code>YESSTR</code> and <code>NOSTR</code> have been removed from POSIX 2008, and are retained here for backwards compatibility. Your platform&#39;s <code>nl_langinfo</code> may not support them.</p>
+
+</dd>
+<dt id="D_FMT"><code>D_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%x</code>, the locale&#39;s appropriate date representation.</p>
+
+</dd>
+<dt id="T_FMT"><code>T_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%X</code>, the locale&#39;s appropriate time representation.</p>
+
+</dd>
+<dt id="D_T_FMT"><code>D_T_FMT</code></dt>
+<dd>
+
+<p>Always evaluates to <code>%c</code>, the locale&#39;s appropriate date and time representation.</p>
+
+</dd>
+<dt id="CRNCYSTR"><code>CRNCYSTR</code></dt>
+<dd>
+
+<p>The return may be incorrect for those rare locales where the currency symbol replaces the radix character. Send email to <a href="mailto:perlbug@perl.org">mailto:perlbug@perl.org</a> if you have examples of it needing to work differently.</p>
+
+</dd>
+<dt id="ALT_DIGITS"><code>ALT_DIGITS</code></dt>
+<dd>
+
+<p>Currently this gives the same results as Linux does. Send email to <a href="mailto:perlbug@perl.org">mailto:perlbug@perl.org</a> if you have examples of it needing to work differently.</p>
+
+</dd>
+<dt id="ERA_D_FMT"><code>ERA_D_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="ERA_T_FMT"><code>ERA_T_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="ERA_D_T_FMT"><code>ERA_D_T_FMT</code></dt>
+<dd>
+
+</dd>
+<dt id="T_FMT_AMPM"><code>T_FMT_AMPM</code></dt>
+<dd>
+
+<p>These are derived by using <code>strftime()</code>, and not all versions of that function know about them. <code>&quot;&quot;</code> is returned for these on such systems.</p>
+
+</dd>
+</dl>
+
+<p>See your <a href="http://man.he.net/man3/nl_langinfo">nl_langinfo(3)</a> for more information about the available constants. (Often this means having to look directly at the <i>langinfo.h</i> C header file.)</p>
 
 <h2 id="EXPORT">EXPORT</h2>
 
 <p>By default only the <code>langinfo()</code> function is exported.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Before Perl 5.28, the returned values are unreliable for the <code>RADIXCHAR</code> and <code>THOUSEP</code> locale constants.</p>
+
+<p>Starting in 5.28, changing locales on threaded builds is supported on systems that offer thread-safe locale functions. These include POSIX 2008 systems and Windows starting with Visual Studio 2005, and this module will work properly in such situations. However, on threaded builds on Windows prior to Visual Studio 2015, retrieving the items <code>CRNCYSTR</code> and <code>THOUSEP</code> can result in a race with a thread that has converted to use the global locale. It is quite uncommon for a thread to have done this. It would be possible to construct a workaround for this; patches welcome: see <a href="/cperl/perlapi.html#switch_to_global_locale">&quot;switch_to_global_locale&quot; in perlapi</a>.</p>
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
@@ -107,7 +204,7 @@
 
 <h1 id="AUTHOR">AUTHOR</h1>
 
-<p>Jarkko Hietaniemi, &lt;jhi@hut.fi&gt;</p>
+<p>Jarkko Hietaniemi, &lt;jhi@hut.fi&gt;. Now maintained by Perl 5 porters.</p>
 
 <h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
 

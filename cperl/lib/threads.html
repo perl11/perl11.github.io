@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>threads - Perl interpreter-based threads</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -45,7 +45,7 @@
 
 <h1 id="VERSION">VERSION</h1>
 
-<p>This document describes threads version 2.16</p>
+<p>This document describes threads version 2.22_01 (with fixes from cperl)</p>
 
 <h1 id="WARNING">WARNING</h1>
 
@@ -781,6 +781,26 @@
 <p>On MSWin32, each thread maintains its own the current working directory setting.</p>
 
 </dd>
+<dt id="Locales">Locales</dt>
+<dd>
+
+<p>Prior to Perl 5.28 or cperl 5.24 locales could not be used with threads, due to various race conditions. Starting with Perl 5.28 on systems that implement thread-safe locale functions, threads can be used even on perl5 with some caveats. Previously only with cperl, but perl5 still has many unsolved issues. This includes Windows starting with Visual Studio 2005, and systems compatible with POSIX 2008. See <a href="/cperl/perllocale.html#Multi-threaded-operation">&quot;Multi-threaded operation&quot; in perllocale</a>.</p>
+
+<p>Each thread (except the main thread) is started using the C locale. The main thread is started like all other Perl programs; see <a href="/cperl/perllocale.html#ENVIRONMENT">&quot;ENVIRONMENT&quot; in perllocale</a>. You can switch locales in any thread as often as you like.</p>
+
+<p>If you want to inherit the parent thread&#39;s locale, you can, in the parent, set a variable like so:</p>
+
+<pre><code>    $foo = POSIX::setlocale(LC_ALL, NULL);</code></pre>
+
+<p>and then pass to threads-&gt;create() a sub that closes over <code>$foo</code>. Then, in the child, you say</p>
+
+<pre><code>    POSIX::setlocale(LC_ALL, $foo);</code></pre>
+
+<p>Or you can use the facilities in <a href="/cperl/lib/threads/shared.html">threads::shared</a> to pass <code>$foo</code>; or if the environment hasn&#39;t changed, in the child, do</p>
+
+<pre><code>    POSIX::setlocale(LC_ALL, &quot;&quot;);</code></pre>
+
+</dd>
 <dt id="Environment-variables">Environment variables</dt>
 <dd>
 
@@ -827,12 +847,6 @@
 <p>On some platforms, it might not be possible to destroy <i>parent</i> threads while there are still existing <i>child</i> threads.</p>
 
 </dd>
-<dt id="Creating-threads-inside-special-blocks">Creating threads inside special blocks</dt>
-<dd>
-
-<p>Creating threads inside <code>BEGIN</code>, <code>CHECK</code> or <code>INIT</code> blocks should not be relied upon. Depending on the Perl version and the application code, results may range from success, to (apparently harmless) warnings of leaked scalar, or all the way up to crashing of the Perl interpreter.</p>
-
-</dd>
 <dt id="Unsafe-signals">Unsafe signals</dt>
 <dd>
 
@@ -856,16 +870,18 @@
 <p>If unsafe signals is in effect, then signal handling is not thread-safe, and the <code>-&gt;kill()</code> signalling method cannot be used.</p>
 
 </dd>
-<dt id="Returning-closures-from-threads">Returning closures from threads</dt>
+<dt id="Identity-of-objects-returned-from-threads">Identity of objects returned from threads</dt>
 <dd>
 
-<p>Returning closures from threads should not be relied upon. Depending on the Perl version and the application code, results may range from success, to (apparently harmless) warnings of leaked scalar, or all the way up to crashing of the Perl interpreter.</p>
+<p>When a value is returned from a thread through a <code>join</code> operation, the value and everything that it references is copied across to the joining thread, in much the same way that values are copied upon thread creation. This works fine for most kinds of value, including arrays, hashes, and subroutines. The copying recurses through array elements, reference scalars, variables closed over by subroutines, and other kinds of reference.</p>
+
+<p>However, everything referenced by the returned value is a fresh copy in the joining thread, even if a returned object had in the child thread been a copy of something that previously existed in the parent thread. After joining, the parent will therefore have a duplicate of each such object. This sometimes matters, especially if the object gets mutated; this can especially matter for private data to which a returned subroutine provides access.</p>
 
 </dd>
-<dt id="Returning-objects-from-threads">Returning objects from threads</dt>
+<dt id="Returning-blessed-objects-from-threads">Returning blessed objects from threads</dt>
 <dd>
 
-<p>Returning objects from threads does not work. Depending on the classes involved, you may be able to work around this by returning a serialized version of the object (e.g., using <a href="/cperl/lib/Data/Dumper.html">Data::Dumper</a> or <a href="/cperl/lib/Storable.html">Storable</a>), and then reconstituting it in the joining thread. If you&#39;re using Perl 5.10.0 or later, and if the class supports <a href="/cperl/lib/threads/shared.html#OBJECTS">shared objects</a>, you can pass them via <a href="/cperl/lib/Thread/Queue.html">shared queues</a>.</p>
+<p>Returning blessed objects from threads does not work. Depending on the classes involved, you may be able to work around this by returning a serialized version of the object (e.g., using <a href="/cperl/lib/Data/Dumper.html">Data::Dumper</a> or <a href="/cperl/lib/Storable.html">Storable</a>), and then reconstituting it in the joining thread. If you&#39;re using Perl 5.10.0 or later, and if the class supports <a href="/cperl/lib/threads/shared.html#OBJECTS">shared objects</a>, you can pass them via <a href="/cperl/lib/Thread/Queue.html">shared queues</a>.</p>
 
 </dd>
 <dt id="END-blocks-in-threads">END blocks in threads</dt>

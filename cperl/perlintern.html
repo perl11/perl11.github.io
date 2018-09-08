@@ -4,10 +4,10 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -22,8 +22,12 @@
   <li><a href="#CV-reference-counts-and-CvOUTSIDE">CV reference counts and CvOUTSIDE</a></li>
   <li><a href="#Debugging-Utilities">Debugging Utilities</a></li>
   <li><a href="#Embedding-Functions">Embedding Functions</a></li>
+  <li><a href="#Functions-in-file-inline.h">Functions in file inline.h</a></li>
   <li><a href="#Functions-in-file-op.c">Functions in file op.c</a></li>
+  <li><a href="#Functions-in-file-pp.c">Functions in file pp.c</a></li>
+  <li><a href="#Functions-in-file-regcomp.c">Functions in file regcomp.c</a></li>
   <li><a href="#GV-Functions">GV Functions</a></li>
+  <li><a href="#Hash-Entries">Hash Entries</a></li>
   <li><a href="#Hash-Manipulation-Functions">Hash Manipulation Functions</a></li>
   <li><a href="#Hook-manipulation">Hook manipulation</a></li>
   <li><a href="#IO-Functions">IO Functions</a></li>
@@ -129,7 +133,28 @@
 <dt id="check_for_bool_cxt">check_for_bool_cxt </dt>
 <dd>
 
-<p>See if the ops following o are such that o will always be executed in boolean context: that is, the SV which o pushes onto the stack will only ever be used by later ops with SvTRUE(sv) or similar. If so, set a suitable private flag on o. Normally this will be bool_flag; but if it&#39;s only possible to determine booleaness at run time (e.g. sub f { ....; (%h || $y) }), then set maybe_flag instead. void check_for_bool_cxt(OP* o, U8 bool_flag, U8 maybe_flag)</p>
+<p>See if the ops following o are such that o will always be executed in boolean context: that is, the SV which o pushes onto the stack will only ever be consumed by later ops via SvTRUE(sv) or similar. If so, set a suitable private flag on o. Normally this will be bool_flag; but see below why maybe_flag is needed too.</p>
+
+<p>Typically the two flags you pass will be the generic OPpTRUEBOOL and OPpMAYBE_TRUEBOOL, buts it&#39;s possible that for some ops those bits may already be taken, so you&#39;ll have to give that op two different flags.</p>
+
+<p>More explanation of &#39;maybe_flag&#39; and &#39;safe_and&#39; parameters. The binary logical ops &amp;&amp;, ||, // (plus &#39;if&#39; and &#39;unless&#39; which use those underlying ops) short-circuit, which means that rather than necessarily returning a truth value, they may return the LH argument, which may not be boolean. For example in $x = (keys %h || -1), keys should return a key count rather than a boolean, even though its sort-of being used in boolean context.</p>
+
+<p>So we only consider such logical ops to provide boolean context to their LH argument if they themselves are in void or boolean context. However, sometimes the context isn&#39;t known until run-time. In this case the op is marked with the maybe_flag flag it.</p>
+
+<p>Consider the following.</p>
+
+<pre><code>    sub f { ....;  if (%h) { .... } }</code></pre>
+
+<p>This is actually compiled as</p>
+
+<pre><code>    sub f { ....;  %h &amp;&amp; do { .... } }</code></pre>
+
+<p>Here we won&#39;t know until runtime whether the final statement (and hence the &amp;&amp;) is in void context and so is safe to return a boolean value. So mark o with maybe_flag rather than the bool_flag. Note that there is cost associated with determining context at runtime (e.g. a call to block_gimme()), so it may not be worth setting (at compile time) and testing (at runtime) maybe_flag if the scalar verses boolean costs savings are marginal.</p>
+
+<p>However, we can do slightly better with &amp;&amp; (compared to || and //): this op only returns its LH argument when that argument is false. In this case, as long as the op promises to return a false value which is valid in both boolean and scalar contexts, we can mark an op consumed by &amp;&amp; with bool_flag rather than maybe_flag. For example as long as pp_padhv and pp_rv2hv return SV_ZERO rather than SV_NO for a false result in boolean context, then it&#39;s safe. An op which promises to handle this case is indicated by setting safe_and to true.</p>
+
+<pre><code>        void    check_for_bool_cxt(OP* o, bool safe_and,
+                                   U8 bool_flag, U8 maybe_flag)</code></pre>
 
 </dd>
 <dt id="ck_aassign">ck_aassign </dt>
@@ -137,9 +162,9 @@
 
 <p>CHECK callback for aassign (t2 L L &quot;(:List,:List):List&quot;)</p>
 
-<p>Only checks types.</p>
+<p>Checks types and adds <code>OPpMAP_PAIR</code> to <code>%hash = map</code>.</p>
 
-<pre><code>        OP *    ck_aassign(OP *o)</code></pre>
+<p>TODO: constant folding with OpSPECIAL TODO: fill lhs AvFILLp with gh210-computedsizearydecl OP * ck_aassign(OP *o)</p>
 
 </dd>
 <dt id="ck_aelem">ck_aelem </dt>
@@ -185,9 +210,9 @@
 <dt id="ck_cmp">ck_cmp </dt>
 <dd>
 
-<p>CHECK callback for numeric comparisons.</p>
+<p>CHECK callback for numeric comparisons (all but *cmp) Optimize index() == -1 or &lt; 0 into OPpINDEX_BOOLNEG, ditto != -1 or &gt;= 0 into OPpTRUEBOOL.</p>
 
-<p>Warn on $[</p>
+<p>Warn on $[ (did you mean $] ?)</p>
 
 <pre><code>        OP *    ck_cmp(OP *o)</code></pre>
 
@@ -422,7 +447,7 @@
 
 <p>Checks types.</p>
 
-<pre><code>        OP *    ck_sassign(OP *o)</code></pre>
+<p>TODO: constant folding with OpSPECIAL OP * ck_sassign(OP *o)</p>
 
 </dd>
 <dt id="ck_smartmatch">ck_smartmatch </dt>
@@ -579,7 +604,12 @@
 
 <p>Return the type as core_types_t enum of the op. User-defined types are only returned as type_Object, get the name of those with S_typename().</p>
 
-<p>TODO: add defined return types of all ops, and user-defined CV types for entersub. core_types_t op_typed_user(OP* o, char** usertype, int* u8)</p>
+<p>TODO: add defined return types of all ops, and user-defined CV types for entersub.</p>
+
+<p>u8 returns 0 or 1 (HEKf_UTF8), not SVf_UTF8</p>
+
+<pre><code>        core_types_t op_typed_user(OP* o, char** usertype,
+                                   int* u8)</code></pre>
 
 </dd>
 <dt id="op_check_type">_op_check_type </dt>
@@ -609,7 +639,9 @@
 
 <p>3) with static ranges and shaped arrays, can possibly optimize to aelem_u</p>
 
-<pre><code>        bool    peep_leaveloop(OP* leave, OP* from, OP* to)</code></pre>
+<p>Returns TRUE when some op was changed.</p>
+
+<pre><code>        bool    peep_leaveloop(BINOP* leave, OP* from, OP* to)</code></pre>
 
 </dd>
 <dt id="ret_check_type">ret_check_type </dt>
@@ -696,12 +728,28 @@
         OP*     gen_constant_list(OP* o)</code></pre>
 
 </dd>
-<dt id="jmaybe-OP-jmaybe-OP-o">jmaybe  OP* jmaybe(OP *o)</dt>
+<dt id="hasterm">hasterm </dt>
 <dd>
 
+<p>Adds the field name, padoffset and the field index to the current class.</p>
+
+<pre><code>        OP*     hasterm(OP *o)</code></pre>
+
 </dd>
-<dt id="localize-OP-localize-OP-o-I32-lex">localize  OP* localize(OP *o, I32 lex)</dt>
+<dt id="jmaybe">jmaybe </dt>
 <dd>
+
+<p>Join list by <code>$;</code>, \034. Adds <code>$;</code>, the $SUBSCRIPT_SEPARATOR before the op list, if there is a list.</p>
+
+<p>If you refer to a hash element as <code>$foo{$x,$y,$z}</code> it really means <code>$foo{join($;, $x, $y, $z)}</code></p>
+
+<pre><code>        OP*     jmaybe(OP *o)</code></pre>
+
+</dd>
+<dt id="localize">localize </dt>
+<dd>
+
+<p>lex: 0 local 1 my|our|state 2 has OP* localize(OP *o, I32 lex)</p>
 
 </dd>
 <dt id="op_integerize">op_integerize </dt>
@@ -736,12 +784,19 @@
                                int * const opnum)</code></pre>
 
 </dd>
-<dt id="coresub_op-OP-coresub_op-SV-const-coreargssv-const-int-code-const-int-opnum">coresub_op  OP * coresub_op(SV *const coreargssv, const int code, const int opnum)</dt>
+<dt id="coresub_op">coresub_op </dt>
 <dd>
 
+<p>Provide the coreargs arguments for &amp;CORE::* subroutines, usually with matching ops. coreargssv is either the opnum (as UV) or the name (as PV) of no such op exists. code is the result of <code>keyword()</code>, and maybe negative. See <i>gv.c</i>: <code>S_maybe_add_coresub()</code>.</p>
+
+<pre><code>        OP *    coresub_op(SV *const coreargssv, const int code,
+                           const int opnum)</code></pre>
+
 </dd>
-<dt id="report_redefined_cv-void-report_redefined_cv-const-SV-name-const-CV-old_cv-SV-const-new_const_svp">report_redefined_cv  void report_redefined_cv(const SV *name, const CV *old_cv, SV * const *new_const_svp)</dt>
+<dt id="report_redefined_cv">report_redefined_cv </dt>
 <dd>
+
+<p>If a CV is overwritten, warn by whom when use warnings &#39;redefine&#39; is in effect. void report_redefined_cv(const SV *name, const CV *old_cv, SV * const *new_const_svp)</p>
 
 </dd>
 </dl>
@@ -753,7 +808,7 @@
 <dt id="check_type_and_open">check_type_and_open </dt>
 <dd>
 
-<p>Returns a PerlIO* object when the perl script name could be opened for reading. If not NULL.</p>
+<p>Return NULL if the file doesn&#39;t exist or isn&#39;t a file; else return PerlIO_openn().</p>
 
 <pre><code>        PerlIO * check_type_and_open(SV *name)</code></pre>
 
@@ -806,7 +861,7 @@
 <dt id="doopen_pm">doopen_pm </dt>
 <dd>
 
-<p>Returns a PerlIO* object when the perl module could be opened for reading. Includes optional compiled module .pmc handling.</p>
+<p>doopen_pm(): return the equivalent of PerlIO_openn() on the given name, but first check for bad names (\0) and non-files. Also if the filename ends in .pm and unless PERL_DISABLE_PMC, try loading Foo.pmc first.</p>
 
 <pre><code>        PerlIO * doopen_pm(SV *name, bool do_pmc)</code></pre>
 
@@ -814,7 +869,7 @@
 <dt id="path_is_searchable">path_is_searchable </dt>
 <dd>
 
-<p>require doesn&#39;t search for absolute names, or when the name is explicitly relative the current directory. bool path_is_searchable(const char *name)</p>
+<p>require doesn&#39;t search in @INC for absolute names, or when the name is explicitly relative the current directory: i.e. ./, ../ bool path_is_searchable(const char *name)</p>
 
 </dd>
 <dt id="require_file">require_file </dt>
@@ -903,6 +958,14 @@
 <pre><code>        void    av_dump(SV* av)</code></pre>
 
 </dd>
+<dt id="cop_dump">cop_dump </dt>
+<dd>
+
+<p>Dumps a COP, even when it is deleted. Esp. useful for lexical hints in PL_curcop.</p>
+
+<p>With DEBUGGING only. void cop_dump(const OP *o)</p>
+
+</dd>
 <dt id="deb_hechain">deb_hechain </dt>
 <dd>
 
@@ -943,6 +1006,14 @@
 <p>Only available with <code>-DDEBUGGING</code>.</p>
 
 <pre><code>        void    hv_dump(SV* sv, bool with_values)</code></pre>
+
+</dd>
+<dt id="multiconcat_stringify">multiconcat_stringify </dt>
+<dd>
+
+<p>Return a temporary SV containing a stringified representation of the op_aux field of a MULTICONCAT op. Note that if the aux contains both plain and utf8 versions of the const string and indices, only the first is displayed.</p>
+
+<pre><code>        SV*     multiconcat_stringify(const OP* o)</code></pre>
 
 </dd>
 <dt id="multideref_stringify">multideref_stringify </dt>
@@ -1136,6 +1207,23 @@
 </dd>
 </dl>
 
+<h1 id="Functions-in-file-inline.h">Functions in file inline.h</h1>
+
+<dl>
+
+<dt id="strip_spaces">strip_spaces </dt>
+<dd>
+
+<p>CvPROTO returns the prototype as stored, which is not necessarily what the interpreter should be using. Specifically, the interpreter assumes that spaces have been stripped, which has been the case if the prototype was added by toke.c, but is generally not the case if it was added elsewhere.</p>
+
+<p>Since we can&#39;t enforce the spacelessness at assignment time, this routine provides a temporary copy of the string at parse time with spaces removed. <i>orig</i> is the start of the original string, <i>len</i> is the length of the string and will be updated when this returns.</p>
+
+<pre><code>        char*   strip_spaces(const char * orig,
+                             STRLEN * const len)</code></pre>
+
+</dd>
+</dl>
+
 <h1 id="Functions-in-file-op.c">Functions in file op.c</h1>
 
 <dl>
@@ -1162,6 +1250,22 @@
 <p>Returns the next non-NULL op, skipping all NULL ops in the chain.</p>
 
 <pre><code>        OP*     op_next_nn</code></pre>
+
+</dd>
+<dt id="op_prevstart_nn">op_prevstart_nn </dt>
+<dd>
+
+<p>Returns the previous op, pointing via OpNEXT to us. Walks down the CvSTART until it finds us.</p>
+
+<pre><code>        OP*     op_prevstart_nn</code></pre>
+
+</dd>
+<dt id="op_prev_nn">op_prev_nn </dt>
+<dd>
+
+<p>Returns the previous sibling or parent op, pointing via OpSIBLNG or OpFIRST to us. Walks the the siblings until the parent, and then descent again to the kids until it finds us.</p>
+
+<pre><code>        OP*     op_prev_nn</code></pre>
 
 </dd>
 <dt id="opslab_force_free">opslab_force_free </dt>
@@ -1228,6 +1332,55 @@
 <p>Returns the sanitized typename of the stash of the padname type, without main:: prefix.</p>
 
 <pre><code>                typename;</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Functions-in-file-pp.c">Functions in file pp.c</h1>
+
+<dl>
+
+<dt id="softref2xv">softref2xv </dt>
+<dd>
+
+<p>Helper function for pp_rv2sv and pp_rv2av. Interns the string to a symbol.</p>
+
+<p>Optionally also consumes the local stackptr pointing to the sv (*spp[0] == sv) to use a subsequent LVAL NULL kid in the calling rv2sv.</p>
+
+<p>Note: sv might change. Get it with GvSV of the result afterwards.</p>
+
+<pre><code>        GV*     softref2xv(SV *sv, const char *const what,
+                           const svtype type, SV ***spp)</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Functions-in-file-regcomp.c">Functions in file regcomp.c</h1>
+
+<dl>
+
+<dt id="regprop">regprop </dt>
+<dd>
+
+<p>printable representation of opcode, with run time support void regprop(const regexp *prog, SV* sv, const regnode* o, const regmatch_info *reginfo, const RExC_state_t *pRExC_state)</p>
+
+</dd>
+<dt id="reg_temp_copy">reg_temp_copy </dt>
+<dd>
+
+<p>Copy ssv to dsv, both of which should of type SVt_REGEXP or SVt_PVLV, except that dsv will be created if NULL.</p>
+
+<p>This function is used in two main ways. First to implement</p>
+
+<pre><code>    $r = qr/....; $s = $$r;</code></pre>
+
+<p>Secondly, it is used as a hacky workaround to the structural issue of match results being stored in the regexp structure which is in turn stored in <code>PL_curpm</code>/<code>PL_reg_curpm</code>. The problem is that due to <code>qr//</code> the pattern could be <code>PL_curpm</code> in multiple contexts, and could require multiple result sets being associated with the pattern simultaneously, such as when doing a recursive match with <code>(??{$qr})</code></p>
+
+<p>The solution is to make a lightweight copy of the regexp structure when a <code>qr//</code> is returned from the code executed by <code>(??{$qr})</code> this lightweight copy doesn&#39;t actually own any of its data except for the starp/end and the actual regexp structure itself.</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        REGEXP* reg_temp_copy(REGEXP* dsv, REGEXP* ssv)</code></pre>
 
 </dd>
 </dl>
@@ -1370,7 +1523,8 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     hv = GvHVn(gv);
                     hv_magic(hv, NULL, PERL_MAGIC_sig);
                     for (i = 1; i &lt; SIG_SIZE; i++) {
-                        SV * const * const init = hv_fetch(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
+                        SV * const * const init
+                            = hv_fetch_ifexists(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
                         if (init)
                             sv_setsv(*init, UNDEF);
                     }
@@ -1386,9 +1540,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                                 /* @{^CAPTURE} %{^CAPTURE} */
                 if (memEQs(name, len, &quot;\003APTURE&quot;)) {
                     AV* const av = GvAVn(gv);
-                    UV uv= *name;
+                    const Size_t n = *name;
 
-                    sv_magic(MUTABLE_SV(av), (SV*)uv, PERL_MAGIC_regdata, NULL, 0);
+                    sv_magic(MUTABLE_SV(av), (SV*)n, PERL_MAGIC_regdata, NULL, 0);
                     SvREADONLY_on(av);
 
                     if (sv_type == SVt_PVHV || sv_type == SVt_PVGV)
@@ -1434,6 +1588,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     goto storeparen;
                 }
                 break;
+            case &#39;\023&#39;:
+                if (memEQs(name, len, &quot;\023AFE_LOCALES&quot;))
+                    goto ro_magicalize;
+                break;
             case &#39;\024&#39;:        /* ${^TAINT} */
                 if (strEQc(name, &quot;\024AINT&quot;))
                     goto ro_magicalize;
@@ -1467,7 +1625,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                     /* Ensures that we have an all-digit variable, ${&quot;1foo&quot;} fails
                        this test  */
                     UV uv;
-                    if (!grok_atoUV(name, &amp;uv, NULL) || uv &gt; I32_MAX)
+                    if (!grok_atoUV(name, &amp;uv, NULL))
                         goto ret;
                     if (UNLIKELY(uv &gt; I32_MAX))
                         Perl_croak(aTHX_ &quot;panic: gv name too long (%&quot; UVuf &quot;)&quot;, uv);
@@ -1557,9 +1715,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
             }
             {   /* @- @+ */
                 AV* const av = GvAVn(gv);
-                const UV uv = (UV)*name;
+                const Size_t n = *name;
 
-                sv_magic(MUTABLE_SV(av), (SV*)uv, PERL_MAGIC_regdata, NULL, 0);
+                sv_magic(MUTABLE_SV(av), (SV*)n, PERL_MAGIC_regdata, NULL, 0);
                 SvREADONLY_on(av);
             }
             break;
@@ -1701,6 +1859,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>GV * Perl_gv_fetchpvn_flags(pTHX_ const char *nambeg, STRLEN full_len, I32 flags, const svtype sv_type) { const char *name = nambeg; const char *const name_end = nambeg + full_len; GV *gv = NULL; GV**gvp; HV *stash = NULL; STRLEN len; const I32 no_init = flags &amp; (GV_NOADD_NOINIT | GV_NOINIT); const I32 no_expand = flags &amp; GV_NOEXPAND; const I32 add = flags &amp; ~GV_NOADD_MASK; const U32 is_utf8 = flags &amp; SVf_UTF8; U32 faking_it; bool addmg = cBOOL(flags &amp; GV_ADDMG);</p>
 
 <pre><code>    PERL_ARGS_ASSERT_GV_FETCHPVN_FLAGS;
+    PERL_DTRACE_PROBE_GLOB_ENTRY(PERL_DTRACE_GLOB_MODE_FETCH, name);
 
      /* If we have GV_NOTQUAL, the caller promised that
       * there is no stash, so we can skip the check.
@@ -1722,12 +1881,12 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
     
     /* By this point we should have a stash and a name */
     /* On protected stashes and !add try exists first */
-    if (SvREADONLY(stash) &amp;&amp; !add)
+    /*if (SvREADONLY(stash) &amp;&amp; !add)
         if (!hv_exists(stash, name, is_utf8 ? -(I32)len : (I32)len)) {
             if (addmg) gv = (GV *)newSV(0);
             else return NULL;
-        }
-    gvp = (GV**)hv_fetch(stash, name, is_utf8 ? -(I32)len : (I32)len,add);
+        }*/
+    gvp = (GV**)hv_fetch(stash, name, is_utf8 ? -(I32)len : (I32)len, add);
     if (!gvp || *gvp == (const GV *)UNDEF) {
         if (addmg) gv = (GV *)newSV(0);
         else return NULL;
@@ -1758,8 +1917,8 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
             if (len == 1 &amp;&amp; stash == PL_defstash) {
                 maybe_multimagic_gv(gv, name, sv_type);
             }
-            else if (len == 3 &amp;&amp; sv_type == SVt_PVAV
-                  &amp;&amp; strEQc(name, &quot;ISA&quot;)
+            else if (sv_type == SVt_PVAV
+                  &amp;&amp; memEQs(name, len, &quot;ISA&quot;)
                   &amp;&amp; (!GvAV(gv) || !SvSMAGICAL(GvAV(gv))))
                 gv_magicalize_isa(gv);
         }
@@ -1805,21 +1964,22 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
     if ( gv_magicalize(gv, stash, name, len, sv_type) ) {
         /* See 23496c6 */
         if (addmg) {
-                /* gv_magicalize magicalised this gv, so we want it
-                 * stored in the symtab.
-                 * Effectively the caller is asking, &lsquo;Does this gv exist?&rsquo; 
-                 * And we respond, &lsquo;Er, *now* it does!&rsquo;
-                 */
-                (void)hv_store(stash,name,len,(SV *)gv,0);
+            /* gv_magicalize magicalised this gv, so we want it
+             * stored in the symtab.
+             * Effectively the caller is asking, &lsquo;Does this gv exist?&rsquo; 
+             * And we respond, &lsquo;Er, *now* it does!&rsquo;
+             */
+            (void)hv_store(stash,name,len,(SV *)gv,0);
         }
     }
     else if (addmg) {
-                /* The temporary GV created above */
-                SvREFCNT_dec_NN(gv);
-                gv = NULL;
+        /* The temporary GV created above */
+        SvREFCNT_dec_NN(gv);
+        gv = NULL;
     }
     
     if (gv) gv_init_svtype(gv, faking_it ? SVt_PVCV : sv_type);
+    PERL_DTRACE_PROBE_GLOB_RETURN(PERL_DTRACE_GLOB_MODE_FETCH, name);
     return gv;
 }</code></pre>
 
@@ -1831,7 +1991,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
     if (hv &amp;&amp; (name = HvNAME(hv))) {
         const STRLEN len = HvNAMELEN(hv);
-        if (keepmain || strnNE(name, &quot;main&quot;, len)) {
+        if (keepmain || ! memBEGINs(name, len, &quot;main&quot;)) {
             sv_catpvn_flags(sv,name,len,HvNAMEUTF8(hv)?SV_CATUTF8:SV_CATBYTES);
             sv_catpvs(sv,&quot;::&quot;);
         }
@@ -1862,6 +2022,35 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>If <code>gv</code> is a typeglob containing only a sufficiently-ordinary constant sub, the typeglob is replaced with a scalar-reference placeholder that more compactly represents the same thing.</p>
 
 <pre><code>        void    gv_try_downgrade(GV* gv)</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Hash-Entries">Hash Entries</h1>
+
+<dl>
+
+<dt id="refcounted_he_fetch_pvs">refcounted_he_fetch_pvs </dt>
+<dd>
+
+<p>Like <a href="#refcounted_he_fetch_pvn">&quot;refcounted_he_fetch_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
+
+<pre><code>        SV *    refcounted_he_fetch_pvs(
+                    const struct refcounted_he *chain,
+                    &quot;literal string&quot; key, U32 flags
+                )</code></pre>
+
+</dd>
+<dt id="refcounted_he_new_pvs">refcounted_he_new_pvs </dt>
+<dd>
+
+<p>Like <a href="#refcounted_he_new_pvn">&quot;refcounted_he_new_pvn&quot;</a>, but takes a literal string instead of a string/length pair, and no precomputed hash.</p>
+
+<pre><code>        struct refcounted_he * refcounted_he_new_pvs(
+                                   struct refcounted_he *parent,
+                                   &quot;literal string&quot; key,
+                                   SV *value, U32 flags
+                               )</code></pre>
 
 </dd>
 </dl>
@@ -1953,17 +2142,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                 )</code></pre>
 
 </dd>
-<dt id="refcounted_he_fetch_pvs">refcounted_he_fetch_pvs </dt>
-<dd>
-
-<p>Like <a href="#refcounted_he_fetch_pvn">&quot;refcounted_he_fetch_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
-
-<pre><code>        SV *    refcounted_he_fetch_pvs(
-                    const struct refcounted_he *chain,
-                    const char *key, U32 flags
-                )</code></pre>
-
-</dd>
 <dt id="refcounted_he_fetch_sv">refcounted_he_fetch_sv </dt>
 <dd>
 
@@ -2024,18 +2202,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                                )</code></pre>
 
 </dd>
-<dt id="refcounted_he_new_pvs">refcounted_he_new_pvs </dt>
-<dd>
-
-<p>Like <a href="#refcounted_he_new_pvn">&quot;refcounted_he_new_pvn&quot;</a>, but takes a <code>NUL</code>-terminated literal string instead of a string/length pair, and no precomputed hash.</p>
-
-<pre><code>        struct refcounted_he * refcounted_he_new_pvs(
-                                   struct refcounted_he *parent,
-                                   const char *key, SV *value,
-                                   U32 flags
-                               )</code></pre>
-
-</dd>
 <dt id="refcounted_he_new_sv">refcounted_he_new_sv </dt>
 <dd>
 
@@ -2054,6 +2220,33 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
+<dt id="add_does_methods">add_does_methods </dt>
+<dd>
+
+<p>Copy all not-existing methods from the parent roles to the class/role. Fixup changed oelemfast indices.</p>
+
+<p>Duplicates are fatal: &quot;Method %s from %s already exists in %s during role composition&quot;</p>
+
+<pre><code>        void    add_does_methods(HV* klass, AV* does)</code></pre>
+
+</dd>
+<dt id="add_isa_fields">add_isa_fields </dt>
+<dd>
+
+<p>Copy all not-existing fields from parent classes or roles to the class of <code>name</code>. Duplicates are fatal with roles, ignored with classes.</p>
+
+<pre><code>        void    add_isa_fields(HV* klass, AV* isa)</code></pre>
+
+</dd>
+<dt id="class_isamagic">class_isamagic </dt>
+<dd>
+
+<p>Set closed ISA magic to the array in pkg, either @ISA or @DOES.</p>
+
+<pre><code>        void    class_isamagic(OP* o, SV* pkg, const char* what,
+                               int len)</code></pre>
+
+</dd>
 <dt id="const_av_xsub">const_av_xsub </dt>
 <dd>
 
@@ -2068,6 +2261,62 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>Efficient sub that returns a constant scalar value.</p>
 
 <pre><code>        void    const_sv_xsub(CV* cv)</code></pre>
+
+</dd>
+<dt id="do_method_finalize">do_method_finalize </dt>
+<dd>
+
+<p>A field may start as lexical or access call in the class block and method pad, and needs to be converted to oelemfast ops, which are basically aelemfast_lex_u (lexical typed self, const ix &lt; 256).</p>
+
+<pre><code>  PADxV targ     -&gt; OELEMFAST(self)[targ]
+
+  $field         -&gt; $self-&gt;field[i] (same as above)
+  $self-&gt;{field} -&gt;     -&quot;- (do not use)
+  $self-&gt;field   -&gt;     -&quot;-
+
+  exists $self-&gt;field    -&gt; compile-time const if exists
+  exists $self-&gt;{field}  -&gt; compile-time const (do not use)
+  exists $self-&gt;{$field} -&gt; exists oelem</code></pre>
+
+<p>If the field is computed, convert to a new &#39;oelem&#39; op, which does the field lookup at run-time.</p>
+
+<pre><code>        void    do_method_finalize(const HV* klass,
+                                   const CV* cv, OP* o,
+                                   const PADOFFSET self)</code></pre>
+
+</dd>
+<dt id="method_finalize">method_finalize </dt>
+<dd>
+
+<p>Resolve internal lexicals or field helem&#39;s or field accessors to fields in the class method or sub.</p>
+
+<p>Field helem&#39;s might get deleted, as they don&#39;t work outside of classes. Only subs and methods inside the class are processed, not outside! void method_finalize(const HV* klass, const CV* cv)</p>
+
+</dd>
+<dt id="Mu_av_xsub">Mu_av_xsub </dt>
+<dd>
+
+<p>XS template to set or return object array values from it&#39;s compile-time field offset.</p>
+
+<pre><code>    class MY {
+      has @a;
+    }
+    my $c = new MY;
+    $c-&gt;a = (0..2); # (0,1,2)
+    print scalar $c-&gt;a; # 3
+    $c-&gt;a = 1;     # (1)
+    $c-&gt;a = 0..2;  # (0,1,2)
+    $c-&gt;a = 1,2;   # (1,2)
+
+        void    Mu_av_xsub(CV* cv)</code></pre>
+
+</dd>
+<dt id="Mu_sv_xsub">Mu_sv_xsub </dt>
+<dd>
+
+<p>XS template to return an object scalar value from it&#39;s compile-time field offset.</p>
+
+<pre><code>        void    Mu_sv_xsub(CV* cv)</code></pre>
 
 </dd>
 </dl>
@@ -2092,6 +2341,26 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
+<dt id="ao">ao </dt>
+<dd>
+
+<p>ao(toketype) looks for an &#39;=&#39; next to the operator, whithout whitespace, that has just been parsed and turns it into an ASSIGNOP if it finds one.</p>
+
+<pre><code>        int     ao(int toketype)</code></pre>
+
+</dd>
+<dt id="check_uni">check_uni </dt>
+<dd>
+
+<p>Check the unary operators to ensure there&#39;s no ambiguity in how they&#39;re used, and if so warn about it. An ambiguous piece of code would be:</p>
+
+<pre><code>    rand + 5</code></pre>
+
+<p>This doesn&#39;t mean rand() + 5. Because rand() is a unary operator, the +5 is its argument.</p>
+
+<pre><code>        void    check_uni()</code></pre>
+
+</dd>
 <dt id="find_in_coretypes">find_in_coretypes </dt>
 <dd>
 
@@ -2101,6 +2370,104 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <pre><code>        HV *    find_in_coretypes(const char *pkgname,
                                   STRLEN len)</code></pre>
+
+</dd>
+<dt id="force_ident">force_ident </dt>
+<dd>
+
+<p>Called when the lexer wants $foo *foo &amp;foo etc, but the program text only contains the &quot;foo&quot; portion. The first argument is a pointer to the &quot;foo&quot;, and the second argument is the type symbol to prefix. Forces the next token to be a &quot;BAREWORD&quot;. Creates the symbol if it didn&#39;t already exist (via gv_fetchpv()).</p>
+
+<pre><code>        void    force_ident(const char *s, int kind)</code></pre>
+
+</dd>
+<dt id="force_next">force_next </dt>
+<dd>
+
+<p>When the lexer realizes it knows the next token (for instance, it is reordering tokens for the parser) then it can call S_force_next to know what token to return the next time the lexer is called. Caller will need to set PL_nextval[] and possibly PL_expect to ensure the lexer handles the token correctly.</p>
+
+<pre><code>        void    force_next(I32 type)</code></pre>
+
+</dd>
+<dt id="force_version">force_version </dt>
+<dd>
+
+<p>Forces the next token to be a version number. If the next token appears to be an invalid version number, (e.g. &quot;v2b&quot;), and if &quot;guessing&quot; is TRUE, then no new token is created (and the caller must use an alternative parsing method).</p>
+
+<pre><code>        char*   force_version(char *s, int guessing)</code></pre>
+
+</dd>
+<dt id="force_word">force_word </dt>
+<dd>
+
+<p>When the lexer knows the next thing is a word (for instance, it has just seen -&gt; and it knows that the next char is a word char, then it calls S_force_word to stick the next word into the PL_nexttoke/val lookahead.</p>
+
+<p>Arguments: char *start : buffer position (must be within PL_linestr) int token : PL_next* will be this type of bare word (e.g., METHOD,BAREWORD) int check_keyword : if true, Perl checks to make sure the word isn&#39;t a keyword (do this if the word is a label, e.g. goto FOO) int allow_pack : if true, : characters will also be allowed (require, use, etc. do this)</p>
+
+<pre><code>        char*   force_word(char *start, int token,
+                           int check_keyword, int allow_pack)</code></pre>
+
+</dd>
+<dt id="incline">incline </dt>
+<dd>
+
+<p>This subroutine name is short for &quot;increment line&quot;. It has nothing to do with tilting, whether at windmills or pinball tables. It increments the current line number in CopLINE(PL_curcop) and checks to see whether the line starts with a comment of the form <code># line 500 &quot;foo.pm&quot;</code> If so, it sets the current line number and file to the values in the comment.</p>
+
+<pre><code>        void    incline(const char *s, const char *end)</code></pre>
+
+</dd>
+<dt id="lop">lop </dt>
+<dd>
+
+<p>Build a list operator (or something that might be one). The rules: - if we have a next token, then it&#39;s a list operator (no parens) for which the next token has already been parsed; e.g., sort foo @args sort foo (@args) - if the next thing is an opening paren, then it&#39;s a function - else it&#39;s a list operator</p>
+
+<pre><code>        I32     lop(I32 f, expectation x, char *s)</code></pre>
+
+</dd>
+<dt id="missingterm">missingterm </dt>
+<dd>
+
+<p>Complain about missing quote/regexp/heredoc terminator. If it&#39;s called with NULL then it cauterizes the line buffer. If we&#39;re in a delimited string and the delimiter is a control character, it&#39;s reformatted into a two-char sequence like ^C. This is fatal. void missingterm(char *s, STRLEN len)</p>
+
+</dd>
+<dt id="new_constant">new_constant </dt>
+<dd>
+
+<p>do any overload::constant lookup.</p>
+
+<p>Either returns sv, or mortalizes/frees sv and returns a new SV*. Best used as sv=new_constant(..., sv, ...). If s, pv are NULL, calls subroutine with one argument, and &lt;type&gt; is used with error messages only. &lt;type&gt; is assumed to be well formed UTF-8</p>
+
+<pre><code>        SV*     new_constant(const char *s, STRLEN len,
+                             const char *key, STRLEN keylen,
+                             SV *sv, SV *pv, const char *type,
+                             STRLEN typelen)</code></pre>
+
+</dd>
+<dt id="no_op">no_op </dt>
+<dd>
+
+<p>When Perl expects an operator and finds something else, no_op prints the warning. It always prints &quot;&lt;something&gt; found where operator expected. It prints &quot;Missing semicolon on previous line?&quot; if the surprise occurs at the start of the line. &quot;do you need to predeclare ...&quot; is printed out for code like &quot;sub bar; foo bar $x&quot; where the compiler doesn&#39;t know if foo is a method call or a function. It prints &quot;Missing operator before end of line&quot; if there&#39;s nothing after the missing operator, or &quot;... before &lt;...&gt;&quot; if there is something after the missing operator.</p>
+
+<p>PL_bufptr is expected to point to the start of the thing that was found, and s after the next token or partial token.</p>
+
+<pre><code>        void    no_op(const char *const what, char *s)</code></pre>
+
+</dd>
+<dt id="notify_parser_that_changed_to_utf8">notify_parser_that_changed_to_utf8 </dt>
+<dd>
+
+<p>Called when $^H is changed to indicate that HINT_UTF8 has changed from off to on. At compile time, this has the effect of entering a &#39;use utf8&#39; section. This means that any input was not previously checked for UTF-8 (because it was off), but now we do need to check it, or our assumptions about the input being sane could be wrong, and we could segfault. This routine just sets a flag so that the next time we look at the input we do the well-formed UTF-8 check. If we aren&#39;t in the proper phase, there may not be a parser object, but if there is, setting the flag is harmless.</p>
+
+<pre><code>        void    notify_parser_that_changed_to_utf8()</code></pre>
+
+</dd>
+<dt id="num_constlistexpr">num_constlistexpr </dt>
+<dd>
+
+<p>Number of const list elements. depth starts with 0</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        SSize_t num_constlistexpr(OP* o, int depth)</code></pre>
 
 </dd>
 <dt id="parse_subsignature">parse_subsignature </dt>
@@ -2116,11 +2483,154 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>Note that we attach this data to CV via an OP_SIGNATURE rather than directly attaching it to the CV, so that it doesn&#39;t need copying each time a new thread is cloned.</p>
 
-<p>Done: - perl6-like optional args: ($opt?) i.e. ($opt=undef) - types in leading position (int $i) - attributes (:const, types), ($i :int :const) - no double copies into @_ - scalar references compiled to direct access, not just copies (\$a) =&gt; my $a = $_[0]. Todo: - error in ck_subr when @_/$_[] in signatured bodies is used</p>
+<p>Done: - perl6-like optional args: ($opt?) i.e. ($opt=undef) - types in leading position (int $i) - attributes (:const, types), ($i :int :const) - no double copies into @_ - scalar references compiled to direct access, not just copies (\$a) =&gt; my $a = $_[0]. - call-by-value and call-by-ref supported. call-by-ref could be improved through so we don&#39;t change constants to be called-by-ref, and rather copy it. Todo: - error in ck_subr when @_/$_[] in signatured bodies is used</p>
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
 <pre><code>        OP *    parse_subsignature()</code></pre>
+
+</dd>
+<dt id="pending_ident">pending_ident </dt>
+<dd>
+
+<p>Looks up an identifier in the pad or in a package.</p>
+
+<p>Returns: PRIVATEREF if this is a lexical name. BAREWORD if this belongs to a package.</p>
+
+<p>Structure: if we&#39;re in a my declaration croak if they tried to say my($foo::bar) build the ops for a my() declaration if it&#39;s an access to a my() variable build ops for access to a my() variable if in a dq string, and they&#39;ve said @foo and we can&#39;t find @foo warn build ops for a bareword</p>
+
+<pre><code>        int     pending_ident()</code></pre>
+
+</dd>
+<dt id="postderef">postderef </dt>
+<dd>
+
+<p>This subroutine handles postfix deref syntax after the arrow has already been emitted. @* $* etc. are emitted as two separate tokens right here. @[ @{ %[ %{ *{ are emitted also as two tokens, but this function emits only the first, leaving yylex to find the next. int postderef(int const funny, char const next)</p>
+
+</dd>
+<dt id="scan_const">scan_const </dt>
+<dd>
+
+<p>Extracts the next constant part of a pattern, double-quoted string, or transliteration. This is terrifying code.</p>
+
+<p>For example, in parsing the double-quoted string &quot;ab\x63$d&quot;, it would stop at the &#39;$&#39; and return an OP_CONST containing &#39;abc&#39;.</p>
+
+<p>It looks at PL_lex_inwhat and PL_lex_inpat to find out whether it&#39;s processing a pattern (PL_lex_inpat is true), a transliteration (PL_lex_inwhat == OP_TRANS is true), or a double-quoted string.</p>
+
+<p>Returns a pointer to the character scanned up to. If this is advanced from the start pointer supplied (i.e. if anything was successfully parsed), will leave an OP_CONST for the substring scanned in pl_yylval. Caller must intuit reason for not parsing further by looking at the next characters herself.</p>
+
+<p>In patterns: expand: \N{FOO} =&gt; \N{U+hex_for_character_FOO} (if FOO expands to multiple characters, expands to \N{U+xx.XX.yy ...})</p>
+
+<pre><code>  pass through:
+      all other \-char, including \N and \N{ apart from \N{ABC}
+
+  stops on:
+      @ and $ where it appears to be a var, but not for $ as tail anchor
+      \l \L \u \U \Q \E
+      (?{  or  (??{</code></pre>
+
+<p>In transliterations: characters are VERY literal, except for - not at the start or end of the string, which indicates a range. If the range is in bytes, scan_const expands the range to the full set of intermediate characters. If the range is in utf8, the hyphen is replaced with a certain range mark which will be handled by pmtrans() in op.c.</p>
+
+<p>In double-quoted strings: backslashes: double-quoted style: \r and \n constants: \x31, etc. deprecated backrefs: \1 (in substitution replacements) case and quoting: \U \Q \E stops on @ and $</p>
+
+<p>scan_const does *not* construct ops to handle interpolated strings. It stops processing as soon as it finds an embedded $ or @ variable and leaves it to the caller to work out what&#39;s going on.</p>
+
+<p>embedded arrays (whether in pattern or not) could be: @foo, @::foo, @&#39;foo, @{foo}, @$foo, @+, @-.</p>
+
+<p>$ in double-quoted strings must be the symbol of an embedded scalar.</p>
+
+<p>$ in pattern could be $foo or could be tail anchor. Assumption: it&#39;s a tail anchor if $ is the last thing in the string, or if it&#39;s followed by one of &quot;()| \r\n\t&quot;</p>
+
+<p>\1 (backreferences) are turned into $1 in substitutions</p>
+
+<p>The structure of the code is while (there&#39;s a character to process) { handle transliteration ranges skip regexp comments /(?#comment)/ and codes /(?{code})/ skip #-initiated comments in //x patterns check for embedded arrays check for embedded scalars if (backslash) { deprecate \1 in substitution replacements handle string-changing backslashes \l \U \Q \E, etc. switch (what was escaped) { handle \- in a transliteration (becomes a literal -) if a pattern and not \N{, go treat as regular character handle \132 (octal characters) handle \x15 and \x{1234} (hex characters) handle \N{name} (named characters, also \N{3,5} in a pattern) handle \cV (control characters) handle printf-style backslashes (\f, \r, \n, etc) } (end switch) continue } (end if backslash) handle regular character } (end while character to read)</p>
+
+<pre><code>        char*   scan_const(char *start)</code></pre>
+
+</dd>
+<dt id="scan_heredoc">scan_heredoc </dt>
+<dd>
+
+<p>Takes a pointer to the first &lt; in &lt;&lt;FOO. Returns a pointer to the byte following &lt;&lt;FOO.</p>
+
+<p>This function scans a heredoc, which involves different methods depending on whether we are in a string eval, quoted construct, etc. This is because PL_linestr could containing a single line of input, or a whole string being eval&#39;ed, or the contents of the current quote- like operator.</p>
+
+<p>The two basic methods are: - Steal lines from the input stream - Scan the heredoc in PL_linestr and remove it therefrom</p>
+
+<p>In a file scope or filtered eval, the first method is used; in a string eval, the second.</p>
+
+<p>In a quote-like operator, we have to choose between the two, depending on where we can find a newline. We peek into outer lex- ing scopes until we find one with a newline in it. If we reach the outermost lexing scope and it is a file, we use the stream method. Otherwise it is treated as an eval.</p>
+
+<pre><code>        char*   scan_heredoc(char *s)</code></pre>
+
+</dd>
+<dt id="scan_inputsymbol">scan_inputsymbol </dt>
+<dd>
+
+<p>takes: position of first &#39;&lt;&#39; in input buffer</p>
+
+<p>returns: position of first char following the last &#39;&gt;&#39; in input buffer.</p>
+
+<p>side-effects: pl_yylval and lex_op are set.</p>
+
+<p>This code handles:</p>
+
+<pre><code>   &lt;&gt;           read from ARGV
+   &lt;&lt;&gt;&gt;         read from ARGV without magic open
+   &lt;FH&gt;         read from filehandle
+   &lt;pkg::FH&gt;    read from package qualified filehandle
+   &lt;pkg&#39;FH&gt;     read from package qualified filehandle
+   &lt;$fh&gt;        read from filehandle in $fh
+   &lt;*.h&gt;        filename glob
+
+        char*   scan_inputsymbol(char *start)</code></pre>
+
+</dd>
+<dt id="scan_str">scan_str </dt>
+<dd>
+
+<p>takes: start position in buffer keep_bracketed_quoted preserve \ quoting of embedded delimiters, but only if they are of the open/close form keep_delims preserve the delimiters around the string re_reparse compiling a run-time /(?{})/: collapse // to /, and skip encoding src delimp if non-null, this is set to the position of the closing delimiter, or just after it if the closing and opening delimiters differ (i.e., the opening delimiter of a substitu- tion replacement)</p>
+
+<p>returns: position to continue reading from buffer</p>
+
+<p>side-effects: multi_start, multi_close, lex_repl or lex_stuff, and updates the read buffer.</p>
+
+<p>This subroutine pulls a string out of the input. It is called for:</p>
+
+<pre><code>        q               single quotes           q(literal text)
+        &#39;               single quotes           &#39;literal text&#39;
+        qq              double quotes           qq(interpolate $here please)
+        &quot;               double quotes           &quot;interpolate $here please&quot;
+        qx              backticks               qx(/bin/ls -l)
+        `               backticks               `/bin/ls -l`
+        qw              quote words             @EXPORT_OK = qw( func() $spam )
+        m//             regexp match            m/this/
+        s///            regexp substitute       s/this/that/
+        tr///           string transliterate    tr/this/that/
+        y///            string transliterate    y/this/that/
+        ($*@)           sub prototypes          sub foo ($)
+        (stuff)         sub attr parameters     sub foo : attr(stuff)
+        &lt;&gt;              readline or globs       &lt;FOO&gt;, &lt;&gt;, &lt;$fh&gt;, or &lt;*.c&gt;</code></pre>
+
+<p>In most of these cases (all but &lt;&gt;, patterns and transliterate) yylex() calls scan_str(). m// makes yylex() call scan_pat() which calls scan_str(). s/// makes yylex() call scan_subst() which calls scan_str(). tr/// and y/// make yylex() call scan_trans() which calls scan_str().</p>
+
+<p>It skips whitespace before the string starts, and treats the first character as the delimiter. If the delimiter is one of ([{&lt; then the corresponding &quot;close&quot; character )]}&gt; is used as the closing delimiter. It allows quoting of delimiters, and if the string has balanced delimiters ([{&lt;&gt;}]) it allows nesting.</p>
+
+<p>On success, the SV with the resulting string is put into lex_stuff or, if that is already non-NULL, into lex_repl. The second case occurs only when parsing the RHS of the special constructs s/// and tr/// (y///). For convenience, the terminating delimiter character is stuffed into SvIVX of the SV.</p>
+
+<pre><code>        char*   scan_str(char *start, int keep_quoted,
+                         int keep_delims, int re_reparse,
+                         char **delimp)</code></pre>
+
+</dd>
+<dt id="scan_word">scan_word </dt>
+<dd>
+
+<p>Returns a NUL terminated string, with the length of the string written to *slp</p>
+
+<pre><code>        char*   scan_word(char *s, char *dest, STRLEN destlen,
+                          int allow_package, STRLEN *slp,
+                          int *normalize)</code></pre>
 
 </dd>
 <dt id="validate_proto">validate_proto </dt>
@@ -2134,9 +2644,24 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>Note that <code>NULL</code> is a valid <code>proto</code> and will always return <code>true</code>.</p>
 
+<p>In cperl with maybe_sig TRUE this also detects if it&#39;s a signature, and returns FALSE then. Thus the illegalproto warnings are relaxed.</p>
+
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
-<pre><code>        bool    validate_proto(SV *name, SV *proto, bool warn)</code></pre>
+<pre><code>        bool    validate_proto(SV *name, SV *proto, bool dowarn,
+                               bool curstash, bool maybe_sig)</code></pre>
+
+</dd>
+<dt id="yylex">yylex </dt>
+<dd>
+
+<p>Works out what to call the token just pulled out of the input stream. The yacc parser takes care of taking the ops we return and stitching them into a tree.</p>
+
+<p>Returns: The type of the next token.</p>
+
+<p>Structure: Check if we have already built the token; if so, use it. Switch based on the current state: - if we have a case modifier in a string, deal with that - handle other cases of interpolation inside a string - scan the next line if we are inside a format In the normal state, switch on the next character: - default: if alphabetic, go to key lookup unrecognized character - croak - 0/4/26: handle end-of-line or EOF - cases for whitespace - \n and #: handle comments and line numbers - various operators, brackets and sigils - numbers - quotes - &#39;v&#39;: vstrings (or go to key lookup) - &#39;x&#39; repetition operator (or go to key lookup) - other ASCII alphanumerics (key lookup begins here): word before =&gt; ? keyword plugin scan built-in keyword (but do nothing with it yet) check for statement label check for lexical subs goto just_a_word if there is one see whether built-in keyword is overridden switch on keyword number: - default: just_a_word: not a built-in keyword; handle bareword lookup disambiguate between method and sub call fall back to bareword - cases for built-in keywords</p>
+
+<pre><code>        int     yylex()</code></pre>
 
 </dd>
 </dl>
@@ -2311,6 +2836,18 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>If nullit it true, the list op is nulled. OP* force_list(OP* arg, bool nullit)</p>
 
 </dd>
+<dt id="package">package </dt>
+<dd>
+
+<p>Implements the package keyword, used in <code>perly.y</code>. Saves the old current package, and sets the new current package and package name (for __PACKAGE__).</p>
+
+<p>On cperl also checks for a shadow method overriding method access to this new package. Note that <a href="/cperl/perlapi.html#class_role">&quot;class_role&quot; in perlapi</a> inlines most of this function also.</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        void    package(OP* o)</code></pre>
+
+</dd>
 </dl>
 
 <h1 id="Optree-Manipulation-Functions">Optree Manipulation Functions</h1>
@@ -2340,12 +2877,32 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="apply_attrs_my">apply_attrs_my </dt>
 <dd>
 
-<p>Similar to <a href="#apply_attrs">&quot;apply_attrs&quot;</a> calls the attribute importer with the target, which must be a lexical and a list of attributes. As manually done via <code>use attributes $pkg, $rv, @attrs</code>.</p>
+<p>Similar to <a href="#apply_attrs">&quot;apply_attrs&quot;</a> calls the attribute importer with the target, which must be a lexical and a list of attributes. As manually done via <code>use attributes $pkg, $rv, @attrs</code>. This variant defers the import call to run-time.</p>
 
 <p>Returns the list of attributes in the **imopsp argument.</p>
 
 <pre><code>        void    apply_attrs_my(HV *stash, OP *target, OP *attrs,
                                OP **imopsp)</code></pre>
+
+</dd>
+<dt id="attrs_has_const">attrs_has_const </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Checks the attrs list if &quot;:const&quot; is in it. But not <code>(&quot;const&quot;, my $x)</code>.</p>
+
+<p>Returns the number of found attribs with const, which is only relevant for 1 for const being the single attr, 0 if no const was found, and &gt;1 if there are also other attribs besides const.</p>
+
+<p>If from_assign is TRUE, the attrs are already expanded to a full ENTERSUB import call. If not it&#39;s a list, not attrs. If from_assign is FALSE, it is from an unexpanded attrlist <code>our VAR :ATTR</code> declaration, without ENTERSUB.</p>
+
+<pre><code>  TRUE:  my $s :const = 1;  LIST-PUSHMARK-ENTERSUB
+  TRUE:  my @a :const = 1;  LIST-PUSHMARK-PADAV-ENTERSUB
+  TRUE:  our $s :const = 1; LIST-PUSHMARK-RV2SV(gv)-ENTERSUB
+  FALSE: our $s :const = 1; CONST
+  TRUE:  (&quot;const&quot;,my $s) = 1; LIST-PUSHMARK-CONST
+
+        int     attrs_has_const(OP* o, bool from_assign)</code></pre>
 
 </dd>
 <dt id="bind_match-OP-bind_match-I32-type-OP-left-OP-right">bind_match  OP* bind_match(I32 type, OP *left, OP *right)</dt>
@@ -2362,6 +2919,16 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>for a helem/hslice/kvslice, if its a fixed hash, croak on invalid const fields. Also, convert CONST keys to HEK-in-SVs. rop is the op that retrieves the hash; key_op is the first key</p>
 
 <pre><code>                check_hash_fields_and_hekify;</code></pre>
+
+</dd>
+<dt id="cv_check_inline">cv_check_inline </dt>
+<dd>
+
+<p>examine an optree to determine whether it&#39;s in-lineable. In contrast to op_const_sv allow short op sequences which are not constant folded. max 15 ops, no new pad, no intermediate return, no recursion, ... cv_inline needs to translate the args, change return to jumps.</p>
+
+<p>$lhs = call(...); =&gt; $lhs = do {...inlined...};</p>
+
+<pre><code>        bool    cv_check_inline(const OP *o, CV *compcv)</code></pre>
 
 </dd>
 <dt id="dup_attrlist">dup_attrlist </dt>
@@ -2412,10 +2979,41 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        OP*     listkids(OP* o)</code></pre>
 
 </dd>
+<dt id="maybe_multiconcat">maybe_multiconcat </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Given an OP_STRINGIFY, OP_SASSIGN, OP_CONCAT or OP_SPRINTF op, possibly convert it (and its children) into an OP_MULTICONCAT. See the code comments just before pp_multiconcat() for the full details of what OP_MULTICONCAT supports.</p>
+
+<p>Basically we&#39;re looking for an optree with a chain of OP_CONCATS down the LHS (or an OP_SPRINTF), with possibly an OP_SASSIGN, and/or OP_STRINGIFY, and/or OP_CONCAT acting as &#39;.=&#39; at its head, e.g.</p>
+
+<pre><code>     $x = &quot;$a$b-$c&quot;
+
+ looks like
+
+     SASSIGN
+        |
+     STRINGIFY   -- PADSV[$x]
+        |
+        |
+     ex-PUSHMARK -- CONCAT/S
+                       |
+                    CONCAT/S  -- PADSV[$d]
+                       |
+                    CONCAT    -- CONST[&quot;-&quot;]
+                       |
+                    PADSV[$a] -- PADSV[$b]</code></pre>
+
+<p>Note that at this stage the OP_SASSIGN may have already been optimised away with OPpTARGET_MY set on the OP_STRINGIFY or OP_CONCAT.</p>
+
+<pre><code>        void    maybe_multiconcat(OP *o)</code></pre>
+
+</dd>
 <dt id="maybe_op_signature">maybe_op_signature </dt>
 <dd>
 
-<p>Does fake_signatures. If the sub starts with &#39;my (...) = @_&#39;, replace those ops with an OP_SIGNATURE.</p>
+<p>Does fake_signatures. If the sub starts with &#39;my (...) = @_&#39;, replace those ops with an OP_SIGNATURE. Here we don&#39;t have to add the default $self invocant.</p>
 
 <p>Cannot handle shift as this leaves leftover args.</p>
 
@@ -2430,16 +3028,87 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        OP*     modkids(OP *o, I32 type)</code></pre>
 
 </dd>
-<dt id="move_proto_attr-void-move_proto_attr-OP-proto-OP-attrs-const-GV-name">move_proto_attr  void move_proto_attr(OP **proto, OP **attrs, const GV *name)</dt>
+<dt id="move_proto_attr">move_proto_attr </dt>
 <dd>
 
+<p>Move a run-time attribute to a compile-time prototype handling, as with :prototype(...) void move_proto_attr(OP **proto, OP **attrs, const GV *name, bool curstash)</p>
+
 </dd>
-<dt id="my_attrs-OP-my_attrs-OP-o-OP-attrs">my_attrs  OP * my_attrs(OP *o, OP *attrs)</dt>
+<dt id="my_attrs">my_attrs </dt>
 <dd>
+
+<p>Prepend the lexical variable with the attribute-&gt;import call.</p>
+
+<pre><code>        OP *    my_attrs(OP *o, OP *attrs)</code></pre>
 
 </dd>
 <dt id="my_kid-OP-my_kid-OP-o-OP-attrs-OP-imopsp">my_kid  OP * my_kid(OP *o, OP *attrs, OP **imopsp)</dt>
 <dd>
+
+</dd>
+<dt id="newASSIGNOP_maybe_const">newASSIGNOP_maybe_const </dt>
+<dd>
+
+<p>Checks the attrs of the left if it has const. If so check dissect my_attrs() and check if there&#39;s another attr. If so defer attribute-&gt;import to run-time. If not just const the left side.</p>
+
+<p>OpSPECIAL on the assign op denotes :const. Undo temp. READONLY-ness via a private OPpASSIGN_CONSTINIT bit during assignment at run-time.</p>
+
+<p>Do various compile-time assignments on const rhs values, to enable constant folding. my @a[] = (...) comes also here, setting the computed lhs AvSHAPED size.</p>
+
+<p>Return the newASSIGNOP, or the folded assigned value.</p>
+
+<pre><code>        OP*     newASSIGNOP_maybe_const(OP* left, I32 optype,
+                                        OP* right)</code></pre>
+
+</dd>
+<dt id="newATTRSUB_x">newATTRSUB_x </dt>
+<dd>
+
+<p>Construct a Perl subroutine, also performing some surrounding jobs.</p>
+
+<p>This function is expected to be called in a Perl compilation context, and some aspects of the subroutine are taken from global variables associated with compilation. In particular, <code>PL_compcv</code> represents the subroutine that is currently being compiled. It must be non-null when this function is called, and some aspects of the subroutine being constructed are taken from it. The constructed subroutine may actually be a reuse of the <code>PL_compcv</code> object, but will not necessarily be so.</p>
+
+<p>If <code>block</code> is null then the subroutine will have no body, and for the time being it will be an error to call it. This represents a forward subroutine declaration such as <span style="white-space: nowrap;"><code>sub foo ($$);</code></span>. If <code>block</code> is non-null then it provides the Perl code of the subroutine body, which will be executed when the subroutine is called. This body includes any argument unwrapping code resulting from a subroutine signature or similar. The pad use of the code must correspond to the pad attached to <code>PL_compcv</code>. The code is not expected to include a <code>leavesub</code> or <code>leavesublv</code> op; this function will add such an op. <code>block</code> is consumed by this function and will become part of the constructed subroutine.</p>
+
+<p><code>proto</code> specifies the subroutine&#39;s prototype, unless one is supplied as an attribute (see below). If <code>proto</code> is null, then the subroutine will not have a prototype. If <code>proto</code> is non-null, it must point to a <code>const</code> op whose value is a string, and the subroutine will have that string as its prototype. If a prototype is supplied as an attribute, the attribute takes precedence over <code>proto</code>, but in that case <code>proto</code> should preferably be null. In any case, <code>proto</code> is consumed by this function.</p>
+
+<p><code>attrs</code> supplies attributes to be applied the subroutine. A handful of attributes take effect by built-in means, being applied to <code>PL_compcv</code> immediately when seen. Other attributes are collected up and attached to the subroutine by this route. <code>attrs</code> may be null to supply no attributes, or point to a <code>const</code> op for a single attribute, or point to a <code>list</code> op whose children apart from the <code>pushmark</code> are <code>const</code> ops for one or more attributes. Each <code>const</code> op must be a string, giving the attribute name optionally followed by parenthesised arguments, in the manner in which attributes appear in Perl source. The attributes will be applied to the sub by this function. <code>attrs</code> is consumed by this function.</p>
+
+<p>If <code>o_is_gv</code> is false and <code>o</code> is null, then the subroutine will be anonymous. If <code>o_is_gv</code> is false and <code>o</code> is non-null, then <code>o</code> must point to a <code>const</code> op, which will be consumed by this function, and its string value supplies a name for the subroutine. The name may be qualified or unqualified, and if it is unqualified then a default stash will be selected in some manner. If <code>o_is_gv</code> is true, then <code>o</code> doesn&#39;t point to an <code>OP</code> at all, but is instead a cast pointer to a <code>GV</code> by which the subroutine will be named.</p>
+
+<p>If there is already a subroutine of the specified name, then the new sub will either replace the existing one in the glob or be merged with the existing one. A warning may be generated about redefinition.</p>
+
+<p>If the subroutine has one of a few special names, such as <code>BEGIN</code> or <code>END</code>, then it will be claimed by the appropriate queue for automatic running of phase-related subroutines. In this case the relevant glob will be left not containing any subroutine, even if it did contain one before. In the case of <code>BEGIN</code>, the subroutine will be executed and the reference to it disposed of before this function returns.</p>
+
+<p>The function returns a pointer to the constructed subroutine. If the sub is anonymous then ownership of one counted reference to the subroutine is transferred to the caller. If the sub is named then the caller does not get ownership of a reference. In most such cases, where the sub has a non-phase name, the sub will be alive at the point it is returned by virtue of being contained in the glob that names it. A phase-named subroutine will usually be alive by virtue of the reference owned by the phase&#39;s automatic run queue. But a <code>BEGIN</code> subroutine, having already been executed, will quite likely have been destroyed already by the time this function returns, making it erroneous for the caller to make any use of the returned pointer. It is the caller&#39;s responsibility to ensure that it knows which of these situations applies.</p>
+
+<pre><code>        CV *    newATTRSUB_x(I32 floor, OP *o, OP *proto,
+                             OP *attrs, OP *block, bool o_is_gv)</code></pre>
+
+</dd>
+<dt id="newXS_len_flags">newXS_len_flags </dt>
+<dd>
+
+<p>Construct an XS subroutine, also performing some surrounding jobs.</p>
+
+<p>The subroutine will have the entry point <code>subaddr</code>. It will have the prototype specified by the nul-terminated string <code>proto</code>, or no prototype if <code>proto</code> is null. The prototype string is copied; the caller can mutate the supplied string afterwards. If <code>filename</code> is non-null, it must be a nul-terminated filename, and the subroutine will have its <code>CvFILE</code> set accordingly. By default <code>CvFILE</code> is set to point directly to the supplied string, which must be static. If <code>flags</code> has the <code>XS_DYNAMIC_FILENAME</code> bit set, then a copy of the string will be taken instead.</p>
+
+<p>Other aspects of the subroutine will be left in their default state. If anything else needs to be done to the subroutine for it to function correctly, it is the caller&#39;s responsibility to do that after this function has constructed it. However, beware of the subroutine potentially being destroyed before this function returns, as described below.</p>
+
+<p>If <code>name</code> is null then the subroutine will be anonymous, with its <code>CvGV</code> referring to an <code>__ANON__</code> glob. If <code>name</code> is non-null then the subroutine will be named accordingly, referenced by the appropriate glob. <code>name</code> is a string of length <code>len</code> bytes giving a sigilless symbol name, in UTF-8 if <code>flags</code> has the <code>SVf_UTF8</code> bit set and in Latin-1 otherwise. The name may be either qualified or unqualified, with the stash defaulting in the same manner as for <code>gv_fetchpvn_flags</code>. <code>flags</code> may contain flag bits understood by <code>gv_fetchpvn_flags</code> with the same meaning as they have there, such as <code>GV_ADDWARN</code>. The symbol is always added to the stash if necessary, with <code>GV_ADDMULTI</code> semantics. CvFLAGS are not valid <code>flags</code>, only <code>GV_</code> flags.</p>
+
+<p>If there is already a subroutine of the specified name, then the new sub will replace the existing one in the glob. A warning may be generated about the redefinition. If the old subroutine was <code>CvCONST</code> then the decision about whether to warn is influenced by an expectation about whether the new subroutine will become a constant of similar value. That expectation is determined by <code>const_svp</code>. (Note that the call to this function doesn&#39;t make the new subroutine <code>CvCONST</code> in any case; that is left to the caller.) If <code>const_svp</code> is null then it indicates that the new subroutine will not become a constant. If <code>const_svp</code> is non-null then it indicates that the new subroutine will become a constant, and it points to an <code>SV*</code> that provides the constant value that the subroutine will have.</p>
+
+<p>If the subroutine has one of a few special names, such as <code>BEGIN</code> or <code>END</code>, then it will be claimed by the appropriate queue for automatic running of phase-related subroutines. In this case the relevant glob will be left not containing any subroutine, even if it did contain one before. In the case of <code>BEGIN</code>, the subroutine will be executed and the reference to it disposed of before this function returns, and also before its prototype is set. If a <code>BEGIN</code> subroutine would not be sufficiently constructed by this function to be ready for execution then the caller must prevent this happening by giving the subroutine a different name.</p>
+
+<p>The function returns a pointer to the constructed subroutine. If the sub is anonymous then ownership of one counted reference to the subroutine is transferred to the caller. If the sub is named then the caller does not get ownership of a reference. In most such cases, where the sub has a non-phase name, the sub will be alive at the point it is returned by virtue of being contained in the glob that names it. A phase-named subroutine will usually be alive by virtue of the reference owned by the phase&#39;s automatic run queue. But a <code>BEGIN</code> subroutine, having already been executed, will quite likely have been destroyed already by the time this function returns, making it erroneous for the caller to make any use of the returned pointer. It is the caller&#39;s responsibility to ensure that it knows which of these situations applies.</p>
+
+<pre><code>        CV *    newXS_len_flags(const char *name, STRLEN len,
+                                XSUBADDR_t subaddr,
+                                const char *const filename,
+                                NULLOK const char *const proto,
+                                NULLOK SV **const_svp,
+                                U32 flags)</code></pre>
 
 </dd>
 <dt id="op_clear">op_clear </dt>
@@ -2455,9 +3124,35 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="op_clear_gv">op_clear_gv </dt>
 <dd>
 
-<p>free a GV attached to an OP</p>
+<p>Free a GV attached to an OP</p>
 
 <pre><code>        void    op_clear_gv(OP* o, PADOFFSET *ixp)</code></pre>
+
+</dd>
+<dt id="op_const_sv">op_const_sv </dt>
+<dd>
+
+<p>op_const_sv: examine an optree to determine whether it&#39;s in-lineable into a single CONST op. It walks the tree in exec order (next), not in tree order (sibling, first).</p>
+
+<p>Can be called in 2 ways:</p>
+
+<p>!allow_lex look for a single OP_CONST with attached value: return the value</p>
+
+<p>allow_lex &amp;&amp; !CvCONST(cv);</p>
+
+<pre><code>        examine the clone prototype, and if contains only a single
+        OP_CONST, return the value; or if it contains a single PADSV ref-
+        erencing an outer lexical, turn on CvCONST to indicate the CV is
+        a candidate for &quot;constizing&quot; at clone time, and return NULL.
+                op_const_sv;</code></pre>
+
+</dd>
+<dt id="op_gv_set">op_gv_set </dt>
+<dd>
+
+<p>Set the gv as the op_sv. With threads also relocate a gv to the pad for thread safety. cperl-only</p>
+
+<pre><code>        void    op_gv_set(OP* o, GV* gv)</code></pre>
 
 </dd>
 <dt id="op_relocate_sv">op_relocate_sv </dt>
@@ -2490,6 +3185,22 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>                op_sibling_newUNOP;</code></pre>
 
 </dd>
+<dt id="optimize_op">optimize_op </dt>
+<dd>
+
+<p>Helper for optimize_optree() which optimises a single op then recurses to optimise any children.</p>
+
+<pre><code>        void    optimize_op(OP* o)</code></pre>
+
+</dd>
+<dt id="optimize_optree">optimize_optree </dt>
+<dd>
+
+<p>This function applies some optimisations to the optree in top-down order. It is called before the peephole optimizer, which processes ops in execution order. Note that finalize_optree() also does a top-down scan, but is called *after* the peephole optimizer.</p>
+
+<pre><code>        void    optimize_optree(OP* o)</code></pre>
+
+</dd>
 <dt id="op_unscope">op_unscope </dt>
 <dd>
 
@@ -2500,35 +3211,19 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        OP*     op_unscope(OP* o)</code></pre>
 
 </dd>
-<dt id="postprocess_optree">postprocess_optree </dt>
+<dt id="process_optree">process_optree </dt>
 <dd>
 
-<p>do the post-compilation processing of an op_tree with specified root and start (startp may be updated):</p>
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Do the post-compilation processing of an op_tree with specified root and start</p>
 
 <pre><code>  * attach it to cv (if non-null)
   * set refcnt
-  * run peep, finalize etc
+  * run pre-peep optimizer, peep, finalize, prune an empty head, etc
   * tidy pad
 
-                postprocess_optree;</code></pre>
-
-</dd>
-<dt id="prefinalize_op">prefinalize_op </dt>
-<dd>
-
-<p>per op-level helper function for Perl_finalize_optree()</p>
-
-<pre><code>        void    prefinalize_op(CV *cv, OP* o)</code></pre>
-
-</dd>
-<dt id="prefinalize_optree">prefinalize_optree </dt>
-<dd>
-
-<p>This function is like finalize_optree(), but is called prior to the peephole optimiser being called (finalize_optree() is called after peep()). Thus it gives you access to the optree before optimisations.</p>
-
-<p>If non-null, cv is the CV which the optree is attached to.</p>
-
-<pre><code>        void    prefinalize_optree(CV* cv, OP* o)</code></pre>
+                process_optree;</code></pre>
 
 </dd>
 <dt id="refkids">refkids </dt>
@@ -2643,7 +3338,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="PAD_COMPNAME_GEN_set">PAD_COMPNAME_GEN_set </dt>
 <dd>
 
-<p>Sets the generation number of the name at offset <code>po</code> in the current ling pad (lvalue) to <code>gen</code>. STRLEN PAD_COMPNAME_GEN_set(PADOFFSET po, int gen)</p>
+<p>Sets the generation number of the name at offset <code>po</code> in the current compiling pad (lvalue) to <code>gen</code>. STRLEN PAD_COMPNAME_GEN_set(PADOFFSET po, int gen)</p>
 
 </dd>
 <dt id="PAD_COMPNAME_OURSTASH">PAD_COMPNAME_OURSTASH </dt>
@@ -3085,6 +3780,40 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                                 bool match, const char **desc_p)</code></pre>
 
 </dd>
+<dt id="isSCRIPT_RUN">isSCRIPT_RUN </dt>
+<dd>
+
+<p>Returns a bool as to whether or not the sequence of bytes from <code>s</code> up to but not including <code>send</code> form a &quot;script run&quot;. <code>utf8_target</code> is TRUE iff the sequence starting at <code>s</code> is to be treated as UTF-8. To be precise, except for two degenerate cases given below, this function returns TRUE iff all code points in it come from any combination of three &quot;scripts&quot; given by the Unicode &quot;Script Extensions&quot; property: Common, Inherited, and possibly one other. Additionally all decimal digits must come from the same consecutive sequence of 10.</p>
+
+<p>For example, if all the characters in the sequence are Greek, or Common, or Inherited, this function will return TRUE, provided any decimal digits in it are the ASCII digits &quot;0&quot;..&quot;9&quot;. For scripts (unlike Greek) that have their own digits defined this will accept either digits from that set or from 0..9, but not a combination of the two. Some scripts, such as Arabic, have more than one set of digits. All digits must come from the same set for this function to return TRUE.</p>
+
+<p><code>*ret_script</code>, if <code>ret_script</code> is not NULL, will on return of TRUE contain the script found, using the <code>SCX_enum</code> typedef. Its value will be <code>SCX_INVALID</code> if the function returns FALSE.</p>
+
+<p>If the sequence is empty, TRUE is returned, but <code>*ret_script</code> (if asked for) will be <code>SCX_INVALID</code>.</p>
+
+<p>If the sequence contains a single code point which is unassigned to a character in the version of Unicode being used, the function will return TRUE, and the script will be <code>SCX_Unknown</code>. Any other combination of unassigned code points in the input sequence will result in the function treating the input as not being a script run.</p>
+
+<p>The returned script will be <code>SCX_Inherited</code> iff all the code points in it are from the Inherited script.</p>
+
+<p>Otherwise, the returned script will be <code>SCX_Common</code> iff all the code points in it are from the Inherited or Common scripts.</p>
+
+<pre><code>        bool    isSCRIPT_RUN(const U8 *s, const U8 *send,
+                             const bool utf8_target)</code></pre>
+
+</dd>
+<dt id="is_utf8_non_invariant_string">is_utf8_non_invariant_string </dt>
+<dd>
+
+<p>Returns TRUE if <a href="/cperl/perlapi.html#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot; in perlapi</a> returns FALSE for the first <code>len</code> bytes of the string <code>s</code>, but they are, nonetheless, legal Perl-extended UTF-8; otherwise returns FALSE.</p>
+
+<p>A TRUE return means that at least one code point represented by the sequence either is a wide character not representable as a single byte, or the representation differs depending on whether the sequence is encoded in UTF-8 or not.</p>
+
+<p>See also <code><a href="/cperl/perlapi.html#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot; in perlapi</a></code>, <code><a href="/cperl/perlapi.html#is_utf8_string">&quot;is_utf8_string&quot; in perlapi</a></code></p>
+
+<pre><code>        bool    is_utf8_non_invariant_string(const U8* const s,
+                                             STRLEN len)</code></pre>
+
+</dd>
 <dt id="report_uninit">report_uninit </dt>
 <dd>
 
@@ -3126,6 +3855,21 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>Returns the script property as string of the unicode character.</p>
 
 <pre><code>        char*   uvuni_get_script(const UV uv)</code></pre>
+
+</dd>
+<dt id="variant_under_utf8_count">variant_under_utf8_count </dt>
+<dd>
+
+<p>This function looks at the sequence of bytes between <code>s</code> and <code>e</code>, which are assumed to be encoded in ASCII/Latin1, and returns how many of them would change should the string be translated into UTF-8. Due to the nature of UTF-8, each of these would occupy two bytes instead of the single one in the input string. Thus, this function returns the precise number of bytes the string would expand by when translated to UTF-8.</p>
+
+<p>Unlike most of the other functions that have <code>utf8</code> in their name, the input to this function is NOT a UTF-8-encoded string. The function name is slightly <i>odd</i> to emphasize this.</p>
+
+<p>This function is internal to Perl because khw thinks that any XS code that would want this is probably operating too close to the internals. Presenting a valid use case could change that.</p>
+
+<p>See also <code><a href="/cperl/perlapi.html#is_utf8_invariant_string">&quot;is_utf8_invariant_string&quot; in perlapi</a></code> and <code><a href="/cperl/perlapi.html#is_utf8_invariant_string_loc">&quot;is_utf8_invariant_string_loc&quot; in perlapi</a></code>,</p>
+
+<pre><code>        Size_t  variant_under_utf8_count(const U8* const s,
+                                         const U8* const e)</code></pre>
 
 </dd>
 </dl>
@@ -3187,6 +3931,38 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="PerlLIO_dup2_cloexec">PerlLIO_dup2_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlLIO_dup_cloexec">PerlLIO_dup_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlLIO_open3_cloexec">PerlLIO_open3_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlLIO_open_cloexec">PerlLIO_open_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlProc_pipe_cloexec">PerlProc_pipe_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlSock_accept_cloexec">PerlSock_accept_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlSock_socket_cloexec">PerlSock_socket_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="PerlSock_socketpair_cloexec">PerlSock_socketpair_cloexec </dt>
+<dd>
+
+</dd>
 <dt id="Slab_to_ro">Slab_to_ro </dt>
 <dd>
 
@@ -3216,6 +3992,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="get_swash_invlist">_get_swash_invlist </dt>
+<dd>
+
+</dd>
+<dt id="inverse_folds">_inverse_folds </dt>
 <dd>
 
 </dd>
@@ -3275,7 +4055,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="load_PL_utf8_foldclosures">_load_PL_utf8_foldclosures </dt>
+<dt id="is_in_locale_category">_is_in_locale_category </dt>
 <dd>
 
 </dd>
@@ -3292,10 +4072,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="setup_canned_invlist">_setup_canned_invlist </dt>
-<dd>
-
-</dd>
-<dt id="swash_inversion_hash">_swash_inversion_hash </dt>
 <dd>
 
 </dd>
@@ -3344,6 +4120,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="av_extend_guts">av_extend_guts </dt>
+<dd>
+
+</dd>
+<dt id="av_nonelem">av_nonelem </dt>
 <dd>
 
 </dd>
@@ -3523,10 +4303,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="do_execfree">do_execfree </dt>
-<dd>
-
-</dd>
 <dt id="do_ipcctl">do_ipcctl </dt>
 <dd>
 
@@ -3619,6 +4395,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="dtrace_probe_glob">dtrace_probe_glob </dt>
+<dd>
+
+</dd>
+<dt id="dtrace_probe_hash">dtrace_probe_hash </dt>
+<dd>
+
+</dd>
 <dt id="dtrace_probe_load">dtrace_probe_load </dt>
 <dd>
 
@@ -3640,6 +4424,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="feature_is_enabled">feature_is_enabled </dt>
+<dd>
+
+</dd>
+<dt id="fields_padoffset">fields_padoffset </dt>
 <dd>
 
 </dd>
@@ -3743,7 +4531,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="hv_undef_flags">hv_undef_flags </dt>
+<dt id="hv_pushkv">hv_pushkv </dt>
 <dd>
 
 </dd>
@@ -3760,6 +4548,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="init_debugger">init_debugger </dt>
+<dd>
+
+</dd>
+<dt id="init_named_cv">init_named_cv </dt>
+<dd>
+
+</dd>
+<dt id="init_uniprops">init_uniprops </dt>
 <dd>
 
 </dd>
@@ -3828,10 +4624,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="is_utf8_common_with_len">is_utf8_common_with_len </dt>
-<dd>
-
-</dd>
-<dt id="is_utf8_cp_above_31_bits">is_utf8_cp_above_31_bits </dt>
 <dd>
 
 </dd>
@@ -4011,6 +4803,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="magic_setnonelem">magic_setnonelem </dt>
+<dd>
+
+</dd>
 <dt id="magic_setpack">magic_setpack </dt>
 <dd>
 
@@ -4111,15 +4907,31 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="my_memrchr">my_memrchr </dt>
+<dd>
+
+</dd>
+<dt id="my_mkostemp">my_mkostemp </dt>
+<dd>
+
+</dd>
+<dt id="my_mkstemp">my_mkstemp </dt>
+<dd>
+
+</dd>
+<dt id="my_mkstemp_cloexec">my_mkstemp_cloexec </dt>
+<dd>
+
+</dd>
 <dt id="my_stat_flags">my_stat_flags </dt>
 <dd>
 
 </dd>
-<dt id="my_unexec">my_unexec </dt>
+<dt id="my_strerror">my_strerror </dt>
 <dd>
 
 </dd>
-<dt id="newATTRSUB_x">newATTRSUB_x </dt>
+<dt id="my_unexec">my_unexec </dt>
 <dd>
 
 </dd>
@@ -4143,7 +4955,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="newXS_len_flags">newXS_len_flags </dt>
+<dt id="new_entersubop">new_entersubop </dt>
 <dd>
 
 </dd>
@@ -4156,10 +4968,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="noperl_die">noperl_die </dt>
-<dd>
-
-</dd>
-<dt id="notify_parser_that_changed_to_utf8">notify_parser_that_changed_to_utf8 </dt>
 <dd>
 
 </dd>
@@ -4191,15 +4999,15 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="package">package </dt>
-<dd>
-
-</dd>
 <dt id="package_version">package_version </dt>
 <dd>
 
 </dd>
 <dt id="pad_add_weakref">pad_add_weakref </dt>
+<dd>
+
+</dd>
+<dt id="padlist_dump">padlist_dump </dt>
 <dd>
 
 </dd>
@@ -4219,6 +5027,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="parse_uniprop_string">parse_uniprop_string </dt>
+<dd>
+
+</dd>
 <dt id="parser_free">parser_free </dt>
 <dd>
 
@@ -4228,6 +5040,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="pmruntime">pmruntime </dt>
+<dd>
+
+</dd>
+<dt id="pn_peek">pn_peek </dt>
+<dd>
+
+</dd>
+<dt id="pnl_dump">pnl_dump </dt>
 <dd>
 
 </dd>
@@ -4248,10 +5068,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="re_indentf">re_indentf </dt>
-<dd>
-
-</dd>
-<dt id="re_op_compile">re_op_compile </dt>
 <dd>
 
 </dd>
@@ -4287,15 +5103,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="reg_temp_copy">reg_temp_copy </dt>
-<dd>
-
-</dd>
 <dt id="regcurly">regcurly </dt>
-<dd>
-
-</dd>
-<dt id="regprop">regprop </dt>
 <dd>
 
 </dd>
@@ -4327,6 +5135,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="save_to_buffer">save_to_buffer </dt>
+<dd>
+
+</dd>
 <dt id="scalar">scalar </dt>
 <dd>
 
@@ -4335,7 +5147,35 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="set_numeric_standard">set_numeric_standard </dt>
+<dd>
+
+</dd>
+<dt id="set_numeric_underlying">set_numeric_underlying </dt>
+<dd>
+
+</dd>
 <dt id="set_padlist">set_padlist </dt>
+<dd>
+
+</dd>
+<dt id="setfd_cloexec">setfd_cloexec </dt>
+<dd>
+
+</dd>
+<dt id="setfd_cloexec_for_nonsysfd">setfd_cloexec_for_nonsysfd </dt>
+<dd>
+
+</dd>
+<dt id="setfd_cloexec_or_inhexec_by_sysfdness">setfd_cloexec_or_inhexec_by_sysfdness </dt>
+<dd>
+
+</dd>
+<dt id="setfd_inhexec">setfd_inhexec </dt>
+<dd>
+
+</dd>
+<dt id="setfd_inhexec_for_sysfd">setfd_inhexec_for_sysfd </dt>
 <dd>
 
 </dd>
@@ -4344,10 +5184,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="sighandler">sighandler </dt>
-<dd>
-
-</dd>
-<dt id="softref2xv">softref2xv </dt>
 <dd>
 
 </dd>
@@ -4495,10 +5331,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="yylex">yylex </dt>
-<dd>
-
-</dd>
 <dt id="yyparse">yyparse </dt>
 <dd>
 
@@ -4519,7 +5351,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p><a href="/cperl/perlguts.html">perlguts</a>, <a href="/cperl/perlapi.html">perlapi</a></p>
+<p><a href="/cperl/perlguts.html">perlguts</a>, <a href="/cperl/perlapi.html">perlapi</a>, <a href="/cperl/perlapio.html">perlapio</a></p>
 
 <h1 id="POD-ERRORS">POD ERRORS</h1>
 
@@ -4527,7 +5359,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
-<dt id="Around-line-2196">Around line 2196:</dt>
+<dt id="Around-line-2436">Around line 2436:</dt>
 <dd>
 
 <p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>

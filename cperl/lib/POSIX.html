@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>POSIX - Perl interface to IEEE Std 1003.1</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -27,6 +27,7 @@
   </li>
   <li><a href="#PATHNAME-CONSTANTS">PATHNAME CONSTANTS</a></li>
   <li><a href="#POSIX-CONSTANTS">POSIX CONSTANTS</a></li>
+  <li><a href="#RESOURCE-CONSTANTS">RESOURCE CONSTANTS</a></li>
   <li><a href="#SYSTEM-CONFIGURATION">SYSTEM CONFIGURATION</a></li>
   <li><a href="#ERRNO">ERRNO</a></li>
   <li><a href="#FCNTL">FCNTL</a></li>
@@ -66,7 +67,7 @@
 
 <p>The POSIX module permits you to access all (or nearly all) the standard POSIX 1003.1 identifiers. Many of these identifiers have been given Perl-ish interfaces.</p>
 
-<p>This document gives a condensed list of the features available in the POSIX module. Consult your operating system&#39;s manpages for general information on most features. Consult <a href="/cperl/perlfunc.html">perlfunc</a> for functions which are noted as being identical to Perl&#39;s builtin functions.</p>
+<p>This document gives a condensed list of the features available in the POSIX module. Consult your operating system&#39;s manpages for general information on most features. Consult <a href="/cperl/perlfunc.html">perlfunc</a> for functions which are noted as being identical or almost identical to Perl&#39;s builtin functions.</p>
 
 <p>The first section describes POSIX functions from the 1003.1 specification. The second section describes some classes for signal objects, TTY objects, and other miscellaneous objects. The remaining sections list various constants and macros in an organization which roughly follows IEEE Std 1003.1b-1993.</p>
 
@@ -99,7 +100,11 @@
 <dt id="abs"><code>abs</code></dt>
 <dd>
 
-<p>This is identical to Perl&#39;s builtin <code>abs()</code> function, returning the absolute value of its numerical argument.</p>
+<p>This is identical to Perl&#39;s builtin <code>abs()</code> function, returning the absolute value of its numerical argument (except that <code>POSIX::abs()</code> must be provided an explicit value (rather than relying on an implicit <code>$_</code>):</p>
+
+<pre><code>    $absolute_value = POSIX::abs(42);   # good
+
+    $absolute_value = POSIX::abs();     # throws exception</code></pre>
 
 </dd>
 <dt id="access"><code>access</code></dt>
@@ -129,7 +134,11 @@
 <dt id="alarm"><code>alarm</code></dt>
 <dd>
 
-<p>This is identical to Perl&#39;s builtin <code>alarm()</code> function, either for arming or disarming the <code>SIGARLM</code> timer.</p>
+<p>This is identical to Perl&#39;s builtin <code>alarm()</code> function, either for arming or disarming the <code>SIGARLM</code> timer, except that <code>POSIX::alarm()</code> must be provided an explicit value (rather than relying on an implicit <code>$_</code>):</p>
+
+<pre><code>    POSIX::alarm(3)     # good
+
+    POSIX::alarm()      # throws exception</code></pre>
 
 </dd>
 <dt id="asctime"><code>asctime</code></dt>
@@ -234,13 +243,23 @@
 <dt id="chdir"><code>chdir</code></dt>
 <dd>
 
-<p>This is identical to Perl&#39;s builtin <code>chdir()</code> function, allowing one to change the working (default) directory, see <a href="/cperl/perlfunc.html#chdir">&quot;chdir&quot; in perlfunc</a>.</p>
+<p>This is identical to Perl&#39;s builtin <code>chdir()</code> function, allowing one to change the working (default) directory -- see <a href="/cperl/perlfunc.html#chdir">&quot;chdir&quot; in perlfunc</a> -- with the exception that <code>POSIX::chdir()</code> must be provided an explicit value (rather than relying on an implicit <code>$_</code>):</p>
+
+<pre><code>    $rv = POSIX::chdir(&#39;path/to/dir&#39;);      # good
+
+    $rv = POSIX::chdir();                   # throws exception</code></pre>
 
 </dd>
 <dt id="chmod"><code>chmod</code></dt>
 <dd>
 
-<p>This is identical to Perl&#39;s builtin <code>chmod()</code> function, allowing one to change file and directory permissions, see <a href="/cperl/perlfunc.html#chmod">&quot;chmod&quot; in perlfunc</a>.</p>
+<p>This is identical to Perl&#39;s builtin <code>chmod()</code> function, allowing one to change file and directory permissions -- see <a href="/cperl/perlfunc.html#chmod">&quot;chmod&quot; in perlfunc</a> -- with the exception that <code>POSIX::chmod()</code> can only change one file at a time (rather than a list of files):</p>
+
+<pre><code>    $c = chmod 0664, $file1, $file2;          # good
+
+    $c = POSIX::chmod 0664, $file1;           # throws exception
+
+    $c = POSIX::chmod 0664, $file1, $file2;   # throws exception</code></pre>
 
 </dd>
 <dt id="chown"><code>chown</code></dt>
@@ -712,7 +731,11 @@
 <dt id="getcwd"><code>getcwd</code></dt>
 <dd>
 
-<p>Returns the name of the current working directory. See also <a href="/cperl/lib/Cwd.html">Cwd</a>.</p>
+<p>Returns the name of the current working directory.</p>
+
+<p>Since 5.27.0c getcwd() supports long paths, longer than MAXPATHLEN, when the filesystem supports it. It uses in this order <code>get_current_dir_name</code>, or <code>getcwd(NULL, 0)</code> or <code>getcwd(buf,len)</code> until it returns a buffer without <code>ERANGE</code> or <code>ENAMETOOLONG</code>.</p>
+
+<p>See also <a href="/cperl/lib/Cwd.html">Cwd</a>.</p>
 
 </dd>
 <dt id="getegid"><code>getegid</code></dt>
@@ -1086,7 +1109,7 @@
 <dt id="localeconv"><code>localeconv</code></dt>
 <dd>
 
-<p>Get numeric formatting information. Returns a reference to a hash containing the current underlying locale&#39;s formatting values. Users of this function should also read <a href="/cperl/perllocale.html">perllocale</a>, which provides a comprehensive discussion of Perl locale handling, including <a href="/cperl/perllocale.html#The-localeconv-function">a section devoted to this function</a>.</p>
+<p>Get numeric formatting information. Returns a reference to a hash containing the current underlying locale&#39;s formatting values. Users of this function should also read <a href="/cperl/perllocale.html">perllocale</a>, which provides a comprehensive discussion of Perl locale handling, including <a href="/cperl/perllocale.html#The-localeconv-function">a section devoted to this function</a>. Prior to Perl 5.28, or when operating in a non thread-safe environment, it should not be used in a threaded application unless it&#39;s certain that the underlying locale is C or POSIX. This is because it otherwise changes the locale, which globally affects all threads simultaneously. Windows platforms starting with Visual Studio 2005 are mostly thread-safe, but use of this function in those prior to Visual Studio 2015 can interefere with a thread that has called <a href="/cperl/perlapi.html#switch_to_global_locale">&quot;switch_to_global_locale&quot; in perlapi</a>.</p>
 
 <p>Here is how to query the database for the <b>de</b> (Deutsch or German) locale.</p>
 
@@ -1130,7 +1153,13 @@
 <dt id="localtime"><code>localtime</code></dt>
 <dd>
 
-<p>This is identical to Perl&#39;s builtin <code>localtime()</code> function for converting seconds since the epoch to a date see <a href="/cperl/perlfunc.html#localtime">&quot;localtime&quot; in perlfunc</a>.</p>
+<p>This is identical to Perl&#39;s builtin <code>localtime()</code> function for converting seconds since the epoch to a date see <a href="/cperl/perlfunc.html#localtime">&quot;localtime&quot; in perlfunc</a> except that <code>POSIX::localtime()</code> must be provided an explicit value (rather than relying on an implicit <code>$_</code>):</p>
+
+<pre><code>    @localtime = POSIX::localtime(time);    # good
+
+    @localtime = localtime();               # good
+
+    @localtime = POSIX::localtime();        # throws exception</code></pre>
 
 </dd>
 <dt id="log"><code>log</code></dt>
@@ -1519,6 +1548,12 @@
 <dd>
 
 <p>This is identical to Perl&#39;s builtin <code>readdir()</code> function for reading directory entries, see <a href="/cperl/perlfunc.html#readdir">&quot;readdir&quot; in perlfunc</a>.</p>
+
+</dd>
+<dt id="realpath"><code>realpath</code></dt>
+<dd>
+
+<p>Resolves a pathname, with long pathname support.</p>
 
 </dd>
 <dt id="realloc"><code>realloc</code></dt>
@@ -1956,7 +1991,7 @@
 
 <p>String to double translation. Returns the parsed number and the number of characters in the unparsed portion of the string. Truly POSIX-compliant systems set <code>$!</code> (<code>$ERRNO</code>) to indicate a translation error, so clear <code>$!</code> before calling <code>strtod</code>. However, non-POSIX systems may not check for overflow, and therefore will never set <code>$!</code>.</p>
 
-<p><code>strtod</code> respects any POSIX <code>setlocale()</code> <code>LC_TIME</code> settings, regardless of whether or not it is called from Perl code that is within the scope of <span style="white-space: nowrap;"><code>use locale</code></span>.</p>
+<p><code>strtod</code> respects any POSIX <code>setlocale()</code> <code>LC_TIME</code> settings, regardless of whether or not it is called from Perl code that is within the scope of <span style="white-space: nowrap;"><code>use locale</code></span>. This means it should not be used in a threaded application unless it&#39;s certain that the underlying locale is C or POSIX. This is because it otherwise changes the locale, which globally affects all threads simultaneously.</p>
 
 <p>To parse a string <code>$str</code> as a floating point number use</p>
 
@@ -2676,11 +2711,25 @@
 </dd>
 </dl>
 
-<h1 id="SYSTEM-CONFIGURATION">SYSTEM CONFIGURATION</h1>
+<h1 id="RESOURCE-CONSTANTS">RESOURCE CONSTANTS</h1>
+
+<p>Imported with the <code>:sys_resource_h</code> tag.</p>
 
 <dl>
 
 <dt id="Constants2">Constants</dt>
+<dd>
+
+<p><code>PRIO_PROCESS</code> <code>PRIO_PGRP</code> <code>PRIO_USER</code></p>
+
+</dd>
+</dl>
+
+<h1 id="SYSTEM-CONFIGURATION">SYSTEM CONFIGURATION</h1>
+
+<dl>
+
+<dt id="Constants3">Constants</dt>
 <dd>
 
 <p><code>_SC_ARG_MAX</code> <code>_SC_CHILD_MAX</code> <code>_SC_CLK_TCK</code> <code>_SC_JOB_CONTROL</code> <code>_SC_NGROUPS_MAX</code> <code>_SC_OPEN_MAX</code> <code>_SC_PAGESIZE</code> <code>_SC_SAVED_IDS</code> <code>_SC_STREAM_MAX</code> <code>_SC_TZNAME_MAX</code> <code>_SC_VERSION</code></p>
@@ -2692,7 +2741,7 @@
 
 <dl>
 
-<dt id="Constants3">Constants</dt>
+<dt id="Constants4">Constants</dt>
 <dd>
 
 <p><code>E2BIG</code> <code>EACCES</code> <code>EADDRINUSE</code> <code>EADDRNOTAVAIL</code> <code>EAFNOSUPPORT</code> <code>EAGAIN</code> <code>EALREADY</code> <code>EBADF</code> <code>EBADMSG</code> <code>EBUSY</code> <code>ECANCELED</code> <code>ECHILD</code> <code>ECONNABORTED</code> <code>ECONNREFUSED</code> <code>ECONNRESET</code> <code>EDEADLK</code> <code>EDESTADDRREQ</code> <code>EDOM</code> <code>EDQUOT</code> <code>EEXIST</code> <code>EFAULT</code> <code>EFBIG</code> <code>EHOSTDOWN</code> <code>EHOSTUNREACH</code> <code>EIDRM</code> <code>EILSEQ</code> <code>EINPROGRESS</code> <code>EINTR</code> <code>EINVAL</code> <code>EIO</code> <code>EISCONN</code> <code>EISDIR</code> <code>ELOOP</code> <code>EMFILE</code> <code>EMLINK</code> <code>EMSGSIZE</code> <code>ENAMETOOLONG</code> <code>ENETDOWN</code> <code>ENETRESET</code> <code>ENETUNREACH</code> <code>ENFILE</code> <code>ENOBUFS</code> <code>ENODATA</code> <code>ENODEV</code> <code>ENOENT</code> <code>ENOEXEC</code> <code>ENOLCK</code> <code>ENOLINK</code> <code>ENOMEM</code> <code>ENOMSG</code> <code>ENOPROTOOPT</code> <code>ENOSPC</code> <code>ENOSR</code> <code>ENOSTR</code> <code>ENOSYS</code> <code>ENOTBLK</code> <code>ENOTCONN</code> <code>ENOTDIR</code> <code>ENOTEMPTY</code> <code>ENOTRECOVERABLE</code> <code>ENOTSOCK</code> <code>ENOTSUP</code> <code>ENOTTY</code> <code>ENXIO</code> <code>EOPNOTSUPP</code> <code>EOTHER</code> <code>EOVERFLOW</code> <code>EOWNERDEAD</code> <code>EPERM</code> <code>EPFNOSUPPORT</code> <code>EPIPE</code> <code>EPROCLIM</code> <code>EPROTO</code> <code>EPROTONOSUPPORT</code> <code>EPROTOTYPE</code> <code>ERANGE</code> <code>EREMOTE</code> <code>ERESTART</code> <code>EROFS</code> <code>ESHUTDOWN</code> <code>ESOCKTNOSUPPORT</code> <code>ESPIPE</code> <code>ESRCH</code> <code>ESTALE</code> <code>ETIME</code> <code>ETIMEDOUT</code> <code>ETOOMANYREFS</code> <code>ETXTBSY</code> <code>EUSERS</code> <code>EWOULDBLOCK</code> <code>EXDEV</code></p>
@@ -2704,7 +2753,7 @@
 
 <dl>
 
-<dt id="Constants4">Constants</dt>
+<dt id="Constants5">Constants</dt>
 <dd>
 
 <p><code>FD_CLOEXEC</code> <code>F_DUPFD</code> <code>F_GETFD</code> <code>F_GETFL</code> <code>F_GETLK</code> <code>F_OK</code> <code>F_RDLCK</code> <code>F_SETFD</code> <code>F_SETFL</code> <code>F_SETLK</code> <code>F_SETLKW</code> <code>F_UNLCK</code> <code>F_WRLCK</code> <code>O_ACCMODE</code> <code>O_APPEND</code> <code>O_CREAT</code> <code>O_EXCL</code> <code>O_NOCTTY</code> <code>O_NONBLOCK</code> <code>O_RDONLY</code> <code>O_RDWR</code> <code>O_TRUNC</code> <code>O_WRONLY</code></p>
@@ -2716,7 +2765,7 @@
 
 <dl>
 
-<dt id="Constants5">Constants</dt>
+<dt id="Constants6">Constants</dt>
 <dd>
 
 <p><code>DBL_DIG</code> <code>DBL_EPSILON</code> <code>DBL_MANT_DIG</code> <code>DBL_MAX</code> <code>DBL_MAX_10_EXP</code> <code>DBL_MAX_EXP</code> <code>DBL_MIN</code> <code>DBL_MIN_10_EXP</code> <code>DBL_MIN_EXP</code> <code>FLT_DIG</code> <code>FLT_EPSILON</code> <code>FLT_MANT_DIG</code> <code>FLT_MAX</code> <code>FLT_MAX_10_EXP</code> <code>FLT_MAX_EXP</code> <code>FLT_MIN</code> <code>FLT_MIN_10_EXP</code> <code>FLT_MIN_EXP</code> <code>FLT_RADIX</code> <code>FLT_ROUNDS</code> <code>LDBL_DIG</code> <code>LDBL_EPSILON</code> <code>LDBL_MANT_DIG</code> <code>LDBL_MAX</code> <code>LDBL_MAX_10_EXP</code> <code>LDBL_MAX_EXP</code> <code>LDBL_MIN</code> <code>LDBL_MIN_10_EXP</code> <code>LDBL_MIN_EXP</code></p>
@@ -2728,7 +2777,7 @@
 
 <dl>
 
-<dt id="Constants6">Constants</dt>
+<dt id="Constants7">Constants</dt>
 <dd>
 
 <p><code>FE_DOWNWARD</code> <code>FE_TONEAREST</code> <code>FE_TOWARDZERO</code> <code>FE_UPWARD</code> on systems that support them.</p>
@@ -2740,7 +2789,7 @@
 
 <dl>
 
-<dt id="Constants7">Constants</dt>
+<dt id="Constants8">Constants</dt>
 <dd>
 
 <p><code>ARG_MAX</code> <code>CHAR_BIT</code> <code>CHAR_MAX</code> <code>CHAR_MIN</code> <code>CHILD_MAX</code> <code>INT_MAX</code> <code>INT_MIN</code> <code>LINK_MAX</code> <code>LONG_MAX</code> <code>LONG_MIN</code> <code>MAX_CANON</code> <code>MAX_INPUT</code> <code>MB_LEN_MAX</code> <code>NAME_MAX</code> <code>NGROUPS_MAX</code> <code>OPEN_MAX</code> <code>PATH_MAX</code> <code>PIPE_BUF</code> <code>SCHAR_MAX</code> <code>SCHAR_MIN</code> <code>SHRT_MAX</code> <code>SHRT_MIN</code> <code>SSIZE_MAX</code> <code>STREAM_MAX</code> <code>TZNAME_MAX</code> <code>UCHAR_MAX</code> <code>UINT_MAX</code> <code>ULONG_MAX</code> <code>USHRT_MAX</code></p>
@@ -2752,7 +2801,7 @@
 
 <dl>
 
-<dt id="Constants8">Constants</dt>
+<dt id="Constants9">Constants</dt>
 <dd>
 
 <p><code>LC_ALL</code> <code>LC_COLLATE</code> <code>LC_CTYPE</code> <code>LC_MONETARY</code> <code>LC_NUMERIC</code> <code>LC_TIME</code> <code>LC_MESSAGES</code> on systems that support them.</p>
@@ -2764,7 +2813,7 @@
 
 <dl>
 
-<dt id="Constants9">Constants</dt>
+<dt id="Constants10">Constants</dt>
 <dd>
 
 <p><code>HUGE_VAL</code></p>
@@ -2778,7 +2827,7 @@
 
 <dl>
 
-<dt id="Constants10">Constants</dt>
+<dt id="Constants11">Constants</dt>
 <dd>
 
 <p><code>SA_NOCLDSTOP</code> <code>SA_NOCLDWAIT</code> <code>SA_NODEFER</code> <code>SA_ONSTACK</code> <code>SA_RESETHAND</code> <code>SA_RESTART</code> <code>SA_SIGINFO</code> <code>SIGABRT</code> <code>SIGALRM</code> <code>SIGCHLD</code> <code>SIGCONT</code> <code>SIGFPE</code> <code>SIGHUP</code> <code>SIGILL</code> <code>SIGINT</code> <code>SIGKILL</code> <code>SIGPIPE</code> <code>SIGQUIT</code> <code>SIGSEGV</code> <code>SIGSTOP</code> <code>SIGTERM</code> <code>SIGTSTP</code> <code>SIGTTIN</code> <code>SIGTTOU</code> <code>SIGUSR1</code> <code>SIGUSR2</code> <code>SIG_BLOCK</code> <code>SIG_DFL</code> <code>SIG_ERR</code> <code>SIG_IGN</code> <code>SIG_SETMASK</code> <code>SIG_UNBLOCK</code> <code>ILL_ILLOPC</code> <code>ILL_ILLOPN</code> <code>ILL_ILLADR</code> <code>ILL_ILLTRP</code> <code>ILL_PRVOPC</code> <code>ILL_PRVREG</code> <code>ILL_COPROC</code> <code>ILL_BADSTK</code> <code>FPE_INTDIV</code> <code>FPE_INTOVF</code> <code>FPE_FLTDIV</code> <code>FPE_FLTOVF</code> <code>FPE_FLTUND</code> <code>FPE_FLTRES</code> <code>FPE_FLTINV</code> <code>FPE_FLTSUB</code> <code>SEGV_MAPERR</code> <code>SEGV_ACCERR</code> <code>BUS_ADRALN</code> <code>BUS_ADRERR</code> <code>BUS_OBJERR</code> <code>TRAP_BRKPT</code> <code>TRAP_TRACE</code> <code>CLD_EXITED</code> <code>CLD_KILLED</code> <code>CLD_DUMPED</code> <code>CLD_TRAPPED</code> <code>CLD_STOPPED</code> <code>CLD_CONTINUED</code> <code>POLL_IN</code> <code>POLL_OUT</code> <code>POLL_MSG</code> <code>POLL_ERR</code> <code>POLL_PRI</code> <code>POLL_HUP</code> <code>SI_USER</code> <code>SI_QUEUE</code> <code>SI_TIMER</code> <code>SI_ASYNCIO</code> <code>SI_MESGQ</code></p>
@@ -2790,7 +2839,7 @@
 
 <dl>
 
-<dt id="Constants11">Constants</dt>
+<dt id="Constants12">Constants</dt>
 <dd>
 
 <p><code>S_IRGRP</code> <code>S_IROTH</code> <code>S_IRUSR</code> <code>S_IRWXG</code> <code>S_IRWXO</code> <code>S_IRWXU</code> <code>S_ISGID</code> <code>S_ISUID</code> <code>S_IWGRP</code> <code>S_IWOTH</code> <code>S_IWUSR</code> <code>S_IXGRP</code> <code>S_IXOTH</code> <code>S_IXUSR</code></p>
@@ -2808,7 +2857,7 @@
 
 <dl>
 
-<dt id="Constants12">Constants</dt>
+<dt id="Constants13">Constants</dt>
 <dd>
 
 <p><code>EXIT_FAILURE</code> <code>EXIT_SUCCESS</code> <code>MB_CUR_MAX</code> <code>RAND_MAX</code></p>
@@ -2820,7 +2869,7 @@
 
 <dl>
 
-<dt id="Constants13">Constants</dt>
+<dt id="Constants14">Constants</dt>
 <dd>
 
 <p><code>BUFSIZ</code> <code>EOF</code> <code>FILENAME_MAX</code> <code>L_ctermid</code> <code>L_cuserid</code> <code>TMP_MAX</code></p>
@@ -2832,7 +2881,7 @@
 
 <dl>
 
-<dt id="Constants14">Constants</dt>
+<dt id="Constants15">Constants</dt>
 <dd>
 
 <p><code>CLK_TCK</code> <code>CLOCKS_PER_SEC</code></p>
@@ -2844,7 +2893,7 @@
 
 <dl>
 
-<dt id="Constants15">Constants</dt>
+<dt id="Constants16">Constants</dt>
 <dd>
 
 <p><code>R_OK</code> <code>SEEK_CUR</code> <code>SEEK_END</code> <code>SEEK_SET</code> <code>STDIN_FILENO</code> <code>STDOUT_FILENO</code> <code>STDERR_FILENO</code> <code>W_OK</code> <code>X_OK</code></p>
@@ -2856,7 +2905,7 @@
 
 <dl>
 
-<dt id="Constants16">Constants</dt>
+<dt id="Constants17">Constants</dt>
 <dd>
 
 <p><code>WNOHANG</code> <code>WUNTRACED</code></p>
@@ -2932,7 +2981,7 @@
 
 <dl>
 
-<dt id="Constants17">Constants</dt>
+<dt id="Constants18">Constants</dt>
 <dd>
 
 <p><code>WSAEINTR</code> <code>WSAEBADF</code> <code>WSAEACCES</code> <code>WSAEFAULT</code> <code>WSAEINVAL</code> <code>WSAEMFILE</code> <code>WSAEWOULDBLOCK</code> <code>WSAEINPROGRESS</code> <code>WSAEALREADY</code> <code>WSAENOTSOCK</code> <code>WSAEDESTADDRREQ</code> <code>WSAEMSGSIZE</code> <code>WSAEPROTOTYPE</code> <code>WSAENOPROTOOPT</code> <code>WSAEPROTONOSUPPORT</code> <code>WSAESOCKTNOSUPPORT</code> <code>WSAEOPNOTSUPP</code> <code>WSAEPFNOSUPPORT</code> <code>WSAEAFNOSUPPORT</code> <code>WSAEADDRINUSE</code> <code>WSAEADDRNOTAVAIL</code> <code>WSAENETDOWN</code> <code>WSAENETUNREACH</code> <code>WSAENETRESET</code> <code>WSAECONNABORTED</code> <code>WSAECONNRESET</code> <code>WSAENOBUFS</code> <code>WSAEISCONN</code> <code>WSAENOTCONN</code> <code>WSAESHUTDOWN</code> <code>WSAETOOMANYREFS</code> <code>WSAETIMEDOUT</code> <code>WSAECONNREFUSED</code> <code>WSAELOOP</code> <code>WSAENAMETOOLONG</code> <code>WSAEHOSTDOWN</code> <code>WSAEHOSTUNREACH</code> <code>WSAENOTEMPTY</code> <code>WSAEPROCLIM</code> <code>WSAEUSERS</code> <code>WSAEDQUOT</code> <code>WSAESTALE</code> <code>WSAEREMOTE</code> <code>WSAEDISCON</code> <code>WSAENOMORE</code> <code>WSAECANCELLED</code> <code>WSAEINVALIDPROCTABLE</code> <code>WSAEINVALIDPROVIDER</code> <code>WSAEPROVIDERFAILEDINIT</code> <code>WSAEREFUSED</code></p>

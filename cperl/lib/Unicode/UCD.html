@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Unicode::UCD - Unicode character database</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -663,7 +663,7 @@
 
 <p>The hash described above is returned for locale-independent casing, where at least one of the mappings has length longer than one. If <code>undef</code> is returned, the code point may have mappings, but if so, all are length one, and are returned by <a href="#charinfo">&quot;charinfo()&quot;</a>. Note that when this function does return a value, it will be for the complete set of mappings for a code point, even those whose length is one.</p>
 
-<p>If there are additional casing rules that apply only in certain locales, an additional key for each will be defined in the returned hash. Each such key will be its locale name, defined as a 2-letter ISO 3166 country code, possibly followed by a &quot;_&quot; and a 2-letter ISO language code (possibly followed by a &quot;_&quot; and a variant code). You can find the lists of all possible locales, see <a href="/cperl/lib/Locale/Country.html">Locale::Country</a> and <a href="/cperl/lib/Locale/Language.html">Locale::Language</a>. (In Unicode 6.0, the only locales returned by this function are <code>lt</code>, <code>tr</code>, and <code>az</code>.)</p>
+<p>If there are additional casing rules that apply only in certain locales, an additional key for each will be defined in the returned hash. Each such key will be its locale name, defined as a 2-letter ISO 3166 country code, possibly followed by a &quot;_&quot; and a 2-letter ISO language code (possibly followed by a &quot;_&quot; and a variant code). You can find the lists of all possible locales, see <a>Locale::Country</a> and <a>Locale::Language</a>. (In Unicode 6.0, the only locales returned by this function are <code>lt</code>, <code>tr</code>, and <code>az</code>.)</p>
 
 <p>Each locale key is a reference to a hash that has the form above, and gives the casing rules for that particular locale, which take precedence over the locale-independent ones when in that locale.</p>
 
@@ -692,13 +692,14 @@
 <pre><code>    use Unicode::UCD &#39;num&#39;;
 
     my $val = num(&quot;123&quot;);
-    my $one_quarter = num(&quot;\N{VULGAR FRACTION 1/4}&quot;);</code></pre>
+    my $one_quarter = num(&quot;\N{VULGAR FRACTION 1/4}&quot;);
+    my $val = num(&quot;12a&quot;, \$valid_length);  # $valid_length contains 2</code></pre>
 
-<p><code>num()</code> returns the numeric value of the input Unicode string; or <code>undef</code> if it doesn&#39;t think the entire string has a completely valid, safe numeric value.</p>
+<p><code>num()</code> returns the numeric value of the input Unicode string; or <code>undef</code> if it doesn&#39;t think the entire string has a completely valid, safe numeric value. If called with an optional second parameter, a reference to a scalar, <code>num()</code> will set the scalar to the length of any valid initial substring; or to 0 if none.</p>
 
-<p>If the string is just one character in length, the Unicode numeric value is returned if it has one, or <code>undef</code> otherwise. Note that this need not be a whole number. <code>num(&quot;\N{TIBETAN DIGIT HALF ZERO}&quot;)</code>, for example returns -0.5.</p>
+<p>If the string is just one character in length, the Unicode numeric value is returned if it has one, or <code>undef</code> otherwise. If the optional scalar ref is passed, it would be set to 1 if the return is valid; or 0 if the return is <code>undef</code>. Note that the numeric value returned need not be a whole number. <code>num(&quot;\N{TIBETAN DIGIT HALF ZERO}&quot;)</code>, for example returns -0.5.</p>
 
-<p>If the string is more than one character, <code>undef</code> is returned unless all its characters are decimal digits (that is, they would match <code>\d+</code>), from the same script. For example if you have an ASCII &#39;0&#39; and a Bengali &#39;3&#39;, mixed together, they aren&#39;t considered a valid number, and <code>undef</code> is returned. A further restriction is that the digits all have to be of the same form. A half-width digit mixed with a full-width one will return <code>undef</code>. The Arabic script has two sets of digits; <code>num</code> will return <code>undef</code> unless all the digits in the string come from the same set.</p>
+<p>If the string is more than one character, <code>undef</code> is returned unless all its characters are decimal digits (that is, they would match <code>\d+</code>), from the same script. For example if you have an ASCII &#39;0&#39; and a Bengali &#39;3&#39;, mixed together, they aren&#39;t considered a valid number, and <code>undef</code> is returned. A further restriction is that the digits all have to be of the same form. A half-width digit mixed with a full-width one will return <code>undef</code>. The Arabic script has two sets of digits; <code>num</code> will return <code>undef</code> unless all the digits in the string come from the same set. In all cases, the optional scalar ref parameter is set to how long any valid initial substring of digits is; hence it will be set to the entire string length if the main return value is not <code>undef</code>.</p>
 
 <p><code>num</code> errs on the side of safety, and there may be valid strings of decimal digits that it doesn&#39;t recognize. Note that Unicode defines a number of &quot;digit&quot; characters that aren&#39;t &quot;decimal digit&quot; characters. &quot;Decimal digits&quot; have the property that they have a positional value, i.e., there is a units position, a 10&#39;s position, a 100&#39;s, etc, AND they are arranged in Unicode in blocks of 10 contiguous code points. The Chinese digits, for example, are not in such a contiguous block, and so Unicode doesn&#39;t view them as decimal digits, but merely digits, and so <code>\d</code> will not match them. A single-character string containing one of these digits will have its decimal value returned by <code>num</code>, but any longer string containing only these digits will return <code>undef</code>.</p>
 
@@ -835,7 +836,7 @@
 
 <p>Inversion lists are a compact way of specifying Unicode property-value definitions. The 0th item in the list is the lowest code point that has the property-value. The next item (item [1]) is the lowest code point beyond that one that does NOT have the property-value. And the next item beyond that ([2]) is the lowest code point beyond that one that does have the property-value, and so on. Put another way, each element in the list gives the beginning of a range that has the property-value (for even numbered elements), or doesn&#39;t have the property-value (for odd numbered elements). The name for this data structure stems from the fact that each element in the list toggles (or inverts) whether the corresponding range is or isn&#39;t on the list.</p>
 
-<p>In the final example above, the first ASCII Hex digit is code point 48, the character &quot;0&quot;, and all code points from it through 57 (a &quot;9&quot;) are ASCII hex digits. Code points 58 through 64 aren&#39;t, but 65 (an &quot;A&quot;) through 70 (an &quot;F&quot;) are, as are 97 (&quot;a&quot;) through 102 (&quot;f&quot;). 103 starts a range of code points that aren&#39;t ASCII hex digits. That range extends to infinity, which on your computer can be found in the variable <code>$Unicode::UCD::MAX_CP</code>. (This variable is as close to infinity as Perl can get on your platform, and may be too high for some operations to work; you may wish to use a smaller number for your purposes.)</p>
+<p>In the final example above, the first ASCII Hex digit is code point 48, the character &quot;0&quot;, and all code points from it through 57 (a &quot;9&quot;) are ASCII hex digits. Code points 58 through 64 aren&#39;t, but 65 (an &quot;A&quot;) through 70 (an &quot;F&quot;) are, as are 97 (&quot;a&quot;) through 102 (&quot;f&quot;). 103 starts a range of code points that aren&#39;t ASCII hex digits. That range extends to infinity, which on your computer can be found in the variable <code>$Unicode::UCD::MAX_CP</code>. This variable is as close to infinity as Perl can get on your platform, and may be too high for some operations to work; you may wish to use a smaller number for your purposes. With cperl this value is the highest possible unicode codepoint: 0x10FFFF.</p>
 
 <p>Note that the inversion lists returned by this function can possibly include non-Unicode code points, that is anything above 0x10FFFF. Unicode properties are not defined on such code points. You might wish to change the output to not include these. Simply add 0x110000 at the end of the non-empty returned list if it isn&#39;t already that value; and pop that value if it is; like:</p>
 
@@ -857,11 +858,7 @@
  for (my $i = 0; $i &lt; @invlist; $i += 2) {
     my $upper = ($i + 1) &lt; @invlist
                 ? $invlist[$i+1] - 1      # In range
-                : $Unicode::UCD::MAX_CP;  # To infinity.  You may want
-                                          # to stop much much earlier;
-                                          # going this high may expose
-                                          # perl deficiencies with very
-                                          # large numbers.
+                : $Unicode::UCD::MAX_CP;  # To infinity.
     for my $j ($invlist[$i] .. $upper) {
         push @full_list, $j;
     }

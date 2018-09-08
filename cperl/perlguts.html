@@ -684,11 +684,11 @@
 
 <p>An xV that is visible at the Perl level should not become unreferenced and thus be destroyed. Normally, an object will only become unreferenced when it is no longer visible, often by the same means that makes it invisible. For example, a Perl reference value (RV) owns a reference to its referent, so if the RV is overwritten that reference gets destroyed, and the no-longer-reachable referent may be destroyed as a result.</p>
 
-<p>Many functions have some kind of reference manipulation as part of their purpose. Sometimes this is documented in terms of ownership of references, and sometimes it is (less helpfully) documented in terms of changes to reference counts. For example, the <a href="/cperl/perlapi.html#newRV_inc">newRV_inc()</a> function is documented to create a new RV (with reference count 1) and increment the reference count of the referent that was supplied by the caller. This is best understood as creating a new reference to the referent, which is owned by the created RV, and returning to the caller ownership of the sole reference to the RV. The <a href="/pod/perlapi.html#newRV_noinc">newRV_noinc()</a> function instead does not increment the reference count of the referent, but the RV nevertheless ends up owning a reference to the referent. It is therefore implied that the caller of <code>newRV_noinc()</code> is relinquishing a reference to the referent, making this conceptually a more complicated operation even though it does less to the data structures.</p>
+<p>Many functions have some kind of reference manipulation as part of their purpose. Sometimes this is documented in terms of ownership of references, and sometimes it is (less helpfully) documented in terms of changes to reference counts. For example, the <a href="/cperl/perlapi.html#newRV_inc">newRV_inc()</a> function is documented to create a new RV (with reference count 1) and increment the reference count of the referent that was supplied by the caller. This is best understood as creating a new reference to the referent, which is owned by the created RV, and returning to the caller ownership of the sole reference to the RV. The <a href="/cperl/perlapi.html#newRV_noinc">newRV_noinc()</a> function instead does not increment the reference count of the referent, but the RV nevertheless ends up owning a reference to the referent. It is therefore implied that the caller of <code>newRV_noinc()</code> is relinquishing a reference to the referent, making this conceptually a more complicated operation even though it does less to the data structures.</p>
 
 <p>For example, imagine you want to return a reference from an XSUB function. Inside the XSUB routine, you create an SV which initially has just a single reference, owned by the XSUB routine. This reference needs to be disposed of before the routine is complete, otherwise it will leak, preventing the SV from ever being destroyed. So to create an RV referencing the SV, it is most convenient to pass the SV to <code>newRV_noinc()</code>, which consumes that reference. Now the XSUB routine no longer owns a reference to the SV, but does own a reference to the RV, which in turn owns a reference to the SV. The ownership of the reference to the RV is then transferred by the process of returning the RV from the XSUB.</p>
 
-<p>There are some convenience functions available that can help with the destruction of xVs. These functions introduce the concept of &quot;mortality&quot;. Much documentation speaks of an xV itself being mortal, but this is misleading. It is really <i>a reference to</i> an xV that is mortal, and it is possible for there to be more than one mortal reference to a single xV. For a reference to be mortal means that it is owned by the temps stack, one of perl&#39;s many internal stacks, which will destroy that reference &quot;a short time later&quot;. Usually the &quot;short time later&quot; is the end of the current Perl statement. However, it gets more complicated around dynamic scopes: there can be multiple sets of mortal references hanging around at the same time, with different death dates. Internally, the actual determinant for when mortal xV references are destroyed depends on two macros, SAVETMPS and FREETMPS. See <a href="/cperl/perlcall.html">perlcall</a> and <a href="/pod/perlxs.html">perlxs</a> for more details on these macros.</p>
+<p>There are some convenience functions available that can help with the destruction of xVs. These functions introduce the concept of &quot;mortality&quot;. Much documentation speaks of an xV itself being mortal, but this is misleading. It is really <i>a reference to</i> an xV that is mortal, and it is possible for there to be more than one mortal reference to a single xV. For a reference to be mortal means that it is owned by the temps stack, one of perl&#39;s many internal stacks, which will destroy that reference &quot;a short time later&quot;. Usually the &quot;short time later&quot; is the end of the current Perl statement. However, it gets more complicated around dynamic scopes: there can be multiple sets of mortal references hanging around at the same time, with different death dates. Internally, the actual determinant for when mortal xV references are destroyed depends on two macros, SAVETMPS and FREETMPS. See <a href="/cperl/perlcall.html">perlcall</a> and <a href="/cperl/perlxs.html">perlxs</a> for more details on these macros.</p>
 
 <p>Mortal references are mainly used for xVs that are placed on perl&#39;s main stack. The stack is problematic for reference tracking, because it contains a lot of xV references, but doesn&#39;t own those references: they are not counted. Currently, there are many bugs resulting from xVs being destroyed while referenced by the stack, because the stack&#39;s uncounted references aren&#39;t enough to keep the xVs alive. So when putting an (uncounted) reference on the stack, it is vitally important to ensure that there will be a counted reference to the same xV that will last at least as long as the uncounted reference. But it&#39;s also important that that counted reference be cleaned up at an appropriate time, and not unduly prolong the xV&#39;s life. For there to be a mortal reference is often the best way to satisfy this requirement, especially if the xV was created especially to be put on the stack and would otherwise be unreferenced.</p>
 
@@ -993,7 +993,7 @@
 
 <p>Attaching <code>PERL_MAGIC_uvar</code> to arrays is permissible but has no effect.</p>
 
-<p>For hashes there is a specialized hook that gives control over hash keys (but not values). This hook calls <code>PERL_MAGIC_uvar</code> &#39;get&#39; magic if the &quot;set&quot; function in the <code>ufuncs</code> structure is NULL. The hook is activated whenever the hash is accessed with a key specified as an <code>SV</code> through the functions <code>hv_store_ent</code>, <code>hv_fetch_ent</code>, <code>hv_delete_ent</code>, and <code>hv_exists_ent</code>. Accessing the key as a string through the functions without the <code>..._ent</code> suffix circumvents the hook. See <a>&quot;GUTS&quot; in Hash::Util::FieldHash</a> for a detailed description.</p>
+<p>For hashes there is a specialized hook that gives control over hash keys (but not values). This hook calls <code>PERL_MAGIC_uvar</code> &#39;get&#39; magic if the &quot;set&quot; function in the <code>ufuncs</code> structure is NULL. The hook is activated whenever the hash is accessed with a key specified as an <code>SV</code> through the functions <code>hv_store_ent</code>, <code>hv_fetch_ent</code>, <code>hv_delete_ent</code>, and <code>hv_exists_ent</code>. Accessing the key as a string through the functions without the <code>..._ent</code> suffix circumvents the hook. See <a href="/cperl/lib/Hash/Util/FieldHash.html#GUTS">&quot;GUTS&quot; in Hash::Util::FieldHash</a> for a detailed description.</p>
 
 <p>Note that because multiple extensions may be using <code>PERL_MAGIC_ext</code> or <code>PERL_MAGIC_uvar</code> magic, it is important for extensions to take extra care to avoid conflict. Typically only using the magic on objects blessed into the same class as the extension is sufficient. For <code>PERL_MAGIC_ext</code> magic, it is usually a good idea to define an <code>MGVTBL</code>, even if all its fields will be <code>0</code>, so that individual <code>MAGIC</code> pointers can be identified as a particular kind of magic using their magic virtual table. <code>mg_findext</code> provides an easy way to do that:</p>
 
@@ -1263,7 +1263,7 @@
 
 <p>Despite their suggestions in earlier versions of this document the macros <code>(X)PUSH[iunp]</code> are <i>not</i> suited to XSUBs which return multiple results. For that, either stick to the <code>(X)PUSHs</code> macros shown above, or use the new <code>m(X)PUSH[iunp]</code> macros instead; see <a href="#Putting-a-C-value-on-Perl-stack">&quot;Putting a C value on Perl stack&quot;</a>.</p>
 
-<p>For more information, consult <a href="/cperl/perlxs.html">perlxs</a> and <a href="/pod/perlxstut.html">perlxstut</a>.</p>
+<p>For more information, consult <a href="/cperl/perlxs.html">perlxs</a> and <a href="/cperl/perlxstut.html">perlxstut</a>.</p>
 
 <h2 id="Autoloading-with-XSUBs">Autoloading with XSUBs</h2>
 
@@ -1468,7 +1468,7 @@
 
 <p>Starting in version 5.21.2, perls built with the experimental define <code>-DPERL_OP_PARENT</code> add an extra boolean flag for each op, <code>op_moresib</code>. When not set, this indicates that this is the last op in an <code>OpSIBLING</code> chain. This frees up the <code>op_sibling</code> field on the last sibling to point back to the parent op. Under this build, that field is also renamed <code>op_sibparent</code> to reflect its joint role. The macro <code>OpSIBLING(o)</code> wraps this special behaviour, and always returns NULL on the last sibling. With this build the <code>op_parent(o)</code> function can be used to find the parent of any op. Thus for forward compatibility, you should always use the <code>OpSIBLING(o)</code> macro rather than accessing <code>op_sibling</code> directly.</p>
 
-<p>Another way to examine the tree is to use a compiler back-end module, such as <a>B::Concise</a>.</p>
+<p>Another way to examine the tree is to use a compiler back-end module, such as <a href="/cperl/lib/B/Concise.html">B::Concise</a>.</p>
 
 <h2 id="Compile-pass-1:-check-routines">Compile pass 1: check routines</h2>
 
@@ -1629,7 +1629,7 @@
 
 <p>All this obviously requires a way for the Perl internal functions to be either subroutines taking some kind of structure as the first argument, or subroutines taking nothing as the first argument. To enable these two very different ways of building the interpreter, the Perl source (as it does in so many other situations) makes heavy use of macros and subroutine naming conventions.</p>
 
-<p>First problem: deciding which functions will be public API functions and which will be private. All functions whose names begin <code>S_</code> are private (think &quot;S&quot; for &quot;secret&quot; or &quot;static&quot;). All other functions begin with &quot;Perl_&quot;, but just because a function begins with &quot;Perl_&quot; does not mean it is part of the API. (See <a href="#Internal-Functions">&quot;Internal Functions&quot;</a>.) The easiest way to be <b>sure</b> a function is part of the API is to find its entry in <a href="/cperl/perlapi.html">perlapi</a>. If it exists in <a href="/pod/perlapi.html">perlapi</a>, it&#39;s part of the API. If it doesn&#39;t, and you think it should be (i.e., you need it for your extension), send a report via <a>cperlbug</a> explaining why you think it should be.</p>
+<p>First problem: deciding which functions will be public API functions and which will be private. All functions whose names begin <code>S_</code> are private (think &quot;S&quot; for &quot;secret&quot; or &quot;static&quot;). All other functions begin with &quot;Perl_&quot;, but just because a function begins with &quot;Perl_&quot; does not mean it is part of the API. (See <a href="#Internal-Functions">&quot;Internal Functions&quot;</a>.) The easiest way to be <b>sure</b> a function is part of the API is to find its entry in <a href="/cperl/perlapi.html">perlapi</a>. If it exists in <a href="/cperl/perlapi.html">perlapi</a>, it&#39;s part of the API. If it doesn&#39;t, and you think it should be (i.e., you need it for your extension), send a report via <a>cperlbug</a> explaining why you think it should be.</p>
 
 <p>Second problem: there must be a syntax so that the same subroutine declarations and calls can pass a structure as their first argument, or pass nothing. To solve this, the subroutines are named and declared in a particular way. Here&#39;s a typical start of a static function used within the Perl guts:</p>
 
@@ -1968,7 +1968,7 @@
 
 <h2 id="Source-Documentation">Source Documentation</h2>
 
-<p>There&#39;s an effort going on to document the internal functions and automatically produce reference manuals from them -- <a href="/cperl/perlapi.html">perlapi</a> is one such manual which details all the functions which are available to XS writers. <a href="/pod/perlintern.html">perlintern</a> is the autogenerated manual for the functions which are not part of the API and are supposedly for internal use only.</p>
+<p>There&#39;s an effort going on to document the internal functions and automatically produce reference manuals from them -- <a href="/cperl/perlapi.html">perlapi</a> is one such manual which details all the functions which are available to XS writers. <a href="/cperl/perlintern.html">perlintern</a> is the autogenerated manual for the functions which are not part of the API and are supposedly for internal use only.</p>
 
 <p>Source documentation is created by putting POD comments into the C source, like this:</p>
 
@@ -2098,9 +2098,9 @@
 
 <p>Since just passing an SV to an XS function and copying the data of the SV is not enough to copy the UTF8 flags, even less right is just passing a <span style="white-space: nowrap;"><code>char *</code></span> to an XS function.</p>
 
-<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8"><code>DO_UTF8</code></a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
+<p>For full generality, use the <a href="/cperl/perlapi.html#DO_UTF8"><code>DO_UTF8</code></a> macro to see if the string in an SV is to be <i>treated</i> as UTF-8. This takes into account if the call to the XS function is being made from within the scope of <a href="/cperl/lib/bytes.html"><span style="white-space: nowrap;"><code>use bytes</code></span></a>. If so, the underlying bytes that comprise the UTF-8 string are to be exposed, rather than the character they represent. But this pragma should only really be used for debugging and perhaps low-level testing at the byte level. Hence most XS code need not concern itself with this, but various areas of the perl core do need to support it.</p>
 
-<p>And this isn&#39;t the whole story. Starting in Perl v5.12, strings that aren&#39;t encoded in UTF-8 may also be treated as Unicode under various conditions (see <a href="/cperl/perlunicode.html#ASCII-Rules-versus-Unicode-Rules">&quot;ASCII Rules versus Unicode Rules&quot; in perlunicode</a>). This is only really a problem for characters whose ordinals are between 128 and 255, and their behavior varies under ASCII versus Unicode rules in ways that your code cares about (see <a href="/pod/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>). There is no published API for dealing with this, as it is subject to change, but you can look at the code for <code>pp_lc</code> in <i>pp.c</i> for an example as to how it&#39;s currently done.</p>
+<p>And this isn&#39;t the whole story. Starting in Perl v5.12, strings that aren&#39;t encoded in UTF-8 may also be treated as Unicode under various conditions (see <a href="/cperl/perlunicode.html#ASCII-Rules-versus-Unicode-Rules">&quot;ASCII Rules versus Unicode Rules&quot; in perlunicode</a>). This is only really a problem for characters whose ordinals are between 128 and 255, and their behavior varies under ASCII versus Unicode rules in ways that your code cares about (see <a href="/cperl/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>). There is no published API for dealing with this, as it is subject to change, but you can look at the code for <code>pp_lc</code> in <i>pp.c</i> for an example as to how it&#39;s currently done.</p>
 
 <h2 id="How-do-I-convert-a-string-to-UTF-8">How do I convert a string to UTF-8?</h2>
 
@@ -2119,9 +2119,9 @@
 
 <h2 id="How-do-I-compare-strings">How do I compare strings?</h2>
 
-<p><a href="/cperl/perlapi.html#sv_cmp">&quot;sv_cmp&quot; in perlapi</a> and <a href="/pod/perlapi.html#sv_cmp_flags">&quot;sv_cmp_flags&quot; in perlapi</a> do a lexigraphic comparison of two SV&#39;s, and handle UTF-8ness properly. Note, however, that Unicode specifies a much fancier mechanism for collation, available via the <a>Unicode::Collate</a> module.</p>
+<p><a href="/cperl/perlapi.html#sv_cmp">&quot;sv_cmp&quot; in perlapi</a> and <a href="/cperl/perlapi.html#sv_cmp_flags">&quot;sv_cmp_flags&quot; in perlapi</a> do a lexigraphic comparison of two SV&#39;s, and handle UTF-8ness properly. Note, however, that Unicode specifies a much fancier mechanism for collation, available via the <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a> module.</p>
 
-<p>To just compare two strings for equality/non-equality, you can just use <a href="/cperl/perlapi.html#memEQ"><code>memEQ()</code></a> and <a href="/pod/perlapi.html#memEQ"><code>memNE()</code></a> as usual, except the strings must be both UTF-8 or not UTF-8 encoded.</p>
+<p>To just compare two strings for equality/non-equality, you can just use <a href="/cperl/perlapi.html#memEQ"><code>memEQ()</code></a> and <a href="/cperl/perlapi.html#memEQ"><code>memNE()</code></a> as usual, except the strings must be both UTF-8 or not UTF-8 encoded.</p>
 
 <p>To compare two strings case-insensitively, use <a href="/cperl/perlapi.html#foldEQ_utf8"><code>foldEQ_utf8()</code></a> (the strings don&#39;t have to have the same UTF-8ness).</p>
 
@@ -2180,7 +2180,7 @@
 <dt id="xop_name">xop_name</dt>
 <dd>
 
-<p>A short name for your op. This will be included in some error messages, and will also be returned as <code>$op-&gt;name</code> by the <a>B</a> module, so it will appear in the output of module like <a>B::Concise</a>.</p>
+<p>A short name for your op. This will be included in some error messages, and will also be returned as <code>$op-&gt;name</code> by the <a href="/cperl/lib/B.html">B</a> module, so it will appear in the output of module like <a href="/cperl/lib/B/Concise.html">B::Concise</a>.</p>
 
 </dd>
 <dt id="xop_desc">xop_desc</dt>
@@ -2437,7 +2437,7 @@
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p><a href="/cperl/perlapi.html">perlapi</a>, <a href="/pod/perlintern.html">perlintern</a>, <a href="/pod/perlxs.html">perlxs</a>, <a href="/pod/perlembed.html">perlembed</a></p>
+<p><a href="/cperl/perlapi.html">perlapi</a>, <a href="/cperl/perlintern.html">perlintern</a>, <a href="/cperl/perlxs.html">perlxs</a>, <a href="/cperl/perlembed.html">perlembed</a></p>
 
 
 </body>

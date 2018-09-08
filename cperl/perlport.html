@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perlport - Writing portable Perl</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -289,7 +289,7 @@
 
 <pre><code>    1 while unlink &quot;file&quot;;</code></pre>
 
-<p>This will terminate if the file is undeleteable for some reason (protected, not there, and so on).</p>
+<p>This will terminate if the file is undeletable for some reason (protected, not there, and so on).</p>
 
 <p>Don&#39;t count on a specific environment variable existing in <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a>. Don&#39;t count on <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> entries being case-sensitive, or even case-preserving. Don&#39;t try to clear <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> by saying <code>%ENV = ();</code>, or, if you really have to, make it conditional on <code>$^O ne &#39;VMS&#39;</code> since in VMS the <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> table is much more than a per-process key-value string table.</p>
 
@@ -382,7 +382,7 @@
 
 <p>In general, the standard modules work across platforms. Notable exceptions are the <a href="/cperl/lib/CPAN.html"><code>CPAN</code></a> module (which currently makes connections to external programs that may not be available), platform-specific modules (like <a href="/cperl/lib/ExtUtils/MM_VMS.html"><code>ExtUtils::MM_VMS</code></a>), and DBM modules.</p>
 
-<p>There is no one DBM module available on all platforms. <a href="/cperl/lib/SDBM_File.html"><code>SDBM_File</code></a> and the others are generally available on all Unix and DOSish ports, but not in MacPerl, where only <a href="/cperl/lib/NDBM_File.html"><code>NDBM_File</code></a> and <a href="/cperl/lib/DB_File.html"><code>DB_File</code></a> are available.</p>
+<p>There is no one DBM module available on all platforms. <a href="/cperl/lib/SDBM_File.html"><code>SDBM_File</code></a> and the others are generally available on all Unix and DOSish ports, but not in MacPerl, where only <a href="/cperl/lib/Memoize/NDBM_File.html"><code>NDBM_File</code></a> and <a href="/cperl/lib/DB_File.html"><code>DB_File</code></a> are available.</p>
 
 <p>The good news is that at least some DBM module should be available, and <a href="/cperl/lib/AnyDBM_File.html"><code>AnyDBM_File</code></a> will use whichever module it can find. Of course, then the code needs to be fairly strict, dropping to the greatest common factor (e.g., not exceeding 1K for each record), so that it will work with any DBM module. See <a href="/cperl/lib/AnyDBM_File.html">AnyDBM_File</a> for more details.</p>
 
@@ -813,7 +813,7 @@
     ^ is the parent directory
     Directory and File =~ m|[^\0- &quot;\.\$\%\&amp;:\@\\^\|\177]+|</code></pre>
 
-<p>The default filename translation is roughly <code>tr|/.|./|</code>, swapping dots and slahes.</p>
+<p>The default filename translation is roughly <code>tr|/.|./|</code>, swapping dots and slashes.</p>
 
 <p>Note that <code>&quot;ADFS::HardDisk.$.File&quot; ne &#39;ADFS::HardDisk.$.File&#39;</code> and that the second stage of <code>$</code> interpolation in regular expressions will fall foul of the <a href="/cperl/perlvar.html#pod"><code>$.</code></a> variable if scripts are not careful.</p>
 
@@ -945,6 +945,8 @@
 <p>(Cygwin) The actual permissions set depend on the value of the <code>CYGWIN</code> variable in the SYSTEM environment settings.</p>
 
 <p>(Android) Setting the exec bit on some locations (generally <i>/sdcard</i>) will return true but not actually set the bit.</p>
+
+<p>(VMS) A mode argument of zero sets permissions to the user&#39;s default permission mask rather than disabling all permissions.</p>
 
 </dd>
 <dt id="chown-LIST">chown LIST</dt>
@@ -1530,7 +1532,7 @@
 
 <p>(SunOS, Solaris, HP-UX) Does not automatically flush output handles on some platforms.</p>
 
-<p>(VMS) The return value is POSIX-like (shifted up by 8 bits), which only allows room for a made-up value derived from the severity bits of the native 32-bit condition code (unless overridden by <a href="/cperl/lib/vmsish.html#vmsish-status"><code>use vmsish &#39;status&#39;</code></a>). If the native condition code is one that has a POSIX value encoded, the POSIX value will be decoded to extract the expected exit value. For more details see <a href="/cperl/perlvms.html#pod">&quot;$?&quot; in perlvms</a>.</p>
+<p>(VMS) As with Win32, <code>system(1, @args)</code> spawns an external process and immediately returns its process designator without waiting for the process to terminate. In this case the return value may be used subsequently in <a href="/cperl/perlfunc.html#wait"><code>wait</code></a> or <a href="/cperl/perlfunc.html#waitpid-PID-FLAGS"><code>waitpid</code></a>. Otherwise the return value is POSIX-like (shifted up by 8 bits), which only allows room for a made-up value derived from the severity bits of the native 32-bit condition code (unless overridden by <a href="/cperl/lib/vmsish.html#vmsish-status"><code>use vmsish &#39;status&#39;</code></a>). If the native condition code is one that has a POSIX value encoded, the POSIX value will be decoded to extract the expected exit value. For more details see <a href="/cperl/perlvms.html#pod">&quot;$?&quot; in perlvms</a>.</p>
 
 </dd>
 <dt id="telldir-DIRHANDLE">telldir DIRHANDLE</dt>
@@ -1867,7 +1869,6 @@
         Open UNIX       (Unixware) (since Perl 5.8.1/5.9.0)
         OS/2
         OS/400          (using the PASE) (since Perl 5.8.1/5.9.0)
-        PowerUX
         POSIX-BC        (formerly BS2000)
         QNX
         Solaris

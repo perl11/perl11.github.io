@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perllocale - Perl locale handling (internationalization and localization)</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -20,6 +20,7 @@
     <ul>
       <li><a href="#The-use-locale-pragma">The &quot;use locale&quot; pragma</a></li>
       <li><a href="#The-setlocale-function">The setlocale function</a></li>
+      <li><a href="#Multi-threaded-operation">Multi-threaded operation</a></li>
       <li><a href="#Finding-locales">Finding locales</a></li>
       <li><a href="#LOCALE-PROBLEMS">LOCALE PROBLEMS</a></li>
       <li><a href="#Testing-for-broken-locales">Testing for broken locales</a></li>
@@ -62,6 +63,7 @@
   <li><a href="#BUGS">BUGS</a>
     <ul>
       <li><a href="#Collation-of-strings-containing-embedded-NUL-characters">Collation of strings containing embedded NUL characters</a></li>
+      <li><a href="#Multi-threaded">Multi-threaded</a></li>
       <li><a href="#Broken-systems">Broken systems</a></li>
     </ul>
   </li>
@@ -79,9 +81,11 @@
 
 <p>To address these deficiencies, the concept of locales was invented (formally the ISO C, XPG4, POSIX 1.c &quot;locale system&quot;). And applications were and are being written that use the locale mechanism. The process of making such an application take account of its users&#39; preferences in these kinds of matters is called <b>internationalization</b> (often abbreviated as <b>i18n</b>); telling such an application about a particular set of preferences is known as <b>localization</b> (<b>l10n</b>).</p>
 
-<p>Perl has been extended to support the locale system. This is controlled per application by using one pragma, one function call, and several environment variables.</p>
+<p>Perl has been extended to support certain types of locales available in the locale system. This is controlled per application by using one pragma, one function call, and several environment variables.</p>
 
-<p>Unfortunately, there are quite a few deficiencies with the design (and often, the implementations) of locales. Unicode was invented (see <a href="/cperl/perlunitut.html">perlunitut</a> for an introduction to that) in part to address these design deficiencies, and nowadays, there is a series of &quot;UTF-8 locales&quot;, based on Unicode. These are locales whose character set is Unicode, encoded in UTF-8. Starting in v5.20, Perl fully supports UTF-8 locales, except for sorting and string comparisons like <code>lt</code> and <code>ge</code>. Starting in v5.26, Perl can handle these reasonably as well, depending on the platform&#39;s implementation. However, for earlier releases or for better control, use <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a> . Perl continues to support the old non UTF-8 locales as well. There are currently no UTF-8 locales for EBCDIC platforms.</p>
+<p>Perl supports single-byte locales that are supersets of ASCII, such as the ISO 8859 ones, and one multi-byte-type locale, UTF-8 ones, described in the next paragraph. Perl doesn&#39;t support any other multi-byte locales, such as the ones for East Asian languages.</p>
+
+<p>Unfortunately, there are quite a few deficiencies with the design (and often, the implementations) of locales. Unicode was invented (see <a href="/cperl/perlunitut.html">perlunitut</a> for an introduction to that) in part to address these design deficiencies, and nowadays, there is a series of &quot;UTF-8 locales&quot;, based on Unicode. These are locales whose character set is Unicode, encoded in UTF-8. Starting in v5.20, Perl fully supports UTF-8 locales, except for sorting and string comparisons like <code>lt</code> and <code>ge</code>. Starting in v5.26, Perl can handle these reasonably as well, depending on the platform&#39;s implementation. However, for earlier releases or for better control, use <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a>. Perl continues to support the old non UTF-8 locales as well. There are currently no UTF-8 locales for EBCDIC platforms.</p>
 
 <p>(Unicode is also creating <code>CLDR</code>, the &quot;Common Locale Data Repository&quot;, <a href="http://cldr.unicode.org/">http://cldr.unicode.org/</a> which includes more types of information than are available in the POSIX locale system. At the time of this writing, there was no CPAN module that provides access to this XML-encoded data. However, it is possible to compute the POSIX locale data from them, and earlier CLDR versions had these already extracted for you as UTF-8 locales <a href="http://unicode.org/Public/cldr/2.0.1/">http://unicode.org/Public/cldr/2.0.1/</a>.)</p>
 
@@ -172,7 +176,7 @@
 
 <h2 id="The-use-locale-pragma">The <code>&quot;use locale&quot;</code> pragma</h2>
 
-<p>WARNING! Do NOT use this pragma in scripts that have multiple <a href="/cperl/lib/threads.html">threads</a> active. The locale is not local to a single thread. Another thread may change the locale at any time, which could cause at a minimum that a given thread is operating in a locale it isn&#39;t expecting to be in. On some platforms, segfaults can also occur. The locale change need not be explicit; some operations cause perl to change the locale itself. You are vulnerable simply by having done a <code>&quot;use locale&quot;</code>.</p>
+<p>Starting in Perl 5.28, this pragma may be used in <a href="/cperl/lib/threads.html">multi-threaded</a> applications on systems that have thread-safe locale ability. Some caveats apply, see <a href="#Multi-threaded">&quot;Multi-threaded&quot;</a> below. On systems without this capability, or in earlier Perls, do NOT use this pragma in scripts that have multiple <a href="/cperl/lib/threads.html">threads</a> active. The locale in these cases is not local to a single thread. Another thread may change the locale at any time, which could cause at a minimum that a given thread is operating in a locale it isn&#39;t expecting to be in. On some platforms, segfaults can also occur. The locale change need not be explicit; some operations cause perl to change the locale itself. You are vulnerable simply by having done a <span style="white-space: nowrap;"><code>&quot;use locale&quot;</code></span>.</p>
 
 <p>By default, Perl itself (outside the <a href="/cperl/lib/POSIX.html">POSIX</a> module) ignores the current locale. The <span style="white-space: nowrap;"><code>use locale</code></span> pragma tells Perl to use the current locale for some operations. Starting in v5.16, there are optional parameters to this pragma, described below, which restrict which operations are affected by it.</p>
 
@@ -185,7 +189,7 @@
 <dt id="Not-within-the-scope-of-use-locale"><b>Not within the scope of <code>&quot;use locale&quot;</code></b></dt>
 <dd>
 
-<p>Only certain operations originating outside Perl should be affected, as follows:</p>
+<p>Only certain operations (all originating outside Perl) should be affected, as follows:</p>
 
 <ul>
 
@@ -193,6 +197,8 @@
 
 </li>
 <li><p>Also Perl gives access to various C library functions through the <a href="/cperl/lib/POSIX.html">POSIX</a> module. Some of those functions are always affected by the current locale. For example, <code>POSIX::strftime()</code> uses <code>LC_TIME</code>; <code>POSIX::strtod()</code> uses <code>LC_NUMERIC</code>; <code>POSIX::strcoll()</code> and <code>POSIX::strxfrm()</code> use <code>LC_COLLATE</code>. All such functions will behave according to the current underlying locale, even if that locale isn&#39;t exposed to Perl space.</p>
+
+<p>This applies as well to <a href="/cperl/lib/I18N/Langinfo.html">I18N::Langinfo</a>.</p>
 
 </li>
 <li><p>XS modules for all categories but <code>LC_NUMERIC</code> get the underlying locale, and hence any C library functions they call will use that underlying locale. For more discussion, see <a href="/cperl/perlxs.html#CAVEATS">&quot;CAVEATS&quot; in perlxs</a>.</p>
@@ -271,7 +277,7 @@
 
 <p>and only <a href="/cperl/perlvar.html#ERRNO">$!</a> and <a href="/cperl/perlvar.html#EXTENDED_OS_ERROR">$^E</a> will be locale aware. Everything else is unaffected.</p>
 
-<p>Since Perl doesn&#39;t currently do anything with the <code>LC_MONETARY</code> category, specifying <code>:monetary</code> does effectively nothing. Some systems have other categories, such as <code>LC_PAPER_SIZE</code>, but Perl also doesn&#39;t know anything about them, and there is no way to specify them in this pragma&#39;s arguments.</p>
+<p>Since Perl doesn&#39;t currently do anything with the <code>LC_MONETARY</code> category, specifying <code>:monetary</code> does effectively nothing. Some systems have other categories, such as <code>LC_PAPER</code>, but Perl also doesn&#39;t do anything with them, and there is no way to specify them in this pragma&#39;s arguments.</p>
 
 <p>You can also easily say to use all categories but one, by either, for example,</p>
 
@@ -292,7 +298,7 @@
 
 <h2 id="The-setlocale-function">The setlocale function</h2>
 
-<p>WARNING! Do NOT use this function in a <a href="/cperl/lib/threads.html">thread</a>. The locale will change in all other threads at the same time, and should your thread get paused by the operating system, and another started, that thread will not have the locale it is expecting. On some platforms, there can be a race leading to segfaults if two threads call this function nearly simultaneously.</p>
+<p>WARNING! Prior to Perl 5.28 or on a system that does not support thread-safe locale operations, do NOT use this function in a <a href="/cperl/lib/threads.html">thread</a>. The locale will change in all other threads at the same time, and should your thread get paused by the operating system, and another started, that thread will not have the locale it is expecting. On some platforms, there can be a race leading to segfaults if two threads call this function nearly simultaneously.</p>
 
 <p>You can switch locales as often as you wish at run time with the <code>POSIX::setlocale()</code> function:</p>
 
@@ -335,7 +341,23 @@
 
 <p>If <code>set_locale()</code> fails for some reason (for example, an attempt to set to a locale unknown to the system), the locale for the category is not changed, and the function returns <code>undef</code>.</p>
 
+<p>Starting in Perl 5.28, on multi-threaded perls compiled on systems that implement POSIX 2008 thread-safe locale operations, this function doesn&#39;t actually call the system <code>setlocale</code>. Instead those thread-safe operations are used to emulate the <code>setlocale</code> function, but in a thread-safe manner.</p>
+
 <p>For further information about the categories, consult <a href="http://man.he.net/man3/setlocale">setlocale(3)</a>.</p>
+
+<h2 id="Multi-threaded-operation">Multi-threaded operation</h2>
+
+<p>Beginning in Perl 5.28, multi-threaded locale operation is supported on systems that implement either the POSIX 2008 or Windows-specific thread-safe locale operations. Many modern systems, such as various Unix variants and Darwin do have this.</p>
+
+<p>You can tell if using locales is safe on your system by looking at the read-only boolean variable <code>${^SAFE_LOCALES}</code>. The value is 1 if the perl is not threaded, or if it is using thread-safe locale operations.</p>
+
+<p>Thread-safe operations are supported in Windows starting in Visual Studio 2005, and in systems compatible with POSIX 2008. Some platforms claim to support POSIX 2008, but have buggy implementations, so that the hints files for compiling to run on them turn off attempting to use thread-safety. <code>${^SAFE_LOCALES}</code> will be 0 on them.</p>
+
+<p>Be aware that writing a multi-threaded application will not be portable to a platform which lacks the native thread-safe locale support. On systems that do have it, you automatically get this behavior for threaded perls, without having to do anything. If for some reason, you don&#39;t want to use this capability (perhaps the POSIX 2008 support is buggy on your system), you can manually compile Perl to use the old non-thread-safe implementation by passing the argument <code>-Accflags=&#39;-DNO_THREAD_SAFE_LOCALE&#39;</code> to <i>Configure</i>. Except on Windows, this will continue to use certain of the POSIX 2008 functions in some situations. If these are buggy, you can pass the following to <i>Configure</i> instead or additionally: <code>-Accflags=&#39;-DNO_POSIX_2008_LOCALE&#39;</code>. This will also keep the code from using thread-safe locales. <code>${^SAFE_LOCALES}</code> will be 0 on systems that turn off the thread-safe operations.</p>
+
+<p>The initial program is started up using the locale specified from the environment, as currently, described in <a href="#ENVIRONMENT">&quot;ENVIRONMENT&quot;</a>. All newly created threads start with <code>LC_ALL</code> set to <code>&quot;C&quot;</code>&gt;. Each thread may use <code>POSIX::setlocale()</code> to query or switch its locale at any time, without affecting any other thread. All locale-dependent operations automatically use their thread&#39;s locale.</p>
+
+<p>This should be completely transparent to any applications written entirely in Perl (minus a few rarely encountered caveats given in the <a href="#Multi-threaded">&quot;Multi-threaded&quot;</a> section). Information for XS module writers is given in <a href="/cperl/perlxs.html#Locale-aware-XS-code">&quot;Locale-aware XS code&quot; in perlxs</a>.</p>
 
 <h2 id="Finding-locales">Finding locales</h2>
 
@@ -493,7 +515,7 @@
 
 <h2 id="I18N::Langinfo">I18N::Langinfo</h2>
 
-<p>Another interface for querying locale-dependent information is the <code>I18N::Langinfo::langinfo()</code> function, available at least in Unix-like systems and VMS.</p>
+<p>Another interface for querying locale-dependent information is the <code>I18N::Langinfo::langinfo()</code> function.</p>
 
 <p>The following example will import the <code>langinfo()</code> function itself and three constants to be used as arguments to <code>langinfo()</code>: a constant for the abbreviated first day of the week (the numbering starts from Sunday = 1) and two more constants for the affirmative and negative answers for a yes/no question in the current locale.</p>
 
@@ -551,8 +573,6 @@
 
 <p>If Perl detects that there are problems with the locale collation order, it reverts to using non-locale collation rules for that locale.</p>
 
-<p>If Perl detects that there are problems with the locale collation order, it reverts to using non-locale collation rules for that locale.</p>
-
 <p>If you have a single string that you want to check for &quot;equality in locale&quot; against several others, you might think you could gain a little efficiency by using <code>POSIX::strxfrm()</code> in conjunction with <code>eq</code>:</p>
 
 <pre><code>        use POSIX qw(strxfrm);
@@ -564,7 +584,7 @@
         print &quot;locale collation ignores case\n&quot;
             if $xfrm_string eq strxfrm(&quot;mixed-case string&quot;);</code></pre>
 
-<p><code>strxfrm()</code> takes a string and maps it into a transformed string for use in char-by-char comparisons against other transformed strings during collation. &quot;Under the hood&quot;, locale-affected Perl comparison operators call <code>strxfrm()</code> for both operands, then do a char-by-char comparison of the transformed strings. By calling <code>strxfrm()</code> explicitly and using a non locale-affected comparison, the example attempts to save a couple of transformations. But in fact, it doesn&#39;t save anything: Perl magic (see <a href="/cperl/perlguts.html#Magic-Variables">&quot;Magic Variables&quot; in perlguts</a>) creates the transformed version of a string the first time it&#39;s needed in a comparison, then keeps this version around in case it&#39;s needed again. An example rewritten the easy way with <code>cmp</code> runs just about as fast. It also copes with null characters embedded in strings; if you call <code>strxfrm()</code> directly, it treats the first null it finds as a terminator. don&#39;t expect the transformed strings it produces to be portable across systems--or even from one revision of your operating system to the next. In short, don&#39;t call <code>strxfrm()</code> directly: let Perl do it for you.</p>
+<p><code>strxfrm()</code> takes a string and maps it into a transformed string for use in char-by-char comparisons against other transformed strings during collation. &quot;Under the hood&quot;, locale-affected Perl comparison operators call <code>strxfrm()</code> for both operands, then do a char-by-char comparison of the transformed strings. By calling <code>strxfrm()</code> explicitly and using a non locale-affected comparison, the example attempts to save a couple of transformations. But in fact, it doesn&#39;t save anything: Perl magic (see <a href="/cperl/perlguts.html#Magic-Variables">&quot;Magic Variables&quot; in perlguts</a>) creates the transformed version of a string the first time it&#39;s needed in a comparison, then keeps this version around in case it&#39;s needed again. An example rewritten the easy way with <code>cmp</code> runs just about as fast. It also copes with null characters embedded in strings; if you call <code>strxfrm()</code> directly, it treats the first null it finds as a terminator. Don&#39;t expect the transformed strings it produces to be portable across systems--or even from one revision of your operating system to the next. In short, don&#39;t call <code>strxfrm()</code> directly: let Perl do it for you.</p>
 
 <p>Note: <code>use locale</code> isn&#39;t shown in some of these examples because it isn&#39;t needed: <code>strcoll()</code> and <code>strxfrm()</code> are POSIX functions which use the standard system-supplied <code>libc</code> functions that always obey the current <code>LC_COLLATE</code> locale.</p>
 
@@ -572,7 +592,7 @@
 
 <p>In the scope of a <span style="white-space: nowrap;"><code>use locale</code></span> form that includes <code>LC_CTYPE</code>, Perl obeys the <code>LC_CTYPE</code> locale setting. This controls the application&#39;s notion of which characters are alphabetic, numeric, punctuation, <i>etc</i>. This affects Perl&#39;s <code>\w</code> regular expression metanotation, which stands for alphanumeric characters--that is, alphabetic, numeric, and the platform&#39;s native underscore. (Consult <a href="/cperl/perlre.html">perlre</a> for more information about regular expressions.) Thanks to <code>LC_CTYPE</code>, depending on your locale setting, characters like &quot;&aelig;&quot;, &quot;&eth;&quot;, &quot;&szlig;&quot;, and &quot;&oslash;&quot; may be understood as <code>\w</code> characters. It also affects things like <code>\s</code>, <code>\D</code>, and the POSIX character classes, like <code>[[:graph:]]</code>. (See <a href="/cperl/perlrecharclass.html">perlrecharclass</a> for more information on all these.)</p>
 
-<p>The <code>LC_CTYPE</code> locale also provides the map used in transliterating characters between lower and uppercase. This affects the case-mapping functions--<code>fc()</code>, <code>lc()</code>, <code>lcfirst()</code>, <code>uc()</code>, and <code>ucfirst()</code>; case-mapping interpolation with <code>\F</code>, <code>\l</code>, <code>\L</code>, <code>\u</code>, or <code>\U</code> in double-quoted strings and <code>s///</code> substitutions; and case-independent regular expression pattern matching using the <code>i</code> modifier.</p>
+<p>The <code>LC_CTYPE</code> locale also provides the map used in transliterating characters between lower and uppercase. This affects the case-mapping functions--<code>fc()</code>, <code>lc()</code>, <code>lcfirst()</code>, <code>uc()</code>, and <code>ucfirst()</code>; case-mapping interpolation with <code>\F</code>, <code>\l</code>, <code>\L</code>, <code>\u</code>, or <code>\U</code> in double-quoted strings and <code>s///</code> substitutions; and case-insensitive regular expression pattern matching using the <code>i</code> modifier.</p>
 
 <p>Starting in v5.20, Perl supports UTF-8 locales for <code>LC_CTYPE</code>, but otherwise Perl only supports single-byte locales, such as the ISO 8859 series. This means that wide character locales, for example for Asian languages, are not well-supported. Use of these locales may cause core dumps. If the platform has the capability for Perl to detect such a locale, starting in Perl v5.22, <a href="/cperl/lib/warnings.html#Category-Hierarchy">Perl will warn, default enabled</a>, using the <code>locale</code> warning category, whenever such a locale is switched into. The UTF-8 locale support is actually a superset of POSIX locales, because it is really full Unicode behavior as if no <code>LC_CTYPE</code> locale were in effect at all (except for tainting; see <a href="#SECURITY">&quot;SECURITY&quot;</a>). POSIX locales, even UTF-8 ones, are lacking certain concepts in Unicode, such as the idea that changing the case of a character could expand to be more than one character. Perl in a UTF-8 locale, will give you that expansion. Prior to v5.20, Perl treated a UTF-8 locale on some platforms like an ISO 8859-1 one, with some restrictions, and on other platforms more like the &quot;C&quot; locale. For releases v5.16 and v5.18, <code><span style="white-space: nowrap;">use locale &#39;not_characters</span></code> could be used as a workaround for this (see <a href="#Unicode-and-UTF-8">&quot;Unicode and UTF-8&quot;</a>).</p>
 
@@ -890,7 +910,7 @@
 
 <h2 id="An-imperfect-standard">An imperfect standard</h2>
 
-<p>Internationalization, as defined in the C and POSIX standards, can be criticized as incomplete, ungainly, and having too large a granularity. (Locales apply to a whole process, when it would arguably be more useful to have them apply to a single thread, window group, or whatever.) They also have a tendency, like standards groups, to divide the world into nations, when we all know that the world can equally well be divided into bankers, bikers, gamers, and so on.</p>
+<p>Internationalization, as defined in the C and POSIX standards, can be criticized as incomplete and ungainly. They also have a tendency, like standards groups, to divide the world into nations, when we all know that the world can equally well be divided into bankers, bikers, gamers, and so on.</p>
 
 <h1 id="Unicode-and-UTF-8">Unicode and UTF-8</h1>
 
@@ -918,7 +938,7 @@
 
 <p>For single-byte locales, Perl generally takes the tack to use locale rules on code points that can fit in a single byte, and Unicode rules for those that can&#39;t (though this isn&#39;t uniformly applied, see the note at the end of this section). This prevents many problems in locales that aren&#39;t UTF-8. Suppose the locale is ISO8859-7, Greek. The character at 0xD7 there is a capital Chi. But in the ISO8859-1 locale, Latin1, it is a multiplication sign. The POSIX regular expression character class <code>[[:alpha:]]</code> will magically match 0xD7 in the Greek locale but not in the Latin one.</p>
 
-<p>However, there are places where this breaks down. Certain Perl constructs are for Unicode only, such as <code>\p{Alpha}</code>. They assume that 0xD7 always has its Unicode meaning (or the equivalent on EBCDIC platforms). Since Latin1 is a subset of Unicode and 0xD7 is the multiplication sign in both Latin1 and Unicode, <code>\p{Alpha}</code> will never match it, regardless of locale. A similar issue occurs with <code>\N{...}</code>. Prior to v5.20, It is therefore a bad idea to use <code>\p{}</code> or <code>\N{}</code> under plain <code>use locale</code>--<i>unless</i> you can guarantee that the locale will be ISO8859-1. Use POSIX character classes instead.</p>
+<p>However, there are places where this breaks down. Certain Perl constructs are for Unicode only, such as <code>\p{Alpha}</code>. They assume that 0xD7 always has its Unicode meaning (or the equivalent on EBCDIC platforms). Since Latin1 is a subset of Unicode and 0xD7 is the multiplication sign in both Latin1 and Unicode, <code>\p{Alpha}</code> will never match it, regardless of locale. A similar issue occurs with <code>\N{...}</code>. Prior to v5.20, it is therefore a bad idea to use <code>\p{}</code> or <code>\N{}</code> under plain <code>use locale</code>--<i>unless</i> you can guarantee that the locale will be ISO8859-1. Use POSIX character classes instead.</p>
 
 <p>Another problem with this approach is that operations that cross the single byte/multiple byte boundary are not well-defined, and so are disallowed. (This boundary is between the codepoints at 255/256.) For example, lower casing LATIN CAPITAL LETTER Y WITH DIAERESIS (U+0178) should return LATIN SMALL LETTER Y WITH DIAERESIS (U+00FF). But in the Greek locale, for example, there is no character at 0xFF, and Perl has no way of knowing what the character at 0xFF is really supposed to represent. Thus it disallows the operation. In this mode, the lowercase of U+0178 is itself.</p>
 
@@ -938,7 +958,28 @@
 
 <h2 id="Collation-of-strings-containing-embedded-NUL-characters">Collation of strings containing embedded <code>NUL</code> characters</h2>
 
-<p><code>NUL</code> characters will sort the same as the lowest collating control character does, or to <code>&quot;\001&quot;</code> in the unlikely event that there are no control characters at all in the locale. In cases where the strings don&#39;t contain this non-<code>NUL</code> control, the results will be correct, and in many locales, this control, whatever it might be, will rarely be encountered. But there are cases where a <code>NUL</code> should sort before this control, but doesn&#39;t. If two strings do collate identically, the one containing the <code>NUL</code> will sort to earlier.</p>
+<p><code>NUL</code> characters will sort the same as the lowest collating control character does, or to <code>&quot;\001&quot;</code> in the unlikely event that there are no control characters at all in the locale. In cases where the strings don&#39;t contain this non-<code>NUL</code> control, the results will be correct, and in many locales, this control, whatever it might be, will rarely be encountered. But there are cases where a <code>NUL</code> should sort before this control, but doesn&#39;t. If two strings do collate identically, the one containing the <code>NUL</code> will sort to earlier. Prior to 5.26, there were more bugs.</p>
+
+<h2 id="Multi-threaded">Multi-threaded</h2>
+
+<p>XS code or C-language libraries called from it that use the system <a><code>setlocale(3)</code></a> function (except on Windows) likely will not work from a multi-threaded application without changes. See <a href="/cperl/perlxs.html#Locale-aware-XS-code">&quot;Locale-aware XS code&quot; in perlxs</a>.</p>
+
+<p>An XS module that is locale-dependent could have been written under the assumption that it will never be called in a multi-threaded environment, and so uses other non-locale constructs that aren&#39;t multi-thread-safe. See <a href="/cperl/perlxs.html#Thread-aware-system-interfaces">&quot;Thread-aware system interfaces&quot; in perlxs</a>.</p>
+
+<p>POSIX does not define a way to get the name of the current per-thread locale. Some systems, such as Darwin and NetBSD do implement a function, <a href="http://man.he.net/man3/querylocale">querylocale(3)</a> to do this. On non-Windows systems without it, such as Linux, there are some additional caveats:</p>
+
+<ul>
+
+<li><p>An embedded perl needs to be started up while the global locale is in effect. See <a href="/cperl/perlembed.html#Using-embedded-Perl-with-POSIX-locales">&quot;Using embedded Perl with POSIX locales&quot; in perlembed</a>.</p>
+
+</li>
+<li><p>It becomes more important for perl to know about all the possible locale categories on the platform, even if they aren&#39;t apparently used in your program. Perl knows all of the Linux ones. If your platform has others, you can send email to <a href="mailto:perlbug@perl.org">mailto:perlbug@perl.org</a> for inclusion of it in the next release. In the meantime, it is possible to edit the Perl source to teach it about the category, and then recompile. Search for instances of, say, <code>LC_PAPER</code> in the source, and use that as a template to add the omitted one.</p>
+
+</li>
+<li><p>It is possible, though hard to do, to call <code>POSIX::setlocale</code> with a locale that it doesn&#39;t recognize as syntactically legal, but actually is legal on that system. This should happen only with embedded perls, or if you hand-craft a locale name yourself.</p>
+
+</li>
+</ul>
 
 <h2 id="Broken-systems">Broken systems</h2>
 
@@ -946,13 +987,13 @@
 
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p><a href="/cperl/lib/I18N/Langinfo.html">I18N::Langinfo</a>, <a href="/cperl/perluniintro.html">perluniintro</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/POSIX.html#isalnum">&quot;isalnum&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isalpha">&quot;isalpha&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isdigit">&quot;isdigit&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isgraph">&quot;isgraph&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#islower">&quot;islower&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isprint">&quot;isprint&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#ispunct">&quot;ispunct&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isspace">&quot;isspace&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isupper">&quot;isupper&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#isxdigit">&quot;isxdigit&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#localeconv">&quot;localeconv&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#setlocale">&quot;setlocale&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strcoll">&quot;strcoll&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strftime">&quot;strftime&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strtod">&quot;strtod&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strxfrm">&quot;strxfrm&quot; in POSIX</a>.</p>
+<p><a href="/cperl/lib/I18N/Langinfo.html">I18N::Langinfo</a>, <a href="/cperl/perluniintro.html">perluniintro</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/open.html">open</a>, <a href="/cperl/lib/POSIX.html#localeconv">&quot;localeconv&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#setlocale">&quot;setlocale&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strcoll">&quot;strcoll&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strftime">&quot;strftime&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strtod">&quot;strtod&quot; in POSIX</a>, <a href="/cperl/lib/POSIX.html#strxfrm">&quot;strxfrm&quot; in POSIX</a>.</p>
 
 <p>For special considerations when Perl is embedded in a C program, see <a href="/cperl/perlembed.html#Using-embedded-Perl-with-POSIX-locales">&quot;Using embedded Perl with POSIX locales&quot; in perlembed</a>.</p>
 
 <h1 id="HISTORY">HISTORY</h1>
 
-<p>Jarkko Hietaniemi&#39;s original <i>perli18n.pod</i> heavily hacked by Dominic Dunlop, assisted by the perl5-porters. Prose worked over a bit by Tom Christiansen, and updated by Perl 5 porters.</p>
+<p>Jarkko Hietaniemi&#39;s original <i>perli18n.pod</i> heavily hacked by Dominic Dunlop, assisted by the perl5-porters. Prose worked over a bit by Tom Christiansen, and now maintained by Perl 5 porters.</p>
 
 
 </body>

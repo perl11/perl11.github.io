@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>File::Temp - return name and handle of a temporary file safely</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -34,12 +34,7 @@
   </li>
   <li><a href="#HISTORY">HISTORY</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
-  <li><a href="#SUPPORT">SUPPORT</a>
-    <ul>
-      <li><a href="#Bugs-Feature-Requests">Bugs / Feature Requests</a></li>
-      <li><a href="#Source-Code">Source Code</a></li>
-    </ul>
-  </li>
+  <li><a href="#SUPPORT">SUPPORT</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#CONTRIBUTORS">CONTRIBUTORS</a></li>
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
@@ -51,7 +46,7 @@
 
 <h1 id="VERSION">VERSION</h1>
 
-<p>version 0.2304</p>
+<p>version 0.2308</p>
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
@@ -84,7 +79,9 @@
   $tmp = File::Temp-&gt;new( UNLINK =&gt; 0, SUFFIX =&gt; &#39;.dat&#39; );
   print $tmp &quot;Some data\n&quot;;
   print &quot;Filename is $tmp\n&quot;;
-  $tmp-&gt;seek( 0, SEEK_END );</code></pre>
+  $tmp-&gt;seek( 0, SEEK_END );
+
+  $dir = File::Temp-&gt;newdir(); # CLEANUP =&gt; 1 by default</code></pre>
 
 <p>The following interfaces are provided for compatibility with existing APIs. They should not be used in new code.</p>
 
@@ -137,6 +134,8 @@
 <pre><code>    $fh eq $filename       # as a string
     $fh != \*STDOUT        # as a number</code></pre>
 
+<p>Available since 0.14.</p>
+
 <dl>
 
 <dt id="new"><b>new</b></dt>
@@ -158,6 +157,10 @@
 
 <p>Can call croak() if an error occurs.</p>
 
+<p>Available since 0.14.</p>
+
+<p>TEMPLATE available since 0.23</p>
+
 </dd>
 <dt id="newdir"><b>newdir</b></dt>
 <dd>
@@ -174,6 +177,10 @@
 
 <p>A template may be specified either with a leading template or with a TEMPLATE argument.</p>
 
+<p>Available since 0.19.</p>
+
+<p>TEMPLATE available since 0.23.</p>
+
 </dd>
 <dt id="filename"><b>filename</b></dt>
 <dd>
@@ -183,6 +190,8 @@
 <pre><code>  $filename = $tmp-&gt;filename;</code></pre>
 
 <p>This method is called automatically when the object is used as a string.</p>
+
+<p>Current API available since 0.14</p>
 
 </dd>
 <dt id="dirname"><b>dirname</b></dt>
@@ -203,6 +212,8 @@
 <pre><code> $fh-&gt;unlink_on_destroy( 1 );</code></pre>
 
 <p>Default is for the file to be removed.</p>
+
+<p>Current API available since 0.15</p>
 
 </dd>
 <dt id="DESTROY"><b>DESTROY</b></dt>
@@ -269,13 +280,21 @@
 
 <p>This will return the filename based on the template but will not open this file. Cannot be used in conjunction with UNLINK set to true. Default is to always open the file to protect from possible race conditions. A warning is issued if warnings are turned on. Consider using the tmpnam() and mktemp() functions described elsewhere in this document if opening the file is not required.</p>
 
-<p>If the operating system supports it (for example BSD derived systems), the filehandle will be opened with O_EXLOCK (open with exclusive file lock). This can sometimes cause problems if the intention is to pass the filename to another system that expects to take an exclusive lock itself (such as DBD::SQLite) whilst ensuring that the tempfile is not reused. In this situation the &quot;EXLOCK&quot; option can be passed to tempfile. By default EXLOCK will be true (this retains compatibility with earlier releases).</p>
+<p>To open the temporary filehandle with O_EXLOCK (open with exclusive file lock) use <code>EXLOCK=&gt;1</code>. This is supported only by some operating systems (most notably BSD derived systems). By default EXLOCK will be false. Former <code>File::Temp</code> versions set EXLOCK to true, so to be sure to get an unlocked filehandle also with older versions, explicitly set <code>EXLOCK=&gt;0</code>.</p>
 
-<pre><code>  ($fh, $filename) = tempfile($template, EXLOCK =&gt; 0);</code></pre>
+<pre><code>  ($fh, $filename) = tempfile($template, EXLOCK =&gt; 1);</code></pre>
 
 <p>Options can be combined as required.</p>
 
 <p>Will croak() if there is an error.</p>
+
+<p>Available since 0.05.</p>
+
+<p>UNLINK flag available since 0.10.</p>
+
+<p>TMPDIR flag available since 0.19.</p>
+
+<p>EXLOCK flag available since 0.19.</p>
 
 </dd>
 <dt id="tempdir"><b>tempdir</b></dt>
@@ -315,6 +334,8 @@
 
 <p>Will croak() if there is an error.</p>
 
+<p>Current API available since 0.05.</p>
+
 </dd>
 </dl>
 
@@ -337,6 +358,8 @@
 
 <p>Will croak() if there is an error.</p>
 
+<p>Current API available since 0.05.</p>
+
 </dd>
 <dt id="mkstemps"><b>mkstemps</b></dt>
 <dd>
@@ -350,6 +373,8 @@
 <p>Returns just the filehandle alone when called in scalar context.</p>
 
 <p>Will croak() if there is an error.</p>
+
+<p>Current API available since 0.05.</p>
 
 </dd>
 <dt id="mkdtemp"><b>mkdtemp</b></dt>
@@ -365,6 +390,8 @@
 
 <p>Will croak() if there is an error.</p>
 
+<p>Current API available since 0.05.</p>
+
 </dd>
 <dt id="mktemp"><b>mktemp</b></dt>
 <dd>
@@ -376,6 +403,8 @@
 <p>Template is the same as that required by mkstemp().</p>
 
 <p>Will croak() if there is an error.</p>
+
+<p>Current API available since 0.05.</p>
 
 </dd>
 </dl>
@@ -405,6 +434,8 @@
 
 <p>Will croak() if there is an error.</p>
 
+<p>Current API available since 0.05.</p>
+
 </dd>
 <dt id="tmpfile"><b>tmpfile</b></dt>
 <dd>
@@ -418,6 +449,10 @@
 <p>If the temporary file can not be created undef is returned. Currently this command will probably not work when the temporary directory is on an NFS file system.</p>
 
 <p>Will croak() if there is an error.</p>
+
+<p>Available since 0.05.</p>
+
+<p>Returning undef if unable to create file added in 0.12.</p>
 
 </dd>
 </dl>
@@ -442,6 +477,8 @@
 <p>Because this function uses mktemp(), it can suffer from race conditions.</p>
 
 <p>Will croak() if there is an error.</p>
+
+<p>Current API available since 0.05.</p>
 
 </dd>
 </dl>
@@ -472,6 +509,10 @@
 
 <p>This function should not be called if you are using the object oriented interface since the it will interfere with the object destructor deleting the file.</p>
 
+<p>Available Since 0.05.</p>
+
+<p>If can not unlink open file, defer removal until later available since 0.06.</p>
+
 </dd>
 <dt id="cmpstat"><b>cmpstat</b></dt>
 <dd>
@@ -486,6 +527,8 @@
 <p>On certain platforms, for example Windows, not all the fields returned by stat() can be compared. For example, the <code>dev</code> and <code>rdev</code> fields seem to be different in Windows. Also, it seems that the size of the file returned by stat() does not always agree, with <code>stat(FH)</code> being more accurate than <code>stat(filename)</code>, presumably because of caching issues even when using autoflush (this is usually overcome by waiting a while after writing to the tempfile before attempting to <code>unlink0</code> it).</p>
 
 <p>Not exported by default.</p>
+
+<p>Current API available since 0.14.</p>
 
 </dd>
 <dt id="unlink1"><b>unlink1</b></dt>
@@ -504,6 +547,8 @@
 
 <p>Can call croak() if there is a security anomaly during the stat() comparison.</p>
 
+<p>Current API available since 0.14.</p>
+
 </dd>
 <dt id="cleanup"><b>cleanup</b></dt>
 <dd>
@@ -517,6 +562,8 @@
 <pre><code>  File::Temp::cleanup();</code></pre>
 
 <p>Not exported by default.</p>
+
+<p>Current API available since 0.15.</p>
 
 </dd>
 </dl>
@@ -574,6 +621,8 @@
   die &quot;Could not change to high security&quot;
       if $newlevel != File::Temp::HIGH;</code></pre>
 
+<p>Available since 0.05.</p>
+
 </dd>
 <dt id="TopSystemUID">TopSystemUID</dt>
 <dd>
@@ -588,6 +637,8 @@
   my $topid = File::Temp-&gt;top_system_uid;</code></pre>
 
 <p>This value can be adjusted to reduce security checking if required. The value is only relevant when <code>safe_level</code> is set to MEDIUM or higher.</p>
+
+<p>Available since 0.05.</p>
 
 </dd>
 <dt id="KEEP_ALL"><b>$KEEP_ALL</b></dt>
@@ -610,6 +661,8 @@
 <pre><code>  $File::Temp::DEBUG = 1;</code></pre>
 
 <p>Default is for debugging mode to be disabled.</p>
+
+<p>Available since 0.15.</p>
 
 </dd>
 </dl>
@@ -640,7 +693,7 @@
 
 <h2 id="Taint-mode">Taint mode</h2>
 
-<p>If you need to run code under taint mode, updating to the latest <a href="/cperl/lib/File/Spec.html">File::Spec</a> is highly recommended.</p>
+<p>If you need to run code under taint mode, updating to the latest <a href="/cperl/lib/File/Spec.html">File::Spec</a> is highly recommended. On Windows, if the directory given by <a>File::Spec::tmpdir</a> isn&#39;t writable, File::Temp will attempt to fallback to the user&#39;s local application data directory or croak with an error.</p>
 
 <h2 id="BINMODE">BINMODE</h2>
 
@@ -662,21 +715,13 @@
 
 <p>See <a>File::Tempdir</a> for an alternative object-oriented wrapper for the <code>tempdir</code> function.</p>
 
-<p># vim: ts=2 sts=2 sw=2 et:</p>
-
 <h1 id="SUPPORT">SUPPORT</h1>
 
-<h2 id="Bugs-Feature-Requests">Bugs / Feature Requests</h2>
+<p>Bugs may be submitted through <a href="https://rt.cpan.org/Public/Dist/Display.html?Name=File-Temp">the RT bug tracker</a> (or <a href="mailto:bug-File-Temp@rt.cpan.org">bug-File-Temp@rt.cpan.org</a>).</p>
 
-<p>Please report any bugs or feature requests through the issue tracker at <a href="http://rt.cpan.org/Public/Dist/Display.html?Name=File-Temp">http://rt.cpan.org/Public/Dist/Display.html?Name=File-Temp</a>. You will be notified automatically of any progress on your issue.</p>
+<p>There is also a mailing list available for users of this distribution, at <a href="http://lists.perl.org/list/cpan-workers.html">http://lists.perl.org/list/cpan-workers.html</a>.</p>
 
-<h2 id="Source-Code">Source Code</h2>
-
-<p>This is open source software. The code repository is available for public review and contribution under the terms of the license.</p>
-
-<p><a href="https://github.com/Perl-Toolchain-Gang/File-Temp">https://github.com/Perl-Toolchain-Gang/File-Temp</a></p>
-
-<pre><code>  git clone https://github.com/Perl-Toolchain-Gang/File-Temp.git</code></pre>
+<p>There is also an irc channel available for users of this distribution, at <a href="irc://irc.perl.org/#toolchain"><code>#toolchain</code> on <code>irc.perl.org</code></a>.</p>
 
 <h1 id="AUTHOR">AUTHOR</h1>
 
@@ -686,10 +731,40 @@
 
 <ul>
 
-<li><p>Ben Tilly &lt;btilly@gmail.com&gt;</p>
+<li><p>David Golden &lt;dagolden@cpan.org&gt;</p>
 
 </li>
-<li><p>David Golden &lt;dagolden@cpan.org&gt;</p>
+<li><p>Karen Etheridge &lt;ether@cpan.org&gt;</p>
+
+</li>
+<li><p>Slaven Rezic &lt;slaven@rezic.de&gt;</p>
+
+</li>
+<li><p>Peter Rabbitson &lt;ribasushi@cpan.org&gt;</p>
+
+</li>
+<li><p>Olivier Mengue &lt;dolmen@cpan.org&gt;</p>
+
+</li>
+<li><p>David Golden &lt;xdg@xdg.me&gt;</p>
+
+</li>
+<li><p>Kevin Ryde &lt;user42@zip.com.au&gt;</p>
+
+</li>
+<li><p>Peter John Acklam &lt;pjacklam@online.no&gt;</p>
+
+</li>
+<li><p>Slaven Rezic &lt;slaven.rezic@idealo.de&gt;</p>
+
+</li>
+<li><p>James E. Keenan &lt;jkeen@verizon.net&gt;</p>
+
+</li>
+<li><p>Brian Mowrey &lt;brian@drlabs.org&gt;</p>
+
+</li>
+<li><p>Dagfinn Ilmari Manns&aring;ker &lt;ilmari@ilmari.org&gt;</p>
 
 </li>
 <li><p>David Steinbrunner &lt;dsteinbrunner@pobox.com&gt;</p>
@@ -698,29 +773,17 @@
 <li><p>Ed Avis &lt;eda@linux01.wcl.local&gt;</p>
 
 </li>
-<li><p>James E. Keenan &lt;jkeen@verizon.net&gt;</p>
+<li><p>Guillem Jover &lt;guillem@hadrons.org&gt;</p>
 
 </li>
-<li><p>Karen Etheridge &lt;ether@cpan.org&gt;</p>
-
-</li>
-<li><p>Kevin Ryde &lt;user42@zip.com.au&gt;</p>
-
-</li>
-<li><p>Olivier Mengue &lt;dolmen@cpan.org&gt;</p>
-
-</li>
-<li><p>Peter John Acklam &lt;pjacklam@online.no&gt;</p>
-
-</li>
-<li><p>Peter Rabbitson &lt;ribasushi@cpan.org&gt;</p>
+<li><p>Ben Tilly &lt;btilly@gmail.com&gt;</p>
 
 </li>
 </ul>
 
 <h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
 
-<p>This software is copyright (c) 2013 by Tim Jenness and the UK Particle Physics and Astronomy Research Council.</p>
+<p>This software is copyright (c) 2018 by Tim Jenness and the UK Particle Physics and Astronomy Research Council.</p>
 
 <p>This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.</p>
 

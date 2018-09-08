@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perlclass - Modern cperl classes and roles</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -24,6 +24,7 @@
   </li>
   <li><a href="#MULTI">MULTI</a></li>
   <li><a href="#HAS">HAS</a></li>
+  <li><a href="#LIMITATIONS">LIMITATIONS</a></li>
 </ul>
 
 <h1 id="NAME">NAME</h1>
@@ -176,6 +177,56 @@
 
     $o = new MyClass;   # and directly afterwards:
     $o-&gt;a;      # $o2-&gt;[0]  - $o is known to be MyClass</code></pre>
+
+<h1 id="LIMITATIONS">LIMITATIONS</h1>
+
+<dl>
+
+<dt id="Max-65536-fields">Max 65536 fields</dt>
+<dd>
+
+<p><a href="/cperl/perldiag.html#Too-many-fields">Too many fields</a>: cperl 5.27.2 added a limitation of max. 65536 fields per class.</p>
+
+</dd>
+<dt id="field-index-fixups-with-roles">field index fixups with roles</dt>
+<dd>
+
+<p><code>panic: cannot yet adjust field indices when composing role %s::%s into %s %s [cperl #311]&quot;</code></p>
+
+<p>When copying a method from a role to a class, and the field index from the role method would be different to a field index in the resulting class, the method is not yet fixed up to the new indices. A temp. solution would be to change the ordering of the roles, or to use the <code>$self-&gt;field</code> method syntax in the role method. This requires the not yet finished inliner. Currently we can only alias composed role methods and we don&#39;t change the ordering of the fields. See <a href="https://github.com/perl11/cperl/issues/311">[cperl #311]</a></p>
+
+</dd>
+<dt id="eval-class-fails">eval &#39;class {}&#39; fails</dt>
+<dd>
+
+<p>Cannot be created in an eval block or subroutine. The pad lookup is still global and not per optional CvPADLIST.</p>
+
+</dd>
+<dt id="Array-and-hash-fields-cannot-be-parsed-yet">Array and hash fields cannot be parsed yet.</dt>
+<dd>
+
+</dd>
+<dt id="B::class">B::class</dt>
+<dd>
+
+<p>B does not export the class method anymore.</p>
+
+<pre><code>  use B &#39;class&#39;;
+  class $op</code></pre>
+
+<p>must now be converted to:</p>
+
+<pre><code>  use B;
+  B::class $op</code></pre>
+
+</dd>
+<dt id="Performance">Performance</dt>
+<dd>
+
+<p>It is not yet the fastest field and method accessor, though theoretically it should be. It still has about the same speed as Mouse, though the new oref ops would allow to skip refcounting of fields and store them as native offsets into the object. Some oref compile-time optimizations are not yet implemented.</p>
+
+</dd>
+</dl>
 
 
 </body>

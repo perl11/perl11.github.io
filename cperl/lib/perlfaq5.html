@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perlfaq5 - Files and Formats</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -26,14 +26,14 @@
       <li><a href="#How-can-I-manipulate-fixed-record-length-files">How can I manipulate fixed-record-length files?  </a></li>
       <li><a href="#How-can-I-make-a-filehandle-local-to-a-subroutine-How-do-I-pass-filehandles-between-subroutines-How-do-I-make-an-array-of-filehandles">How can I make a filehandle local to a subroutine? How do I pass filehandles between subroutines? How do I make an array of filehandles?   </a></li>
       <li><a href="#How-can-I-use-a-filehandle-indirectly">How can I use a filehandle indirectly? </a></li>
+      <li><a href="#How-can-I-open-a-filehandle-to-a-string">How can I open a filehandle to a string?    </a></li>
       <li><a href="#How-can-I-set-up-a-footer-format-to-be-used-with-write">How can I set up a footer format to be used with write()? </a></li>
       <li><a href="#How-can-I-write-into-a-string">How can I write() into a string? </a></li>
-      <li><a href="#How-can-I-open-a-filehandle-to-a-string">How can I open a filehandle to a string?    </a></li>
       <li><a href="#How-can-I-output-my-numbers-with-commas-added">How can I output my numbers with commas added? </a></li>
       <li><a href="#How-can-I-translate-tildes-in-a-filename">How can I translate tildes (~) in a filename?  </a></li>
       <li><a href="#How-come-when-I-open-a-file-read-write-it-wipes-it-out">How come when I open a file read-write it wipes it out?     </a></li>
       <li><a href="#Why-do-I-sometimes-get-an-Argument-list-too-long-when-I-use">Why do I sometimes get an &quot;Argument list too long&quot; when I use &lt;*&gt;? </a></li>
-      <li><a href="#How-can-I-open-a-file-with-a-leading-or-trailing-blanks">How can I open a file with a leading &quot;&gt;&quot; or trailing blanks? </a></li>
+      <li><a href="#How-can-I-open-a-file-named-with-a-leading-or-trailing-blanks">How can I open a file named with a leading &quot;&gt;&quot; or trailing blanks? </a></li>
       <li><a href="#How-can-I-reliably-rename-a-file">How can I reliably rename a file?    </a></li>
       <li><a href="#How-can-I-lock-a-file">How can I lock a file?   </a></li>
       <li><a href="#Why-cant-I-just-open-FH-file.lock">Why can&#39;t I just open(FH, &quot;&gt;file.lock&quot;)? </a></li>
@@ -69,7 +69,7 @@
 
 <h1 id="VERSION">VERSION</h1>
 
-<p>version 5.021011</p>
+<p>version 5.20180605</p>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
@@ -542,6 +542,21 @@
 
 <p>Let it be noted that the flakiness of indirect filehandles is not related to whether they&#39;re strings, typeglobs, objects, or anything else. It&#39;s the syntax of the fundamental operators. Playing the object game doesn&#39;t help you at all here.</p>
 
+<h2 id="How-can-I-open-a-filehandle-to-a-string">How can I open a filehandle to a string?    </h2>
+
+<p>(contributed by Peter J. Holzer, hjp-usenet2@hjp.at)</p>
+
+<p>Since Perl 5.8.0 a file handle referring to a string can be created by calling open with a reference to that string instead of the filename. This file handle can then be used to read from or write to the string:</p>
+
+<pre><code>    open(my $fh, &#39;&gt;&#39;, \$string) or die &quot;Could not open string for writing&quot;;
+    print $fh &quot;foo\n&quot;;
+    print $fh &quot;bar\n&quot;;    # $string now contains &quot;foo\nbar\n&quot;
+
+    open(my $fh, &#39;&lt;&#39;, \$string) or die &quot;Could not open string for reading&quot;;
+    my $x = &lt;$fh&gt;;    # $x now contains &quot;foo\n&quot;</code></pre>
+
+<p>With older versions of Perl, the <a>IO::String</a> module provides similar functionality.</p>
+
 <h2 id="How-can-I-set-up-a-footer-format-to-be-used-with-write">How can I set up a footer format to be used with write()? </h2>
 
 <p>There&#39;s no builtin way to do this, but <a href="/cperl/perlform.html">perlform</a> has a couple of techniques to make it possible for the intrepid hacker.</p>
@@ -585,21 +600,6 @@
     print $string;</code></pre>
 
 <p>There are also some tricks that you can play with <code>formline</code> and the accumulator variable <code>$^A</code>, but you lose a lot of the value of formats since <code>formline</code> won&#39;t handle paging and so on. You end up reimplementing formats when you use them.</p>
-
-<h2 id="How-can-I-open-a-filehandle-to-a-string">How can I open a filehandle to a string?    </h2>
-
-<p>(contributed by Peter J. Holzer, hjp-usenet2@hjp.at)</p>
-
-<p>Since Perl 5.8.0 a file handle referring to a string can be created by calling open with a reference to that string instead of the filename. This file handle can then be used to read from or write to the string:</p>
-
-<pre><code>    open(my $fh, &#39;&gt;&#39;, \$string) or die &quot;Could not open string for writing&quot;;
-    print $fh &quot;foo\n&quot;;
-    print $fh &quot;bar\n&quot;;    # $string now contains &quot;foo\nbar\n&quot;
-
-    open(my $fh, &#39;&lt;&#39;, \$string) or die &quot;Could not open string for reading&quot;;
-    my $x = &lt;$fh&gt;;    # $x now contains &quot;foo\n&quot;</code></pre>
-
-<p>With older versions of Perl, the <a>IO::String</a> module provides similar functionality.</p>
 
 <h2 id="How-can-I-output-my-numbers-with-commas-added">How can I output my numbers with commas added? </h2>
 
@@ -723,7 +723,7 @@
 
 <p>To get around this, either upgrade to Perl v5.6.0 or later, do the glob yourself with readdir() and patterns, or use a module like <a href="/cperl/lib/File/Glob.html">File::Glob</a>, one that doesn&#39;t use the shell to do globbing.</p>
 
-<h2 id="How-can-I-open-a-file-with-a-leading-or-trailing-blanks">How can I open a file with a leading &quot;&gt;&quot; or trailing blanks? </h2>
+<h2 id="How-can-I-open-a-file-named-with-a-leading-or-trailing-blanks">How can I open a file named with a leading &quot;&gt;&quot; or trailing blanks? </h2>
 
 <p>(contributed by Brian McCauley)</p>
 
@@ -1014,7 +1014,7 @@
 
 <p>If you want to find out how many characters are waiting, there&#39;s also the FIONREAD ioctl call to be looked at. The <i>h2ph</i> tool that comes with Perl tries to convert C include files to Perl code, which can be <code>require</code>d. FIONREAD ends up defined as a function in the <i>sys/ioctl.ph</i> file:</p>
 
-<pre><code>    require &#39;./sys/ioctl.ph&#39;;
+<pre><code>    require &#39;sys/ioctl.ph&#39;;
 
     $size = pack(&quot;L&quot;, 0);
     ioctl(FH, FIONREAD(), $size)    or die &quot;Couldn&#39;t call ioctl: $!\n&quot;;
@@ -1095,7 +1095,7 @@
 
 <p>This should rarely be necessary, as the Perl <code>close()</code> function is to be used for things that Perl opened itself, even if it was a dup of a numeric descriptor as with <code>MHCONTEXT</code> above. But if you really have to, you may be able to do this:</p>
 
-<pre><code>    require &#39;./sys/syscall.ph&#39;;
+<pre><code>    require &#39;sys/syscall.ph&#39;;
     my $rc = syscall(SYS_close(), $fd + 0);  # must force numeric
     die &quot;can&#39;t sysclose $fd: $!&quot; unless $rc == -1;</code></pre>
 

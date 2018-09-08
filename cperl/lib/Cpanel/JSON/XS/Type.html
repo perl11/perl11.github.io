@@ -1,0 +1,214 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cpanel::JSON::XS::Type - Type support for JSON encode</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:rurban@cpan.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#JSON-type-specification-for-scalars">JSON type specification for scalars:</a></li>
+      <li><a href="#JSON-type-specification-for-arrays">JSON type specification for arrays:</a></li>
+      <li><a href="#JSON-type-specification-for-hashes">JSON type specification for hashes:</a></li>
+      <li><a href="#JSON-type-specification-for-alternatives">JSON type specification for alternatives:</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-LICENSE">COPYRIGHT &amp; LICENSE</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>Cpanel::JSON::XS::Type - Type support for JSON encode</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code> use Cpanel::JSON::XS;
+ use Cpanel::JSON::XS::Type;
+
+
+ encode_json([10, &quot;10&quot;, 10.25], [JSON_TYPE_INT, JSON_TYPE_INT, JSON_TYPE_STRING]);
+ # &#39;[10,10,&quot;10.25&quot;]&#39;
+
+ encode_json([10, &quot;10&quot;, 10.25], json_type_arrayof(JSON_TYPE_INT));
+ # &#39;[10,10,10]&#39;
+
+ encode_json(1, JSON_TYPE_BOOL);
+ # &#39;true&#39;
+
+ my $perl_struct = { key1 =&gt; 1, key2 =&gt; &quot;2&quot;, key3 =&gt; 1 };
+ my $type_spec = { key1 =&gt; JSON_TYPE_STRING, key2 =&gt; JSON_TYPE_INT, key3 =&gt; JSON_TYPE_BOOL };
+ my $json_string = encode_json($perl_struct, $type_spec);
+ # &#39;{&quot;key1&quot;:&quot;1&quot;,&quot;key2&quot;:2,&quot;key3&quot;:true}&#39;
+
+ my $perl_struct = { key1 =&gt; &quot;value1&quot;, key2 =&gt; &quot;value2&quot;, key3 =&gt; 0, key4 =&gt; 1, key5 =&gt; &quot;string&quot;, key6 =&gt; &quot;string2&quot; };
+ my $type_spec = json_type_hashof(JSON_TYPE_STRING);
+ my $json_string = encode_json($perl_struct, $type_spec);
+ # &#39;{&quot;key1&quot;:&quot;value1&quot;,&quot;key2&quot;:&quot;value2&quot;,&quot;key3&quot;:&quot;0&quot;,&quot;key4&quot;:&quot;1&quot;,&quot;key5&quot;:&quot;string&quot;,&quot;key6&quot;:&quot;string2&quot;}&#39;
+
+ my $perl_struct = { key1 =&gt; { key2 =&gt; [ 10, &quot;10&quot;, 10.6 ] }, key3 =&gt; &quot;10.5&quot; };
+ my $type_spec = { key1 =&gt; json_type_anyof(JSON_TYPE_FLOAT, json_type_hashof(json_type_arrayof(JSON_TYPE_INT))), key3 =&gt; JSON_TYPE_FLOAT };
+ my $json_string = encode_json($perl_struct, $type_spec);
+ # &#39;{&quot;key1&quot;:{&quot;key2&quot;:[10,10,10]},&quot;key3&quot;:10.5}&#39;
+
+
+ my $value = decode_json(&#39;false&#39;, 1, my $type);
+ # $value is 0 and $type is JSON_TYPE_BOOL
+
+ my $value = decode_json(&#39;0&#39;, 1, my $type);
+ # $value is 0 and $type is JSON_TYPE_INT
+
+ my $value = decode_json(&#39;&quot;0&quot;&#39;, 1, my $type);
+ # $value is 0 and $type is JSON_TYPE_STRING
+
+ my $json_string = &#39;{&quot;key1&quot;:{&quot;key2&quot;:[10,&quot;10&quot;,10.6]},&quot;key3&quot;:&quot;10.5&quot;}&#39;;
+ my $perl_struct = decode_json($json_string, 0, my $type_spec);
+ # $perl_struct is { key1 =&gt; { key2 =&gt; [ 10, 10, 10.6 ] }, key3 =&gt; 10.5 }
+ # $type_spec is { key1 =&gt; { key2 =&gt; [ JSON_TYPE_INT, JSON_TYPE_STRING, JSON_TYPE_FLOAT ] }, key3 =&gt; JSON_TYPE_STRING }</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>This module provides stable JSON type support for the <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> encoder which doesn&#39;t depend on any internal perl scalar flags or characteristics. Also it provides real JSON types for <a href="/cperl/lib/Cpanel/JSON/XS.html">Cpanel::JSON::XS</a> decoder.</p>
+
+<p>In most cases perl structures passed to <a href="/cperl/lib/Cpanel/JSON/XS.html#encode_json">encode_json</a> come from other functions or from other modules and caller of Cpanel::JSON::XS module does not have control of internals or they are subject of change. So it is not easy to support enforcing types as described in the <a href="/cperl/lib/Cpanel/JSON/XS.html#simple-scalars">simple scalars</a> section.</p>
+
+<p>For services based on JSON contents it is sometimes needed to correctly process and enforce JSON types.</p>
+
+<p>The function <a href="/cperl/lib/Cpanel/JSON/XS.html#decode_json">decode_json</a> takes optional third scalar parameter and fills it with specification of json types.</p>
+
+<p>The function <a href="/cperl/lib/Cpanel/JSON/XS.html#encode_json">encode_json</a> takes a perl structure as its input and optionally also a json type specification in the second parameter.</p>
+
+<p>If the specification is not provided (or is undef) internal perl scalar flags are used for the resulting JSON type. The internal flags can be changed by perl itself, but also by external modules. Which means that types in resulting JSON string aren&#39;t stable. Specially it does not work reliable for dual vars and scalars which were used in both numeric and string operations. See <a href="/cperl/lib/Cpanel/JSON/XS.html#simple-scalars">simple scalars</a>.</p>
+
+<h2 id="JSON-type-specification-for-scalars">JSON type specification for scalars:</h2>
+
+<dl>
+
+<dt id="JSON_TYPE_BOOL">JSON_TYPE_BOOL</dt>
+<dd>
+
+<p>It enforces JSON boolean in resulting JSON, i.e. either <code>true</code> or <code>false</code>. For determining whether the scalar passed to the encoder is true, standard perl boolean logic is used.</p>
+
+</dd>
+<dt id="JSON_TYPE_INT">JSON_TYPE_INT</dt>
+<dd>
+
+<p>It enforces JSON number without fraction part in the resulting JSON. Equivalent of perl function <a href="/cperl/perlfunc.html#int">int</a> is used for conversion.</p>
+
+</dd>
+<dt id="JSON_TYPE_FLOAT">JSON_TYPE_FLOAT</dt>
+<dd>
+
+<p>It enforces JSON number with fraction part in the resulting JSON. Equivalent of perl operation <code>+0</code> is used for conversion.</p>
+
+</dd>
+<dt id="JSON_TYPE_STRING">JSON_TYPE_STRING</dt>
+<dd>
+
+<p>It enforces JSON string type in the resulting JSON.</p>
+
+</dd>
+<dt id="JSON_TYPE_NULL">JSON_TYPE_NULL</dt>
+<dd>
+
+<p>It represents JSON <code>null</code> value. Makes sense only when passing perl&#39;s <code>undef</code> value.</p>
+
+</dd>
+</dl>
+
+<p>For each type, there also exists a type with the suffix <code>_OR_NULL</code> which encodes perl&#39;s <code>undef</code> into JSON <code>null</code>. Without type with suffix <code>_OR_NULL</code> perl&#39;s <code>undef</code> is converted to specific type according to above rules.</p>
+
+<h2 id="JSON-type-specification-for-arrays">JSON type specification for arrays:</h2>
+
+<dl>
+
+<dt id="pod">[...]</dt>
+<dd>
+
+<p>The array must contain the same number of elements as in the perl array passed for encoding. Each element of the array describes the JSON type which is enforced for the corresponding element of the perl array.</p>
+
+</dd>
+<dt id="json_type_arrayof">json_type_arrayof</dt>
+<dd>
+
+<p>This function takes a JSON type specification as its argument which is enforced for every element of the passed perl array.</p>
+
+</dd>
+</dl>
+
+<h2 id="JSON-type-specification-for-hashes">JSON type specification for hashes:</h2>
+
+<dl>
+
+<dt id="pod1">{...}</dt>
+<dd>
+
+<p>Each hash value for corresponding key describes the JSON type specification for values of passed perl hash structure. Keys in hash which are not present in passed perl hash structure are simple ignored and not used.</p>
+
+</dd>
+<dt id="json_type_hashof">json_type_hashof</dt>
+<dd>
+
+<p>This function takes a JSON type specification as its argument which is enforced for every value of passed perl hash structure.</p>
+
+</dd>
+</dl>
+
+<h2 id="JSON-type-specification-for-alternatives">JSON type specification for alternatives:</h2>
+
+<dl>
+
+<dt id="json_type_anyof">json_type_anyof</dt>
+<dd>
+
+<p>This function takes a list of JSON type alternative specifications (maximally one scalar, one array, and one hash) as its input and the JSON encoder chooses one that matches.</p>
+
+</dd>
+<dt id="json_type_null_or_anyof">json_type_null_or_anyof</dt>
+<dd>
+
+<p>Like <a href="#json_type_anyof"><code>json_type_anyof</code></a>, but scalar can be only perl&#39;s <code>undef</code>.</p>
+
+</dd>
+<dt id="json_type_weaken">json_type_weaken</dt>
+<dd>
+
+<p>This function can be used as an argument for <a href="#json_type_arrayof">&quot;json_type_arrayof&quot;</a>, <a href="#json_type_hashof">&quot;json_type_hashof&quot;</a> or <a href="#json_type_anyof">&quot;json_type_anyof&quot;</a> functions to create weak references suitable for complicated recursive structures. It depends on <a href="/cperl/lib/Scalar/Util.html#weaken">the weaken function from Scalar::Util</a> module. See following example:</p>
+
+<pre><code>  my $struct = {
+      type =&gt; JSON_TYPE_STRING,
+      array =&gt; json_type_arrayof(JSON_TYPE_INT),
+  };
+  $struct-&gt;{recursive} = json_type_anyof(
+      json_type_weaken($struct),
+      json_type_arrayof(JSON_TYPE_STRING),
+  );</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Pali &lt;pali@cpan.org&gt;</p>
+
+<h1 id="COPYRIGHT-LICENSE">COPYRIGHT &amp; LICENSE</h1>
+
+<p>Copyright (c) 2017, GoodData Corporation. All rights reserved.</p>
+
+<p>This module is available under the same licences as perl, the Artistic license and the GPL.</p>
+
+
+</body>
+
+</html>
+
+

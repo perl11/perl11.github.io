@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Time::Local - Efficiently compute time from local and GMT time</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -18,6 +18,7 @@
   <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
   <li><a href="#FUNCTIONS">FUNCTIONS</a>
     <ul>
+      <li><a href="#timelocal_modern-and-timegm_modern">timelocal_modern() and timegm_modern()</a></li>
       <li><a href="#timelocal-and-timegm">timelocal() and timegm()</a></li>
       <li><a href="#timelocal_nocheck-and-timegm_nocheck">timelocal_nocheck() and timegm_nocheck()</a></li>
       <li><a href="#Year-Value-Interpretation">Year Value Interpretation</a></li>
@@ -30,6 +31,7 @@
   <li><a href="#IMPLEMENTATION">IMPLEMENTATION</a></li>
   <li><a href="#AUTHORS-EMERITUS">AUTHORS EMERITUS</a></li>
   <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SOURCE">SOURCE</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#CONTRIBUTORS">CONTRIBUTORS</a></li>
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
@@ -41,7 +43,7 @@
 
 <h1 id="VERSION">VERSION</h1>
 
-<p>version 1.25</p>
+<p>version 1.28</p>
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
@@ -57,6 +59,18 @@
 <p>It is worth drawing particular attention to the expected ranges for the values provided. The value for the day of the month is the actual day (i.e. 1..31), while the month is the number of months since January (0..11). This is consistent with the values returned from <code>localtime()</code> and <code>gmtime()</code>.</p>
 
 <h1 id="FUNCTIONS">FUNCTIONS</h1>
+
+<h2 id="timelocal_modern-and-timegm_modern"><code>timelocal_modern()</code> and <code>timegm_modern()</code></h2>
+
+<p>When <code>Time::Local</code> was first written, it was a common practice to represent years as a two-digit value like <code>99</code> for <code>1999</code> or <code>1</code> for <code>2001</code>. This caused all sorts of problems (google &quot;Y2K problem&quot; if you&#39;re very young) and developers eventually realized that this was a terrible idea.</p>
+
+<p>The default exports of <code>timelocal()</code> and <code>timegm()</code> do a complicated calculation when given a year value less than 1000. This leads to surprising results in many cases. See <a href="#Year-Value-Interpretation">&quot;Year Value Interpretation&quot;</a> for details.</p>
+
+<p>The <code>time*_modern()</code> subs do not do this year munging and simply take the year value as provided.</p>
+
+<p>While it would be nice to make this the default behavior, that would almost certainly break a lot of code, so you must explicitly import these subs and use them instead of the default <code>timelocal()</code> and <code>timegm()</code>.</p>
+
+<p>You are <b>strongly</b> encouraged to use these subs in any new code which uses this module. It will almost certainly make your code&#39;s behavior less surprising.</p>
 
 <h2 id="timelocal-and-timegm"><code>timelocal()</code> and <code>timegm()</code></h2>
 
@@ -76,6 +90,8 @@
 <p>If you supply data which is not valid (month 27, second 1,000) the results will be unpredictable (so don&#39;t do that).</p>
 
 <h2 id="Year-Value-Interpretation">Year Value Interpretation</h2>
+
+<p><b>This does not apply to <code>timelocal_modern</code> or <code>timegm_modern</code>. Use those exports if you want to ensure consistent behavior as your code ages.</b></p>
 
 <p>Strictly speaking, the year should be specified in a form consistent with <code>localtime()</code>, i.e. the offset from 1900. In order to make the interpretation of the year easier for humans, however, who are more accustomed to seeing years as two-digit or four-digit values, the following conventions are followed:</p>
 
@@ -100,7 +116,7 @@
 
 <p>Both <code>timelocal()</code> and <code>timegm()</code> croak if given dates outside the supported range.</p>
 
-<p>As of version 5.12.0, perl has stopped using the underlying time library of the operating system it&#39;s running on and has its own implementation of those routines with a safe range of at least +/ 2**52 (about 142 million years).</p>
+<p>As of version 5.12.0, perl has stopped using the time implementation of the operating system it&#39;s running on. Instead, it has its own implementation of those routines with a safe range of at least +/- 2**52 (about 142 million years)</p>
 
 <h2 id="Ambiguous-Local-Times-DST">Ambiguous Local Times (DST)</h2>
 
@@ -138,11 +154,15 @@
 
 <p>The whole scheme for interpreting two-digit years can be considered a bug.</p>
 
-<p>Bugs may be submitted through <a href="https://github.com/houseabsolute/Time-Local/issues">https://github.com/houseabsolute/Time-Local/issues</a>.</p>
+<p>Bugs may be submitted at <a href="https://github.com/houseabsolute/Time-Local/issues">https://github.com/houseabsolute/Time-Local/issues</a>.</p>
 
 <p>There is a mailing list available for users of this distribution, <a href="mailto:datetime@perl.org">mailto:datetime@perl.org</a>.</p>
 
 <p>I am also usually active on IRC as &#39;autarch&#39; on <code>irc://irc.perl.org</code>.</p>
+
+<h1 id="SOURCE">SOURCE</h1>
+
+<p>The source code repository for Time-Local can be found at <a href="https://github.com/houseabsolute/Time-Local">https://github.com/houseabsolute/Time-Local</a>.</p>
 
 <h1 id="AUTHOR">AUTHOR</h1>
 
@@ -165,9 +185,11 @@
 
 <h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
 
-<p>This software is copyright (c) 1997 - 2016 by Graham Barr &amp; Dave Rolsky.</p>
+<p>This software is copyright (c) 1997 - 2018 by Graham Barr &amp; Dave Rolsky.</p>
 
 <p>This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.</p>
+
+<p>The full text of the license can be found in the <i>LICENSE</i> file included with this distribution.</p>
 
 
 </body>

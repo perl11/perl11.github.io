@@ -4,10 +4,10 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -18,7 +18,6 @@
       <li><a href="#Declarations">Declarations    </a></li>
       <li><a href="#Comments">Comments  </a></li>
       <li><a href="#Simple-Statements">Simple Statements    </a></li>
-      <li><a href="#Truth-and-Falsehood">Truth and Falsehood        </a></li>
       <li><a href="#Statement-Modifiers">Statement Modifiers         </a></li>
       <li><a href="#Compound-Statements">Compound Statements               </a></li>
       <li><a href="#Loop-Control">Loop Control      </a></li>
@@ -96,10 +95,6 @@
 
 <p>The only kind of simple statement is an expression evaluated for its side-effects. Every simple statement must be terminated with a semicolon, unless it is the final statement in a block, in which case the semicolon is optional. But put the semicolon in anyway if the block takes up more than one line, because you may eventually add another line. Note that there are operators like <code>eval {}</code>, <code>sub {}</code>, and <code>do {}</code> that <i>look</i> like compound statements, but aren&#39;t--they&#39;re just TERMs in an expression--and thus need an explicit termination when used as the last item in a statement.</p>
 
-<h2 id="Truth-and-Falsehood">Truth and Falsehood        </h2>
-
-<p>The number 0, the strings <code>&#39;0&#39;</code> and <code>&quot;&quot;</code>, the empty list <code>()</code>, and <code>undef</code> are all false in a boolean context. All other values are true. Negation of a true value by <code>!</code> or <code>not</code> returns a special false value. When evaluated as a string it is treated as <code>&quot;&quot;</code>, but as a number, it is treated as 0. Most Perl operators that return true or false behave this way.</p>
-
 <h2 id="Statement-Modifiers">Statement Modifiers         </h2>
 
 <p>Any simple statement may optionally be followed by a <i>SINGLE</i> modifier, just before the terminating semicolon (or block ending). The possible modifiers are:</p>
@@ -123,7 +118,7 @@
 
 <pre><code>    print &quot;Hello $_!\n&quot; for qw(world Dolly nurse);</code></pre>
 
-<p><code>while</code> repeats the statement <i>while</i> the condition is true. <code>until</code> does the opposite, it repeats the statement <i>until</i> the condition is true (or while the condition is false):</p>
+<p><code>while</code> repeats the statement <i>while</i> the condition is true. Postfix <code>while</code> has the same magic treatment of some kinds of condition that prefix <code>while</code> has. <code>until</code> does the opposite, it repeats the statement <i>until</i> the condition is true (or while the condition is false):</p>
 
 <pre><code>    # Both of these count from 0 to 10.
     print $i++ while $i &lt;= 10;
@@ -176,7 +171,7 @@
 
 <p>In Perl, a sequence of statements that defines a scope is called a block. Sometimes a block is delimited by the file containing it (in the case of a required file, or the program as a whole), and sometimes a block is delimited by the extent of a string (in the case of an eval).</p>
 
-<p>But generally, a block is delimited by curly brackets, also known as braces. We will call this syntactic construct a BLOCK.</p>
+<p>But generally, a block is delimited by curly brackets, also known as braces. We will call this syntactic construct a BLOCK. Because enclosing braces are also the syntax for hash reference constructor expressions (see <a href="/cperl/perlref.html">perlref</a>), you may occasionally need to disambiguate by placing a <code>;</code> immediately after an opening brace so that Perl realises the brace is the start of a block. You will more frequently need to disambiguate the other way, by placing a <code>+</code> immediately before an opening brace to force it to be interpreted as a hash reference constructor expression. It is considered good style to use these disambiguating mechanisms liberally, not only when Perl would otherwise guess incorrectly.</p>
 
 <p>The following compound statements may be used to control flow:</p>
 
@@ -223,7 +218,9 @@
 
 <p>The <code>if</code> statement is straightforward. Because BLOCKs are always bounded by curly brackets, there is never any ambiguity about which <code>if</code> an <code>else</code> goes with. If you use <code>unless</code> in place of <code>if</code>, the sense of the test is reversed. Like <code>if</code>, <code>unless</code> can be followed by <code>else</code>. <code>unless</code> can even be followed by one or more <code>elsif</code> statements, though you may want to think twice before using that particular language construct, as everyone reading your code will have to think at least twice before they can understand what&#39;s going on.</p>
 
-<p>The <code>while</code> statement executes the block as long as the expression is <a href="#Truth-and-Falsehood">true</a>. The <code>until</code> statement executes the block as long as the expression is false. The LABEL is optional, and if present, consists of an identifier followed by a colon. The LABEL identifies the loop for the loop control statements <code>next</code>, <code>last</code>, and <code>redo</code>. If the LABEL is omitted, the loop control statement refers to the innermost enclosing loop. This may include dynamically looking back your call-stack at run time to find the LABEL. Such desperate behavior triggers a warning if you use the <code>use warnings</code> pragma or the <b>-w</b> flag.</p>
+<p>The <code>while</code> statement executes the block as long as the expression is true. The <code>until</code> statement executes the block as long as the expression is false. The LABEL is optional, and if present, consists of an identifier followed by a colon. The LABEL identifies the loop for the loop control statements <code>next</code>, <code>last</code>, and <code>redo</code>. If the LABEL is omitted, the loop control statement refers to the innermost enclosing loop. This may include dynamically looking back your call-stack at run time to find the LABEL. Such desperate behavior triggers a warning if you use the <code>use warnings</code> pragma or the <b>-w</b> flag.</p>
+
+<p>If the condition expression of a <code>while</code> statement is based on any of a group of iterative expression types then it gets some magic treatment. The affected iterative expression types are <a href="/cperl/perlfunc.html#readline-EXPR"><code>readline</code></a>, the <a href="/cperl/perlop.html#I-O-Operators"><code>&lt;FILEHANDLE&gt;</code></a> input operator, <a href="/cperl/perlfunc.html#readdir-DIRHANDLE"><code>readdir</code></a>, <a href="/cperl/perlfunc.html#glob-EXPR"><code>glob</code></a>, the <a href="/cperl/perlop.html#I-O-Operators"><code>&lt;PATTERN&gt;</code></a> globbing operator, and <a href="/cperl/perlfunc.html#each-HASH"><code>each</code></a>. If the condition expression is one of these expression types, then the value yielded by the iterative operator will be implicitly assigned to <code>$_</code>. If the condition expression is one of these expression types or an explicit assignment of one of them to a scalar, then the condition actually tests for definedness of the expression&#39;s value, not for its regular truth value.</p>
 
 <p>If there is a <code>continue</code> BLOCK, it is always executed just before the conditional is about to be evaluated again. Thus it can be used to increment a loop variable, even when the loop has been continued via the <code>next</code> statement.</p>
 
@@ -340,11 +337,7 @@
         # do something
     }</code></pre>
 
-<p>Using <code>readline</code> (or the operator form, <code>&lt;EXPR&gt;</code>) as the conditional of a <code>for</code> loop is shorthand for the following. This behaviour is the same as a <code>while</code> loop conditional.  </p>
-
-<pre><code>    for ( prompt(); defined( $_ = &lt;STDIN&gt; ); prompt() ) {
-        # do something
-    }</code></pre>
+<p>The condition expression of a <code>for</code> loop gets the same magic treatment of <code>readline</code> et al that the condition expression of a <code>while</code> loop gets.</p>
 
 <h2 id="Foreach-Loops">Foreach Loops  </h2>
 
@@ -694,7 +687,7 @@
 
 <p>A smart match that uses an explicit <code>~~</code> operator, such as <code>EXPR ~~ EXPR</code>.</p>
 
-<p><b>NOTE:</b> You will often have to use <code>$c ~~ $_</code> because the default case uses <code>$_ ~~ $c</code> , which is frequentlythe opposite of what you want.</p>
+<p><b>NOTE:</b> You will often have to use <code>$c ~~ $_</code> because the default case uses <code>$_ ~~ $c</code> , which is frequently the opposite of what you want.</p>
 
 </dd>
 <dt id="pod4">4.</dt>

@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Math::BigInt - Arbitrary size integer/float math package</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -40,7 +40,12 @@
       <li><a href="#Precision-P">Precision P</a></li>
       <li><a href="#Accuracy-A">Accuracy A</a></li>
       <li><a href="#Fallback-F">Fallback F</a></li>
-      <li><a href="#Rounding-mode-R">Rounding mode R</a></li>
+      <li><a href="#Rounding-mode-R">Rounding mode R</a>
+        <ul>
+          <li><a href="#Directed-rounding">Directed rounding</a></li>
+          <li><a href="#Rounding-to-nearest">Rounding to nearest</a></li>
+        </ul>
+      </li>
     </ul>
   </li>
   <li><a href="#Infinity-and-Not-a-Number">Infinity and Not a Number</a></li>
@@ -198,7 +203,7 @@
   $x-&gt;bcos();             # cosine
   $x-&gt;batan();            # inverse tangent
   $x-&gt;batan2($y);         # two-argument inverse tangent
-  $x-&gt;bsqrt();            # calculate square-root
+  $x-&gt;bsqrt();            # calculate square root
   $x-&gt;broot($y);          # $y&#39;th root of $x (e.g. $y == 3 =&gt; cubic root)
   $x-&gt;bfac();             # factorial of $x (1*2*3*4*..$x)
 
@@ -443,52 +448,38 @@
 <dt id="config">config()</dt>
 <dd>
 
-<pre><code>    use Data::Dumper;
+<pre><code>    Math::BigInt-&gt;config(&quot;trap_nan&quot; =&gt; 1);      # set
+    $accu = Math::BigInt-&gt;config(&quot;accuracy&quot;);   # get</code></pre>
 
-    print Dumper ( Math::BigInt-&gt;config() );
-    print Math::BigInt-&gt;config()-&gt;{lib},&quot;\n&quot;;
-    print Math::BigInt-&gt;config(&#39;lib&#39;)},&quot;\n&quot;;</code></pre>
+<p>Set or get class variables. Read-only parameters are marked as RO. Read-write parameters are marked as RW. The following parameters are supported.</p>
 
-<p>Returns a hash containing the configuration, e.g. the version number, lib loaded etc. The following hash keys are currently filled in with the appropriate information.</p>
-
-<pre><code>    key           Description
-                  Example
+<pre><code>    Parameter       RO/RW   Description
+                            Example
     ============================================================
-    lib           Name of the low-level math library
-                  Math::BigInt::Calc
-    lib_version   Version of low-level math library (see &#39;lib&#39;)
-                  0.30
-    class         The class name of config() you just called
-                  Math::BigInt
-    upgrade       To which class math operations might be
-                  upgraded Math::BigFloat
-    downgrade     To which class math operations might be
-                  downgraded undef
-    precision     Global precision
-                  undef
-    accuracy      Global accuracy
-                  undef
-    round_mode    Global round mode
-                  even
-    version       version number of the class you used
-                  1.61
-    div_scale     Fallback accuracy for div
-                  40
-    trap_nan      If true, traps creation of NaN via croak()
-                  1
-    trap_inf      If true, traps creation of +inf/-inf via croak()
-                  1</code></pre>
-
-<p>The following values can be set by passing <code>config()</code> a reference to a hash:</p>
-
-<pre><code>        accuracy precision round_mode div_scale
-        upgrade downgrade trap_inf trap_nan</code></pre>
-
-<p>Example:</p>
-
-<pre><code>    $new_cfg = Math::BigInt-&gt;config(
-        { trap_inf =&gt; 1, precision =&gt; 5 }
-    );</code></pre>
+    lib             RO      Name of the math backend library
+                            Math::BigInt::Calc
+    lib_version     RO      Version of the math backend library
+                            0.30
+    class           RO      The class of config you just called
+                            Math::BigRat
+    version         RO      version number of the class you used
+                            0.10
+    upgrade         RW      To which class numbers are upgraded
+                            undef
+    downgrade       RW      To which class numbers are downgraded
+                            undef
+    precision       RW      Global precision
+                            undef
+    accuracy        RW      Global accuracy
+                            undef
+    round_mode      RW      Global round mode
+                            even
+    div_scale       RW      Fallback accuracy for division etc.
+                            40
+    trap_nan        RW      Trap NaNs
+                            undef
+    trap_inf        RW      Trap +inf/-inf
+                            undef</code></pre>
 
 </dd>
 </dl>
@@ -1085,7 +1076,7 @@
 <dt id="bsqrt">bsqrt()</dt>
 <dd>
 
-<pre><code>    $x-&gt;bsqrt();                # calculate square-root</code></pre>
+<pre><code>    $x-&gt;bsqrt();                # calculate square root</code></pre>
 
 <p><code>bsqrt()</code> returns the square root truncated to an integer.</p>
 
@@ -1455,7 +1446,7 @@
 <dt id="bnstr">bnstr()</dt>
 <dd>
 
-<p>Returns a string representing the number using normalized notation, the most common variant of scientific notation. For finite non-zero numbers, the absolute value of the significand is less than or equal to 1 and less than 10. The output corresponds to the output from <code>nparts()</code>.</p>
+<p>Returns a string representing the number using normalized notation, the most common variant of scientific notation. For finite non-zero numbers, the absolute value of the significand is greater than or equal to 1 and less than 10. The output corresponds to the output from <code>nparts()</code>.</p>
 
 <pre><code>      123 is returned as &quot;1.23e+2&quot;
      1230 is returned as &quot;1.23e+3&quot;
@@ -1467,7 +1458,7 @@
 <dt id="bestr">bestr()</dt>
 <dd>
 
-<p>Returns a string representing the number using engineering notation. For finite non-zero numbers, the absolute value of the significand is less than or equal to 1 and less than 1000, and the exponent is a multiple of 3. The output corresponds to the output from <code>eparts()</code>.</p>
+<p>Returns a string representing the number using engineering notation. For finite non-zero numbers, the absolute value of the significand is greater than or equal to 1 and less than 1000, and the exponent is a multiple of 3. The output corresponds to the output from <code>eparts()</code>.</p>
 
 <pre><code>      123 is returned as &quot;123e+0&quot;
      1230 is returned as &quot;1.23e+3&quot;
@@ -1619,52 +1610,60 @@
 
 <p>When rounding a number, different &#39;styles&#39; or &#39;kinds&#39; of rounding are possible. (Note that random rounding, as in Math::Round, is not implemented.)</p>
 
+<h3 id="Directed-rounding">Directed rounding</h3>
+
+<p>These round modes always round in the same direction.</p>
+
 <dl>
 
 <dt id="trunc">&#39;trunc&#39;</dt>
 <dd>
 
-<p>truncation invariably removes all digits following the rounding place, replacing them with zeros. Thus, 987.65 rounded to tens (P = 1) becomes 980, and rounded to the fourth sigdig becomes 987.6 (A = 4). 123.456 rounded to the second place after the decimal point (P = -2) becomes 123.46.</p>
-
-<p>All other implemented styles of rounding attempt to round to the &quot;nearest digit.&quot; If the digit D immediately to the right of the rounding place (skipping the decimal point) is greater than 5, the number is incremented at the rounding place (possibly causing a cascade of incrementation): e.g. when rounding to units, 0.9 rounds to 1, and -19.9 rounds to -20. If D &lt; 5, the number is similarly truncated at the rounding place: e.g. when rounding to units, 0.4 rounds to 0, and -19.4 rounds to -19.</p>
-
-<p>However the results of other styles of rounding differ if the digit immediately to the right of the rounding place (skipping the decimal point) is 5 and if there are no digits, or no digits other than 0, after that 5. In such cases:</p>
+<p>Round towards zero. Remove all digits following the rounding place, i.e., replace them with zeros. Thus, 987.65 rounded to tens (P=1) becomes 980, and rounded to the fourth significant digit becomes 987.6 (A=4). 123.456 rounded to the second place after the decimal point (P=-2) becomes 123.46. This corresponds to the IEEE 754 rounding mode &#39;roundTowardZero&#39;.</p>
 
 </dd>
+</dl>
+
+<h3 id="Rounding-to-nearest">Rounding to nearest</h3>
+
+<p>These rounding modes round to the nearest digit. They differ in how they determine which way to round in the ambiguous case when there is a tie.</p>
+
+<dl>
+
 <dt id="even">&#39;even&#39;</dt>
 <dd>
 
-<p>rounds the digit at the rounding place to 0, 2, 4, 6, or 8 if it is not already. E.g., when rounding to the first sigdig, 0.45 becomes 0.4, -0.55 becomes -0.6, but 0.4501 becomes 0.5.</p>
+<p>Round towards the nearest even digit, e.g., when rounding to nearest integer, -5.5 becomes -6, 4.5 becomes 4, but 4.501 becomes 5. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToEven&#39;.</p>
 
 </dd>
 <dt id="odd">&#39;odd&#39;</dt>
 <dd>
 
-<p>rounds the digit at the rounding place to 1, 3, 5, 7, or 9 if it is not already. E.g., when rounding to the first sigdig, 0.45 becomes 0.5, -0.55 becomes -0.5, but 0.5501 becomes 0.6.</p>
+<p>Round towards the nearest odd digit, e.g., when rounding to nearest integer, 4.5 becomes 5, -5.5 becomes -5, but 5.501 becomes 6. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToOdd&#39;.</p>
 
 </dd>
 <dt id="inf">&#39;+inf&#39;</dt>
 <dd>
 
-<p>round to plus infinity, i.e. always round up. E.g., when rounding to the first sigdig, 0.45 becomes 0.5, -0.55 becomes -0.5, and 0.4501 also becomes 0.5.</p>
+<p>Round towards plus infinity, i.e., always round up. E.g., when rounding to the nearest integer, 4.5 becomes 5, -5.5 becomes -5, and 4.501 also becomes 5. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToPositive&#39;.</p>
 
 </dd>
 <dt id="inf1">&#39;-inf&#39;</dt>
 <dd>
 
-<p>round to minus infinity, i.e. always round down. E.g., when rounding to the first sigdig, 0.45 becomes 0.4, -0.55 becomes -0.6, but 0.4501 becomes 0.5.</p>
+<p>Round towards minus infinity, i.e., always round down. E.g., when rounding to the nearest integer, 4.5 becomes 4, -5.5 becomes -6, but 4.501 becomes 5. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToNegative&#39;.</p>
 
 </dd>
 <dt id="zero">&#39;zero&#39;</dt>
 <dd>
 
-<p>round to zero, i.e. positive numbers down, negative ones up. E.g., when rounding to the first sigdig, 0.45 becomes 0.4, -0.55 becomes -0.5, but 0.4501 becomes 0.5.</p>
+<p>Round towards zero, i.e., round positive numbers down and negative numbers up. E.g., when rounding to the nearest integer, 4.5 becomes 4, -5.5 becomes -5, but 4.501 becomes 5. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToZero&#39;.</p>
 
 </dd>
 <dt id="common">&#39;common&#39;</dt>
 <dd>
 
-<p>round up if the digit immediately to the right of the rounding place is 5 or greater, otherwise round down. E.g., 0.15 becomes 0.2 and 0.149 becomes 0.1.</p>
+<p>Round away from zero, i.e., round to the number with the largest absolute value. E.g., when rounding to the nearest integer, -1.5 becomes -2, 1.5 becomes 2 and 1.49 becomes 1. This corresponds to the IEEE 754 rounding mode &#39;roundTiesToAway&#39;.</p>
 
 </dd>
 </dl>

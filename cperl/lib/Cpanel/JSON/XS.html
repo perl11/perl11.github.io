@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Cpanel::JSON::XS - cPanel fork of JSON::XS, fast and correct serializing</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -216,7 +216,7 @@
 
 <dl>
 
-<dt id="json_text-encode_json-perl_scalar">$json_text = encode_json $perl_scalar</dt>
+<dt id="json_text-encode_json-perl_scalar-json_type">$json_text = encode_json $perl_scalar, [json_type]</dt>
 <dd>
 
 <p>Converts the given Perl data structure to a UTF-8 encoded, binary string (that is, the string contains octets only). Croaks on error.</p>
@@ -226,6 +226,8 @@
 <pre><code>   $json_text = Cpanel::JSON::XS-&gt;new-&gt;utf8-&gt;encode ($perl_scalar)</code></pre>
 
 <p>Except being faster.</p>
+
+<p>For the type argument see <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
 
 </dd>
 <dt id="perl_scalar-decode_json-json_text-allow_nonref">$perl_scalar = decode_json $json_text [, $allow_nonref ]</dt>
@@ -459,6 +461,16 @@
 <p>If <code>$enable</code> is false, no newlines or indenting will be produced, and the resulting JSON text is guaranteed not to contain any <code>newlines</code>.</p>
 
 <p>This setting has no effect when decoding JSON texts.</p>
+
+</dd>
+<dt id="json-json-indent_length-number_of_spaces">$json = $json-&gt;indent_length([$number_of_spaces])</dt>
+<dd>
+
+</dd>
+<dt id="length-json-get_indent_length">$length = $json-&gt;get_indent_length()</dt>
+<dd>
+
+<p>Set the indent length (default <code>3</code>). This option is only useful when you also enable indent or pretty. The acceptable range is from 0 (no indentation) to 15</p>
 
 </dd>
 <dt id="json-json-space_before-enable">$json = $json-&gt;space_before ([$enable])</dt>
@@ -1119,6 +1131,8 @@
 
 <p>Beware that Cpanel::JSON::XS is currently the only JSON module which does accept and decode a BOM.</p>
 
+<p>The latest JSON spec <a href="https://www.greenbytes.de/tech/webdav/rfc8259.html#character.encoding">https://www.greenbytes.de/tech/webdav/rfc8259.html#character.encoding</a> forbid the usage of UTF-16 or UTF-32, the character encoding is UTF-8. Thus in subsequent updates BOM&#39;s of UTF-16 or UTF-32 will throw an error.</p>
+
 <h1 id="MAPPING">MAPPING</h1>
 
 <p>This section describes how Cpanel::JSON::XS maps Perl values to JSON values and vice versa. These mappings are designed to &quot;do the right thing&quot; in most circumstances automatically, preserving round-tripping characteristics (what you put in comes out as something equivalent).</p>
@@ -1165,6 +1179,12 @@
 <p>These JSON atoms become <code>Cpanel::JSON::XS::true</code> and <code>Cpanel::JSON::XS::false</code>, respectively. They are <code>JSON::PP::Boolean</code> objects and are overloaded to act almost exactly like the numbers <code>1</code> and <code>0</code>. You can check whether a scalar is a JSON boolean by using the <code>Cpanel::JSON::XS::is_bool</code> function.</p>
 
 <p>The other round, from perl to JSON, <code>!0</code> which is represented as <code>yes</code> becomes <code>true</code>, and <code>!1</code> which is represented as <code>no</code> becomes <code>false</code>.</p>
+
+<p>Via <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a> you can now even force negation in <code>encode</code>, without overloading of <code>!</code>:</p>
+
+<pre><code>    my $false = Cpanel::JSON::XS::false;
+    print($json-&gt;encode([!$false], [JSON_TYPE_BOOL]));
+    =&gt; [true]</code></pre>
 
 </dd>
 <dt id="null">null</dt>
@@ -1231,6 +1251,12 @@
 
 <pre><code>   encode_json [Cpanel::JSON::XS::true, Cpanel::JSON::XS::true] # yields [false,true]
    encode_json [!1, !0]      # yields [false,true]</code></pre>
+
+<p>eq/ne comparisons with true, false:</p>
+
+<p>false is eq to the empty string or the string &#39;false&#39; or the special empty string <code>!!0</code>, i.e. <code>SV_NO</code>, or the numbers 0 or 0.0.</p>
+
+<p>true is eq to the string &#39;true&#39; or to the special string <code>!0</code> (i.e. <code>SV_YES</code>) or to the numbers 1 or 1.0.</p>
 
 </dd>
 <dt id="blessed-objects">blessed objects</dt>
@@ -1676,9 +1702,9 @@
 
 <h1 id="AUTHOR">AUTHOR</h1>
 
-<p>Marc Lehmann &lt;schmorp@schmorp.de&gt;, http://home.schmorp.de/</p>
-
 <p>Reini Urban &lt;rurban@cpan.org&gt;</p>
+
+<p>Marc Lehmann &lt;schmorp@schmorp.de&gt;, http://home.schmorp.de/</p>
 
 <h1 id="MAINTAINER">MAINTAINER</h1>
 

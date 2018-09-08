@@ -4,10 +4,10 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx201.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -49,6 +49,7 @@
       <li><a href="#Quoting-metacharacters">Quoting metacharacters</a></li>
       <li><a href="#Extended-Patterns">Extended Patterns</a></li>
       <li><a href="#Backtracking">Backtracking  </a></li>
+      <li><a href="#Script-Runs">Script Runs    </a></li>
       <li><a href="#Special-Backtracking-Control-Verbs">Special Backtracking Control Verbs</a></li>
       <li><a href="#Warning-on-1-Instead-of-1">Warning on \1 Instead of $1</a></li>
       <li><a href="#Repeated-Patterns-Matching-a-Zero-length-Substring">Repeated Patterns Matching a Zero-length Substring</a></li>
@@ -149,11 +150,11 @@
 
 <p>Besides being a metacharacter, the <code>&quot;.&quot;</code> is an example of a &quot;character class&quot;, something that can match any single character of a given set of them. In its case, the set is just about all possible characters. Perl predefines several character classes besides the <code>&quot;.&quot;</code>; there is a separate reference page about just these, <a href="/cperl/perlrecharclass.html">perlrecharclass</a>.</p>
 
-<p>You can define your own custom character classes, by putting into your pattern in the appropriate place(s), a list of all the characters you want in the set. You do this by enclosing the list within <code>[]</code> bracket characters. These are called &quot;bracketed character classes&quot; when we are being precise, but often the word &quot;bracketed&quot; is dropped. (Dropping it usually doesn&#39;t cause confusion.) This means that the <code>&quot;[&quot;</code> character is another metacharacter. It doesn&#39;t match anything just by itelf; it is used only to tell Perl that what follows it is a bracketed character class. If you want to match a literal left square bracket, you must escape it, like <code>&quot;\[&quot;</code>. The matching <code>&quot;]&quot;</code> is also a metacharacter; again it doesn&#39;t match anything by itself, but just marks the end of your custom class to Perl. It is an example of a &quot;sometimes metacharacter&quot;. It isn&#39;t a metacharacter if there is no corresponding <code>&quot;[&quot;</code>, and matches its literal self:</p>
+<p>You can define your own custom character classes, by putting into your pattern in the appropriate place(s), a list of all the characters you want in the set. You do this by enclosing the list within <code>[]</code> bracket characters. These are called &quot;bracketed character classes&quot; when we are being precise, but often the word &quot;bracketed&quot; is dropped. (Dropping it usually doesn&#39;t cause confusion.) This means that the <code>&quot;[&quot;</code> character is another metacharacter. It doesn&#39;t match anything just by itself; it is used only to tell Perl that what follows it is a bracketed character class. If you want to match a literal left square bracket, you must escape it, like <code>&quot;\[&quot;</code>. The matching <code>&quot;]&quot;</code> is also a metacharacter; again it doesn&#39;t match anything by itself, but just marks the end of your custom class to Perl. It is an example of a &quot;sometimes metacharacter&quot;. It isn&#39;t a metacharacter if there is no corresponding <code>&quot;[&quot;</code>, and matches its literal self:</p>
 
 <pre><code> print &quot;]&quot; =~ /]/;  # prints 1</code></pre>
 
-<p>The list of characters within the character class gives the set of characters matched by the class. <code>&quot;[abc]&quot;</code> matches a single &quot;a&quot; or &quot;b&quot; or &quot;c&quot;. But if the first character after the <code>&quot;[&quot;</code> is <code>&quot;^&quot;</code>, the class matches any character not in the list. Within a list, the <code>&quot;-&quot;</code> character specifies a range of characters, so that <code>a-z</code> represents all characters between &quot;a&quot; and &quot;z&quot;, inclusive. If you want either <code>&quot;-&quot;</code> or <code>&quot;]&quot;</code> itself to be a member of a class, put it at the start of the list (possibly after a <code>&quot;^&quot;</code>), or escape it with a backslash. <code>&quot;-&quot;</code> is also taken literally when it is at the end of the list, just before the closing <code>&quot;]&quot;</code>. (The following all specify the same class of three characters: <code>[-az]</code>, <code>[az-]</code>, and <code>[a\-z]</code>. All are different from <code>[a-z]</code>, which specifies a class containing twenty-six characters, even on EBCDIC-based character sets.)</p>
+<p>The list of characters within the character class gives the set of characters matched by the class. <code>&quot;[abc]&quot;</code> matches a single &quot;a&quot; or &quot;b&quot; or &quot;c&quot;. But if the first character after the <code>&quot;[&quot;</code> is <code>&quot;^&quot;</code>, the class instead matches any character not in the list. Within a list, the <code>&quot;-&quot;</code> character specifies a range of characters, so that <code>a-z</code> represents all characters between &quot;a&quot; and &quot;z&quot;, inclusive. If you want either <code>&quot;-&quot;</code> or <code>&quot;]&quot;</code> itself to be a member of a class, put it at the start of the list (possibly after a <code>&quot;^&quot;</code>), or escape it with a backslash. <code>&quot;-&quot;</code> is also taken literally when it is at the end of the list, just before the closing <code>&quot;]&quot;</code>. (The following all specify the same class of three characters: <code>[-az]</code>, <code>[az-]</code>, and <code>[a\-z]</code>. All are different from <code>[a-z]</code>, which specifies a class containing twenty-six characters, even on EBCDIC-based character sets.)</p>
 
 <p>There is lots more to bracketed character classes; full details are in <a href="/cperl/perlrecharclass.html#Bracketed-Character-Classes">&quot;Bracketed Character Classes&quot; in perlrecharclass</a>.</p>
 
@@ -193,7 +194,8 @@
        starts a modifier to the meaning of the
        sequence
  }   End sequence started by {
- -   Indicates a range                            Only in [] interior</code></pre>
+ -   Indicates a range                            Only in [] interior
+ #   Beginning of comment, extends to line end    Only with /x modifier</code></pre>
 
 <p>Notice that most of the metacharacters lose their special meaning when they occur in a bracketed character class, except <code>&quot;^&quot;</code> has a different meaning when it is at the beginning of such a class. And <code>&quot;-&quot;</code> and <code>&quot;]&quot;</code> are metacharacters only at restricted positions within bracketed character classes; while <code>&quot;}&quot;</code> is a metacharacter only when closing a special construct started by <code>&quot;{&quot;</code>.</p>
 
@@ -341,7 +343,7 @@
         \*/     # Match the closing delimiter.
     } []gsx;</code></pre>
 
-<p>Note that anything inside a <code>\Q...\E</code> stays unaffected by <code>/x</code>. And note that <code>/x</code> doesn&#39;t affect space interpretation within a single multi-character construct. For example in <code>\x{...}</code>, regardless of the <code>/x</code> modifier, there can be no spaces. Same for a <a href="#Quantifiers">quantifier</a> such as <code>{3}</code> or <code>{5,}</code>. Similarly, <code>(?:...)</code> can&#39;t have a space between the <code>&quot;{&quot;</code>, <code>&quot;?&quot;</code>, and <code>&quot;:&quot;</code>. Within any delimiters for such a construct, allowed spaces are not affected by <code>/x</code>, and depend on the construct. For example, <code>\x{...}</code> can&#39;t have spaces because hexadecimal numbers don&#39;t have spaces in them. But, Unicode properties can have spaces, so in <code>\p{...}</code> there can be spaces that follow the Unicode rules, for which see <a href="/cperl/perluniprops.html#Properties-accessible-through-p-and-P">&quot;Properties accessible through \p{} and \P{}&quot; in perluniprops</a>. </p>
+<p>Note that anything inside a <code>\Q...\E</code> stays unaffected by <code>/x</code>. And note that <code>/x</code> doesn&#39;t affect space interpretation within a single multi-character construct. For example in <code>\x{...}</code>, regardless of the <code>/x</code> modifier, there can be no spaces. Same for a <a href="#Quantifiers">quantifier</a> such as <code>{3}</code> or <code>{5,}</code>. Similarly, <code>(?:...)</code> can&#39;t have a space between the <code>&quot;(&quot;</code>, <code>&quot;?&quot;</code>, and <code>&quot;:&quot;</code>. Within any delimiters for such a construct, allowed spaces are not affected by <code>/x</code>, and depend on the construct. For example, <code>\x{...}</code> can&#39;t have spaces because hexadecimal numbers don&#39;t have spaces in them. But, Unicode properties can have spaces, so in <code>\p{...}</code> there can be spaces that follow the Unicode rules, for which see <a href="/cperl/perluniprops.html#Properties-accessible-through-p-and-P">&quot;Properties accessible through \p{} and \P{}&quot; in perluniprops</a>. </p>
 
 <p>The set of characters that are deemed whitespace are those that Unicode calls &quot;Pattern White Space&quot;, namely:</p>
 
@@ -436,6 +438,9 @@
 
 </li>
 <li><p>the pattern uses <a href="#pod">&quot;<code>(?[ ])</code>&quot;</a></p>
+
+</li>
+<li><p>the pattern uses <a href="#Script-Runs"><code>(*script_run: ...)</code></a></p>
 
 </li>
 </ol>
@@ -820,7 +825,11 @@
  # The pattern below generates a syntax error, because the initial
  # &#39;\(&#39; is a literal opening parenthesis, and so there is nothing
  # for the  closing &#39;)&#39; to match
- qr/\(?#the backslash means this isn&#39;t a comment)p{Any}/</code></pre>
+ qr/\(?#the backslash means this isn&#39;t a comment)p{Any}/
+
+ # Comments can be used to fold long patterns into multiple lines
+ qr/First part of a long regex(?#
+   )remaining part/</code></pre>
 
 </dd>
 <dt id="adlupimnsx-imnsx"><code>(?adlupimnsx-imnsx)</code></dt>
@@ -965,25 +974,53 @@
 
 <dl>
 
-<dt id="pattern2"><code>(?=pattern)</code>   </dt>
+<dt id="pattern2"><code>(?=pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="pla:pattern"><code>(*pla:pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="positive_lookahead:pattern"><code>(*positive_lookahead:pattern)</code>     </dt>
 <dd>
 
 <p>A zero-width positive lookahead assertion. For example, <code>/\w+(?=\t)/</code> matches a word followed by a tab, without including the tab in <code>$&amp;</code>.</p>
 
+<p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
+
 </dd>
-<dt id="pattern3"><code>(?!pattern)</code>   </dt>
+<dt id="pattern3"><code>(?!pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="nla:pattern"><code>(*nla:pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="negative_lookahead:pattern"><code>(*negative_lookahead:pattern)</code>     </dt>
 <dd>
 
 <p>A zero-width negative lookahead assertion. For example <code>/foo(?!bar)/</code> matches any occurrence of &quot;foo&quot; that isn&#39;t followed by &quot;bar&quot;. Note however that lookahead and lookbehind are NOT the same thing. You cannot use this for lookbehind.</p>
 
 <p>If you are looking for a &quot;bar&quot; that isn&#39;t preceded by a &quot;foo&quot;, <code>/(?!foo)bar/</code> will not do what you want. That&#39;s because the <code>(?!foo)</code> is just saying that the next thing cannot be &quot;foo&quot;--and it&#39;s not, it&#39;s a &quot;bar&quot;, so &quot;foobar&quot; will match. Use lookbehind instead (see below).</p>
 
+<p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
+
 </dd>
 <dt id="pattern4"><code>(?&lt;=pattern)</code></dt>
 <dd>
 
 </dd>
-<dt id="K"><code>\K</code>    </dt>
+<dt id="K"><code>\K</code></dt>
+<dd>
+
+</dd>
+<dt id="plb:pattern"><code>(*plb:pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="positive_lookbehind:pattern"><code>(*positive_lookbehind:pattern)</code>      </dt>
 <dd>
 
 <p>A zero-width positive lookbehind assertion. For example, <code>/(?&lt;=\t)\w+/</code> matches a word that follows a tab, without including the tab in <code>$&amp;</code>. Works only for fixed-width lookbehind.</p>
@@ -998,11 +1035,23 @@
 
 <pre><code>  s/foo\Kbar//g;</code></pre>
 
+<p>The alphabetic forms (not including <code>\K</code> are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
+
 </dd>
-<dt id="pattern5"><code>(?&lt;!pattern)</code>   </dt>
+<dt id="pattern5"><code>(?&lt;!pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="nlb:pattern"><code>(*nlb:pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="negative_lookbehind:pattern"><code>(*negative_lookbehind:pattern)</code>     </dt>
 <dd>
 
 <p>A zero-width negative lookbehind assertion. For example <code>/(?&lt;!bar)foo/</code> matches any occurrence of &quot;foo&quot; that does not follow &quot;bar&quot;. Works only for fixed-width lookbehind.</p>
+
+<p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
 </dd>
 </dl>
@@ -1017,7 +1066,7 @@
 
 <p>A named capture group. Identical in every respect to normal capturing parentheses <code>()</code> but for the additional fact that the group can be referred to by name in various regular expression constructs (like <code>\g{NAME}</code>) and can be accessed by name after a successful match via <code>%+</code> or <code>%-</code>. See <a href="/cperl/perlvar.html">perlvar</a> for more details on the <code>%+</code> and <code>%-</code> hashes.</p>
 
-<p>If multiple distinct capture groups have the same name then the <code>$+{NAME}</code> will refer to the leftmost defined group in the match.</p>
+<p>If multiple distinct capture groups have the same name, then <code>$+{NAME}</code> will refer to the leftmost defined group in the match.</p>
 
 <p>The forms <code>(?&#39;NAME&#39;pattern)</code> and <code>(?&lt;NAME&gt;pattern)</code> are equivalent.</p>
 
@@ -1364,7 +1413,11 @@
 <p>Will output 2, not 1. This is particularly important if you intend to compile the definitions with the <code>qr//</code> operator, and later interpolate them in another pattern.</p>
 
 </dd>
-<dt id="pattern6"><code>(?&gt;pattern)</code>    </dt>
+<dt id="pattern6"><code>(?&gt;pattern)</code></dt>
+<dd>
+
+</dd>
+<dt id="atomic:pattern"><code>(*atomic:pattern)</code>      </dt>
 <dd>
 
 <p>An &quot;independent&quot; subexpression, one which matches the substring that a <i>standalone</i> <code>pattern</code> would match if anchored at the given position, and it matches <i>nothing other than this substring</i>. This construct is useful for optimizations of what would otherwise be &quot;eternal&quot; matches, because it will not backtrack (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). It may also be useful in places where the &quot;grab all you can, and do not give anything back&quot; semantic is desirable.</p>
@@ -1423,6 +1476,18 @@
     PAT++               (?&gt;PAT+)
     PAT?+               (?&gt;PAT?)
     PAT{min,max}+       (?&gt;PAT{min,max})</code></pre>
+
+<p>Nested <code>(?&gt;...)</code> constructs are not no-ops, even if at first glance they might seem to be. This is because the nested <code>(?&gt;...)</code> can restrict internal backtracking that otherwise might occur. For example,</p>
+
+<pre><code> &quot;abc&quot; =~ /(?&gt;a[bc]*c)/</code></pre>
+
+<p>matches, but</p>
+
+<pre><code> &quot;abc&quot; =~ /(?&gt;a(?&gt;[bc]*)c)/</code></pre>
+
+<p>does not.</p>
+
+<p>The alphabetic form (<code>(*atomic:...)</code>) is experimental; using it yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
 </dd>
 <dt id="pod1"><code>(?[ ])</code></dt>
@@ -1559,6 +1624,52 @@
 <p>And if you used <code>&quot;*&quot;</code>&#39;s in the internal groups instead of limiting them to 0 through 5 matches, then it would take forever--or until you ran out of stack space. Moreover, these internal optimizations are not always applicable. For example, if you put <code>{0,5}</code> instead of <code>&quot;*&quot;</code> on the external group, no current optimization is applicable, and the match takes a long time to finish.</p>
 
 <p>A powerful tool for optimizing such beasts is what is known as an &quot;independent group&quot;, which does not backtrack (see <a href="#pattern">&quot;<code>(?&gt;pattern)</code>&quot;</a>). Note also that zero-length lookahead/lookbehind assertions will not backtrack to make the tail match, since they are in &quot;logical&quot; context: only whether they match is considered relevant. For an example where side-effects of lookahead <i>might</i> have influenced the following match, see <a href="#pattern">&quot;<code>(?&gt;pattern)</code>&quot;</a>.</p>
+
+<h2 id="Script-Runs">Script Runs    </h2>
+
+<p>A script run is basically a sequence of characters, all from the same Unicode script (see <a href="/cperl/perlunicode.html#Scripts">&quot;Scripts&quot; in perlunicode</a>), such as Latin or Greek. In most places a single word would never be written in multiple scripts, unless it is a spoofing attack. An infamous example, is</p>
+
+<pre><code> paypal.com</code></pre>
+
+<p>Those letters could all be Latin (as in the example just above), or they could be all Cyrillic (except for the dot), or they could be a mixture of the two. In the case of an internet address the <code>.com</code> would be in Latin, And any Cyrillic ones would cause it to be a mixture, not a script run. Someone clicking on such a link would not be directed to the real Paypal website, but an attacker would craft a look-alike one to attempt to gather sensitive information from the person.</p>
+
+<p>Starting in Perl 5.28, it is now easy to detect strings that aren&#39;t script runs. Simply enclose just about any pattern like either of these:</p>
+
+<pre><code> (*script_run:pattern)
+ (*sr:pattern)</code></pre>
+
+<p>What happens is that after <i>pattern</i> succeeds in matching, it is subjected to the additional criterion that every character in it must be from the same script (see exceptions below). If this isn&#39;t true, backtracking occurs until something all in the same script is found that matches, or all possibilities are exhausted. This can cause a lot of backtracking, but generally, only malicious input will result in this, though the slow down could cause a denial of service attack. If your needs permit, it is best to make the pattern atomic. This is so likely to be what you want, that instead of writing this:</p>
+
+<pre><code> (*script_run:(?&gt;pattern))</code></pre>
+
+<p>you can write either of these:</p>
+
+<pre><code> (*atomic_script_run:pattern)
+ (*asr:pattern)</code></pre>
+
+<p>(See <a href="#pattern">&quot;<code>(?&gt;pattern)</code>&quot;</a>.)</p>
+
+<p>In Taiwan, Japan, and Korea, it is common for text to have a mixture of characters from their native scripts and base Chinese. Perl follows Unicode&#39;s UTS 39 (<a href="http://unicode.org/reports/tr39/">http://unicode.org/reports/tr39/</a>) Unicode Security Mechanisms in allowing such mixtures.</p>
+
+<p>The rules used for matching decimal digits are somewhat different. Many scripts have their own sets of digits equivalent to the Western <code>0</code> through <code>9</code> ones. A few, such as Arabic, have more than one set. For a string to be considered a script run, all digits in it must come from the same set, as determined by the first digit encountered. The ASCII <code>[0-9]</code> are accepted as being in any script, even those that have their own set. This is because these are often used in commerce even in such scripts. But any mixing of the ASCII and other digits will cause the sequence to not be a script run, failing the match. As an example,</p>
+
+<pre><code> qr/(*script_run: \d+ \b )/x</code></pre>
+
+<p>guarantees that the digits matched will all be from the same set of 10. You won&#39;t get a look-alike digit from a different script that has a different value than what it appears to be.</p>
+
+<p>Unicode has three pseudo scripts that are handled specially.</p>
+
+<p>&quot;Unknown&quot; is applied to code points whose meaning has yet to be determined. Perl currently will match as a script run, any single character string consisting of one of these code points. But any string longer than one code point containing one of these will not be considered a script run.</p>
+
+<p>&quot;Inherited&quot; is applied to characters that modify another, such as an accent of some type. These are considered to be in the script of the master character, and so never cause a script run to not match.</p>
+
+<p>The other one is &quot;Common&quot;. This consists of mostly punctuation, emoji, and characters used in mathematics and music, and the ASCII digits <code>0</code> through <code>9</code>. These characters can appear intermixed in text in many of the world&#39;s scripts. These also don&#39;t cause a script run to not match, except any ASCII digits encountered have to obey the decimal digit rules described above.</p>
+
+<p>This construct is non-capturing. You can add parentheses to <i>pattern</i> to capture, if desired. You will have to do this if you plan to use <a href="#ACCEPT-ACCEPT:arg">&quot;(*ACCEPT) (*ACCEPT:arg)&quot;</a> and not have it bypass the script run checking.</p>
+
+<p>This feature is experimental, and the exact syntax and details of operation are subject to change; using it yields a warning in the <code>experimental::script_run</code> category.</p>
+
+<p>The <code>Script_Extensions</code> property is used as the basis for this feature.</p>
 
 <h2 id="Special-Backtracking-Control-Verbs">Special Backtracking Control Verbs</h2>
 
