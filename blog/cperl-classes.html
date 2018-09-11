@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>cperl classes // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="cperl classes" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/cperl-classes.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">cperl classes</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/cperl-classes.html" class="article-date">
+                <time datetime='2018-09-11T00:00:00.000&#43;00:00' itemprop="datePublished">2018-09-11</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<h1 id="subtitle-why-a-mop-is-not-always-a-good-idea">Subtitle: <em>Why a MOP is not always a good idea</em></h1>
+
+<p>cperl being a perl11, i.e. 5+6=11, of course means that cperl classes
+are designed after perl5 and perl6 classes. perl5 does not have a
+builtin <strong>class</strong> keyword, but allows to add keywords to be added at
+runtime. cperl and perl6 of course do have a builtin class keyword.</p>
+
+<p>The backcompat problem with a new builtin keyword is, that some usages
+of variables, package or function names will not work anymore, because
+the new keyword stepped over it. With the current cperl 5.28 release
+this is indeed a problem for the existing <code>B::class</code> method which
+cannot be imported anymore and be used as <code>class($op)</code>. Instead all
+these usage have been replaced with <code>B::class($op)</code>.</p>
+
+<p>Technically this can be avoided by hijacking only the first token
+in a statement, and let those be valid cperl terms:
+<code>$class</code>, <code>sub class {}</code>, <code>package class;</code></p>
+
+<h1 id="an-example">An example</h1>
+
+<pre><code>class Test::Builder::Module {
+    has int $Child_Error;
+    has $Parent;
+    has $Parent_TODO;
+    has str $Name;
+    has str $Child_Name;
+    has Bailed_Out_Reason;
+    has Bailed_Out;
+    has bool $Have_Plan;
+    has $No_Plan;
+    has $Skip_All;
+    has @Test_Results;
+}
+
+class Test::More is Test::Builder::Module {
+}
+</code></pre>
+
+<p>Just look at the
+<a href="https://docs.perl6.org/language/classtut">Perl6 Class Tutorial</a> and
+replace all &ldquo;traits&rdquo; behind signatures with attributes.</p>
+
+<p>e.g.</p>
+
+<p><code>method area() returns Int {}</code> =&gt; <code>method area() :Int {}</code>,</p>
+
+<p>or</p>
+
+<p><code>has Bool $.done is rw;</code> =&gt; <code>has Bool $done :rw;</code>,</p>
+
+<p>leave out the new secondory sigils,
+e.g.</p>
+
+<p><code>has Int $.x;</code> =&gt; <code>has Int $x;</code>, and you got the cperl syntax.</p>
+
+<pre><code>class Point {
+    has Int $x;
+    has Int $y;
+}
+
+class Rectangle {
+    has Point $lower;
+    has Point $upper;
+
+    method area() :Int {
+        ($upper-&gt;x - $lower-&gt;x) * ( $upper-&gt;y - $lower-&gt;y);
+    }
+}
+
+# Create a new Rectangle from two Points
+my $r = new Rectangle(lower =&gt; new Point(x =&gt; 0, y =&gt; 0),
+                      upper =&gt; new Point(x =&gt; 10, y =&gt; 10));
+say $r-&gt;area; # OUTPUT: «100␤» 
+</code></pre>
+
+<p>The old perl5 design for this was:</p>
+
+<pre><code>package Point; use fields qw(x y);
+sub new {
+    my str $name = shift;
+    bless {@_}, $name;
+}
+
+package Rectangle;
+use base ('Point'); use fields qw(lower upper);
+sub new {
+    my str $name = shift;
+    bless {@_}, $name;
+}
+sub area {
+    my Rectangle $self = shift;
+    my ($lower, $upper) = ($self-&gt;{lower}, $self-&gt;{upper});
+    ($upper-&gt;{x} - $lower-&gt;{x}) * ($upper-&gt;{y} - $lower-&gt;{y});
+}
+my $r = new Rectangle(lower =&gt; new Point(x =&gt; 0, y =&gt; 0),
+                      upper =&gt; new Point(x =&gt; 10, y =&gt; 10));
+print $r-&gt;area; # OUTPUT: «100» 
+</code></pre>
+
+<p>With the old pre-5.10 pseudo-hashes the field names <code>upper</code>, <code>lower</code>
+as hash keys where compile-time optimized to linear-time array access
+to the magic <code>@Rectangle::FIELDS</code> array.  The hash was made restricted,
+ensuring typos in the field names would lead to compile-time errors
+when those keys did not exist.</p>
+
+<p>With perl6 or cperl fields you&rsquo;ve got the same feature; just a
+different, more functional implementation. &ldquo;functional&rdquo; meaning
+features are hidden between functions, not datatypes. Supporting
+datatypes in an API will forever restrict it&rsquo;s usage to this specific
+datatype, you will not be able to change the underlying structures and
+algorithms. This was the biggest mistakes perl and python did at the beginning.</p>
+
+<h1 id="encapsulated-fields">Encapsulated fields</h1>
+
+<p>In perl6 fields are encapsulated. <em>&ldquo;Just as a my variable cannot be
+accessed from outside its declared scope, fields are not accessible
+outside of the class. This encapsulation is one of the key principles
+of object oriented design.&rdquo;</em></p>
+
+<p>perl5 fields were optionally private if given a <code>_</code> prefix, but you
+could always use the magic <code>@FIELDS</code> array and hash in the first slot
+to access the private fields also.</p>
+
+<p>cperl fields are encapsulated, but the trait syntax is different to
+perl6.  You should use the method syntax, not a hash or array access
+syntax. Internally this method is then compiled to the most efficient
+op or method.</p>
+
+<p>The Moose syntax is more different to perl6 than cperl. And it&rsquo;s
+implemention is beyond naive. But theoretically this could be
+improved, the biggest problem is still the troublesome syntax, based
+on the naive implementation restrictions.</p>
+
+<p>With the new cperl fields API you can inspect all defined fields at
+run-time.</p>
+
+<pre><code># return-value of Mu::fields or classobj-&gt;fields
+class Foo {
+    has $foo;
+    has @bar;
+    has %baz :const;
+}
+my @fields = Foo-&gt;fields;
+print $fields[0]-&gt;name; # foo
+</code></pre>
+
+<p>With cperl classes the fields methods returns a list of fields
+objects, representing the has declarations of the class with all
+imported roles - similar to the perl6
+<a href="https://docs.perl6.org/type/Metamodel::ClassHOW#(Metamodel::AttributeContainer)_method_attributes|Metamodel::AttributeContainer">Metamodel::AttributeContainer</a>
+returning <a href="https://docs.perl6.org/type/Attribute|Attribute">Attribute</a> objects.</p>
+
+<p>Each such returned field object supports the following methods <code>name</code>,
+<code>package</code>, <code>const</code>, <code>type</code>, <code>get_value</code> and <code>set_value</code>.  The fields
+method is valid for classes and objects. Only objects do have values,
+therefore <code>{g,s}et_value</code> on a class field is invalid.</p>
+
+<h1 id="types-oo">Types, OO</h1>
+
+<p>There are type systems and there are type systems.  Nominal or
+structural, co variant/contra variant, sound or unsound, making it
+slower or making it faster, static or dynamic, gradual or optional,
+hated or beloved.</p>
+
+<p>What almost nobody knows, perl5 always had room for types built-in.
+<code>my Coffee $c;</code> assigned the type <code>Coffee</code> to the scalar variable <code>$c</code> at
+compile-time. The type <code>Coffee</code> needed to exist already, i.e. it needed
+to be a properly declared package. Internally every package (or &ldquo;class&rdquo;)
+defines a global symbol-table names space, a hash of symbols under main.
+i.e. <code>%main::Coffee::</code> (called a stash, &ldquo;symboltable hash&rdquo;).
+There are even some modules on CPAN which declares types on some of its
+variables.
+&hellip;</p>
+
+<p><strong>Types are compile-time guarantees and hints for the compiler and optimizer.</strong></p>
+
+<p><strong>Types structure classes and method dispatch.</strong></p>
+
+<p><strong>Types document code, makes code stricter, with more static guarantees.</strong></p>
+
+<p>You can gradually switch from obsessive test driven development with
+test suites running hours with over-architectured refactoring,
+to obsessive statically typed code, running in 2x faster time,
+and not being able to debug into compile-time errors,
+which were previously dynamic run-time errors.</p>
+
+<p>This concept came with Common Lisp and its famously optimizing
+compiler, called <a href="http://www.sbcl.org/manual/#Handling-of-Types">python</a>.
+Yes, really, the CMUCL compiler, now still alive as SBCL. Types and compiler
+pragmas were purely optional, as every symbol and variable carried its
+type with itself.  <code>(or (&gt;= safety 2) (&gt;= safety speed 1))</code></p>
+
+<pre><code>(defmacro my-1+ (x)
+    `(the fixnum (1+ (the fixnum ,x))))
+</code></pre>
+
+<p>Statically typed variables loose all of its types at run-time - if you
+strip it from its dwarf sections, but nobody does run-time type
+introspection via dwarf besides
+<a href="https://www.cl.cam.ac.uk/~srk31/">Stephen Kell</a>, just via horrible
+C++ RTTI.</p>
+
+<p>Object systems are basically classes, i.e. types, declared with fields
+and methods. The optimizer figures out the object layout according to
+the type hierarchy, the fields and methods.</p>
+
+<h1 id="mop">MOP</h1>
+
+<p>A MOP (&ldquo;meta object protocol&rdquo;) was invented to change the default
+behavior for objects, methods and classes, basically to make them
+better and slower.  It came up with the differences in LISP frames vs
+CLOS. In CL we had a huge slow monster CLOS, and many small elegant but
+limited &ldquo;frames&rdquo; systems.</p>
+
+<p>Now we know basically three types of object systems:</p>
+
+<ol>
+<li><p>classic hierarchical compile-time classes with inheritance,
+shared methods per class (C++),</p></li>
+
+<li><p>dynamic prototypes with all the methods in the objects (javascript),</p></li>
+
+<li><p>mixins with compile-time composition of classes, in
+contrast to run-time dispatch to parents via inheritance (flavors,
+CLOS, ruby include).</p></li>
+</ol>
+
+<p>With a MOP you are even able to change a classic system to a prototype or mixin
+system, and vice versa.
+Ruby on rails (ab)used the MOP all over which makes it imposible to scale.
+With a proper OO design as in Sinatra/Dancer with delegated classes known at
+compile-time you can easily scale and optimize such a system. A MOP is a very
+poor adhoc method to workaround a proper OO design. It&rsquo;s nice for prototypes,
+such as Moose, which is a very immature adhoc prototype, but it should never
+make it into a production system.</p>
+
+<h1 id="difference-from-class-to-package">Difference from class to package</h1>
+
+<p>A cperl class is internally a readonly package with a CLASS flag set.
+A class is closed, a readonly block by default. methods and fields are
+fixed. If you want dynamic classes use a package. Fields are lexical
+members of the class, copied into objects. Fields and methods can be
+composed from roles, i.e. copied at compile-time. Conflicts are then
+detected at compile-time, and not at run-time as with dynamic packages
+and the ISA inheritance mechanism.</p>
+
+<p>Class fields have no variable data layout as with old blessed objects,
+where fields could be stored as scalar, array or hash. Class fields
+are stored as offset into a not-refcounted array, similar to C structs.
+In fact with a the <code>:native</code> attribute class objects can be passed via
+the FFI to C back and forth. An int field takes 4 byte, a double field 8 byte,
+and not 4 words as a normal scalar value.</p>
+
+<h1 id="anon-classes">Anon classes</h1>
+
+<p>Intermediate classes create via role mixins (the <code>does</code> keyword) are
+stored in the class slot of every object and refer to class stashes.
+But when you mix types or multiple classes combined via <code>and</code> or
+<code>or</code> you cannot use a stash, you&rsquo;d need a list of stashes.</p>
+
+<p>perl6 solved this problem by switching from stashes to objects.
+perl5 solved this via creating temporary anon classes to hold mixins, and
+<code>mro</code>/<code>@ISA</code> to support multiple inheritance.</p>
+
+<p>cperl composes mixins at compile-time, without the need to hold anon
+classes at all.</p>
+
+<h1 id="multiple-dispatch-polymorphism">Multiple dispatch - polymorphism</h1>
+
+<p>cperl 5.28 does not support the <strong>multi</strong> keyword yet, there&rsquo;s no
+polymorph dispatch on methods with the same name (generics) but
+varying number and type of arguments yet. polymorphism solves the problem of
+generic methods, which do the same but its implemention deviates on the given
+arguments. E.g. <code>+</code> acts differently on double or int or string.
+polymorphism is the proper solution for problems previously solved with
+the <strong>overload</strong> pragma.</p>
+
+<p>Internally multi methods will be stored with a name suffix, either
+seperated by the public name with <code>\0</code> or <code>@</code>, followed by the types
+of the accepted arguments.  The signature is encoded into the name. This
+is similar to C++ name mangling for the run-time dispatcher.</p>
+
+<p><code>\0</code> is a good prefix because in cperl binary names are forbidden, for
+security and performance reasons.</p>
+
+<p><code>@</code> would be a good prefix because cperl adopted <code>@</code> from
+Devel:::NYTProf for names of anonymous subroutines. An &ldquo;<strong>ANON</strong>&ldquo;
+import method in cperl is named &ldquo;import@&rdquo; instead, in Devel:::NYTProf
+it would be even named &ldquo;import@[package.pm,10-12]&ldquo;.  perl5 anonymizes some
+names when the GV symbol is being thrown away to <code>__ANON__</code>, esp. with
+import methods.</p>
+
+<h1 id="limitations">Limitations</h1>
+
+<p>5.28 still has some class <a href="http://perl11.org/cperl/perlclass.html#LIMITATIONS">limitations</a>.</p>
+
+<p>The number of fields is limited, as in C.</p>
+
+<p>The inliner is not yet implemented, so field index fixups with roles are not supported yet.
+When copying a method from a role to a class, and the field index from the role method would
+be different to a field index in the resulting class, the method is not yet fixed up to the
+new indices. A temp. solution would be to change the ordering of the roles, or to use the
+<code>$self-&gt;field</code> method syntax in the role method. This requires the not yet finished inliner.
+Currently we can only alias composed role methods and we don&rsquo;t change the ordering of the fields.</p>
+
+<p>eval &lsquo;class {}&rsquo; fails</p>
+
+<p>A class cannot be created in an eval block or subroutine. The pad lookup is still global and
+not per optional CvPADLIST. During development of cperl 5.28 I found the
+<a href="https://github.com/perl11/cperl/issues/354">severe limitations</a> of the perl5 pad design,
+the delegation of FAKE pads into nested scopes.
+upvalues are not copied or delegated to the real slot in the outer pad, but just marked as NULL FAKE pad.
+This led to severe compiler bugs, only fixed in 5.28.</p>
+
+<p>i.e.</p>
+
+<pre><code>my @a[1];
+sub { $a[1] = 1 }-&gt;();
+</code></pre>
+
+<p>missed the compile-time error inside the closed-over sub.
+Also all uoob (compile-time out-of-bounds checks) optimizations were missing on those nested fake PADs.
+So I had to add a new pad API <code>pad_findmy_real</code> to find the real pad/type of a nested lexical variable.</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#subtitle-why-a-mop-is-not-always-a-good-idea">Subtitle: <em>Why a MOP is not always a good idea</em></a></li>
+<li><a href="#an-example">An example</a></li>
+<li><a href="#encapsulated-fields">Encapsulated fields</a></li>
+<li><a href="#types-oo">Types, OO</a></li>
+<li><a href="#mop">MOP</a></li>
+<li><a href="#difference-from-class-to-package">Difference from class to package</a></li>
+<li><a href="#anon-classes">Anon classes</a></li>
+<li><a href="#multiple-dispatch-polymorphism">Multiple dispatch - polymorphism</a></li>
+<li><a href="#limitations">Limitations</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/oo">oo
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/safeclib-3.3.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">safeclib-3.3 and its new compile-time checks&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

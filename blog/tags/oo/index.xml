@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Oo on perl11 blog</title>
+    <link>http://perl11.org/blog/tags/oo.xml</link>
+    <description>Recent content in Oo on perl11 blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© 2016 Copyright Reini Urban</copyright>
+    <atom:link href="http://perl11.org/blog/tags/oo.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>cperl classes</title>
+      <link>http://perl11.org/blog/cperl-classes.html</link>
+      <pubDate>Tue, 11 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/cperl-classes.html</guid>
+      <description>
+
+&lt;h1 id=&#34;subtitle-why-a-mop-is-not-always-a-good-idea&#34;&gt;Subtitle: &lt;em&gt;Why a MOP is not always a good idea&lt;/em&gt;&lt;/h1&gt;
+
+&lt;p&gt;cperl being a perl11, i.e. 5+6=11, of course means that cperl classes
+are designed after perl5 and perl6 classes. perl5 does not have a
+builtin &lt;strong&gt;class&lt;/strong&gt; keyword, but allows to add keywords to be added at
+runtime. cperl and perl6 of course do have a builtin class keyword.&lt;/p&gt;
+
+&lt;p&gt;The backcompat problem with a new builtin keyword is, that some usages
+of variables, package or function names will not work anymore, because
+the new keyword stepped over it. With the current cperl 5.28 release
+this is indeed a problem for the existing &lt;code&gt;B::class&lt;/code&gt; method which
+cannot be imported anymore and be used as &lt;code&gt;class($op)&lt;/code&gt;. Instead all
+these usage have been replaced with &lt;code&gt;B::class($op)&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Technically this can be avoided by hijacking only the first token
+in a statement, and let those be valid cperl terms:
+&lt;code&gt;$class&lt;/code&gt;, &lt;code&gt;sub class {}&lt;/code&gt;, &lt;code&gt;package class;&lt;/code&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;an-example&#34;&gt;An example&lt;/h1&gt;
+
+&lt;pre&gt;&lt;code&gt;class Test::Builder::Module {
+    has int $Child_Error;
+    has $Parent;
+    has $Parent_TODO;
+    has str $Name;
+    has str $Child_Name;
+    has Bailed_Out_Reason;
+    has Bailed_Out;
+    has bool $Have_Plan;
+    has $No_Plan;
+    has $Skip_All;
+    has @Test_Results;
+}
+
+class Test::More is Test::Builder::Module {
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Just look at the
+&lt;a href=&#34;https://docs.perl6.org/language/classtut&#34;&gt;Perl6 Class Tutorial&lt;/a&gt; and
+replace all &amp;ldquo;traits&amp;rdquo; behind signatures with attributes.&lt;/p&gt;
+
+&lt;p&gt;e.g.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;method area() returns Int {}&lt;/code&gt; =&amp;gt; &lt;code&gt;method area() :Int {}&lt;/code&gt;,&lt;/p&gt;
+
+&lt;p&gt;or&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;has Bool $.done is rw;&lt;/code&gt; =&amp;gt; &lt;code&gt;has Bool $done :rw;&lt;/code&gt;,&lt;/p&gt;
+
+&lt;p&gt;leave out the new secondory sigils,
+e.g.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;has Int $.x;&lt;/code&gt; =&amp;gt; &lt;code&gt;has Int $x;&lt;/code&gt;, and you got the cperl syntax.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;class Point {
+    has Int $x;
+    has Int $y;
+}
+
+class Rectangle {
+    has Point $lower;
+    has Point $upper;
+
+    method area() :Int {
+        ($upper-&amp;gt;x - $lower-&amp;gt;x) * ( $upper-&amp;gt;y - $lower-&amp;gt;y);
+    }
+}
+
+# Create a new Rectangle from two Points
+my $r = new Rectangle(lower =&amp;gt; new Point(x =&amp;gt; 0, y =&amp;gt; 0),
+                      upper =&amp;gt; new Point(x =&amp;gt; 10, y =&amp;gt; 10));
+say $r-&amp;gt;area; # OUTPUT: «100␤» 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The old perl5 design for this was:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;package Point; use fields qw(x y);
+sub new {
+    my str $name = shift;
+    bless {@_}, $name;
+}
+
+package Rectangle;
+use base (&#39;Point&#39;); use fields qw(lower upper);
+sub new {
+    my str $name = shift;
+    bless {@_}, $name;
+}
+sub area {
+    my Rectangle $self = shift;
+    my ($lower, $upper) = ($self-&amp;gt;{lower}, $self-&amp;gt;{upper});
+    ($upper-&amp;gt;{x} - $lower-&amp;gt;{x}) * ($upper-&amp;gt;{y} - $lower-&amp;gt;{y});
+}
+my $r = new Rectangle(lower =&amp;gt; new Point(x =&amp;gt; 0, y =&amp;gt; 0),
+                      upper =&amp;gt; new Point(x =&amp;gt; 10, y =&amp;gt; 10));
+print $r-&amp;gt;area; # OUTPUT: «100» 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;With the old pre-5.10 pseudo-hashes the field names &lt;code&gt;upper&lt;/code&gt;, &lt;code&gt;lower&lt;/code&gt;
+as hash keys where compile-time optimized to linear-time array access
+to the magic &lt;code&gt;@Rectangle::FIELDS&lt;/code&gt; array.  The hash was made restricted,
+ensuring typos in the field names would lead to compile-time errors
+when those keys did not exist.&lt;/p&gt;
+
+&lt;p&gt;With perl6 or cperl fields you&amp;rsquo;ve got the same feature; just a
+different, more functional implementation. &amp;ldquo;functional&amp;rdquo; meaning
+features are hidden between functions, not datatypes. Supporting
+datatypes in an API will forever restrict it&amp;rsquo;s usage to this specific
+datatype, you will not be able to change the underlying structures and
+algorithms. This was the biggest mistakes perl and python did at the beginning.&lt;/p&gt;
+
+&lt;h1 id=&#34;encapsulated-fields&#34;&gt;Encapsulated fields&lt;/h1&gt;
+
+&lt;p&gt;In perl6 fields are encapsulated. &lt;em&gt;&amp;ldquo;Just as a my variable cannot be
+accessed from outside its declared scope, fields are not accessible
+outside of the class. This encapsulation is one of the key principles
+of object oriented design.&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;perl5 fields were optionally private if given a &lt;code&gt;_&lt;/code&gt; prefix, but you
+could always use the magic &lt;code&gt;@FIELDS&lt;/code&gt; array and hash in the first slot
+to access the private fields also.&lt;/p&gt;
+
+&lt;p&gt;cperl fields are encapsulated, but the trait syntax is different to
+perl6.  You should use the method syntax, not a hash or array access
+syntax. Internally this method is then compiled to the most efficient
+op or method.&lt;/p&gt;
+
+&lt;p&gt;The Moose syntax is more different to perl6 than cperl. And it&amp;rsquo;s
+implemention is beyond naive. But theoretically this could be
+improved, the biggest problem is still the troublesome syntax, based
+on the naive implementation restrictions.&lt;/p&gt;
+
+&lt;p&gt;With the new cperl fields API you can inspect all defined fields at
+run-time.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# return-value of Mu::fields or classobj-&amp;gt;fields
+class Foo {
+    has $foo;
+    has @bar;
+    has %baz :const;
+}
+my @fields = Foo-&amp;gt;fields;
+print $fields[0]-&amp;gt;name; # foo
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;With cperl classes the fields methods returns a list of fields
+objects, representing the has declarations of the class with all
+imported roles - similar to the perl6
+&lt;a href=&#34;https://docs.perl6.org/type/Metamodel::ClassHOW#(Metamodel::AttributeContainer)_method_attributes|Metamodel::AttributeContainer&#34;&gt;Metamodel::AttributeContainer&lt;/a&gt;
+returning &lt;a href=&#34;https://docs.perl6.org/type/Attribute|Attribute&#34;&gt;Attribute&lt;/a&gt; objects.&lt;/p&gt;
+
+&lt;p&gt;Each such returned field object supports the following methods &lt;code&gt;name&lt;/code&gt;,
+&lt;code&gt;package&lt;/code&gt;, &lt;code&gt;const&lt;/code&gt;, &lt;code&gt;type&lt;/code&gt;, &lt;code&gt;get_value&lt;/code&gt; and &lt;code&gt;set_value&lt;/code&gt;.  The fields
+method is valid for classes and objects. Only objects do have values,
+therefore &lt;code&gt;{g,s}et_value&lt;/code&gt; on a class field is invalid.&lt;/p&gt;
+
+&lt;h1 id=&#34;types-oo&#34;&gt;Types, OO&lt;/h1&gt;
+
+&lt;p&gt;There are type systems and there are type systems.  Nominal or
+structural, co variant/contra variant, sound or unsound, making it
+slower or making it faster, static or dynamic, gradual or optional,
+hated or beloved.&lt;/p&gt;
+
+&lt;p&gt;What almost nobody knows, perl5 always had room for types built-in.
+&lt;code&gt;my Coffee $c;&lt;/code&gt; assigned the type &lt;code&gt;Coffee&lt;/code&gt; to the scalar variable &lt;code&gt;$c&lt;/code&gt; at
+compile-time. The type &lt;code&gt;Coffee&lt;/code&gt; needed to exist already, i.e. it needed
+to be a properly declared package. Internally every package (or &amp;ldquo;class&amp;rdquo;)
+defines a global symbol-table names space, a hash of symbols under main.
+i.e. &lt;code&gt;%main::Coffee::&lt;/code&gt; (called a stash, &amp;ldquo;symboltable hash&amp;rdquo;).
+There are even some modules on CPAN which declares types on some of its
+variables.
+&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Types are compile-time guarantees and hints for the compiler and optimizer.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Types structure classes and method dispatch.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Types document code, makes code stricter, with more static guarantees.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;You can gradually switch from obsessive test driven development with
+test suites running hours with over-architectured refactoring,
+to obsessive statically typed code, running in 2x faster time,
+and not being able to debug into compile-time errors,
+which were previously dynamic run-time errors.&lt;/p&gt;
+
+&lt;p&gt;This concept came with Common Lisp and its famously optimizing
+compiler, called &lt;a href=&#34;http://www.sbcl.org/manual/#Handling-of-Types&#34;&gt;python&lt;/a&gt;.
+Yes, really, the CMUCL compiler, now still alive as SBCL. Types and compiler
+pragmas were purely optional, as every symbol and variable carried its
+type with itself.  &lt;code&gt;(or (&amp;gt;= safety 2) (&amp;gt;= safety speed 1))&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(defmacro my-1+ (x)
+    `(the fixnum (1+ (the fixnum ,x))))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Statically typed variables loose all of its types at run-time - if you
+strip it from its dwarf sections, but nobody does run-time type
+introspection via dwarf besides
+&lt;a href=&#34;https://www.cl.cam.ac.uk/~srk31/&#34;&gt;Stephen Kell&lt;/a&gt;, just via horrible
+C++ RTTI.&lt;/p&gt;
+
+&lt;p&gt;Object systems are basically classes, i.e. types, declared with fields
+and methods. The optimizer figures out the object layout according to
+the type hierarchy, the fields and methods.&lt;/p&gt;
+
+&lt;h1 id=&#34;mop&#34;&gt;MOP&lt;/h1&gt;
+
+&lt;p&gt;A MOP (&amp;ldquo;meta object protocol&amp;rdquo;) was invented to change the default
+behavior for objects, methods and classes, basically to make them
+better and slower.  It came up with the differences in LISP frames vs
+CLOS. In CL we had a huge slow monster CLOS, and many small elegant but
+limited &amp;ldquo;frames&amp;rdquo; systems.&lt;/p&gt;
+
+&lt;p&gt;Now we know basically three types of object systems:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;classic hierarchical compile-time classes with inheritance,
+shared methods per class (C++),&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;dynamic prototypes with all the methods in the objects (javascript),&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;mixins with compile-time composition of classes, in
+contrast to run-time dispatch to parents via inheritance (flavors,
+CLOS, ruby include).&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;With a MOP you are even able to change a classic system to a prototype or mixin
+system, and vice versa.
+Ruby on rails (ab)used the MOP all over which makes it imposible to scale.
+With a proper OO design as in Sinatra/Dancer with delegated classes known at
+compile-time you can easily scale and optimize such a system. A MOP is a very
+poor adhoc method to workaround a proper OO design. It&amp;rsquo;s nice for prototypes,
+such as Moose, which is a very immature adhoc prototype, but it should never
+make it into a production system.&lt;/p&gt;
+
+&lt;h1 id=&#34;difference-from-class-to-package&#34;&gt;Difference from class to package&lt;/h1&gt;
+
+&lt;p&gt;A cperl class is internally a readonly package with a CLASS flag set.
+A class is closed, a readonly block by default. methods and fields are
+fixed. If you want dynamic classes use a package. Fields are lexical
+members of the class, copied into objects. Fields and methods can be
+composed from roles, i.e. copied at compile-time. Conflicts are then
+detected at compile-time, and not at run-time as with dynamic packages
+and the ISA inheritance mechanism.&lt;/p&gt;
+
+&lt;p&gt;Class fields have no variable data layout as with old blessed objects,
+where fields could be stored as scalar, array or hash. Class fields
+are stored as offset into a not-refcounted array, similar to C structs.
+In fact with a the &lt;code&gt;:native&lt;/code&gt; attribute class objects can be passed via
+the FFI to C back and forth. An int field takes 4 byte, a double field 8 byte,
+and not 4 words as a normal scalar value.&lt;/p&gt;
+
+&lt;h1 id=&#34;anon-classes&#34;&gt;Anon classes&lt;/h1&gt;
+
+&lt;p&gt;Intermediate classes create via role mixins (the &lt;code&gt;does&lt;/code&gt; keyword) are
+stored in the class slot of every object and refer to class stashes.
+But when you mix types or multiple classes combined via &lt;code&gt;and&lt;/code&gt; or
+&lt;code&gt;or&lt;/code&gt; you cannot use a stash, you&amp;rsquo;d need a list of stashes.&lt;/p&gt;
+
+&lt;p&gt;perl6 solved this problem by switching from stashes to objects.
+perl5 solved this via creating temporary anon classes to hold mixins, and
+&lt;code&gt;mro&lt;/code&gt;/&lt;code&gt;@ISA&lt;/code&gt; to support multiple inheritance.&lt;/p&gt;
+
+&lt;p&gt;cperl composes mixins at compile-time, without the need to hold anon
+classes at all.&lt;/p&gt;
+
+&lt;h1 id=&#34;multiple-dispatch-polymorphism&#34;&gt;Multiple dispatch - polymorphism&lt;/h1&gt;
+
+&lt;p&gt;cperl 5.28 does not support the &lt;strong&gt;multi&lt;/strong&gt; keyword yet, there&amp;rsquo;s no
+polymorph dispatch on methods with the same name (generics) but
+varying number and type of arguments yet. polymorphism solves the problem of
+generic methods, which do the same but its implemention deviates on the given
+arguments. E.g. &lt;code&gt;+&lt;/code&gt; acts differently on double or int or string.
+polymorphism is the proper solution for problems previously solved with
+the &lt;strong&gt;overload&lt;/strong&gt; pragma.&lt;/p&gt;
+
+&lt;p&gt;Internally multi methods will be stored with a name suffix, either
+seperated by the public name with &lt;code&gt;\0&lt;/code&gt; or &lt;code&gt;@&lt;/code&gt;, followed by the types
+of the accepted arguments.  The signature is encoded into the name. This
+is similar to C++ name mangling for the run-time dispatcher.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;\0&lt;/code&gt; is a good prefix because in cperl binary names are forbidden, for
+security and performance reasons.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;@&lt;/code&gt; would be a good prefix because cperl adopted &lt;code&gt;@&lt;/code&gt; from
+Devel:::NYTProf for names of anonymous subroutines. An &amp;ldquo;&lt;strong&gt;ANON&lt;/strong&gt;&amp;ldquo;
+import method in cperl is named &amp;ldquo;import@&amp;rdquo; instead, in Devel:::NYTProf
+it would be even named &amp;ldquo;import@[package.pm,10-12]&amp;ldquo;.  perl5 anonymizes some
+names when the GV symbol is being thrown away to &lt;code&gt;__ANON__&lt;/code&gt;, esp. with
+import methods.&lt;/p&gt;
+
+&lt;h1 id=&#34;limitations&#34;&gt;Limitations&lt;/h1&gt;
+
+&lt;p&gt;5.28 still has some class &lt;a href=&#34;http://perl11.org/cperl/perlclass.html#LIMITATIONS&#34;&gt;limitations&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The number of fields is limited, as in C.&lt;/p&gt;
+
+&lt;p&gt;The inliner is not yet implemented, so field index fixups with roles are not supported yet.
+When copying a method from a role to a class, and the field index from the role method would
+be different to a field index in the resulting class, the method is not yet fixed up to the
+new indices. A temp. solution would be to change the ordering of the roles, or to use the
+&lt;code&gt;$self-&amp;gt;field&lt;/code&gt; method syntax in the role method. This requires the not yet finished inliner.
+Currently we can only alias composed role methods and we don&amp;rsquo;t change the ordering of the fields.&lt;/p&gt;
+
+&lt;p&gt;eval &amp;lsquo;class {}&amp;rsquo; fails&lt;/p&gt;
+
+&lt;p&gt;A class cannot be created in an eval block or subroutine. The pad lookup is still global and
+not per optional CvPADLIST. During development of cperl 5.28 I found the
+&lt;a href=&#34;https://github.com/perl11/cperl/issues/354&#34;&gt;severe limitations&lt;/a&gt; of the perl5 pad design,
+the delegation of FAKE pads into nested scopes.
+upvalues are not copied or delegated to the real slot in the outer pad, but just marked as NULL FAKE pad.
+This led to severe compiler bugs, only fixed in 5.28.&lt;/p&gt;
+
+&lt;p&gt;i.e.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my @a[1];
+sub { $a[1] = 1 }-&amp;gt;();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;missed the compile-time error inside the closed-over sub.
+Also all uoob (compile-time out-of-bounds checks) optimizations were missing on those nested fake PADs.
+So I had to add a new pad API &lt;code&gt;pad_findmy_real&lt;/code&gt; to find the real pad/type of a nested lexical variable.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
