@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>There be getcwd dragons // perl11 blog</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta property="og:title" content="There be getcwd dragons" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content="http://perl11.org/blog/fastcwd.html" />
+
+
+    <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <link href="http://perl11.org/blog/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://perl11.org/blog/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://perl11.org/blog/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow.min.css" crossorigin="anonymous" />
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+
+    <meta name="generator" content="Hugo 0.20-DEV" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://perl11.org/blog/">perl11 blog</a>
+            <nav id="main-nav">
+                <a class="main-nav-link" href="http://perl11.org/">perl11.org</a>
+                <a class="main-nav-link" href="http://perl11.org/cperl/STATUS.html">cperl</a>
+                <a class="main-nav-link" href="https://www.rperl.org/">rperl</a>
+                <a class="main-nav-link" href="https://github.com/perl11/cperl/">cperl@github</a>
+                <a class="main-nav-link" href="https://docs.perl6.org/">perl6 docs</a>
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">There be getcwd dragons</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/blog/fastcwd.html" class="article-date">
+                <time datetime='2018-10-11T00:00:00.000&#43;00:00' itemprop="datePublished">2018-10-11</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            
+
+<p>The Cwd perl5 module contains various functions to return the string
+of the current working directory.  The POSIX API only contains
+<code>getcwd()</code>, some provide also <code>getwd()</code> - ignored in perl, and the
+glibc also provides <code>get_current_dir_name()</code> and supports a NULL
+argument for <code>getcwd(char *buf, size_t size)</code>.  The Cwd module adds
+cwd, getcwd, getdcwd for Windows with a drive letter, fastcwd,
+fastgetcwd.</p>
+
+<h1 id="symlinks">symlinks</h1>
+
+<p>The simplify the explanation of the various variants, which in theory
+should all return the same string, consider symlinks. If <code>realpath
+&quot;.&quot;</code> expands to something else than your <code>$PWD</code>, then the current
+directory is behind a symlink. This is a big problem for <code>rmtree</code>, as
+chdir&rsquo;ing into a directory which is a symlink would lead to a
+situation, where you cannot step out to the previous directory again,
+and rmtree would continue deleting something else.  You might chdir
+out of a directory that you can&rsquo;t chdir back into.</p>
+
+<p>So to summarize the fastcwd variants, they could return a directory
+which contains a symlink, while getcwd should always resolve all
+symlinks.  In practice fastcwd should be usable for most cases and
+does return the logically correct directory, so users are not surprised
+by returning different pathnames for the same directory. But when you
+traverse a tree, resolving symlinks should be done to avoid troubles.</p>
+
+<p>cwd() is normally implemented as fastcwd(), just very slow.  E.g. by
+shelling out to <code>pwd</code>. You really should never use <strong>cwd</strong>, only <strong>fastcwd</strong>
+or <strong>getcwd</strong>, depending on your use case.</p>
+
+<h1 id="long-pathnames">long pathnames</h1>
+
+<p>On POSIX system the maximal length of a path is specified with
+<code>_POSIX_PATH_MAX</code> or <code>PATH_MAX</code>, which is usually 4096. Older systems
+have sometimes limits like 256, newer systems like Windows NT via
+certain APIs like 32K. But the actual limitation is really based on
+the filesystem, see <a href="https://eklitzke.org/path-max-is-tricky">https://eklitzke.org/path-max-is-tricky</a>.  Many
+filesystems do support much longer pathnames than just 4096.  On POSIX
+you could use <code>pathconf</code> to get the actual limit for this mountpoint,
+or you could do it like in cperl: Use the correct API
+(<code>get_current_dir_name</code>, <code>getcwd(NULL, 0)</code>), or check with growing
+path buffers until <code>ENAMETOOLONG</code> is not returned anymore.</p>
+
+<p>In cperl all the Cwd functions can handle overlong pathnames for some years
+already, perl5 cannot.</p>
+
+<h1 id="security">security</h1>
+
+<p>Attacks on bugs and limitations on pathname API&rsquo;s are quite common and
+easy to use. With the right symlink in user space or overlong pathnames
+you can trick the system into race attacks.
+See e.g. <a href="http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=487319">http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=487319</a> or
+<a href="https://nvd.nist.gov/vuln/detail/CVE-2017-6512">https://nvd.nist.gov/vuln/detail/CVE-2017-6512</a> on the File::Path module, which
+creates paths and removes trees.</p>
+
+<p>When your system getcwd function does not resolve symlinks, i.e. it is
+just fastcwd, rmtree is still vulnerable to symlink attacks. E.g. as
+outlined in <a href="https://github.com/jkeenan/File-Path/pull/7">https://github.com/jkeenan/File-Path/pull/7</a>, which the
+maintainer is unwilling to fix.  Also note that the File::Path API
+became a mess recently. On yet unsupported arguments, like uid, group
+or owner on Windows, the latest version dies, the previous versions
+returned an error. As if Windows would not support such metadata. In
+fact Windows support much more metadata than traditional POSIX
+filesystems, such as ACLs.</p>
+
+<p>This fastcwd problem can e.g. be seen with CPAN, when <code>~/.cpan/build</code>
+resolves to something else.  Then the <code>tmp-$$</code> directory cannot be
+deleted, and CPAN aborts.  Or with DBD::File, when your virtual tables
+are returned with a &ldquo;./&rdquo; prefix when using fastcwd and not getcwd.</p>
+
+<p>But there are so many security problems in perl5, that you really should not
+use perl5 in production with public access. Only cperl, which does have those
+kind of bugs fixed. And many more.</p>
+
+        </div>
+
+        
+        
+        <div class="article-toc" style="display:none;">
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+<ul>
+<li><a href="#symlinks">symlinks</a></li>
+<li><a href="#long-pathnames">long pathnames</a></li>
+<li><a href="#security">security</a></li>
+</ul>
+</nav>
+        </div>
+        
+        
+
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+        <script>
+            (function() {
+                var $toc = $('#TableOfContents');
+                if ($toc.length > 0) {
+                    var $window = $(window);
+
+                    function onScroll(){
+                        var currentScroll = $window.scrollTop();
+                        var h = $('.article-entry h1, .article-entry h2, .article-entry h3, .article-entry h4, .article-entry h5, .article-entry h6');
+                        var id = "";
+                        h.each(function (i, e) {
+                            e = $(e);
+                            if (e.offset().top - 10 <= currentScroll) {
+                                id = e.attr('id');
+                            }
+                        });
+                        var active = $toc.find('a.active');
+                        if (active.length == 1 && active.eq(0).attr('href') == '#' + id) return true;
+
+                        active.each(function (i, e) {
+                            $(e).removeClass('active').siblings('ul').hide();
+                        });
+                        $toc.find('a[href="#' + id + '"]').parentsUntil('#TableOfContents').each(function (i, e) {
+                            $(e).children('a').addClass('active').siblings('ul').show();
+                        });
+                    }
+
+                    $window.on('scroll', onScroll);
+                    $(document).ready(function() {
+                        $toc.find('a').parent('li').find('ul').hide();
+                        onScroll();
+                        document.getElementsByClassName('article-toc')[0].style.display = '';
+                    });
+                }
+            })();
+        </script>
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/cperl">cperl
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    
+    <a href="/blog/cperl-classes.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">cperl classes&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2017 perl11 blog&nbsp;
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos">Minos</a>
+        </div>
+    </div>
+    
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-92976825-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
