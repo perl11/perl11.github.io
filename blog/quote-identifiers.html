@@ -2,14 +2,14 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>There be getcwd dragons // perl11 blog</title>
+    <title>Removal of the perl4 &#39; package seperator // perl11 blog</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta property="og:title" content="There be getcwd dragons" />
+    <meta property="og:title" content="Removal of the perl4 &#39; package seperator" />
 <meta property="og:description" content="" />
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="en_US" />
-<meta property="og:url" content="http://perl11.org/blog/fastcwd.html" />
+<meta property="og:url" content="http://perl11.org/blog/quote-identifiers.html" />
 
 
     <link href="" rel="alternate" type="application/rss+xml" title="perl11 blog" />
@@ -62,12 +62,12 @@
     <div class="article-inner">
         
         <header class="article-header">
-            <h1 class="article-title" itemprop="name">There be getcwd dragons</h1>
+            <h1 class="article-title" itemprop="name">Removal of the perl4 &#39; package seperator</h1>
         </header>
         
         <div class="article-meta">
-            <a href="/blog/fastcwd.html" class="article-date">
-                <time datetime='2018-10-11T00:00:00.000&#43;00:00' itemprop="datePublished">2018-10-11</time>
+            <a href="/blog/quote-identifiers.html" class="article-date">
+                <time datetime='2018-10-12T00:00:00.000&#43;00:00' itemprop="datePublished">2018-10-12</time>
             </a>
             
             
@@ -76,79 +76,90 @@
         <div class="article-entry" itemprop="articleBody">
             
 
-<p>The Cwd perl5 module contains various functions to return the string
-of the current working directory.  The POSIX API only contains
-<code>getcwd()</code>, some provide also <code>getwd()</code> - ignored in perl, and the
-glibc also provides <code>get_current_dir_name()</code> and supports a NULL
-argument for <code>getcwd(char *buf, size_t size)</code>.  The Cwd module adds
-cwd, getcwd, getdcwd for Windows with a drive letter, fastcwd,
-fastgetcwd.</p>
+<p>The removal of the old and deprecated perl4 single quote character <code>'</code>
+as valid package seperator in cperl went through various steps.
+It&rsquo;s also explained in <a href="http://perl11.org/cperl/perldata.html#Identifier-parsing">perldata</a>.</p>
 
-<h1 id="symlinks">symlinks</h1>
+<p>There are still two package separators in perl5:</p>
 
-<p>The simplify the explanation of the various variants, which in theory
-should all return the same string, consider symlinks. If <code>realpath
-&quot;.&quot;</code> expands to something else than your <code>$PWD</code>, then the current
-directory is behind a symlink. This is a big problem for <code>rmtree</code>, as
-chdir&rsquo;ing into a directory which is a symlink would lead to a
-situation, where you cannot step out to the previous directory again,
-and rmtree would continue deleting something else.  You might chdir
-out of a directory that you can&rsquo;t chdir back into.</p>
+<p>A <strong>double colon</strong> (<code>::</code>) and a <strong>single quote</strong> (<code>'</code>).  Normal
+identifiers can start or end with a double colon, and can contain
+several parts delimited by double colons.  Single quotes within <strong>perl5</strong>
+have similar rules, but with the exception that they are not legal at
+the end of an identifier: That is, <code>$'foo</code> and <code>$foo'bar</code> are legal,
+but <code>$foo'bar'</code> is not.</p>
 
-<p>So to summarize the fastcwd variants, they could return a directory
-which contains a symlink, while getcwd should always resolve all
-symlinks.  In practice fastcwd should be usable for most cases and
-does return the logically correct directory, so users are not surprised
-by returning different pathnames for the same directory. But when you
-traverse a tree, resolving symlinks should be done to avoid troubles.</p>
+<p>In <strong>cperl</strong> only the double colon (<code>::</code>) is a legal package
+separator, the perl4 package seperator <code>'</code> was made illegal with
+5.26c, and since 5.28c is now legal part of the identifer.  Full
+support for the single quote <code>'</code> as part of an identifer came with
+5.28c, and matches now the behavior of perl6.</p>
 
-<p>cwd() is normally implemented as fastcwd(), just very slow.  E.g. by
-shelling out to <code>pwd</code>. You really should never use <strong>cwd</strong>, only <strong>fastcwd</strong>
-or <strong>getcwd</strong>, depending on your use case.</p>
+<pre><code>sub isn't { } # parsed as isn't since 5.28c, illegal with 5.26c,
+              # before parsed as isn::t
+isn't()       # parsed as isn't since 5.28c, illegal with 5.26c,
+              # before parsed as isn::t
+</code></pre>
 
-<h1 id="long-pathnames">long pathnames</h1>
+<p>Differences and caveats, when being expanded in strings:</p>
 
-<p>On POSIX system the maximal length of a path is specified with
-<code>_POSIX_PATH_MAX</code> or <code>PATH_MAX</code>, which is usually 4096. Older systems
-have sometimes limits like 256, newer systems like Windows NT via
-certain APIs like 32K. But the actual limitation is really based on
-the filesystem, see <a href="https://eklitzke.org/path-max-is-tricky">https://eklitzke.org/path-max-is-tricky</a>.  Many
-filesystems do support much longer pathnames than just 4096.  On POSIX
-you could use <code>pathconf</code> to get the actual limit for this mountpoint,
-or you could do it like in cperl: Use the correct API
-(<code>get_current_dir_name</code>, <code>getcwd(NULL, 0)</code>), or check with growing
-path buffers until <code>ENAMETOOLONG</code> is not returned anymore.</p>
+<p>Note that hashes are not expanded, e.g. <code>&quot;%file's&quot;</code> stays <code>&quot;%file's&quot;</code>,
+only scalars and arrays are expanded.</p>
 
-<p>In cperl all the Cwd functions can handle overlong pathnames for some years
-already, perl5 cannot.</p>
+<pre><code>my $file = &quot;test&quot;;
+my @file = (&quot;a&quot;, &quot;b&quot;);
+if ($^O !~ /c$/ or $] &lt; 5.026) { # pre 5.26c
+  is(&quot;$file's test&quot;, &quot; test&quot;);   # parsed as file::s
+  is(&quot;@file's test&quot;, &quot; test&quot;);
+}
+elsif ($^O =~ /c$/ and $] &gt;= 5.026 and $] &lt; 5.028) { # 5.26c
+  is(&quot;$file's test&quot;, &quot;test's test&quot;); # parsed as $file . &quot;'s test&quot;
+  is(&quot;@file's test&quot;, &quot;a b's test&quot;);
+}
+elsif ($^O =~ /c$/ and $] &gt;= 5.028) { # 5.28c
+  is(&quot;$file's test&quot;, &quot; test&quot;);   # parsed as $file's. &quot; test&quot;
+  is(&quot;@file's test&quot;, &quot; test&quot;);
+}
+</code></pre>
 
-<h1 id="security">security</h1>
+<p>perl6:</p>
 
-<p>Attacks on bugs and limitations on pathname API&rsquo;s are quite common and
-easy to use. With the right symlink in user space or overlong pathnames
-you can trick the system into race attacks.
-See e.g. <a href="http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=487319">http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=487319</a> or
-<a href="https://nvd.nist.gov/vuln/detail/CVE-2017-6512">https://nvd.nist.gov/vuln/detail/CVE-2017-6512</a> on the File::Path module, which
-creates paths and removes trees.</p>
+<pre><code>no strict;
+my $file = &quot;test&quot;;
+my @file = &quot;a&quot;, &quot;b&quot;;
+is(&quot;$file's test&quot;, &quot; test&quot;);        # parsed as $file's. &quot; test&quot;
+is(&quot;@file's test&quot;, &quot;@file's test&quot;); # @ is not expanded anymore
+</code></pre>
 
-<p>When your system getcwd function does not resolve symlinks, i.e. it is
-just fastcwd, rmtree is still vulnerable to symlink attacks. E.g. as
-outlined in <a href="https://github.com/jkeenan/File-Path/pull/7">https://github.com/jkeenan/File-Path/pull/7</a>, which the
-maintainer is unwilling to fix.  Also note that the File::Path API
-became a mess recently. On yet unsupported arguments, like uid, group
-or owner on Windows, the latest version dies, the previous versions
-returned an error. As if Windows would not support such metadata. In
-fact Windows support much more metadata than traditional POSIX
-filesystems, such as ACLs.</p>
+<p>There&rsquo;s no plan to follow the perl6 syntax decision to not expand the
+<code>@</code> sigil in strings anymore. This is a fundamental perl5 feature and
+widely (ab)used for various cases, which cannot be changed. We also
+don&rsquo;t find that breaking change useful.</p>
 
-<p>This fastcwd problem can e.g. be seen with CPAN, when <code>~/.cpan/build</code>
-resolves to something else.  Then the <code>tmp-$$</code> directory cannot be
-deleted, and CPAN aborts.  Or with DBD::File, when your virtual tables
-are returned with a &ldquo;./&rdquo; prefix when using fastcwd and not getcwd.</p>
+<p>Additionally, if the identifier is preceded by a sigil -
+that is, if the identifier is part of a variable name - it
+may optionally be enclosed in braces.</p>
 
-<p>But there are so many security problems in perl5, that you really should not
-use perl5 in production with public access. Only cperl, which does have those
-kind of bugs fixed. And many more.</p>
+<p>So to properly expand such a scalar string without the quote you
+need to use <code>&quot;${file}'s&quot;</code>.</p>
+
+<pre><code>  is(&quot;${file}'s test&quot;, &quot;test's test&quot;);
+</code></pre>
+
+<p>It worked for a short time in 5.26c without the <code>{}</code> quoting, but only
+in this particular version.</p>
+
+<p>There are still some modules on CPAN which rely on the wrong outdated
+perl4 behaviour. Mostly test related modules which insist on using <code>isn't</code>
+as a method name. There&rsquo;s nothing wrong in using <code>isn't</code> as name, just
+beware that it is not expanded to <code>isn::t</code> anymore. I.e. it&rsquo;s in the
+main module namespace, and not a method called <code>&quot;t&quot;</code> in the <code>&quot;isn&quot;</code> sub
+namespace. It&rsquo;s also illegal with 5.26c and cannot be parsed.</p>
+
+<p>For XS modules there&rsquo;s the <code>PERL_NO_QUOTE_PKGSEPERATOR</code> definition.
+It is defined in cperl since 5.26c. Affected are only <code>Sub::Name</code> and
+<code>Sub::Util</code>. <code>Sub::Name</code> is broken for a long time and should not be used,
+and <code>Sub::Util</code> is distributed in cperl and perl5 core.</p>
 
 <h1 id="comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-9n86il-there-be-getcwd-dragons">Comments on <a href="https://www.reddit.com/r/cperl/comments/9n86il/there_be_getcwd_dragons/">/r/cperl</a>.</h1>
 
@@ -160,9 +171,6 @@ kind of bugs fixed. And many more.</p>
             <h3>Contents</h3>
             <nav id="TableOfContents">
 <ul>
-<li><a href="#symlinks">symlinks</a></li>
-<li><a href="#long-pathnames">long pathnames</a></li>
-<li><a href="#security">security</a></li>
 <li><a href="#comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-9n86il-there-be-getcwd-dragons">Comments on <a href="https://www.reddit.com/r/cperl/comments/9n86il/there_be_getcwd_dragons/">/r/cperl</a>.</a></li>
 </ul>
 </nav>
@@ -220,26 +228,15 @@ kind of bugs fixed. And many more.</p>
                     </a>
                 </li>
                 
-                <li class="article-tag-list-item">
-                    <a class="article-tag-list-link" href="http://perl11.org/blog//tags/security">security
-                    </a>
-                </li>
-                
             </ul>
         </footer>
         
     </div>
     <nav id="article-nav">
     
-    <a href="/blog/quote-identifiers.html" id="article-nav-newer" class="article-nav-link-wrap">
-        <div class="article-nav-title"><span>&lt;</span>&nbsp;
-            Removal of the perl4 &#39; package seperator
-        </div>
-    </a>
     
-    
-    <a href="/blog/cperl-classes.html" id="article-nav-older" class="article-nav-link-wrap">
-        <div class="article-nav-title">cperl classes&nbsp;<span>&gt;</span></div>
+    <a href="/blog/fastcwd.html" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">There be getcwd dragons&nbsp;<span>&gt;</span></div>
     </a>
     
 </nav>

@@ -7,8 +7,105 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© 2016 Copyright Reini Urban</copyright>
-    <lastBuildDate>Thu, 11 Oct 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 12 Oct 2018 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://perl11.org/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Removal of the perl4 &#39; package seperator</title>
+      <link>http://perl11.org/blog/quote-identifiers.html</link>
+      <pubDate>Fri, 12 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>http://perl11.org/blog/quote-identifiers.html</guid>
+      <description>
+
+&lt;p&gt;The removal of the old and deprecated perl4 single quote character &lt;code&gt;&#39;&lt;/code&gt;
+as valid package seperator in cperl went through various steps.
+It&amp;rsquo;s also explained in &lt;a href=&#34;http://perl11.org/cperl/perldata.html#Identifier-parsing&#34;&gt;perldata&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;There are still two package separators in perl5:&lt;/p&gt;
+
+&lt;p&gt;A &lt;strong&gt;double colon&lt;/strong&gt; (&lt;code&gt;::&lt;/code&gt;) and a &lt;strong&gt;single quote&lt;/strong&gt; (&lt;code&gt;&#39;&lt;/code&gt;).  Normal
+identifiers can start or end with a double colon, and can contain
+several parts delimited by double colons.  Single quotes within &lt;strong&gt;perl5&lt;/strong&gt;
+have similar rules, but with the exception that they are not legal at
+the end of an identifier: That is, &lt;code&gt;$&#39;foo&lt;/code&gt; and &lt;code&gt;$foo&#39;bar&lt;/code&gt; are legal,
+but &lt;code&gt;$foo&#39;bar&#39;&lt;/code&gt; is not.&lt;/p&gt;
+
+&lt;p&gt;In &lt;strong&gt;cperl&lt;/strong&gt; only the double colon (&lt;code&gt;::&lt;/code&gt;) is a legal package
+separator, the perl4 package seperator &lt;code&gt;&#39;&lt;/code&gt; was made illegal with
+5.26c, and since 5.28c is now legal part of the identifer.  Full
+support for the single quote &lt;code&gt;&#39;&lt;/code&gt; as part of an identifer came with
+5.28c, and matches now the behavior of perl6.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;sub isn&#39;t { } # parsed as isn&#39;t since 5.28c, illegal with 5.26c,
+              # before parsed as isn::t
+isn&#39;t()       # parsed as isn&#39;t since 5.28c, illegal with 5.26c,
+              # before parsed as isn::t
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Differences and caveats, when being expanded in strings:&lt;/p&gt;
+
+&lt;p&gt;Note that hashes are not expanded, e.g. &lt;code&gt;&amp;quot;%file&#39;s&amp;quot;&lt;/code&gt; stays &lt;code&gt;&amp;quot;%file&#39;s&amp;quot;&lt;/code&gt;,
+only scalars and arrays are expanded.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;my $file = &amp;quot;test&amp;quot;;
+my @file = (&amp;quot;a&amp;quot;, &amp;quot;b&amp;quot;);
+if ($^O !~ /c$/ or $] &amp;lt; 5.026) { # pre 5.26c
+  is(&amp;quot;$file&#39;s test&amp;quot;, &amp;quot; test&amp;quot;);   # parsed as file::s
+  is(&amp;quot;@file&#39;s test&amp;quot;, &amp;quot; test&amp;quot;);
+}
+elsif ($^O =~ /c$/ and $] &amp;gt;= 5.026 and $] &amp;lt; 5.028) { # 5.26c
+  is(&amp;quot;$file&#39;s test&amp;quot;, &amp;quot;test&#39;s test&amp;quot;); # parsed as $file . &amp;quot;&#39;s test&amp;quot;
+  is(&amp;quot;@file&#39;s test&amp;quot;, &amp;quot;a b&#39;s test&amp;quot;);
+}
+elsif ($^O =~ /c$/ and $] &amp;gt;= 5.028) { # 5.28c
+  is(&amp;quot;$file&#39;s test&amp;quot;, &amp;quot; test&amp;quot;);   # parsed as $file&#39;s. &amp;quot; test&amp;quot;
+  is(&amp;quot;@file&#39;s test&amp;quot;, &amp;quot; test&amp;quot;);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;perl6:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;no strict;
+my $file = &amp;quot;test&amp;quot;;
+my @file = &amp;quot;a&amp;quot;, &amp;quot;b&amp;quot;;
+is(&amp;quot;$file&#39;s test&amp;quot;, &amp;quot; test&amp;quot;);        # parsed as $file&#39;s. &amp;quot; test&amp;quot;
+is(&amp;quot;@file&#39;s test&amp;quot;, &amp;quot;@file&#39;s test&amp;quot;); # @ is not expanded anymore
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There&amp;rsquo;s no plan to follow the perl6 syntax decision to not expand the
+&lt;code&gt;@&lt;/code&gt; sigil in strings anymore. This is a fundamental perl5 feature and
+widely (ab)used for various cases, which cannot be changed. We also
+don&amp;rsquo;t find that breaking change useful.&lt;/p&gt;
+
+&lt;p&gt;Additionally, if the identifier is preceded by a sigil -
+that is, if the identifier is part of a variable name - it
+may optionally be enclosed in braces.&lt;/p&gt;
+
+&lt;p&gt;So to properly expand such a scalar string without the quote you
+need to use &lt;code&gt;&amp;quot;${file}&#39;s&amp;quot;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;  is(&amp;quot;${file}&#39;s test&amp;quot;, &amp;quot;test&#39;s test&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It worked for a short time in 5.26c without the &lt;code&gt;{}&lt;/code&gt; quoting, but only
+in this particular version.&lt;/p&gt;
+
+&lt;p&gt;There are still some modules on CPAN which rely on the wrong outdated
+perl4 behaviour. Mostly test related modules which insist on using &lt;code&gt;isn&#39;t&lt;/code&gt;
+as a method name. There&amp;rsquo;s nothing wrong in using &lt;code&gt;isn&#39;t&lt;/code&gt; as name, just
+beware that it is not expanded to &lt;code&gt;isn::t&lt;/code&gt; anymore. I.e. it&amp;rsquo;s in the
+main module namespace, and not a method called &lt;code&gt;&amp;quot;t&amp;quot;&lt;/code&gt; in the &lt;code&gt;&amp;quot;isn&amp;quot;&lt;/code&gt; sub
+namespace. It&amp;rsquo;s also illegal with 5.26c and cannot be parsed.&lt;/p&gt;
+
+&lt;p&gt;For XS modules there&amp;rsquo;s the &lt;code&gt;PERL_NO_QUOTE_PKGSEPERATOR&lt;/code&gt; definition.
+It is defined in cperl since 5.26c. Affected are only &lt;code&gt;Sub::Name&lt;/code&gt; and
+&lt;code&gt;Sub::Util&lt;/code&gt;. &lt;code&gt;Sub::Name&lt;/code&gt; is broken for a long time and should not be used,
+and &lt;code&gt;Sub::Util&lt;/code&gt; is distributed in cperl and perl5 core.&lt;/p&gt;
+
+&lt;h1 id=&#34;comments-on-r-cperl-https-www-reddit-com-r-cperl-comments-9n86il-there-be-getcwd-dragons&#34;&gt;Comments on &lt;a href=&#34;https://www.reddit.com/r/cperl/comments/9n86il/there_be_getcwd_dragons/&#34;&gt;/r/cperl&lt;/a&gt;.&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>There be getcwd dragons</title>
