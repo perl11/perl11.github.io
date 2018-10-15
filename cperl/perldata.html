@@ -95,7 +95,7 @@
 
 <p>That is, a &quot;start&quot; character followed by any number of &quot;continue&quot; characters. Perl requires every character in an identifier to also match <code>\w</code> (this prevents some problematic cases); and Perl additionally accepts identfier names beginning with an underscore.</p>
 
-<p>cperl implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers.</p>
+<p><b>cperl</b> implements the <a href="http://www.unicode.org/reports/tr39/#General_Security_Profile">Moderately Restrictive level </a> for unicode identifiers.</p>
 
 <p>With cperl all utf8 identifiers and literals are parsed and stored as normalized NFC variants, which prevents from various TR39 and TR36 unicode confusable and spoofing security problems. However, prio to cperl 5.27.1 dynamically created symbols via string refs were not normalized. <code>${&quot;$decomposed&quot;}</code> stayed decomposed. Since cperl 5.27.1 under use strict names the dynamic run-time rules match the static parser rules. Normalization is similar to Perl 6 and Python 3, but Perl 6 normalized to their own NFG format and Python 3 normalizes to the non-canonical NFKC format. See <a href="http://www.unicode.org/reports/tr36/">http://www.unicode.org/reports/tr36/</a> and <a href="http://www.unicode.org/reports/tr39">http://www.unicode.org/reports/tr39</a>.</p>
 
@@ -122,9 +122,42 @@
 
 <p>That is, any word character in the ASCII range, as long as the first character is not a digit.</p>
 
-<p>There are two package separators in Perl, but only one in cperl: A double colon (<code>::</code>) and a single quote (<code>&#39;</code>). Normal identifiers can start or end with a double colon, and can contain several parts delimited by double colons. Single quotes have similar rules, but with the exception that they are not legal at the end of an identifier: That is, <code>$&#39;foo</code> and <code>$foo&#39;bar</code> are legal, but <code>$foo&#39;bar&#39;</code> is not. In cperl only the double colon (<code>::</code>) is legal, the perl4 package seperator <code>&#39;</code> is illegal.</p>
+<p>There are two package separators in Perl, but only one in cperl: A double colon (<code>::</code>) and a single quote (<code>&#39;</code>). Normal identifiers can start or end with a double colon, and can contain several parts delimited by double colons. Single quotes have similar rules, but with the exception that they are not legal at the end of an identifier: That is, <code>$&#39;foo</code> and <code>$foo&#39;bar</code> are legal, but <code>$foo&#39;bar&#39;</code> is not. In cperl only the double colon (<code>::</code>) is legal, the perl4 package seperator <code>&#39;</code> was illegal, and since 5.26c is part of an identifer, not a seperator - as in perl6. Full support for the single quote <code>&#39;</code> as part of an identifer came with 5.28c, and matches now the behavior of perl6.</p>
 
-<p>Additionally, if the identifier is preceded by a sigil -- that is, if the identifier is part of a variable name -- it may optionally be enclosed in braces.</p>
+<pre><code>  sub isn&#39;t { } # parsed as isn&#39;t since 5.28c, illegal with 5.26c,
+                # before parsed as isn::t
+  isn&#39;t()       # parsed as isn&#39;t since 5.28c, illegal with 5.26c,
+                # before parsed as isn::t</code></pre>
+
+<p>Differences, when being expanded in strings: Note that hashes are not expanded, e.g. <code>%file&#39;s</code> stays <code>%file&#39;s</code>, only scalars and arrays are.</p>
+
+<pre><code>  my ($file,@file) = (&quot;test&quot;, &quot;a&quot;, &quot;b&quot;);
+  if ($^O !~ /c$/ or $] &lt; 5.026) { # pre 5.26c
+    is(&quot;$file&#39;s test&quot;, &quot; test&quot;);   # parsed as file::s
+    is(&quot;@file&#39;s test&quot;, &quot; test&quot;);
+  }
+  elsif ($^O =~ /c$/ and $] &gt;= 5.026 and $] &lt; 5.028) { # 5.26c
+    is(&quot;$file&#39;s test&quot;, &quot;test&#39;s test&quot;); # parsed as $file . &quot;&#39;s test&quot;
+    is(&quot;@file&#39;s test&quot;, &quot;a b&#39;s test&quot;);
+  }
+  elsif ($^O =~ /c$/ and $] &gt;= 5.028) { # 5.28c
+    is(&quot;$file&#39;s test&quot;, &quot; test&quot;);   # parsed as $file&#39;s. &quot; test&quot;
+    is(&quot;@file&#39;s test&quot;, &quot; test&quot;);
+  }</code></pre>
+
+<p>perl6:</p>
+
+<pre><code>  no strict;
+  my $file = &quot;test&quot;;
+  my @file = &quot;a&quot;, &quot;b&quot;;
+  is(&quot;$file&#39;s test&quot;, &quot; test&quot;);        # parsed as $file&#39;s. &quot; test&quot;
+  is(&quot;@file&#39;s test&quot;, &quot;@file&#39;s test&quot;); # @ is not expanded anymore</code></pre>
+
+<p>If the identifier is preceded by a sigil -- that is, if the identifier is part of a variable name -- it may optionally be enclosed in braces.</p>
+
+<p>So to properly expand such a scalar string without the quote you need to use `&quot;${file}&#39;s&quot;`.</p>
+
+<pre><code>      is(&quot;${file}&#39;s test&quot;, &quot;test&#39;s test&quot;);</code></pre>
 
 <p>While you can mix double colons with singles quotes, the quotes must come after the colons: <code>$::::&#39;foo</code> and <code>$foo::&#39;bar</code> are legal, but <code>$::&#39;::foo</code> and <code>$foo&#39;::bar</code> are not.</p>
 

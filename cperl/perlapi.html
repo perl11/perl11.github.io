@@ -31,6 +31,7 @@
   <li><a href="#Embedding-Functions">Embedding Functions</a></li>
   <li><a href="#Exception-Handling-simple-Macros">Exception Handling (simple) Macros</a></li>
   <li><a href="#Functions-in-file-perlio.c">Functions in file perlio.c</a></li>
+  <li><a href="#Functions-in-file-pp.c">Functions in file pp.c</a></li>
   <li><a href="#Functions-in-file-regcomp.c">Functions in file regcomp.c</a></li>
   <li><a href="#Functions-in-file-scope.c">Functions in file scope.c</a></li>
   <li><a href="#Gimme-Values">&quot;Gimme&quot; Values</a></li>
@@ -907,6 +908,8 @@
 <p>Performs the fixup and compile-time checks of the arguments part of an <code>entersub</code> op tree based on a subroutine signature. This makes various modifications to the argument ops, from applying context up to inserting <code>refgen</code> ops, checking the number and types of arguments, and adding run-time type casts as directed by the signature. This is the standard treatment used on a signatured non-method call, not marked with <code>&amp;</code>, where the callee can be identified at compile time and has a signature.</p>
 
 <p>If the argument ops, the args, disagree with the signature, for example by having an unacceptable number of arguments or a wrong argument type, a valid op tree is returned anyway. The error is reflected in the parser state, normally resulting in a single exception at the top level of parsing which covers all the compilation errors that occurred. In the error message, the callee is referred to by the name defined by the <i>namegv</i> parameter.</p>
+
+<p>With an CvEXTERN ensure that all declared types uniquely match FFI C types.</p>
 
 <pre><code>        OP *    ck_entersub_args_signature(OP *entersubop,
                                            GV *namegv,
@@ -2225,6 +2228,18 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>        SV*     pad_findmy_real(PADOFFSET po, CV* cv)</code></pre>
 
 </dd>
+<dt id="pad_findmy_realoffset">pad_findmy_realoffset </dt>
+<dd>
+
+<p>Search the pad for a real SV in all outer SVs from the current CV up. Skip inner FAKE pads until we get the real outer curpad slot.</p>
+
+<p>Note that only with <code>PL_compcv</code> at compile-time we will encounter fake pads. At runtime the current cv padlist has proper pads.</p>
+
+<p>NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        PADOFFSET pad_findmy_realoffset(PADOFFSET po, CV* cv)</code></pre>
+
+</dd>
 <dt id="pad_findmy_sv">pad_findmy_sv </dt>
 <dd>
 
@@ -2486,6 +2501,18 @@ NOTE: the perl_ form of this function is deprecated.
 
 <pre><code>        SSize_t PerlIO_unread(PerlIO *f, const void *vbuf,
                               Size_t count)</code></pre>
+
+</dd>
+</dl>
+
+<h1 id="Functions-in-file-pp.c">Functions in file pp.c</h1>
+
+<dl>
+
+<dt id="pp_enterffi">pp_enterffi </dt>
+<dd>
+
+<p>Really just call the ffi, handling also the signature (type checking and conversion) and retval (conversion). Without useffi we do accept extern () :void subs, without DynaLoader we always error with &quot;Null extern sub symbol&quot;. We also throw the same error if the extern sub symbol was not found. pp_enterffi()</p>
 
 </dd>
 </dl>
@@ -4834,6 +4861,14 @@ NOTE: the perl_ form of this function is deprecated.
                                  int skip)</code></pre>
 
 </dd>
+<dt id="fastcwd_sv">fastcwd_sv </dt>
+<dd>
+
+<p>Fill <code>sv</code> with the current working directory, supporting long pathnames. Implements the potentially insecure fastcwd API, without resolving symlinks. This is the more dangerous variant because you might chdir out of a directory that you can&#39;t chdir back into. For the safe variant prepend it with abs_path or use getcwd_sv.</p>
+
+<pre><code>        int     fastcwd_sv(SV* sv)</code></pre>
+
+</dd>
 <dt id="fbm_compile">fbm_compile </dt>
 <dd>
 
@@ -4888,7 +4923,7 @@ NOTE: the perl_ form of this function is deprecated.
 <dt id="getcwd_sv">getcwd_sv </dt>
 <dd>
 
-<p>Fill <code>sv</code> with current working directory</p>
+<p>Fill <code>sv</code> with current working directory, supporting long pathnames. Implements the secure getcwd API, with resolving symlinks.</p>
 
 <pre><code>        int     getcwd_sv(SV* sv)</code></pre>
 
@@ -5080,6 +5115,28 @@ NOTE: the perl_ form of this function is deprecated.
 <p>Provides system-specific clean up of the C runtime environment after running Perl interpreters. This should be called only once, after freeing any remaining Perl interpreters.</p>
 
 <pre><code>        void    PERL_SYS_TERM()</code></pre>
+
+</dd>
+<dt id="prep_ffi_ret">prep_ffi_ret </dt>
+<dd>
+
+<p>Translate the ffi_call return value back to the perl type. The types were declared as sub attribute, defaulting to :void, same as perl6.</p>
+
+<p>Via use ffi there are more types than coretypes supported: void, ptr, float, double, long, ulong, char, byte (U8), int8, int16, int64, uint8, uint16, uint32, uint64, longlong, num32, num64, longdouble, bool, size_t, Pointer, OpaquePointer (deprecated), but they need a declaration via <code>use ffi</code>.</p>
+
+<pre><code>        void    prep_ffi_ret(CV* cv, SV** sp, char *rvalue)</code></pre>
+
+</dd>
+<dt id="prep_ffi_sig">prep_ffi_sig </dt>
+<dd>
+
+<p>Check the given arguments for type and arity, and fill the void* argvalue[] array with it. Similar to <code>pp_signature</code>, just matching ffi types to libffi, not coretypes to perl types.</p>
+
+<p>The ffi_cif at CvFFLIB(cv) contains information describing the data types, sizes and alignments of the arguments to and return value from fn. See <code>man ffi_call</code>.</p>
+
+<pre><code>        void    prep_ffi_sig(CV* cv,
+                             const unsigned int num_args,
+                             SV** argp, void **argvalues)</code></pre>
 
 </dd>
 <dt id="quadmath_format_needed">quadmath_format_needed </dt>
@@ -6411,7 +6468,7 @@ NOTE: the perl_ form of this function is deprecated.
 
 <p>Iterating over the PADNAMELIST iterates over all possible pad items. Pad slots for targets (<code>SVs_PADTMP</code>) and GVs end up having <code>&amp;PL_padname_undef</code> &quot;names&quot;, while slots for constants have <code>&amp;PL_padname_const</code> &quot;names&quot; (see <code><a href="#pad_alloc">&quot;pad_alloc&quot;</a></code>). That <code>&amp;PL_padname_undef</code> and <code>&amp;PL_padname_const</code> are used is an implementation detail subject to change. To test for them, use <code>!PadnamePV(name)</code> and <span style="white-space: nowrap;"><code>PadnamePV(name) &amp;&amp; !PadnameLEN(name)</code></span>, respectively.</p>
 
-<p>Only lexical variable slots get valid names (i.e. my/our/state/has). The rest are op targets/GVs/constants which are statically allocated or resolved at compile time. These don&#39;t have names by which they can be looked up from Perl code at run time through eval&quot;&quot; the way lexical variables can be. Since they can&#39;t be looked up by &quot;name&quot; but only by their index allocated at compile time (which is usually in <code>PL_op-&gt;op_targ</code>), wasting a name SV for them doesn&#39;t make sense.</p>
+<p>Only lexical variable slots get valid names (i.e. my/our/state/has, signature variables). The rest are op targets/GVs/constants which are statically allocated or resolved at compile time. These don&#39;t have names by which they can be looked up from Perl code at run time through eval&quot;&quot; the way lexical variables can be. Since they can&#39;t be looked up by &quot;name&quot; but only by their index allocated at compile time (which is usually in <code>PL_op-&gt;op_targ</code>), wasting a name SV for them doesn&#39;t make sense.</p>
 
 <p>The pad names in the PADNAMELIST have their PV holding the name of the variable. The <code>COP_SEQ_RANGE_LOW</code> and <code>_HIGH</code> fields form a range (low+1..high inclusive) of cop_seq numbers for which the name is valid. During compilation, these fields may hold the special value PERL_PADSEQ_INTRO to indicate various stages:</p>
 
@@ -7348,6 +7405,8 @@ NOTE: the perl_ form of this function is deprecated.
 <dd>
 
 <p>Creates a new SV with its <code>SvPVX_const</code> pointing to a shared string in the string table. If the string does not already exist in the table, it is created first. Turns on the <code>SvIsCOW</code> flag (or <code>READONLY</code> and <code>FAKE</code> in 5.16 and earlier). If the <code>hash</code> parameter is non-zero, that value is used; otherwise the hash is computed. The string&#39;s hash can later be retrieved from the SV with the <code>SvSHARED_HASH()</code> macro. The idea here is that as the string table is used for shared hash keys these strings will have <code>SvPVX_const == HeKEY</code> and hash lookup will avoid string compare.</p>
+
+<p>For utf8 strings under 255 the string is downgraded, the utf8 flag is lost and converted to HEK_WASUTF8.</p>
 
 <pre><code>        SV*     newSVpvn_share(const char* s, I32 len, U32 hash)</code></pre>
 
@@ -10862,9 +10921,11 @@ NOTE: the perl_ form of this function is deprecated.
 <pre><code>    ${&quot;\xc3\x28&quot;}       =&gt; FALSE.  Illegal unicode, but no warning or error.
     ${&quot;E\x{45}\x{301}&quot;} =&gt; TRUE.   Normalized to $E\x{c9}
     ${&quot;&#x90F;x&#x1E70;&#xBB0;::&#x2A6;&#x1356;&#x3121;s&#x228;&quot;}   =&gt; FALSE. Error: Invalid script Tamil in identifier
-                             &#xBB0;::&#x2A6;&#x1356;&#x3121;s&#x228; for U+0BB0. Have Devanagari
+                             &#xBB0;::&#x2A6;&#x1356;&#x3121;s&#x228; for U+0BB0. Have Devanagari</code></pre>
 
-        bool    valid_ident(SV* sv, bool strict_names,
+<p>Maybe if a GV or shared PV have the HEK_WASUTF8 flag set, honor that. Though this would be 128-255 chars which are all valid Latin1 identifier chars.</p>
+
+<pre><code>        bool    valid_ident(SV* sv, bool strict_names,
                             bool allow_package, int *normalizep)</code></pre>
 
 </dd>

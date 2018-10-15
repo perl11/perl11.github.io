@@ -83,6 +83,15 @@
     $subref = sub (PROTO) : ATTRS BLOCK; # with proto and attributes
     $subref = sub (SIG) : ATTRS BLOCK;   # with signature and attributes</code></pre>
 
+<p>To declare external subroutines:   </p>
+
+<pre><code>    extern sub NAME (SIG) :ATTRS;            # signature must contain types
+    extern sub NAME (SIG);                   # default return type
+    sub NAME (SIG) :native;                  # no library name
+    sub NAME (SIG) :native(&quot;mysqlclient&quot;);   # constant library name
+    sub NAME (SIG) :native($libname);        # variable library name
+    sub NAME (SIG) :native :symbol(&quot;cname&quot;); # other c symbol name</code></pre>
+
 <p>To import subroutines: </p>
 
 <pre><code>    use MODULE qw(NAME1 NAME2 NAME3);</code></pre>
@@ -431,6 +440,18 @@
         return $self-&gt;{baz};
     }</code></pre>
 
+<p>With <code>extern</code> or :<code>native</code> subroutine declarations the types in the signature are mandatory, and the block is empty. Some non-coretypes, FFI specific types are imported via the <a href="/cperl/lib/ffi.html">ffi</a> module. The functions are searched in all loaded shared libraries, a new shared library must be specified via the <code>:native</code> argument, are loaded beforehand via <code>DynaLoader::dl_load_file()</code>. An alternate name for the C function may be declared via the <code>:symbol</code> attribute.</p>
+
+<pre><code>    extern sub rand() :int;
+
+    use ffi;
+    extern sub srand(uint $i) :void;
+
+    sub mysql_fetch_row ($result :ptr)
+        :native(&quot;mysqlclient&quot;, 20) :long;</code></pre>
+
+<p>The <code>:native</code> attribute accepts a string for the library name, searched via <code>dl_load_file()</code>, plus an optional numeric argument for the soname version to find it easier on windows-like platforms without symlink support, and an optional int for the soname version. See <a href="/cperl/lib/attributes.html#native">&quot;native&quot; in attributes</a>.</p>
+
 <h2 id="Private-Variables-via-my">Private Variables via my()       </h2>
 
 <p>Synopsis:</p>
@@ -443,7 +464,7 @@
 
 <p><b>WARNING</b>: The use of attribute lists on <code>my</code> declarations is still evolving. The current semantics and interface are subject to change. See <a href="/cperl/lib/attributes.html">attributes</a> and <a href="/cperl/lib/Attribute/Handlers.html">Attribute::Handlers</a>.</p>
 
-<p>The <code>my</code> operator declares the listed variables to be lexically confined to the enclosing block, conditional (<code>if</code>/<code>unless</code>/<code>elsif</code>/<code>else</code>), loop (<code>for</code>/<code>foreach</code>/<code>while</code>/<code>until</code>/<code>continue</code>), subroutine, <code>eval</code>, or <code>do</code>/<code>require</code>/<code>use</code>&#39;d file. If more than one value is listed, the list must be placed in parentheses. All listed elements must be legal lvalues. Only alphanumeric identifiers may be lexically scoped--magical built-ins like <code>$/</code> must currently be <code>local</code>ized with <code>local</code> instead.</p>
+<p>The <code>my</code> operator declares the listed variables to be lexically confined to the enclosing block, conditional (<code>if</code>/<code>unless</code>/<code>elsif</code>/<code>else</code>), loop (<code>for</code>/<code>foreach</code>/<code>while</code>/<code>until</code>/<code>continue</code>), subroutine, <code>eval</code>, or <code>do</code>/<code>require</code>/<code>use</code>&#39;d file. If more than one value is listed, the list must be placed in parentheses. All listed elements must be legal lvalues. Only alphanumeric identifiers may be lexically scoped--magical built-ins like <code>$/</code> must currently be localized with <code>local</code> instead.</p>
 
 <p>Unlike dynamic variables created by the <code>local</code> operator, lexical variables declared with <code>my</code> are totally hidden from the outside world, including any called subroutines. This is true if it&#39;s the same subroutine called from itself or elsewhere--every call gets its own copy. </p>
 

@@ -206,7 +206,9 @@
 <dt id="Non-function-keywords">Non-function keywords</dt>
 <dd>
 
-<p><code>and</code>, <code>AUTOLOAD</code>, <code>BEGIN</code>, <code>CHECK</code>, <code>cmp</code>, <code>CORE</code>, <code>__DATA__</code>, <code>default</code>, <code>DESTROY</code>, <code>else</code>, <code>elseif</code>, <code>elsif</code>, <code>END</code>, <code>__END__</code>, <code>eq</code>, <code>for</code>, <code>foreach</code>, <code>ge</code>, <code>given</code>, <code>gt</code>, <code>if</code>, <code>INIT</code>, <code>le</code>, <code>lt</code>, <code>ne</code>, <code>not</code>, <code>or</code>, <code>UNITCHECK</code>, <code>unless</code>, <code>until</code>, <code>when</code>, <code>while</code>, <code>x</code>, <code>xor</code></p>
+<p><code>and</code>, <code>AUTOLOAD</code>, <code>BEGIN</code>, <code>CHECK</code>, <code>cmp</code>, <code>CORE</code>, <code>__DATA__</code>, <code>default</code>, <code>DESTROY</code>, <code>else</code>, <code>elseif</code>, <code>elsif</code>, <code>END</code>, <code>__END__</code>, <code>eq</code>, <a href="#extern-sub-NAME"><code>extern</code></a>, <code>for</code>, <code>foreach</code>, <code>ge</code>, <code>given</code>, <code>gt</code>, <code>if</code>, <code>INIT</code>, <code>le</code>, <code>lt</code>, <code>ne</code>, <code>not</code>, <code>or</code>, <code>UNITCHECK</code>, <code>unless</code>, <code>until</code>, <code>when</code>, <code>while</code>, <code>x</code>, <code>xor</code>.</p>
+
+<p>See <a href="/cperl/perlsyn.html#Statement-Modifiers">&quot;Statement Modifiers&quot; in perlsyn</a> and <a href="/cperl/perlsyn.html#Compound-Statements">&quot;Compound Statements&quot; in perlsyn</a></p>
 
 </dd>
 </dl>
@@ -1064,12 +1066,15 @@
 
 <p>Hash entries are returned in an apparently random order. The actual random order is specific to a given hash; the exact same series of operations on two hashes may result in a different order for each hash. Any insertion into the hash may change the order, as will any deletion, with the exception that the most recent key returned by <a href="#each-HASH"><code>each</code></a> or <a href="#keys-HASH"><code>keys</code></a> may be deleted without changing the order. So long as a given hash is unmodified you may rely on <a href="#keys-HASH"><code>keys</code></a>, <a href="#values-HASH"><code>values</code></a> and <a href="#each-HASH"><code>each</code></a> to repeatedly return the same order as each other. See <a href="/cperl/perlsec.html#Algorithmic-Complexity-Attacks">&quot;Algorithmic Complexity Attacks&quot; in perlsec</a> for details on why hash order is randomized. Aside from the guarantees provided here the exact details of Perl&#39;s hash algorithm and the hash traversal order are subject to change in any release of Perl.</p>
 
-<p>After <a href="#each-HASH"><code>each</code></a> has returned all entries from the hash or array, the next call to <a href="#each-HASH"><code>each</code></a> returns the empty list in list context and <a href="#undef-EXPR"><code>undef</code></a> in scalar context; the next call following <i>that</i> one restarts iteration. Each hash or array has its own internal iterator, accessed by <a href="#each-HASH"><code>each</code></a>, <a href="#keys-HASH"><code>keys</code></a>, and <a href="#values-HASH"><code>values</code></a>. The iterator is implicitly reset when <a href="#each-HASH"><code>each</code></a> has reached the end as just described; it can be explicitly reset by calling <a href="#keys-HASH"><code>keys</code></a> or <a href="#values-HASH"><code>values</code></a> on the hash or array, or by referencing the hash (but not array) in list context. If you add or delete a hash&#39;s elements while iterating over it, the effect on the iterator is unspecified; for example, entries may be skipped or duplicated--so don&#39;t do that. Exception: It is always safe to delete the item most recently returned by <a href="#each-HASH"><code>each</code></a>, so the following code works properly:</p>
+<p>After <a href="#each-HASH"><code>each</code></a> has returned all entries from the hash or array, the next call to <a href="#each-HASH"><code>each</code></a> returns the empty list in list context and <a href="#undef-EXPR"><code>undef</code></a> in scalar context; the next call following <i>that</i> one restarts iteration. Each hash or array has its own internal iterator, accessed by <a href="#each-HASH"><code>each</code></a>, <a href="#keys-HASH"><code>keys</code></a>, and <a href="#values-HASH"><code>values</code></a>. The iterator is implicitly reset when <a href="#each-HASH"><code>each</code></a> has reached the end as just described; it can be explicitly reset by calling <a href="#keys-HASH"><code>keys</code></a> or <a href="#values-HASH"><code>values</code></a> on the hash or array, or by referencing the hash (but not array) in list context.</p>
 
-<pre><code>    while (my ($key, $value) = each %hash) {
-        print $key, &quot;\n&quot;;
-        delete $hash{$key};   # This is safe
-    }</code></pre>
+<p>Destructive operations on the hash keys while iterating over it is now disabled by default with <b>cperl 5.24.0</b>. Enable the previous behavior with <code>use hashiter;</code> If you add or delete a hash&#39;s elements while iterating over it with <code>use hashiter</code>, the effect on the iterator is unspecified; for example, entries may be skipped or duplicated--so don&#39;t do that. Exception: With <a href="/cperl/lib/hashiter.html"><code>use hashiter</code></a> it is safe to delete the item most recently returned by <a href="#each-HASH"><code>each</code></a>, so the following code works properly:</p>
+
+<pre><code>        use hashiter;
+        while (($key, $value) = each %hash) {
+          print $key, &quot;\n&quot;;
+          delete $hash{$key};   # This is safe
+        }</code></pre>
 
 <p>Tied hashes may have a different ordering behaviour to perl&#39;s hash implementation.</p>
 
@@ -1092,7 +1097,8 @@
 <p>To avoid confusing would-be users of your code who are running earlier versions of Perl with mysterious syntax errors, put this sort of thing at the top of your file to signal that your code will work <i>only</i> on Perls of a recent vintage:</p>
 
 <pre><code>    use 5.012;  # so keys/values/each work on arrays
-    use 5.018;  # so each assigns to $_ in a lone while test</code></pre>
+    use 5.018;  # so each assigns to $_ in a lone while test
+    use cperl; use hashiter; # to allow destructive changes in an each() loop.</code></pre>
 
 <p>See also <a href="#keys-HASH"><code>keys</code></a>, <a href="#values-HASH"><code>values</code></a>, and <a href="#sort-SUBNAME-LIST"><code>sort</code></a>.</p>
 
@@ -1441,6 +1447,14 @@
 <dd>
 
 <p>Returns <i>e</i> (the natural logarithm base) to the power of EXPR. If EXPR is omitted, gives <code>exp($_)</code>.</p>
+
+</dd>
+<dt id="extern-sub-NAME">extern sub NAME ();  </dt>
+<dd>
+
+<p>This is a declaration of an external FFI subroutine, with a mandatory signature. The signature must declare the incoming types to uniquely match the possible C types, the return type declaration defaults to <code>:long</code>.</p>
+
+<p><code>extern</code> may be replaced by the <a href="/cperl/lib/attributes.html#native"><code>:native</code></a> attribute.</p>
 
 </dd>
 <dt id="fc-EXPR">fc EXPR     </dt>

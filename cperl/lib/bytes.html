@@ -1,0 +1,97 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bytes - Perl pragma to expose the individual bytes of characters</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:rurban@cpan.org" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#NOTICE">NOTICE</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#LIMITATIONS">LIMITATIONS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>bytes - Perl pragma to expose the individual bytes of characters</p>
+
+<h1 id="NOTICE">NOTICE</h1>
+
+<p>Because the bytes pragma breaks encapsulation (i.e. it exposes the innards of how the perl executable currently happens to store a string), the byte values that result are in an unspecified encoding.</p>
+
+<p><b>Use of this module for anything other than debugging purposes is strongly discouraged.</b> If you feel that the functions here within might be useful for your application, this possibly indicates a mismatch between your mental model of Perl Unicode and the current reality. In that case, you may wish to read some of the perl Unicode documentation: <a href="/cperl/perluniintro.html">perluniintro</a>, <a href="/cperl/perlunitut.html">perlunitut</a>, <a href="/cperl/perlunifaq.html">perlunifaq</a> and <a href="/cperl/perlunicode.html">perlunicode</a>.</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    use bytes;
+    ... chr(...);       # or bytes::chr
+    ... index(...);     # or bytes::index
+    ... length(...);    # or bytes::length
+    ... ord(...);       # or bytes::ord
+    ... rindex(...);    # or bytes::rindex
+    ... substr(...);    # or bytes::substr
+    no bytes;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Perl&#39;s characters are stored internally as sequences of one or more bytes. This pragma allows for the examination of the individual bytes that together comprise a character.</p>
+
+<p>Originally the pragma was designed for the loftier goal of helping incorporate Unicode into Perl, but the approach that used it was found to be defective, and the one remaining legitimate use is for debugging when you need to non-destructively examine characters&#39; individual bytes. Just insert this pragma temporarily, and remove it after the debugging is finished.</p>
+
+<p>The original usage can be accomplished by explicit (rather than this pragma&#39;s implict) encoding using the <a href="/cperl/lib/Encode.html">Encode</a> module:</p>
+
+<pre><code>    use Encode qw/encode/;
+
+    my $utf8_byte_string   = encode &quot;UTF8&quot;,   $string;
+    my $latin1_byte_string = encode &quot;Latin1&quot;, $string;</code></pre>
+
+<p>Or, if performance is needed and you are only interested in the UTF-8 representation:</p>
+
+<pre><code>    utf8::encode(my $utf8_byte_string = $string);</code></pre>
+
+<p><code>no bytes</code> can be used to reverse the effect of <code>use bytes</code> within the current lexical scope.</p>
+
+<p>As an example, when Perl sees <code>$x = chr(400)</code>, it encodes the character in UTF-8 and stores it in <code>$x</code>. Then it is marked as character data, so, for instance, <code>length $x</code> returns <code>1</code>. However, in the scope of the <code>bytes</code> pragma, <code>$x</code> is treated as a series of bytes - the bytes that make up the UTF8 encoding - and <code>length $x</code> returns <code>2</code>:</p>
+
+<pre><code> $x = chr(400);
+ print &quot;Length is &quot;, length $x, &quot;\n&quot;;     # &quot;Length is 1&quot;
+ printf &quot;Contents are %vd\n&quot;, $x;         # &quot;Contents are 400&quot;
+ {
+     use bytes; # or &quot;require bytes; bytes::length()&quot;
+     print &quot;Length is &quot;, length $x, &quot;\n&quot;; # &quot;Length is 2&quot;
+     printf &quot;Contents are %vd\n&quot;, $x;     # &quot;Contents are 198.144 (on
+                                          # ASCII platforms)&quot;
+ }</code></pre>
+
+<p><code>chr()</code>, <code>ord()</code>, <code>substr()</code>, <code>index()</code> and <code>rindex()</code> behave similarly.</p>
+
+<p>For more on the implications, see <a href="/cperl/perluniintro.html">perluniintro</a> and <a href="/cperl/perlunicode.html">perlunicode</a>.</p>
+
+<p><code>bytes::length()</code> is admittedly handy if you need to know the <b>byte length</b> of a Perl scalar. But a more modern way is:</p>
+
+<pre><code>   use Encode &#39;encode&#39;;
+   length(encode(&#39;UTF-8&#39;, $scalar))</code></pre>
+
+<h1 id="LIMITATIONS">LIMITATIONS</h1>
+
+<p><code>bytes::substr()</code> does not work as an <i>lvalue()</i>.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="/cperl/perluniintro.html">perluniintro</a>, <a href="/cperl/perlunicode.html">perlunicode</a>, <a href="/cperl/lib/utf8.html">utf8</a>, <a href="/cperl/lib/Encode.html">Encode</a></p>
+
+
+</body>
+
+</html>
+
+

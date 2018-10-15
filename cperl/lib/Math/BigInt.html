@@ -126,19 +126,20 @@
   # Constructor methods (when the class methods below are used as instance
   # methods, the value is assigned the invocand)
 
-  $x = Math::BigInt-&gt;new($str);         # defaults to 0
-  $x = Math::BigInt-&gt;new(&#39;0x123&#39;);      # from hexadecimal
-  $x = Math::BigInt-&gt;new(&#39;0b101&#39;);      # from binary
-  $x = Math::BigInt-&gt;from_hex(&#39;cafe&#39;);  # from hexadecimal
-  $x = Math::BigInt-&gt;from_oct(&#39;377&#39;);   # from octal
-  $x = Math::BigInt-&gt;from_bin(&#39;1101&#39;);  # from binary
-  $x = Math::BigInt-&gt;bzero();           # create a +0
-  $x = Math::BigInt-&gt;bone();            # create a +1
-  $x = Math::BigInt-&gt;bone(&#39;-&#39;);         # create a -1
-  $x = Math::BigInt-&gt;binf();            # create a +inf
-  $x = Math::BigInt-&gt;binf(&#39;-&#39;);         # create a -inf
-  $x = Math::BigInt-&gt;bnan();            # create a Not-A-Number
-  $x = Math::BigInt-&gt;bpi();             # returns pi
+  $x = Math::BigInt-&gt;new($str);             # defaults to 0
+  $x = Math::BigInt-&gt;new(&#39;0x123&#39;);          # from hexadecimal
+  $x = Math::BigInt-&gt;new(&#39;0b101&#39;);          # from binary
+  $x = Math::BigInt-&gt;from_hex(&#39;cafe&#39;);      # from hexadecimal
+  $x = Math::BigInt-&gt;from_oct(&#39;377&#39;);       # from octal
+  $x = Math::BigInt-&gt;from_bin(&#39;1101&#39;);      # from binary
+  $x = Math::BigInt-&gt;from_base(&#39;why&#39;, 36);  # from any base
+  $x = Math::BigInt-&gt;bzero();               # create a +0
+  $x = Math::BigInt-&gt;bone();                # create a +1
+  $x = Math::BigInt-&gt;bone(&#39;-&#39;);             # create a -1
+  $x = Math::BigInt-&gt;binf();                # create a +inf
+  $x = Math::BigInt-&gt;binf(&#39;-&#39;);             # create a -inf
+  $x = Math::BigInt-&gt;bnan();                # create a Not-A-Number
+  $x = Math::BigInt-&gt;bpi();                 # returns pi
 
   $y = $x-&gt;copy();         # make a copy (unlike $y = $x)
   $y = $x-&gt;as_int();       # return as a Math::BigInt
@@ -265,6 +266,7 @@
   $x-&gt;to_bin();       # as signed binary string
   $x-&gt;to_oct();       # as signed octal string
   $x-&gt;to_bytes();     # as byte string
+  $x-&gt;to_base($b);    # as string in any base
 
   $x-&gt;as_hex();       # as signed hexadecimal string with prefixed 0x
   $x-&gt;as_bin();       # as signed binary string with prefixed 0b
@@ -546,6 +548,38 @@
     $b = &quot;\x2d\xe0\x49\xad\x2d\xe0\x49\xad&quot;; # eight char byte string
     $x = Math::BigInt-&gt;from_bytes($b);       # = 3305723134637787565
     $y = unpack &quot;Q&gt;&quot;, $b;                    # ditto, but scalar</code></pre>
+
+</dd>
+<dt id="from_base">from_base()</dt>
+<dd>
+
+<p>Given a string, a base, and an optional collation sequence, interpret the string as a number in the given base. The collation sequence describes the value of each character in the string.</p>
+
+<p>If a collation sequence is not given, a default collation sequence is used. If the base is less than or equal to 36, the collation sequence is the string consisting of the 36 characters &quot;0&quot; to &quot;9&quot; and &quot;A&quot; to &quot;Z&quot;. In this case, the letter case in the input is ignored. If the base is greater than 36, and smaller than or equal to 62, the collation sequence is the string consisting of the 62 characters &quot;0&quot; to &quot;9&quot;, &quot;A&quot; to &quot;Z&quot;, and &quot;a&quot; to &quot;z&quot;. A base larger than 62 requires the collation sequence to be specified explicitly.</p>
+
+<p>These examples show standard binary, octal, and hexadecimal conversion. All cases return 250.</p>
+
+<pre><code>    $x = Math::BigInt-&gt;from_base(&quot;11111010&quot;, 2);
+    $x = Math::BigInt-&gt;from_base(&quot;372&quot;, 8);
+    $x = Math::BigInt-&gt;from_base(&quot;fa&quot;, 16);</code></pre>
+
+<p>When the base is less than or equal to 36, and no collation sequence is given, the letter case is ignored, so both of these also return 250:</p>
+
+<pre><code>    $x = Math::BigInt-&gt;from_base(&quot;6Y&quot;, 16);
+    $x = Math::BigInt-&gt;from_base(&quot;6y&quot;, 16);</code></pre>
+
+<p>When the base greater than 36, and no collation sequence is given, the default collation sequence contains both uppercase and lowercase letters, so the letter case in the input is not ignored:</p>
+
+<pre><code>    $x = Math::BigInt-&gt;from_base(&quot;6S&quot;, 37);         # $x is 250
+    $x = Math::BigInt-&gt;from_base(&quot;6s&quot;, 37);         # $x is 276
+    $x = Math::BigInt-&gt;from_base(&quot;121&quot;, 3);         # $x is 16
+    $x = Math::BigInt-&gt;from_base(&quot;XYZ&quot;, 36);        # $x is 44027
+    $x = Math::BigInt-&gt;from_base(&quot;Why&quot;, 42);        # $x is 58314</code></pre>
+
+<p>The collation sequence can be any set of unique characters. These two cases are equivalent</p>
+
+<pre><code>    $x = Math::BigInt-&gt;from_base(&quot;100&quot;, 2, &quot;01&quot;);   # $x is 4
+    $x = Math::BigInt-&gt;from_base(&quot;|--&quot;, 2, &quot;-|&quot;);   # $x is 4</code></pre>
 
 </dd>
 <dt id="bzero">bzero()</dt>
@@ -1484,7 +1518,7 @@
 
 <pre><code>    $x-&gt;to_hex();</code></pre>
 
-<p>Returns a hexadecimal string representation of the number.</p>
+<p>Returns a hexadecimal string representation of the number. See also from_hex().</p>
 
 </dd>
 <dt id="to_bin">to_bin()</dt>
@@ -1492,7 +1526,7 @@
 
 <pre><code>    $x-&gt;to_bin();</code></pre>
 
-<p>Returns a binary string representation of the number.</p>
+<p>Returns a binary string representation of the number. See also from_bin().</p>
 
 </dd>
 <dt id="to_oct">to_oct()</dt>
@@ -1500,7 +1534,7 @@
 
 <pre><code>    $x-&gt;to_oct();</code></pre>
 
-<p>Returns an octal string representation of the number.</p>
+<p>Returns an octal string representation of the number. See also from_oct().</p>
 
 </dd>
 <dt id="to_bytes">to_bytes()</dt>
@@ -1509,7 +1543,27 @@
 <pre><code>    $x = Math::BigInt-&gt;new(&quot;1667327589&quot;);
     $s = $x-&gt;to_bytes();                    # $s = &quot;cafe&quot;</code></pre>
 
-<p>Returns a byte string representation of the number using big endian byte order. The invocand must be a non-negative, finite integer.</p>
+<p>Returns a byte string representation of the number using big endian byte order. The invocand must be a non-negative, finite integer. See also from_bytes().</p>
+
+</dd>
+<dt id="to_base">to_base()</dt>
+<dd>
+
+<pre><code>    $x = Math::BigInt-&gt;new(&quot;250&quot;);
+    $x-&gt;to_base(2);     # returns &quot;11111010&quot;
+    $x-&gt;to_base(8);     # returns &quot;372&quot;
+    $x-&gt;to_base(16);    # returns &quot;fa&quot;</code></pre>
+
+<p>Returns a string representation of the number in the given base. If a collation sequence is given, the collation sequence determines which characters are used in the output.</p>
+
+<p>Here are some more examples</p>
+
+<pre><code>    $x = Math::BigInt-&gt;new(&quot;16&quot;)-&gt;to_base(3);       # returns &quot;121&quot;
+    $x = Math::BigInt-&gt;new(&quot;44027&quot;)-&gt;to_base(36);   # returns &quot;XYZ&quot;
+    $x = Math::BigInt-&gt;new(&quot;58314&quot;)-&gt;to_base(42);   # returns &quot;Why&quot;
+    $x = Math::BigInt-&gt;new(&quot;4&quot;)-&gt;to_base(2, &quot;-|&quot;);  # returns &quot;|--&quot;</code></pre>
+
+<p>See from_base() for information and examples.</p>
 
 </dd>
 <dt id="as_hex">as_hex()</dt>

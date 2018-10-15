@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>ffi - extern sub types and helpers</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:root@osx219.apple.com" />
+<link rev="made" href="mailto:rurban@cpan.org" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -15,6 +15,7 @@
   <li><a href="#NAME">NAME</a></li>
   <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
   <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#COPY-vs-SHARE">COPY vs SHARE</a></li>
 </ul>
 
 <h1 id="NAME">NAME</h1>
@@ -32,13 +33,35 @@
 
 <p>Natively cperl defines the following <a href="/cperl/perltypes.html#coretypes">&quot;coretypes&quot; in perltypes</a>, which are valid ffi types:</p>
 
-<p>int, Int, num, Num, str, Str, uint, UInt.</p>
+<pre><code>    int, Int, num, Num, str, Str, uint, UInt.</code></pre>
+
+<p>TODO: <code>Uni</code>, <code>uni</code> for utf8-encoded strings, and <code>wchar</code>.</p>
 
 <p>Via <b>use ffi</b> there are more types than coretypes supported:</p>
 
-<p>void, ptr, float, double, long, ulong, char, byte (U8), int8, int16, int64, uint8, uint16, uint32, uint64, longlong, num32, num64, longdouble, bool, size_t, Pointer, OpaquePointer (deprecated).</p>
+<pre><code>    void, ptr, float, double, long, ulong, char, byte (U8), int8,
+    int16, int64, uint8, uint16, uint32, uint64, longlong, num32,
+    num64, longdouble, bool, size_t, Pointer,
+    OpaquePointer (deprecated).</code></pre>
 
 <p>Matching the perl6 <a href="https://docs.perl6.org/language/nativecall">NativeCall</a> types.</p>
+
+<h1 id="COPY-vs-SHARE">COPY vs SHARE</h1>
+
+<p>The ffi arguments and return types default to :void. If not void, the declared types are matched to the given argument value and converted if possible.</p>
+
+<p>The primitive types create a new copy of the value.</p>
+
+<p>The aggregate types, such as str or Str (Uni, wchar not yet) try to share the value first, and only if not possible create a copy. As argument an aggregate type is always shared, as return type possibly shared.</p>
+
+<p>E.g.</p>
+
+<pre><code>    extern sub strchr(str $s, int $i) :str;
+    print strchr(&quot;abcd&quot;, ord(&quot;c&quot;))</code></pre>
+
+<p>The result ptr of strchr points inside the argument string, to &quot;c&quot; with an offset of 2 from the &quot;a&quot;. So we can use the SvOOK interpretation of a string pointing to the delta, and the string is not copied back. But if the result of the ffi call points outside the given string, we need to copy it.</p>
+
+<p>The handling of native arrays and structs (i.e native classes) via ffi is not implemented yet.</p>
 
 
 </body>
