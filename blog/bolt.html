@@ -81,8 +81,9 @@ The easiest is</p>
 
 <h1 id="lto">LTO</h1>
 
-<p>via <code>gcc -flto=4</code> or <code>clang -flto=thin</code>. This requires the gold linker, and
-enables multi-threaded link-time optimizations.</p>
+<p>or &ldquo;Link Time Optimization&rdquo; via <code>gcc -flto=4</code> or <code>clang
+-flto=thin</code>. This requires the <code>gold</code> linker, and enables multi-threaded
+link-time optimizations.</p>
 
 <p>For gcc my configure script does</p>
 
@@ -100,12 +101,33 @@ enables multi-threaded link-time optimizations.</p>
   -Accflags=&quot;-DLTO -flto=thin -msse4.2 -march=native&quot; ...
 </code></pre>
 
-<p>The impact is about 10%.</p>
+<p>LTO is efficient because it sees all symbols at once, not seperated into objects, so
+it can do whole-program optimizations, esp. inlining and reordering.
+The impact is about 10%. The <a href="https://github.com/perl11/cperl/issues/381">goal</a> for v5.29.1c
+is to make LTO default for non-DEBUGGING builds.</p>
+
+<h1 id="pgo">PGO</h1>
+
+<p>or &ldquo;Profile Guided Optimization&rdquo;. This is mostly used on non-linux
+system without <code>perf</code>, and works with most compilers: ICC, GCC,
+clang, Oracle Solaris Studio, MSVC, IBM XL C/C++.</p>
+
+<p>First you need to compile your binaries with enabled profiling, on gcc
+with <code>-fprofile-generate</code> which generates a <code>.gcno</code> file for each
+object file. (The same file that is used for gcov coverage reports).
+Then you must run a few tests, which records coverage data into
+<code>.gcda</code> files.  Then recompile with <code>-fprofile-use</code>: it will compile
+with the gathered <code>.gcda</code> coverage data and infer from branch-coverage
+if an branch is LIKELY or UNLIKELY.</p>
+
+<p>This is not as efficient as LTO, but does detect most branch misses
+and is sensitive to your local workflow.</p>
 
 <h1 id="autofdo">AutoFDO</h1>
 
-<p><a href="https://gcc.gnu.org/wiki/AutoFDO">AutoFDO</a> is the optimized profile guided optimization
-method on linux via perf, in opposite to <code>-pg</code> without <code>perf</code>.</p>
+<p><a href="https://gcc.gnu.org/wiki/AutoFDO">AutoFDO</a> is the optimized profile
+guided optimization method on linux via perf, in opposite to <code>-pg</code>
+without <code>perf</code>.</p>
 
 <p>On most recent kernels you need to recompile <a href="https://github.com/google/autofdo">autofdo</a> by yourself</p>
 
@@ -117,31 +139,52 @@ make -s
 make -s install
 </code></pre>
 
-<p>The perl/cperl Makefile already contains two targets for gcc: <code>miniperl.autofdo</code>
-and <code>perl.autofdo</code>. For clang just replace <code>create_gcov</code> with <code>create_llvm_gcov</code>.
-The <code>perl.autofdo</code> target just optimizes a static <code>perl</code> executable, not the shared
-<code>libperl.so</code>, so beware. miniperl is always static, so you can measure the impact there easier.
-For me it&rsquo;s about 20%.</p>
+<p>The perl/cperl Makefile already contains two targets for gcc:
+<code>miniperl.autofdo</code> and <code>perl.autofdo</code>. For clang just replace
+<code>create_gcov</code> with <code>create_llvm_gcov</code>.  The <code>perl.autofdo</code> target just
+optimizes a static <code>perl</code> executable, not the shared <code>libperl.so</code>, so
+beware. miniperl is always static, so you can measure the impact there
+easier.  For me it&rsquo;s about 20%.</p>
 
-<p>The old method was the profile-guided optimization as described in the
-gcc manual, also with a gcov file.</p>
+<p>The main benefit of AutoFDO over PGO is that you don&rsquo;t need two
+binaries, a profiling one, and the resulting optimized one.</p>
+
+<p>I haven&rsquo;t checked yet how far the efforts on other systems are,
+getting sampling gcov data from an optimized binary. There&rsquo;s as
+<a href="https://www.freebsd.org/cgi/man.cgi?query=hwpmc&amp;sektion=4&amp;manpath=freebsd-release-ports">hwpmc</a>
+driver effort at FreeBSD but you still need to link a
+<a href="https://www.freebsd.org/cgi/man.cgi?query=pmc&amp;sektion=3&amp;apropos=0&amp;manpath=FreeBSD+11.2-RELEASE+and+Ports">-lpmc</a>
+library for hardware counter support.</p>
+
+<p>DTrace has now <a href="https://www.joyent.com/blog/dtracing-hardware-cache-counters">cpc support</a>,
+but a <strong>DTrace to gcov</strong> script would be needed, as <a href="http://perl11.org/cperl/perldtrace.html">DTrace</a>
+is far better than the linux-only <code>perf</code>.</p>
+
+<h1 id="prelink">prelink</h1>
+
+<p><a href="https://community.linuxmint.com/tutorial/view/473">prelink</a> from
+libreoffice is a post-link optimizer.  It fixes up startup
+relocations, but with PIE, ASLR and constantly updated libraries
+it&rsquo;s a bit of a <a href="https://lwn.net/Articles/341244/">hassle</a> and is not
+recommended, esp. not on 32bit systems.</p>
 
 <h1 id="bolt">BOLT</h1>
 
-<p><a href="https://github.com/facebookincubator/BOLT">llvm-bolt</a> is a bit similar to <a href="https://community.linuxmint.com/tutorial/view/473">prelink</a>
-from libreoffice. It&rsquo;s a post-link optimizer.
-It analyzes perf traces from a running executable or service, and then rewrites the binary
-to be faster.</p>
+<p><a href="https://github.com/facebookincubator/BOLT">llvm-bolt</a> is also a post-link optimizer.
+It analyzes perf traces from a running executable or service, similar to autofdo,
+and then rewrites the binary to be faster.</p>
 
 <p>I&rsquo;ve compiled bolt at <code>/usr/src/llvm/llvm-bolt/build</code>, added the bin path to my PATH
 <code>export PATH=/usr/src/llvm/llvm-bolt/build/bin:$PATH</code>, added the <code>-Wl,-q</code> flag to ldflags
 and lddlflags:</p>
 
-<pre><code>sed -i -e&quot;s,ldflags=',ldflags='-Wl,-q ,&quot; config.sh
-sed -i -e&quot;s,lddlflags=',lddlflags='-Wl,-q ,&quot; config.sh
+<pre><code>sed -i -e&quot;s/ldflags='/ldflags='-Wl,-q /&quot; config.sh
+sed -i -e&quot;s/lddlflags='/lddlflags='-Wl,-q /&quot; config.sh
 </code></pre>
 
-<p>Before: <code>perf stat -r2 ./minibench.sh</code>, where <code>minibench.sh</code> is the script created by <code>miniperl.autofdo</code>.</p>
+<p>Sorry, <code>-Alddlflags</code> is still unusable.</p>
+
+<p><code>minibench.sh</code> is the script created by <code>miniperl.autofdo</code> from above.</p>
 
 <p>Using bolt:</p>
 
@@ -211,7 +254,7 @@ number of times CTCs are taken is 0.
 BOLT-INFO: setting _end to 0xe040b8
 </code></pre>
 
-<p>After: <code>perf stat -r2 ./minibench.sh</code></p>
+<p>Before - After: <code>perf stat -r2 ./minibench.sh</code></p>
 
 <p>=&gt;</p>
 
@@ -255,16 +298,15 @@ Performance counter stats for './minibench.sh' (2 runs):
        4.18226 +- 0.00375 seconds time elapsed  ( +-  0.09% )
 </code></pre>
 
-<p>Which is an impact of 9% on the already link-time optimized executable. Nice!</p>
-
-<p><code>prelink</code> would also gain a lot of startup overhead, but is a bit
-fragile, as every system update on any shared library would break it.</p>
+<p>Which is an impact of 9% on the already link-time optimized executable. Nice!
+Note that the generated <code>bolt.fdata</code> is readable and can
+lead you to missed manual optimizations in the source code.</p>
 
 <h1 id="static-linker-optimizations">Static linker optimizations</h1>
 
 <p>Now you ask how to get all the linker optimizations into the source
 code and build-environment, to avoid all these compiler and linker
-optimizations.</p>
+optimization steps.</p>
 
 <p>The first problem is to add missing or wrong <code>LIKELY</code>/<code>UNLIKELY</code> hints
 to the branches in the sources.  I&rsquo;m not aware of any automatic tool
@@ -277,7 +319,7 @@ Makefiles. We don&rsquo;t need a linker script, re-arranging the order of
 the objects or just appending all sources into one big C file and
 compile only this would accomplish this. perl is a bit large, the
 compiler would consume too much memory, so I went for the optimization
-of the objects at first.</p>
+of the object linkorder at first.</p>
 
 <p>There are two problem: permutate the objects itself, and second
 rearrange the functions inside the objects.  Measuring all
@@ -297,7 +339,7 @@ for my $i (0..5000) {
   $p = permute(\@o, $p, $curr);
 };
 
-sub permute {
+sub permute { # from perlfaq4
   my ($a,$p,$curr) = @_;
   my @idx = 0..$#{$a};
   my $new = $curr;
@@ -348,7 +390,7 @@ sub bench {
 <p>This revealed that the current object layout is suboptimal, several
 miniperl-specific objects need to be spliced into the common_objs.</p>
 
-<p>The best order on linux was:</p>
+<p>The best order on linux is:</p>
 
 <pre><code>gv | perlmini miniperlmain | perly toke | opmini | av pad sv hv pp_hot run
 pp_ctl pp_type | ppmini | scope pp_sys regcomp mg doop util doio keywords
@@ -375,13 +417,19 @@ can be shorter.  Note that cperl seperated xsutils and pp also into
 <p>The performance of the various orders varied wildly: from 3.031298s
 to 3.990619s, i.e. +-31%.
 See <a href="https://gist.github.com/rurban/67cb4b4046a3538837b6c2aade18ba2f">https://gist.github.com/rurban/67cb4b4046a3538837b6c2aade18ba2f</a> for the
-script and result log.</p>
+linkorder script and result log.</p>
+
+<h1 id="further-reading">Further reading</h1>
 
 <p>Relevant are also the size of the environment for a proper stack
-alignment, we cannot control that. It&rsquo;s over the 2% noise rate though.
-&ldquo;Producing Wrong Data Without Doing Anything Obviously Wrong!&rdquo;
-<a href="https://www.seas.upenn.edu/~cis501/papers/producing-wrong-data.pdf">https://www.seas.upenn.edu/~cis501/papers/producing-wrong-data.pdf</a> has more
-info about that. It also discusses why sometimes -O2 was faster than -O3.</p>
+alignment, but we cannot control that. It&rsquo;s over the 2% noise rate though.
+<a href="https://www.seas.upenn.edu/~cis501/papers/producing-wrong-data.pdf">&ldquo;Producing Wrong Data Without Doing Anything Obviously Wrong!&rdquo;</a> has more
+info about that. It also discusses why sometimes -O2 was faster than -O3,
+and discusses surprising results with perlbench, with -O3, lto (the linkorder)
+and the env size.</p>
+
+<p>Martin Liška&rsquo;s thesis <a href="https://arxiv.org/abs/1403.6997">Optimizing large applications</a>
+discusses several of those strategies.</p>
 
 <p>Liska&rsquo;s &ldquo;Optimizing large applications&rdquo; <a href="https://arxiv.org/pdf/1403.6997.pdf">https://arxiv.org/pdf/1403.6997.pdf</a>
 has also a good overview.</p>
@@ -397,9 +445,12 @@ has also a good overview.</p>
             <nav id="TableOfContents">
 <ul>
 <li><a href="#lto">LTO</a></li>
+<li><a href="#pgo">PGO</a></li>
 <li><a href="#autofdo">AutoFDO</a></li>
+<li><a href="#prelink">prelink</a></li>
 <li><a href="#bolt">BOLT</a></li>
 <li><a href="#static-linker-optimizations">Static linker optimizations</a></li>
+<li><a href="#further-reading">Further reading</a></li>
 <li><a href="#comments-on-r-cperl-https-www-reddit-com-r-cperl">Comments on <a href="https://www.reddit.com/r/cperl/">/r/cperl</a>.</a></li>
 </ul>
 </nav>
