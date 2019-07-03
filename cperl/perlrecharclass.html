@@ -108,7 +108,7 @@
 
 <p>What this means is that unless the <code>/a</code> modifier is in effect <code>\d</code> not only matches the digits &#39;0&#39; - &#39;9&#39;, but also Arabic, Devanagari, and digits from other languages. This may cause some confusion, and some security issues.</p>
 
-<p>Some digits that <code>\d</code> matches look like some of the [0-9] ones, but have different values. For example, BENGALI DIGIT FOUR (U+09EA) looks very much like an ASCII DIGIT EIGHT (U+0038). An application that is expecting only the ASCII digits might be misled, or if the match is <code>\d+</code>, the matched string might contain a mixture of digits from different writing systems that look like they signify a number different than they actually do. <a href="/cperl/lib/Unicode/UCD.html#num">&quot;num()&quot; in Unicode::UCD</a> can be used to safely calculate the value, returning <code>undef</code> if the input string contains such a mixture.</p>
+<p>Some digits that <code>\d</code> matches look like some of the [0-9] ones, but have different values. For example, BENGALI DIGIT FOUR (U+09EA) looks very much like an ASCII DIGIT EIGHT (U+0038), and LEPCHA DIGIT SIX (U+1C46) looks very much like an ASCII DIGIT FIVE (U+0035). An application that is expecting only the ASCII digits might be misled, or if the match is <code>\d+</code>, the matched string might contain a mixture of digits from different writing systems that look like they signify a number different than they actually do. <a href="/cperl/lib/Unicode/UCD.html#num">&quot;num()&quot; in Unicode::UCD</a> can be used to safely calculate the value, returning <code>undef</code> if the input string contains such a mixture. Otherwise, for example, a displayed price might be deliberately different than it appears.</p>
 
 <p>What <code>\p{Digit}</code> means (and hence <code>\d</code> except under the <code>/a</code> modifier) is <code>\p{General_Category=Decimal_Number}</code>, or synonymously, <code>\p{General_Category=Digit}</code>. Starting with Unicode version 4.1, this is the same set of characters matched by <code>\p{Numeric_Type=Decimal}</code>. But Unicode also has a different property with a similar name, <code>\p{Numeric_Type=Digit}</code>, which matches a completely different set of characters. These characters are things such as <code>CIRCLED DIGIT ONE</code> or subscripts, or are from writing systems that lack all ten digits.</p>
 
@@ -298,7 +298,7 @@
 
 <p><code>\pP</code> and <code>\p{Prop}</code> are character classes to match characters that fit given Unicode properties. One letter property names can be used in the <code>\pP</code> form, with the property name following the <code>\p</code>, otherwise, braces are required. When using braces, there is a single form, which is just the property name enclosed in the braces, and a compound form which looks like <code>\p{name=value}</code>, which means to match if the property &quot;name&quot; for the character has that particular &quot;value&quot;. For instance, a match for a number can be written as <code>/\pN/</code> or as <code>/\p{Number}/</code>, or as <code>/\p{Number=True}/</code>. Lowercase letters are matched by the property <i>Lowercase_Letter</i> which has the short form <i>Ll</i>. They need the braces, so are written as <code>/\p{Ll}/</code> or <code>/\p{Lowercase_Letter}/</code>, or <code>/\p{General_Category=Lowercase_Letter}/</code> (the underscores are optional). <code>/\pLl/</code> is valid, but means something different. It matches a two character string: a letter (Unicode property <code>\pL</code>), followed by a lowercase <code>l</code>.</p>
 
-<p>If locale rules are not in effect, the use of a Unicode property will force the regular expression into using Unicode rules, if it isn&#39;t already.</p>
+<p>What a Unicode property matches is never subject to locale rules, and if locale rules are not otherwise in effect, the use of a Unicode property will force the regular expression into using Unicode rules, if it isn&#39;t already.</p>
 
 <p>Note that almost all properties are immune to case-insensitive matching. That is, adding a <code>/i</code> regular expression modifier does not change what they match. There are two sets that are affected. The first set is <code>Uppercase_Letter</code>, <code>Lowercase_Letter</code>, and <code>Titlecase_Letter</code>, all of which match <code>Cased_Letter</code> under <code>/i</code> matching. The second set is <code>Uppercase</code>, <code>Lowercase</code>, and <code>Titlecase</code>, all of which match <code>Cased</code> under <code>/i</code> matching. (The difference between these sets is that some things, such as Roman numerals, come in both upper and lower case, so they are <code>Cased</code>, but aren&#39;t considered to be letters, so they aren&#39;t <code>Cased_Letter</code>s. They&#39;re actually <code>Letter_Number</code>s.) This set also includes its subsets <code>PosixUpper</code> and <code>PosixLower</code>, both of which under <code>/i</code> match <code>PosixAlpha</code>.</p>
 
@@ -313,6 +313,8 @@
                                                # &lt; v5.20</code></pre>
 
 <p>Even though these two matches might be thought of as complements, until v5.20 they were so only on Unicode code points.</p>
+
+<p>Starting in perl v5.30, wildcards are allowed in Unicode property values. See <a href="/cperl/perlunicode.html#Wildcards-in-Property-Values">&quot;Wildcards in Property Values&quot; in perlunicode</a>.</p>
 
 <h4 id="Examples">Examples</h4>
 
@@ -539,21 +541,21 @@
 
 <p>Perl recognizes the following POSIX character classes:</p>
 
-<pre><code> alpha  Any alphabetical character (&quot;[A-Za-z]&quot;).
- alnum  Any alphanumeric character (&quot;[A-Za-z0-9]&quot;).
+<pre><code> alpha  Any alphabetical character (e.g., [A-Za-z]).
+ alnum  Any alphanumeric character (e.g., [A-Za-z0-9]).
  ascii  Any character in the ASCII character set.
  blank  A GNU extension, equal to a space or a horizontal tab (&quot;\t&quot;).
  cntrl  Any control character.  See Note [2] below.
- digit  Any decimal digit (&quot;[0-9]&quot;), equivalent to &quot;\d&quot;.
+ digit  Any decimal digit (e.g., [0-9]), equivalent to &quot;\d&quot;.
  graph  Any printable character, excluding a space.  See Note [3] below.
- lower  Any lowercase character (&quot;[a-z]&quot;).
+ lower  Any lowercase character (e.g., [a-z]).
  print  Any printable character, including a space.  See Note [4] below.
  punct  Any graphical character excluding &quot;word&quot; characters.  Note [5].
  space  Any whitespace character. &quot;\s&quot; including the vertical tab
         (&quot;\cK&quot;).
- upper  Any uppercase character (&quot;[A-Z]&quot;).
- word   A Perl extension (&quot;[A-Za-z0-9_]&quot;), equivalent to &quot;\w&quot;.
- xdigit Any hexadecimal digit (&quot;[0-9a-fA-F]&quot;).</code></pre>
+ upper  Any uppercase character (e.g., [A-Z]).
+ word   A Perl extension (e.g., [A-Za-z0-9_]), equivalent to &quot;\w&quot;.
+ xdigit Any hexadecimal digit (e.g., [0-9a-fA-F]).  Note [7].</code></pre>
 
 <p>Like the <a href="#Unicode-Properties">Unicode properties</a>, most of the POSIX properties match the same regardless of whether case-insensitive (<code>/i</code>) matching is in effect or not. The two exceptions are <code>[:upper:]</code> and <code>[:lower:]</code>. Under <code>/i</code>, they each match the union of <code>[:upper:]</code> and <code>[:lower:]</code>.</p>
 
@@ -581,7 +583,7 @@
    space      \p{PosixSpace}       \p{XPosixSpace}          [6]
    upper      \p{PosixUpper}       \p{XPosixUpper}
    word       \p{PosixWord}        \p{XPosixWord}   \w
-   xdigit     \p{PosixXDigit}      \p{XPosixXDigit}</code></pre>
+   xdigit     \p{PosixXDigit}      \p{XPosixXDigit}         [7]</code></pre>
 
 <dl>
 
@@ -623,6 +625,12 @@
 <dd>
 
 <p><code>\p{XPerlSpace}</code> and <code>\p{Space}</code> match identically starting with Perl v5.18. In earlier versions, these differ only in that in non-locale matching, <code>\p{XPerlSpace}</code> did not match the vertical tab, <code>\cK</code>. Same for the two ASCII-only range forms.</p>
+
+</dd>
+<dt id="pod-7">[7]</dt>
+<dd>
+
+<p>Unlike <code>[[:digit:]]</code> which matches digits in many writing systems, such as Thai and Devanagari, there are currently only two sets of hexadecimal digits, and it is unlikely that more will be added. This is because you not only need the ten digits, but also the six <code>[A-F]</code> (and <code>[a-f]</code>) to correspond. That means only the Latin script is suitable for these, and Unicode has only two sets of these, the familiar ASCII set, and the fullwidth forms starting at U+FF10 (FULLWIDTH DIGIT ZERO).</p>
 
 </dd>
 </dl>
@@ -704,8 +712,6 @@
 </dl>
 
 <p>Which rules apply are determined as described in <a href="/cperl/perlre.html#Which-character-set-modifier-is-in-effect">&quot;Which character set modifier is in effect?&quot; in perlre</a>.</p>
-
-<p>It is proposed to change this behavior in a future release of Perl so that whether or not Unicode rules are in effect would not change the behavior: Outside of locale, the POSIX classes would behave like their ASCII-range counterparts. If you wish to comment on this proposal, send email to <code>perl5-porters@perl.org</code>.</p>
 
 <h4 id="Negation-of-POSIX-character-classes">Negation of POSIX character classes </h4>
 
@@ -839,7 +845,12 @@
 
 <p>Note that skipping white space applies only to the interior of this construct. There must not be any space between any of the characters that form the initial <code>(?[</code>. Nor may there be space between the closing <code>])</code> characters.</p>
 
-<p>Just as in all regular expressions, the pattern can be built up by including variables that are interpolated at regex compilation time. Care must be taken to ensure that you are getting what you expect. For example:</p>
+<p>Just as in all regular expressions, the pattern can be built up by including variables that are interpolated at regex compilation time. But its best to compile each sub-component.</p>
+
+<pre><code> my $thai_or_lao = qr/(?[ \p{Thai} + \p{Lao} ])/;
+ my $lower = qr/(?[ \p{Lower} + \p{Digit} ])/;</code></pre>
+
+<p>When these are embedded in another pattern, what they match does not change, regardless of parenthesization or what modifiers are in effect in that outer pattern. If you fail to compile the subcomponents, you can get some nasty surprises. For example:</p>
 
 <pre><code> my $thai_or_lao = &#39;\p{Thai} + \p{Lao}&#39;;
  ...
@@ -849,7 +860,7 @@
 
 <pre><code> qr/(?[ \p{Digit} &amp; \p{Thai} + \p{Lao} ])/;</code></pre>
 
-<p>But this does not have the effect that someone reading the code would likely expect, as the intersection applies just to <code>\p{Thai}</code>, excluding the Laotian. Pitfalls like this can be avoided by parenthesizing the component pieces:</p>
+<p>But this does not have the effect that someone reading the source code would likely expect, as the intersection applies just to <code>\p{Thai}</code>, excluding the Laotian. Its best to compile the subcomponents, but you could also parenthesize the component pieces:</p>
 
 <pre><code> my $thai_or_lao = &#39;( \p{Thai} + \p{Lao} )&#39;;</code></pre>
 
@@ -858,12 +869,7 @@
 <pre><code> my $lower = &#39;\p{Lower} + \p{Digit}&#39;;
  qr/(?[ \p{Greek} &amp; $lower ])/i;</code></pre>
 
-<p>matches upper case things. You can avoid surprises by making the components into instances of this construct by compiling them:</p>
-
-<pre><code> my $thai_or_lao = qr/(?[ \p{Thai} + \p{Lao} ])/;
- my $lower = qr/(?[ \p{Lower} + \p{Digit} ])/;</code></pre>
-
-<p>When these are embedded in another pattern, what they match does not change, regardless of parenthesization or what modifiers are in effect in that outer pattern.</p>
+<p>matches upper case things. So just, compile the subcomponents, as illustrated above.</p>
 
 <p>Due to the way that Perl parses things, your parentheses and brackets may need to be balanced, even including comments. If you run into any examples, please send them to <code>perlbug@perl.org</code>, so that we can have a concrete example for this man page.</p>
 

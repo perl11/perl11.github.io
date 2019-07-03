@@ -426,7 +426,7 @@
 
 <p>It is also unique in that all other Perl operators impose a context (usually string or numeric context) on their operands, autoconverting those operands to those imposed contexts. In contrast, smartmatch <i>infers</i> contexts from the actual types of its operands and uses that type information to select a suitable comparison mechanism.</p>
 
-<p>The <code>~~</code> operator compares its operands &quot;polymorphically&quot;, determining how to compare them according to their actual types (numeric, string, array, hash, etc.) Like the equality operators with which it shares the same precedence, <code>~~</code> returns 1 for true and <code>&quot;&quot;</code> for false. It is often best read aloud as &quot;in&quot;, &quot;inside of&quot;, or &quot;is contained in&quot;, because the left operand is often looked for <i>inside</i> the right operand. That makes the order of the operands to the smartmatch operand often opposite that of the regular match operator. In other words, the &quot;smaller&quot; thing is usually placed in the left operand and the larger one in the right.</p>
+<p>The <code>~~</code> operator compares its operands &quot;polymorphically&quot;, determining how to compare them according to their actual types (numeric, string, array, hash, etc.). Like the equality operators with which it shares the same precedence, <code>~~</code> returns 1 for true and <code>&quot;&quot;</code> for false. It is often best read aloud as &quot;in&quot;, &quot;inside of&quot;, or &quot;is contained in&quot;, because the left operand is often looked for <i>inside</i> the right operand. That makes the order of the operands to the smartmatch operand often opposite that of the regular match operator. In other words, the &quot;smaller&quot; thing is usually placed in the left operand and the larger one in the right.</p>
 
 <p>The behavior of a smartmatch depends on what type of things its arguments are, as determined by the following table. The first row of the table whose types apply determines the smartmatch behavior. Because what actually happens is mostly determined by the type of the second operand, the table is sorted on the right operand instead of on the left.</p>
 
@@ -1040,7 +1040,7 @@
 <pre><code>    q XfooX # Works: means the string &#39;foo&#39;
     qXfooX  # WRONG!</code></pre>
 
-<p>The following escape sequences are available in constructs that interpolate, and in transliterations:             </p>
+<p>The following escape sequences are available in constructs that interpolate, and in transliterations whose delimiters aren&#39;t single quotes (<code>&quot;&#39;&quot;</code>).             </p>
 
 <pre><code>    Sequence     Note  Description
     \t                  tab               (HT, TAB)
@@ -1565,7 +1565,11 @@
         s/\s+$//;
     }
 
-    s/([^ ]*) *([^ ]*)/$2 $1/;  # reverse 1st two fields</code></pre>
+    s/([^ ]*) *([^ ]*)/$2 $1/;  # reverse 1st two fields
+
+    $foo !~ s/A/a/g;    # Lowercase all A&#39;s in $foo; return
+                        # 0 if any were found and changed;
+                        # otherwise return 1</code></pre>
 
 <p>Note the use of <code>$</code> instead of <code>\</code> in the last example. Unlike <b>sed</b>, we use the \&lt;<i>digit</i>&gt; form only in the left hand side. Anywhere else it&#39;s $&lt;<i>digit</i>&gt;.</p>
 
@@ -1683,6 +1687,8 @@
 <pre><code>  use open IN =&gt; &quot;:encoding(UTF-8)&quot;;
   my $x = `cmd-producing-utf-8`;</code></pre>
 
+<p><code>qx//</code> can also be called like a function with <a href="/cperl/perlfunc.html#readpipe">&quot;readpipe&quot; in perlfunc</a>.</p>
+
 <p>See <a href="#I-O-Operators">&quot;I/O Operators&quot;</a> for more discussion.</p>
 
 </dd>
@@ -1716,15 +1722,21 @@
 <dt id="y-SEARCHLIST-REPLACEMENTLIST-cdsr"><code>y/<i>SEARCHLIST</i>/<i>REPLACEMENTLIST</i>/cdsr</code></dt>
 <dd>
 
-<p>Transliterates all occurrences of the characters found in the search list with the corresponding character in the replacement list. It returns the number of characters replaced or deleted. If no string is specified via the <code>=~</code> or <code>!~</code> operator, the <code>$_</code> string is transliterated.</p>
+<p>Transliterates all occurrences of the characters found (or not found if the <code>/c</code> modifier is specified) in the search list with the positionally corresponding character in the replacement list, possibly deleting some, depending on the modifiers specified. It returns the number of characters replaced or deleted. If no string is specified via the <code>=~</code> or <code>!~</code> operator, the <code>$_</code> string is transliterated.</p>
+
+<p>For <b>sed</b> devotees, <code>y</code> is provided as a synonym for <code>tr</code>.</p>
 
 <p>If the <code>/r</code> (non-destructive) option is present, a new copy of the string is made and its characters transliterated, and this copy is returned no matter whether it was modified or not: the original string is always left unchanged. The new copy is always a plain string, even if the input string is an object or a tied variable.</p>
 
 <p>Unless the <code>/r</code> option is used, the string specified with <code>=~</code> must be a scalar variable, an array element, a hash element, or an assignment to one of those; in other words, an lvalue.</p>
 
-<p>A character range may be specified with a hyphen, so <code>tr/A-J/0-9/</code> does the same replacement as <code>tr/ACEGIBDFHJ/0246813579/</code>. For <b>sed</b> devotees, <code>y</code> is provided as a synonym for <code>tr</code>. If the <i>SEARCHLIST</i> is delimited by bracketing quotes, the <i>REPLACEMENTLIST</i> must have its own pair of quotes, which may or may not be bracketing quotes; for example, <code>tr[aeiouy][yuoiea]</code> or <code>tr(+\-*/)/ABCD/</code>.</p>
+<p>If the characters delimiting <i>SEARCHLIST</i> and <i>REPLACEMENTLIST</i> are single quotes (<code>tr&#39;<i>SEARCHLIST</i>&#39;<i>REPLACEMENTLIST</i>&#39;</code>), the only interpolation is removal of <code>\</code> from pairs of <code>\\</code>.</p>
 
-<p>Characters may be literals or any of the escape sequences accepted in double-quoted strings. But there is no variable interpolation, so <code>&quot;$&quot;</code> and <code>&quot;@&quot;</code> are treated as literals. A hyphen at the beginning or end, or preceded by a backslash is considered a literal. Escape sequence details are in <a href="#Quote-and-Quote-like-Operators">the table near the beginning of this section</a>.</p>
+<p>Otherwise, a character range may be specified with a hyphen, so <code>tr/A-J/0-9/</code> does the same replacement as <code>tr/ACEGIBDFHJ/0246813579/</code>.</p>
+
+<p>If the <i>SEARCHLIST</i> is delimited by bracketing quotes, the <i>REPLACEMENTLIST</i> must have its own pair of quotes, which may or may not be bracketing quotes; for example, <code>tr[aeiouy][yuoiea]</code> or <code>tr(+\-*/)/ABCD/</code>.</p>
+
+<p>Characters may be literals, or (if the delimiters aren&#39;t single quotes) any of the escape sequences accepted in double-quoted strings. But there is never any variable interpolation, so <code>&quot;$&quot;</code> and <code>&quot;@&quot;</code> are always treated as literals. A hyphen at the beginning or end, or preceded by a backslash is also always considered a literal. Escape sequence details are in <a href="#Quote-and-Quote-like-Operators">the table near the beginning of this section</a>.</p>
 
 <p>Note that <code>tr</code> does <b>not</b> do regular expression character classes such as <code>\d</code> or <code>\pL</code>. The <code>tr</code> operator is not equivalent to the <code><a href="http://man.he.net/man1/tr">tr(1)</a></code> utility. <code>tr[a-z][A-Z]</code> will uppercase the 26 letters &quot;a&quot; through &quot;z&quot;, but for case changing not confined to ASCII, use <a href="/cperl/perlfunc.html#lc"><code>lc</code></a>, <a href="/cperl/perlfunc.html#uc"><code>uc</code></a>, <a href="/cperl/perlfunc.html#lcfirst"><code>lcfirst</code></a>, <a href="/cperl/perlfunc.html#ucfirst"><code>ucfirst</code></a> (all documented in <a href="/cperl/perlfunc.html">perlfunc</a>), or the <a href="#s-PATTERN-REPLACEMENT-msixpodualngcer">substitution operator <code>s/<i>PATTERN</i>/<i>REPLACEMENT</i>/</code></a> (with <code>\U</code>, <code>\u</code>, <code>\L</code>, and <code>\l</code> string-interpolation escapes in the <i>REPLACEMENT</i> portion).</p>
 
@@ -1744,72 +1756,90 @@
 
 <pre><code> $string =~ tr/\N{U+20}-\N{U+7E}//d;</code></pre>
 
-<p>removes from <code>$string</code> all the platform&#39;s characters which are equivalent to any of Unicode U+0020, U+0021, ... U+007D, U+007E. This is a portable range, and has the same effect on every platform it is run on. It turns out that in this example, these are the ASCII printable characters. So after this is run, <code>$string</code> has only controls and characters which have no ASCII equivalents.</p>
+<p>removes from <code>$string</code> all the platform&#39;s characters which are equivalent to any of Unicode U+0020, U+0021, ... U+007D, U+007E. This is a portable range, and has the same effect on every platform it is run on. In this example, these are the ASCII printable characters. So after this is run, <code>$string</code> has only controls and characters which have no ASCII equivalents.</p>
 
-<p>But, even for portable ranges, it is not generally obvious what is included without having to look things up. A sound principle is to use only ranges that begin from and end at either ASCII alphabetics of equal case (<code>b-e</code>, <code>B-E</code>), or digits (<code>1-4</code>). Anything else is unclear (and unportable unless <code>\N{...}</code> is used). If in doubt, spell out the character sets in full.</p>
+<p>But, even for portable ranges, it is not generally obvious what is included without having to look things up in the manual. A sound principle is to use only ranges that both begin from, and end at, either ASCII alphabetics of equal case (<code>b-e</code>, <code>B-E</code>), or digits (<code>1-4</code>). Anything else is unclear (and unportable unless <code>\N{...}</code> is used). If in doubt, spell out the character sets in full.</p>
 
 <p>Options:</p>
 
 <pre><code>    c   Complement the SEARCHLIST.
     d   Delete found but unreplaced characters.
-    s   Squash duplicate replaced characters.
     r   Return the modified string and leave the original string
-        untouched.</code></pre>
-
-<p>If the <code>/c</code> modifier is specified, the <i>SEARCHLIST</i> character set is complemented. So for example these two are equivalent (the exact maximum number will depend on your platform):</p>
-
-<pre><code>    tr/\x00-\xfd/ABCD/c
-    tr/\xfe-\x{7fffffff}/ABCD/</code></pre>
+        untouched.
+    s   Squash duplicate replaced characters.</code></pre>
 
 <p>If the <code>/d</code> modifier is specified, any characters specified by <i>SEARCHLIST</i> not found in <i>REPLACEMENTLIST</i> are deleted. (Note that this is slightly more flexible than the behavior of some <b>tr</b> programs, which delete anything they find in the <i>SEARCHLIST</i>, period.)</p>
 
-<p>If the <code>/s</code> modifier is specified, runs of the same character in the result, where each those characters were substituted by the transliteration, are squashed down to a single instance of the character.</p>
+<p>If the <code>/s</code> modifier is specified, sequences of characters, all in a row, that were transliterated to the same character are squashed down to a single instance of that character.</p>
 
-<p>If the <code>/d</code> modifier is used, the <i>REPLACEMENTLIST</i> is always interpreted exactly as specified. Otherwise, if the <i>REPLACEMENTLIST</i> is shorter than the <i>SEARCHLIST</i>, the final character is replicated till it is long enough. If the <i>REPLACEMENTLIST</i> is empty, the <i>SEARCHLIST</i> is replicated. This latter is useful for counting characters in a class or for squashing character sequences in a class. For example, each of these pairs are equivalent:</p>
+<pre><code> my $a = &quot;aaaba&quot;
+ $a =~ tr/a/a/s     # $a now is &quot;aba&quot;</code></pre>
+
+<p>If the <code>/d</code> modifier is used, the <i>REPLACEMENTLIST</i> is always interpreted exactly as specified. Otherwise, if the <i>REPLACEMENTLIST</i> is shorter than the <i>SEARCHLIST</i>, the final character, if any, is replicated until it is long enough. There won&#39;t be a final character if and only if the <i>REPLACEMENTLIST</i> is empty, in which case <i>REPLACEMENTLIST</i> is copied from <i>SEARCHLIST</i>. An empty <i>REPLACEMENTLIST</i> is useful for counting characters in a class, or for squashing character sequences in a class.</p>
 
 <pre><code>    tr/abcd//            tr/abcd/abcd/
     tr/abcd/AB/          tr/abcd/ABBB/
     tr/abcd//d           s/[abcd]//g
     tr/abcd/AB/d         (tr/ab/AB/ + s/[cd]//g)  - but run together</code></pre>
 
+<p>If the <code>/c</code> modifier is specified, the characters to be transliterated are the ones NOT in <i>SEARCHLIST</i>, that is, it is complemented. If <code>/d</code> and/or <code>/s</code> are also specified, they apply to the complemented <i>SEARCHLIST</i>. Recall, that if <i>REPLACEMENTLIST</i> is empty (except under <code>/d</code>) a copy of <i>SEARCHLIST</i> is used instead. That copy is made after complementing under <code>/c</code>. <i>SEARCHLIST</i> is sorted by code point order after complementing, and any <i>REPLACEMENTLIST</i> is applied to that sorted result. This means that under <code>/c</code>, the order of the characters specified in <i>SEARCHLIST</i> is irrelevant. This can lead to different results on EBCDIC systems if <i>REPLACEMENTLIST</i> contains more than one character, hence it is generally non-portable to use <code>/c</code> with such a <i>REPLACEMENTLIST</i>.</p>
+
+<p>Another way of describing the operation is this: If <code>/c</code> is specified, the <i>SEARCHLIST</i> is sorted by code point order, then complemented. If <i>REPLACEMENTLIST</i> is empty and <code>/d</code> is not specified, <i>REPLACEMENTLIST</i> is replaced by a copy of <i>SEARCHLIST</i> (as modified under <code>/c</code>), and these potentially modified lists are used as the basis for what follows. Any character in the target string that isn&#39;t in <i>SEARCHLIST</i> is passed through unchanged. Every other character in the target string is replaced by the character in <i>REPLACEMENTLIST</i> that positionally corresponds to its mate in <i>SEARCHLIST</i>, except that under <code>/s</code>, the 2nd and following characters are squeezed out in a sequence of characters in a row that all translate to the same character. If <i>SEARCHLIST</i> is longer than <i>REPLACEMENTLIST</i>, characters in the target string that match a character in <i>SEARCHLIST</i> that doesn&#39;t have a correspondence in <i>REPLACEMENTLIST</i> are either deleted from the target string if <code>/d</code> is specified; or replaced by the final character in <i>REPLACEMENTLIST</i> if <code>/d</code> isn&#39;t specified.</p>
+
 <p>Some examples:</p>
 
-<pre><code>    $ARGV[1] =~ tr/A-Z/a-z/;    # canonicalize to lower case ASCII
+<pre><code> $ARGV[1] =~ tr/A-Z/a-z/;   # canonicalize to lower case ASCII
 
-    $cnt = tr/*/*/;             # count the stars in $_
+ $cnt = tr/*/*/;            # count the stars in $_
+ $cnt = tr/*//;             # same thing
 
-    $cnt = $sky =~ tr/*/*/;     # count the stars in $sky
+ $cnt = $sky =~ tr/*/*/;    # count the stars in $sky
+ $cnt = $sky =~ tr/*//;     # same thing
 
-    $cnt = tr/0-9//;            # count the digits in $_
+ $cnt = $sky =~ tr/*//c;    # count all the non-stars in $sky
+ $cnt = $sky =~ tr/*/*/c;   # same, but transliterate each non-star
+                            # into a star, leaving the already-stars
+                            # alone.  Afterwards, everything in $sky
+                            # is a star.
 
-    tr/a-zA-Z//s;               # bookkeeper -&gt; bokeper
+ $cnt = tr/0-9//;           # count the ASCII digits in $_
 
-    ($HOST = $host) =~ tr/a-z/A-Z/;
-     $HOST = $host  =~ tr/a-z/A-Z/r;   # same thing
+ tr/a-zA-Z//s;              # bookkeeper -&gt; bokeper
+ tr/o/o/s;                  # bookkeeper -&gt; bokkeeper
+ tr/oe/oe/s;                # bookkeeper -&gt; bokkeper
+ tr/oe//s;                  # bookkeeper -&gt; bokkeper
+ tr/oe/o/s;                 # bookkeeper -&gt; bokkopor
 
-    $HOST = $host =~ tr/a-z/A-Z/r    # chained with s///r
-                  =~ s/:/ -p/r;
+ ($HOST = $host) =~ tr/a-z/A-Z/;
+  $HOST = $host  =~ tr/a-z/A-Z/r; # same thing
 
-    tr/a-zA-Z/ /cs;             # change non-alphas to single space
+ $HOST = $host =~ tr/a-z/A-Z/r   # chained with s///r
+               =~ s/:/ -p/r;
 
-    @stripped = map tr/a-zA-Z/ /csr, @original;
-                                # /r with map
+ tr/a-zA-Z/ /cs;                 # change non-alphas to single space
 
-    tr [\200-\377]
-       [\000-\177];             # wickedly delete 8th bit</code></pre>
+ @stripped = map tr/a-zA-Z/ /csr, @original;
+                                 # /r with map
+
+ tr [\200-\377]
+    [\000-\177];                 # wickedly delete 8th bit
+
+ $foo !~ tr/A/a/    # transliterate all the A&#39;s in $foo to &#39;a&#39;,
+                    # return 0 if any were found and changed.
+                    # Otherwise return 1</code></pre>
 
 <p>If multiple transliterations are given for a character, only the first one is used:</p>
 
-<pre><code>    tr/AAA/XYZ/</code></pre>
+<pre><code> tr/AAA/XYZ/</code></pre>
 
 <p>will transliterate any A to X.</p>
 
 <p>Because the transliteration table is built at compile time, neither the <i>SEARCHLIST</i> nor the <i>REPLACEMENTLIST</i> are subjected to double quote interpolation. That means that if you want to use variables, you must use an <code>eval()</code>:</p>
 
-<pre><code>    eval &quot;tr/$oldlist/$newlist/&quot;;
-    die $@ if $@;
+<pre><code> eval &quot;tr/$oldlist/$newlist/&quot;;
+ die $@ if $@;
 
-    eval &quot;tr/$oldlist/$newlist/, 1&quot; or die $@;</code></pre>
+ eval &quot;tr/$oldlist/$newlist/, 1&quot; or die $@;</code></pre>
 
 </dd>
 <dt id="EOF"><code>&lt;&lt;<i>EOF</i></code>    </dt>
@@ -1819,7 +1849,7 @@
 
 <p>Prefixing the terminating string with a <code>~</code> specifies that you want to use <a href="#Indented-Here-docs">&quot;Indented Here-docs&quot;</a> (see below).</p>
 
-<p>The terminating string may be either an identifier (a word), or some quoted text. An unquoted identifier works like double quotes. There may not be a space between the <code>&lt;&lt;</code> and the identifier, unless the identifier is explicitly quoted. (If you put a space it will be treated as a null identifier, which is valid, and matches the first empty line.) The terminating string must appear by itself (unquoted and with no surrounding whitespace) on the terminating line.</p>
+<p>The terminating string may be either an identifier (a word), or some quoted text. An unquoted identifier works like double quotes. There may not be a space between the <code>&lt;&lt;</code> and the identifier, unless the identifier is explicitly quoted. The terminating string must appear by itself (unquoted and with no surrounding whitespace) on the terminating line.</p>
 
 <p>If the terminating string is quoted, the type of quotes used determine the treatment of the text.</p>
 
@@ -2143,7 +2173,7 @@
 
 <p>There are several I/O operators you should know about.</p>
 
-<p>A string enclosed by backticks (grave accents) first undergoes double-quote interpolation. It is then interpreted as an external command, and the output of that command is the value of the backtick string, like in a shell. In scalar context, a single string consisting of all output is returned. In list context, a list of values is returned, one per line of output. (You can set <code>$/</code> to use a different line terminator.) The command is executed each time the pseudo-literal is evaluated. The status value of the command is returned in <code>$?</code> (see <a href="/cperl/perlvar.html">perlvar</a> for the interpretation of <code>$?</code>). Unlike in <b>csh</b>, no translation is done on the return data--newlines remain newlines. Unlike in any of the shells, single quotes do not hide variable names in the command from interpretation. To pass a literal dollar-sign through to the shell you need to hide it with a backslash. The generalized form of backticks is <code>qx//</code>. (Because backticks always undergo shell expansion as well, see <a href="/cperl/perlsec.html">perlsec</a> for security concerns.)     </p>
+<p>A string enclosed by backticks (grave accents) first undergoes double-quote interpolation. It is then interpreted as an external command, and the output of that command is the value of the backtick string, like in a shell. In scalar context, a single string consisting of all output is returned. In list context, a list of values is returned, one per line of output. (You can set <code>$/</code> to use a different line terminator.) The command is executed each time the pseudo-literal is evaluated. The status value of the command is returned in <code>$?</code> (see <a href="/cperl/perlvar.html">perlvar</a> for the interpretation of <code>$?</code>). Unlike in <b>csh</b>, no translation is done on the return data--newlines remain newlines. Unlike in any of the shells, single quotes do not hide variable names in the command from interpretation. To pass a literal dollar-sign through to the shell you need to hide it with a backslash. The generalized form of backticks is <code>qx//</code>, or you can call the <a href="/cperl/perlfunc.html#readpipe">&quot;readpipe&quot; in perlfunc</a> function. (Because backticks always undergo shell expansion as well, see <a href="/cperl/perlsec.html">perlsec</a> for security concerns.)     </p>
 
 <p>In scalar context, evaluating a filehandle in angle brackets yields the next line from that file (the newline, if any, included), or <code>undef</code> at end-of-file or on error. When <code>$/</code> is set to <code>undef</code> (sometimes known as file-slurp mode) and the file is empty, it returns <code>&#39;&#39;</code> the first time, followed by <code>undef</code> subsequently.</p>
 

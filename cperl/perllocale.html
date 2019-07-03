@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perllocale - Perl locale handling (internationalization and localization)</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:rurban@cpan.org" />
 </head>
@@ -85,7 +85,11 @@
 
 <p>Perl supports single-byte locales that are supersets of ASCII, such as the ISO 8859 ones, and one multi-byte-type locale, UTF-8 ones, described in the next paragraph. Perl doesn&#39;t support any other multi-byte locales, such as the ones for East Asian languages.</p>
 
-<p>Unfortunately, there are quite a few deficiencies with the design (and often, the implementations) of locales. Unicode was invented (see <a href="/cperl/perlunitut.html">perlunitut</a> for an introduction to that) in part to address these design deficiencies, and nowadays, there is a series of &quot;UTF-8 locales&quot;, based on Unicode. These are locales whose character set is Unicode, encoded in UTF-8. Starting in v5.20, Perl fully supports UTF-8 locales, except for sorting and string comparisons like <code>lt</code> and <code>ge</code>. Starting in v5.26, Perl can handle these reasonably as well, depending on the platform&#39;s implementation. However, for earlier releases or for better control, use <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a>. Perl continues to support the old non UTF-8 locales as well. There are currently no UTF-8 locales for EBCDIC platforms.</p>
+<p>Unfortunately, there are quite a few deficiencies with the design (and often, the implementations) of locales. Unicode was invented (see <a href="/cperl/perlunitut.html">perlunitut</a> for an introduction to that) in part to address these design deficiencies, and nowadays, there is a series of &quot;UTF-8 locales&quot;, based on Unicode. These are locales whose character set is Unicode, encoded in UTF-8. Starting in v5.20, Perl fully supports UTF-8 locales, except for sorting and string comparisons like <code>lt</code> and <code>ge</code>. Starting in v5.26, Perl can handle these reasonably as well, depending on the platform&#39;s implementation. However, for earlier releases or for better control, use <a href="/cperl/lib/Unicode/Collate.html">Unicode::Collate</a>. There are actually two slightly different types of UTF-8 locales: one for Turkic languages and one for everything else.</p>
+
+<p>Starting in Perl v5.30, Perl detects Turkic locales by their behaviour, and seamlessly handles both types; previously only the non-Turkic one was supported. The name of the locale is ignored, if your system has a <code>tr_TR.UTF-8</code> locale and it doesn&#39;t behave like a Turkic locale, perl will treat it like a non-Turkic locale.</p>
+
+<p>Perl continues to support the old non UTF-8 locales as well. There are currently no UTF-8 locales for EBCDIC platforms.</p>
 
 <p>(Unicode is also creating <code>CLDR</code>, the &quot;Common Locale Data Repository&quot;, <a href="http://cldr.unicode.org/">http://cldr.unicode.org/</a> which includes more types of information than are available in the POSIX locale system. At the time of this writing, there was no CPAN module that provides access to this XML-encoded data. However, it is possible to compute the POSIX locale data from them, and earlier CLDR versions had these already extracted for you as UTF-8 locales <a href="http://unicode.org/Public/cldr/2.0.1/">http://unicode.org/Public/cldr/2.0.1/</a>.)</p>
 
@@ -104,13 +108,13 @@
 <dt id="Category-LC_MONETARY:-Formatting-of-monetary-amounts">Category <code>LC_MONETARY</code>: Formatting of monetary amounts</dt>
 <dd>
 
-<p>&nbsp;</p>
+<p></p>
 
 </dd>
 <dt id="Category-LC_TIME:-Date-Time-formatting">Category <code>LC_TIME</code>: Date/Time formatting</dt>
 <dd>
 
-<p>&nbsp;</p>
+<p></p>
 
 </dd>
 <dt id="Category-LC_MESSAGES:-Error-and-other-messages">Category <code>LC_MESSAGES</code>: Error and other messages</dt>
@@ -208,7 +212,7 @@
 
 <p>Note that all C programs (including the perl interpreter, which is written in C) always have an underlying locale. That locale is the &quot;C&quot; locale unless changed by a call to <a href="#The-setlocale-function">setlocale()</a>. When Perl starts up, it changes the underlying locale to the one which is indicated by the <a href="#ENVIRONMENT">&quot;ENVIRONMENT&quot;</a>. When using the <a href="/cperl/lib/POSIX.html">POSIX</a> module or writing XS code, it is important to keep in mind that the underlying locale may be something other than &quot;C&quot;, even if the program hasn&#39;t explicitly changed it.</p>
 
-<p>&nbsp;</p>
+<p></p>
 
 </dd>
 <dt id="Lingering-effects-of-use-locale"><b>Lingering effects of <code><span style="white-space: nowrap;">use locale</span></code></b></dt>
@@ -226,7 +230,7 @@
 </li>
 </ul>
 
-<p>&nbsp;</p>
+<p></p>
 
 </dd>
 <dt id="Under-use-locale"><b>Under <code>&quot;use locale&quot;;</code></b></dt>
@@ -343,6 +347,12 @@
 
 <p>Starting in Perl 5.28, on multi-threaded perls compiled on systems that implement POSIX 2008 thread-safe locale operations, this function doesn&#39;t actually call the system <code>setlocale</code>. Instead those thread-safe operations are used to emulate the <code>setlocale</code> function, but in a thread-safe manner.</p>
 
+<p>You can force the thread-safe locale operations to always be used (if available) by recompiling perl with</p>
+
+<pre><code>  -Accflags=&#39;-DUSE_THREAD_SAFE_LOCALE&#39;</code></pre>
+
+<p>added to your call to <i>Configure</i>.</p>
+
 <p>For further information about the categories, consult <a href="http://man.he.net/man3/setlocale">setlocale(3)</a>.</p>
 
 <h2 id="Multi-threaded-operation">Multi-threaded operation</h2>
@@ -354,6 +364,8 @@
 <p>Thread-safe operations are supported in Windows starting in Visual Studio 2005, and in systems compatible with POSIX 2008. Some platforms claim to support POSIX 2008, but have buggy implementations, so that the hints files for compiling to run on them turn off attempting to use thread-safety. <code>${^SAFE_LOCALES}</code> will be 0 on them.</p>
 
 <p>Be aware that writing a multi-threaded application will not be portable to a platform which lacks the native thread-safe locale support. On systems that do have it, you automatically get this behavior for threaded perls, without having to do anything. If for some reason, you don&#39;t want to use this capability (perhaps the POSIX 2008 support is buggy on your system), you can manually compile Perl to use the old non-thread-safe implementation by passing the argument <code>-Accflags=&#39;-DNO_THREAD_SAFE_LOCALE&#39;</code> to <i>Configure</i>. Except on Windows, this will continue to use certain of the POSIX 2008 functions in some situations. If these are buggy, you can pass the following to <i>Configure</i> instead or additionally: <code>-Accflags=&#39;-DNO_POSIX_2008_LOCALE&#39;</code>. This will also keep the code from using thread-safe locales. <code>${^SAFE_LOCALES}</code> will be 0 on systems that turn off the thread-safe operations.</p>
+
+<p>Normally on unthreaded builds, the traditional <code>setlocale()</code> is used and not the thread-safe locale functions. You can force the use of these on systems that have them by adding the <code>-Accflags=&#39;-DUSE_THREAD_SAFE_LOCALE&#39;</code> to <i>Configure</i>.</p>
 
 <p>The initial program is started up using the locale specified from the environment, as currently, described in <a href="#ENVIRONMENT">&quot;ENVIRONMENT&quot;</a>. All newly created threads start with <code>LC_ALL</code> set to <code>&quot;C&quot;</code>&gt;. Each thread may use <code>POSIX::setlocale()</code> to query or switch its locale at any time, without affecting any other thread. All locale-dependent operations automatically use their thread&#39;s locale.</p>
 

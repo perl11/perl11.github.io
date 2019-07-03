@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>deprecate - Perl pragma for deprecating the inclusion of a module in core</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:rurban@cpan.org" />
 </head>
@@ -16,9 +16,10 @@
   <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
   <li><a href="#DESCRIPTION">DESCRIPTION</a>
     <ul>
-      <li><a href="#EXPORT">EXPORT</a></li>
+      <li><a href="#Important-Caveat">Important Caveat</a></li>
     </ul>
   </li>
+  <li><a href="#EXPORT">EXPORT</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
@@ -26,13 +27,11 @@
 
 <h1 id="NAME">NAME</h1>
 
-<p>deprecate - Perl pragma for deprecating the core version of a module</p>
+<p>deprecate - Perl pragma for deprecating the inclusion of a module in core</p>
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
-<pre><code>    use deprecate;  # always deprecate the module in which this occurs
-
-    use if $] &gt; 5.010, &#39;deprecate&#39;; # conditionally deprecate the module</code></pre>
+<pre><code>    use deprecate;  # warn about future absence if loaded from core</code></pre>
 
 <p>or for modules supported earlier than v5.6.2:</p>
 
@@ -40,11 +39,32 @@
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
-<p>This module is used using <code>use deprecate;</code> (or something that calls <code>deprecate-&gt;import()</code>, for example <code>use if COND, deprecate;</code>).</p>
+<p>This pragma simplifies the maintenance of dual-life modules that will no longer be included in the Perl core in a future Perl release, but are still included currently.</p>
 
-<p>If the module that includes <code>use deprecate</code> is located in a core library directory, a deprecation warning is issued, encouraging the user to use the version on CPAN. If that module is located in a site library, it is the CPAN version, and no warning is issued.</p>
+<p>The purpose of the pragma is to alert users to the status of such a module by issuing a warning that encourages them to install the module from CPAN, so that a future upgrade to a perl which omits the module will not break their code.</p>
 
-<h2 id="EXPORT">EXPORT</h2>
+<p>This warning will only be issued if the module was loaded from a core library directory, which allows the <code>use deprecate</code> line to be included in the CPAN version of the module. Because the pragma remains silent when the module is run from a non-core library directory, the pragma call does not need to be patched into or out of either the core or CPAN version of the module. The exact same code can be shipped for either purpose.</p>
+
+<h2 id="Important-Caveat">Important Caveat</h2>
+
+<p>Note that when a module installs from CPAN to a core library directory rather than the site library directories, the user gains no protection from having installed it.</p>
+
+<p>At the same time, this pragma cannot detect when such a module has installed from CPAN to the core library, and so it would endlessly and uselessly exhort the user to upgrade.</p>
+
+<p>Therefore modules that can install from CPAN to the core library must make sure not to call this pragma when they have done so. Generally this means that the exact logic from the installer must be mirrored inside the module. E.g.:</p>
+
+<pre><code>    # Makefile.PL
+    WriteMakefile(
+        # ...
+        INSTALLDIRS =&gt; ( &quot;$]&quot; &gt;= 5.011 ? &#39;site&#39; : &#39;perl&#39; ),
+    );
+
+    # lib/Foo/Bar.pm
+    use if &quot;$]&quot; &gt;= 5.011, &#39;deprecate&#39;;</code></pre>
+
+<p>(The above example shows the most important case of this: when the target is a Perl older than 5.12 (where the core library directories take precedence over the site library directories) and the module being installed was included in core in that Perl version. Under those circumstances, an upgrade of the module from CPAN is only possible by installing to the core library.)</p>
+
+<h1 id="EXPORT">EXPORT</h1>
 
 <p>None by default. The only method is <code>import</code>, called by <code>use deprecate;</code>.</p>
 

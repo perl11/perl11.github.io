@@ -35,19 +35,18 @@
   <li><a href="#Magical-Functions">Magical Functions</a></li>
   <li><a href="#Miscellaneous-Functions">Miscellaneous Functions</a></li>
   <li><a href="#MRO-Functions">MRO Functions</a></li>
+  <li><a href="#Numeric-functions">Numeric functions</a></li>
   <li><a href="#Optree-construction">Optree construction</a></li>
   <li><a href="#Optree-Manipulation-Functions">Optree Manipulation Functions</a></li>
   <li><a href="#Pad-Data-Structures">Pad Data Structures</a></li>
   <li><a href="#Per-Interpreter-Variables">Per-Interpreter Variables</a></li>
   <li><a href="#Stack-Manipulation-Macros">Stack Manipulation Macros</a></li>
-  <li><a href="#SV-Body-Allocation">SV-Body Allocation</a></li>
   <li><a href="#SV-Manipulation-Functions">SV Manipulation Functions</a></li>
   <li><a href="#Unicode-Support">Unicode Support</a></li>
   <li><a href="#Warning-and-Dieing">Warning and Dieing</a></li>
   <li><a href="#Undocumented-functions">Undocumented functions</a></li>
   <li><a href="#AUTHORS">AUTHORS</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
-  <li><a href="#POD-ERRORS">POD ERRORS</a></li>
 </ul>
 
 <h1 id="NAME">NAME</h1>
@@ -118,6 +117,25 @@
 <p>Check if the declared static type of the argument from pn can be fullfilled by the dynamic type of the arg in OP* o (padsv, const, any return type). If possible add a typecast to <code>o</code> to fullfill it. contravariant.</p>
 
 <p>Signatures are new, hence much stricter, than return-types and assignments. arg_check_type;</p>
+
+</dd>
+<dt id="arg_check_type_sv">arg_check_type_sv </dt>
+<dd>
+
+<p>Check if the declared static type of the argument from pn can be fullfilled by the dynamic type of the arg in SV* sv. The run-time variant of arg_check_type, contravariant.</p>
+
+<p>Signatures are new, hence much stricter, than return-types and assignments. NOTE: the perl_ form of this function is deprecated.</p>
+
+<pre><code>        void    arg_check_type_sv(const PADNAME* pn, SV* sv,
+                                  GV *cvname)</code></pre>
+
+</dd>
+<dt id="arg_type_sv">arg_type_sv </dt>
+<dd>
+
+<p>Return the type for the sv. Optionally sets usertype and u8 (if usertype is utf8), when usertype is not NULL, and the SV is blessed.</p>
+
+<pre><code>                arg_type_sv;</code></pre>
 
 </dd>
 <dt id="can_class_typecheck">can_class_typecheck </dt>
@@ -1306,7 +1324,7 @@
 <dt id="opslab_force_free">opslab_force_free </dt>
 <dd>
 
-<p>Forcefully frees the slab area, even if there are still live OPs in it. Frees all the containing OPs.</p>
+<p>Forcefully frees the slab area, even if there are still live OPs in it. Frees all the containing OPs. Like opslab_free(), but first calls op_free() on any ops in the slab not marked as OP_FREED.</p>
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
@@ -1316,7 +1334,7 @@
 <dt id="opslab_free">opslab_free </dt>
 <dd>
 
-<p>Frees the slab area.</p>
+<p>Free a chain of OP slabs. Should only be called after all ops contained in it have been freed. At this point, its reference count should be 1, because OpslabREFCNT_dec() skips doing rc-- when it detects that rc == 1, and just directly calls opslab_free(). (Note that the reference count which PL_compcv held on the slab should have been removed once compilation of the sub was complete).</p>
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
@@ -1344,7 +1362,7 @@
 <dt id="Slab_Alloc">Slab_Alloc </dt>
 <dd>
 
-<p>Creates a new memory region, a slab, for some ops, with room for sz pointers. sz starts with PERL_SLAB_SIZE (=64) and is then extended by factor two.</p>
+<p>Creates a new memory region, a slab, for some ops, with room for sz pointers. sz starts with PERL_SLAB_SIZE (=64) and is then extended by factor two. If PL_compcv isn&#39;t compiling, malloc() instead.</p>
 
 <p>NOTE: the perl_ form of this function is deprecated.</p>
 
@@ -1433,7 +1451,7 @@
  * a new GV, gv is NN.
  * Note that it does not insert the GV into the stash prior to
  * magicalization, which some variables require need in order
- * to work (like $[, %+, %-, %!), so callers must take care of
+ * to work (like %+, %-, %!), so callers must take care of
  * that.
  * 
  * It returns true if the gv did turn out to be magical one; i.e.,
@@ -1759,10 +1777,8 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
         case &#39;*&#39;:               /* $* */
         case &#39;#&#39;:               /* $# */
             if (sv_type == SVt_PV)
-                /* diag_listed_as: $* is no longer supported. Its use will be fatal in Perl 5.30 */
-                Perl_ck_warner_d(aTHX_ packWARN2(WARN_DEPRECATED, WARN_SYNTAX),
-                                 &quot;$%c is no longer supported. Its use &quot;
-                                 &quot;will be fatal in Perl 5.30&quot;, *name);
+                /* diag_listed_as: $* is no longer supported as of Perl 5.30 */
+                Perl_croak(aTHX_ &quot;$%c is no longer supported as of Perl 5.30&quot;, *name);
             break;
         case &#39;\010&#39;:    /* $^H */
             {
@@ -1770,13 +1786,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
                 hv_magic(hv, NULL, PERL_MAGIC_hints);
             }
             goto magicalize;
-        case &#39;[&#39;:               /* $[ */
-            if ((sv_type == SVt_PV || sv_type == SVt_PVGV)
-             &amp;&amp; FEATURE_ARYBASE_IS_ENABLED) {
-                require_tie_mod_s(gv,&#39;[&#39;,&quot;arybase&quot;,0);
-            }
-            else goto magicalize;
-            break;
         case &#39;\023&#39;:    /* $^S */
         ro_magicalize:
             SvREADONLY_on(GvSVn(gv));
@@ -1795,6 +1804,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
         case &#39;/&#39;:               /* $/ */
         case &#39;|&#39;:               /* $| */
         case &#39;$&#39;:               /* $$ */
+        case &#39;[&#39;:               /* $[ */
         case &#39;\001&#39;:    /* $^A */
         case &#39;\003&#39;:    /* $^C */
         case &#39;\004&#39;:    /* $^D */
@@ -1861,18 +1871,12 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
             require_tie_mod_s(gv, *name, &quot;Tie::Hash::NamedCapture&quot;, 0);
     } else if (sv_type == SVt_PV) {
         if (*name == &#39;*&#39; || *name == &#39;#&#39;) {
-            /* diag_listed_as: $# is no longer supported. Its use will be fatal in Perl 5.30 */
-            Perl_ck_warner_d(aTHX_ packWARN2(WARN_DEPRECATED,
-                                             WARN_SYNTAX),
-                             &quot;$%c is no longer supported. Its use &quot;
-                             &quot;will be fatal in Perl 5.30&quot;, *name);
+            /* diag_listed_as: $* is no longer supported as of Perl 5.30 */
+            Perl_croak(aTHX_ &quot;$%c is no longer supported as of Perl 5.30&quot;, *name);
         }
     }
     if (sv_type==SVt_PV || sv_type==SVt_PVGV) {
       switch (*name) {
-      case &#39;[&#39;:
-          require_tie_mod_s(gv,&#39;[&#39;,&quot;arybase&quot;,0);
-          break;
 #ifdef PERL_SAWAMPERSAND
       case &#39;`&#39;:
           PL_sawampersand |= SAWAMPERSAND_LEFT;
@@ -2295,7 +2299,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="add_does_methods">add_does_methods </dt>
 <dd>
 
-<p>Copy all not-existing methods from the parent roles to the class/role. Fixup changed oelemfast indices.</p>
+<p>Copy all not-existing methods from the parent roles to the class/role. Fixup ISA for type checks. Fixup changed oelem{,fast} indices.</p>
 
 <p>Duplicates are fatal: &quot;Method %s from %s already exists in %s during role composition&quot;</p>
 
@@ -2338,7 +2342,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="do_method_finalize">do_method_finalize </dt>
 <dd>
 
-<p>A field may start as lexical or access call in the class block and method pad, and needs to be converted to oelemfast ops, which are basically aelemfast_lex_u (lexical typed self, const ix &lt; 256).</p>
+<p>A field may start as lexical or access call in the class block and method pad, and can to be converted to oelemfast ops, which are basically aelemfast_lex_u (lexical typed self, const ix &lt; 256).</p>
 
 <pre><code>  PADxV targ     -&gt; OELEMFAST(self)[targ]
 
@@ -2389,6 +2393,16 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>XS template to return an object scalar value from it&#39;s compile-time field offset.</p>
 
 <pre><code>        void    Mu_sv_xsub(CV* cv)</code></pre>
+
+</dd>
+<dt id="padnamelist_type_fixup">padnamelist_type_fixup </dt>
+<dd>
+
+<p>Changes all types in the padnames from the old klass to a new class. Needed for cloned roles.</p>
+
+<pre><code>        void    padnamelist_type_fixup(PADNAMELIST *pnl,
+                                       HV* oldklass,
+                                       HV* newklass)</code></pre>
 
 </dd>
 </dl>
@@ -2506,12 +2520,20 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>do any overload::constant lookup.</p>
 
-<p>Either returns sv, or mortalizes/frees sv and returns a new SV*. Best used as sv=new_constant(..., sv, ...). If s, pv are NULL, calls subroutine with one argument, and &lt;type&gt; is used with error messages only. &lt;type&gt; is assumed to be well formed UTF-8</p>
+<p>Either returns sv, or mortalizes/frees sv and returns a new SV*. Best used as sv=new_constant(..., sv, ...).</p>
 
-<pre><code>        SV*     new_constant(const char *s, STRLEN len,
+<pre><code>  If s, pv are NULL, calls subroutine with one argument,
+  and &lt;type&gt; is used with error messages only.
+  &lt;type&gt; is assumed to be well formed UTF-8
+
+  If error_msg is not NULL, *error_msg will be set to any error encountered.
+  otherwise yyerror() will be used to output it
+
+        SV*     new_constant(const char *s, STRLEN len,
                              const char *key, STRLEN keylen,
                              SV *sv, SV *pv, const char *type,
-                             STRLEN typelen)</code></pre>
+                             STRLEN typelen,
+                             const char ** error_msg)</code></pre>
 
 </dd>
 <dt id="no_op">no_op </dt>
@@ -2572,12 +2594,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <p>Structure: if we&#39;re in a my declaration croak if they tried to say my($foo::bar) build the ops for a my() declaration if it&#39;s an access to a my() variable build ops for access to a my() variable if in a dq string, and they&#39;ve said @foo and we can&#39;t find @foo warn build ops for a bareword</p>
 
 <pre><code>        int     pending_ident()</code></pre>
-
-</dd>
-<dt id="postderef">postderef </dt>
-<dd>
-
-<p>This subroutine handles postfix deref syntax after the arrow has already been emitted. @* $* etc. are emitted as two separate tokens right here. @[ @{ %[ %{ *{ are emitted also as two tokens, but this function emits only the first, leaving yylex to find the next. int postderef(int const funny, char const next)</p>
 
 </dd>
 <dt id="scan_const">scan_const </dt>
@@ -2661,6 +2677,8 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="scan_str">scan_str </dt>
 <dd>
 
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
 <p>takes: start position in buffer keep_bracketed_quoted preserve \ quoting of embedded delimiters, but only if they are of the open/close form keep_delims preserve the delimiters around the string re_reparse compiling a run-time /(?{})/: collapse // to /, and skip encoding src delimp if non-null, this is set to the position of the closing delimiter, or just after it if the closing and opening delimiters differ (i.e., the opening delimiter of a substitu- tion replacement)</p>
 
 <p>returns: position to continue reading from buffer</p>
@@ -2698,7 +2716,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="scan_word">scan_word </dt>
 <dd>
 
-<p>Returns a NUL terminated string, with the length of the string written to *slp</p>
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Returns a NUL terminated string, with the length of the string written to *slp. Note that the perl5 API misses the normalize argument.</p>
 
 <pre><code>        char*   scan_word(char *s, char *dest, STRLEN destlen,
                           int allow_package, STRLEN *slp,
@@ -2908,6 +2928,35 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 </dd>
 </dl>
 
+<h1 id="Numeric-functions">Numeric functions</h1>
+
+<dl>
+
+<dt id="grok_atoUV">grok_atoUV </dt>
+<dd>
+
+<p>parse a string, looking for a decimal unsigned integer.</p>
+
+<p>On entry, <code>pv</code> points to the beginning of the string; <code>valptr</code> points to a UV that will receive the converted value, if found; <code>endptr</code> is either NULL or points to a variable that points to one byte beyond the point in <code>pv</code> that this routine should examine. If <code>endptr</code> is NULL, <code>pv</code> is assumed to be NUL-terminated.</p>
+
+<p>Returns FALSE if <code>pv</code> doesn&#39;t represent a valid unsigned integer value (with no leading zeros). Otherwise it returns TRUE, and sets <code>*valptr</code> to that value.</p>
+
+<p>If you constrain the portion of <code>pv</code> that is looked at by this function (by passing a non-NULL <code>endptr</code>), and if the intial bytes of that portion form a valid value, it will return TRUE, setting <code>*endptr</code> to the byte following the final digit of the value. But if there is no constraint at what&#39;s looked at, all of <code>pv</code> must be valid in order for TRUE to be returned.</p>
+
+<p>The only characters this accepts are the decimal digits &#39;0&#39;..&#39;9&#39;.</p>
+
+<p>As opposed to <a href="http://man.he.net/man3/atoi">atoi(3)</a> or <a href="http://man.he.net/man3/strtol">strtol(3)</a>, <code>grok_atoUV</code> does NOT allow optional leading whitespace, nor negative inputs. If such features are required, the calling code needs to explicitly implement those.</p>
+
+<p>Note that this function returns FALSE for inputs that would overflow a UV, or have leading zeros. Thus a single <code>0</code> is accepted, but not <code>00</code> nor <code>01</code>, <code>002</code>, <i>etc</i>.</p>
+
+<p>Background: <code>atoi</code> has severe problems with illegal inputs, it cannot be used for incremental parsing, and therefore should be avoided <code>atoi</code> and <code>strtol</code> are also affected by locale settings, which can also be seen as a bug (global state controlled by user environment).</p>
+
+<pre><code>        bool    grok_atoUV(const char* pv, UV* valptr,
+                           const char** endptr)</code></pre>
+
+</dd>
+</dl>
+
 <h1 id="Optree-construction">Optree construction</h1>
 
 <dl>
@@ -3024,7 +3073,9 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="check_hash_fields_and_hekify">check_hash_fields_and_hekify </dt>
 <dd>
 
-<p>for a helem/hslice/kvslice, if its a fixed hash, croak on invalid const fields. Also, convert CONST keys to HEK-in-SVs. rop is the op that retrieves the hash; key_op is the first key</p>
+<p>for a helem/hslice/kvslice, if its a fixed hash, croak on invalid const fields. Also, convert CONST keys to HEK-in-SVs.</p>
+
+<p>rop is the op that retrieves the hash; key_op is the first key; real if false, only check (and possibly croak); don&#39;t update op</p>
 
 <pre><code>                check_hash_fields_and_hekify;</code></pre>
 
@@ -3032,11 +3083,27 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="cv_check_inline">cv_check_inline </dt>
 <dd>
 
-<p>examine an optree to determine whether it&#39;s in-lineable. In contrast to op_const_sv allow short op sequences which are not constant folded. max 15 ops, no new pad, no intermediate return, no recursion, ... cv_inline needs to translate the args, change return to jumps.</p>
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Examine an optree to determine whether it&#39;s in-lineable. In contrast to op_const_sv allow short op sequences which are not constant folded. Max 10 ops, no new pad (?), no intermediate return, no recursion, ... no call-by-ref: $_[i] aelemfast(*_) or aelem rv2av or multideref($_[$x]) TODO later: call-by-ref, new lexicals. walk by sib not next (skipping other).</p>
+
+<p>cv_inline needs to translate the args, change return to jumps.</p>
+
+<p>$lhs = call(...); =&gt; $lhs = do {...inlined...}; bool cv_check_inline(const OP *o, CV *compcv)</p>
+
+</dd>
+<dt id="cv_do_inline">cv_do_inline </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Needs to translate the args to local pads. o: entersub cvop: leavesub Splice inlined leavesub block, replacing pushmark .. entersub. METHOD should not arrive here, neither $obj-&gt;method.</p>
+
+<p>handle args: shift, = @_ or just accept SIGNATURED subs with PERL_FAKE_SIGNATURE. with a OP_SIGNATURE it is easier. without need to populate @_. if arg is call-by-value make a copy. adjust or add targs, with local or eval{} or caller, entersub, ... need to add ENTER/LEAVE, skip ENTER/LEAVE if certain ops are absent.</p>
 
 <p>$lhs = call(...); =&gt; $lhs = do {...inlined...};</p>
 
-<pre><code>        bool    cv_check_inline(const OP *o, CV *compcv)</code></pre>
+<p>Converted to a simplier ck step, without linked op_next ptrs. Not in rpeep anymore. Only activated with PERL_INLINE_SUBS OP* cv_do_inline(OP *parent, OP *o, OP *cvop, CV *cv)</p>
 
 </dd>
 <dt id="dup_attrlist">dup_attrlist </dt>
@@ -3393,6 +3460,18 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        OP*     set_boolean(OP *o)</code></pre>
 
 </dd>
+<dt id="traverse_op_tree">traverse_op_tree </dt>
+<dd>
+
+<p>Return the next op in a depth-first traversal of the op tree, returning NULL when the traversal is complete.</p>
+
+<p>The initial call must supply the root of the tree as both top and o.</p>
+
+<p>For now it&#39;s static, but it may be exposed to the API in the future.</p>
+
+<pre><code>                traverse_op_tree;</code></pre>
+
+</dd>
 </dl>
 
 <h1 id="Pad-Data-Structures">Pad Data Structures</h1>
@@ -3694,84 +3773,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 </dd>
 </dl>
 
-<h1 id="SV-Body-Allocation">SV-Body Allocation</h1>
-
-<dl>
-
-<dt id="anonymise_cv_maybe">anonymise_cv_maybe </dt>
-<dd>
-
-<p>We&#39;re about to free a GV which has a CV that refers back to us. If that CV will outlive us, make it anonymous (i.e. fix up its CvGV field)</p>
-
-<pre><code>        void    anonymise_cv_maybe(GV *gv, CV *cv)</code></pre>
-
-</dd>
-<dt id="sv_2num">sv_2num </dt>
-<dd>
-
-<p>NOTE: this function is experimental and may change or be removed without notice.</p>
-
-<p>Return an SV with the numeric value of the source SV, doing any necessary reference or overload conversion. The caller is expected to have handled get-magic already.</p>
-
-<pre><code>        SV*     sv_2num(SV *const sv)</code></pre>
-
-</dd>
-<dt id="sv_add_backref">sv_add_backref </dt>
-<dd>
-
-<p>Give tsv backref magic if it hasn&#39;t already got it, then push a back-reference to sv onto the array associated with the backref magic.</p>
-
-<p>As an optimisation, if there&#39;s only one backref and it&#39;s not an AV, store it directly in the HvAUX or mg_obj slot, avoiding the need to allocate an AV. (Whether the slot holds an AV tells us whether this is active.)</p>
-
-<p>A discussion about the backreferences array and its refcount:</p>
-
-<p>The AV holding the backreferences is pointed to either as the <code>mg_obj</code> of <code>PERL_MAGIC_backref</code>, or in the specific case of a HV, from the <code>xhv_backreferences</code> field. The array is created with a refcount of 2. This means that if during global destruction the array gets picked on before its parent to have its refcount decremented by the random zapper, it won&#39;t actually be freed, meaning it&#39;s still there for when its parent gets freed.</p>
-
-<p>When the parent SV is freed, the extra ref is killed by <a href="/cperl/perlintern.html#sv_kill_backrefs">&quot;sv_kill_backrefs&quot; in perlintern</a>. The other ref is killed, in the case of magic, by <a href="/cperl/perlapi.html#mg_free">&quot;mg_free&quot; in perlapi</a> / <code>MGf_REFCOUNTED</code>, or for a hash, by <a href="/cperl/perlintern.html#hv_kill_backrefs">&quot;hv_kill_backrefs&quot; in perlintern</a>.</p>
-
-<p>When a single backref SV is stored directly, it is not reference counted.</p>
-
-<pre><code>        void    sv_add_backref(SV *const tsv, SV *const sv)</code></pre>
-
-</dd>
-<dt id="sv_del_backref">sv_del_backref </dt>
-<dd>
-
-<p>Delete a back-reference to ourselves from the backref magic associated with the SV we point to.</p>
-
-<pre><code>        void    sv_del_backref(SV *const tsv, SV *const sv)</code></pre>
-
-</dd>
-<dt id="sv_free2">sv_free2 </dt>
-<dd>
-
-<p>NOTE: this function is experimental and may change or be removed without notice.</p>
-
-<p>Private helper function for SvREFCNT_dec(). Called with rc set to original SvREFCNT(sv), where rc == 0 or 1</p>
-
-<pre><code>        void    sv_free2(SV *const sv, const U32 refcnt)</code></pre>
-
-</dd>
-<dt id="sv_kill_backrefs">sv_kill_backrefs </dt>
-<dd>
-
-<p>NOTE: this function is experimental and may change or be removed without notice.</p>
-
-<p>Delete all back-references to ourselves from the backreferences array.</p>
-
-<pre><code>        void    sv_kill_backrefs(SV *const sv, AV *const av)</code></pre>
-
-</dd>
-<dt id="sv_len_utf8_nomg">sv_len_utf8_nomg </dt>
-<dd>
-
-<p>Returns the number of characters in the string in an SV, counting wide UTF-8 bytes as a single character. Ignores get magic.</p>
-
-<pre><code>        STRLEN  sv_len_utf8_nomg(SV *const sv)</code></pre>
-
-</dd>
-</dl>
-
 <h1 id="SV-Manipulation-Functions">SV Manipulation Functions</h1>
 
 <p>An SV (or AV, HV, etc.) is allocated in two parts: the head (struct sv, av, hv...) contains type and reference count information, and for many types, a pointer to the body (struct xrv, xpv, xpviv...), which contains fields specific to each type. Some types store all they need in the head, so don&#39;t have a body.</p>
@@ -3826,6 +3827,24 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <dl>
 
+<dt id="anonymise_cv_maybe">anonymise_cv_maybe </dt>
+<dd>
+
+<p>We&#39;re about to free a GV which has a CV that refers back to us. If that CV will outlive us, make it anonymous (i.e. fix up its CvGV field)</p>
+
+<pre><code>        void    anonymise_cv_maybe(GV *gv, CV *cv)</code></pre>
+
+</dd>
+<dt id="sv_2num">sv_2num </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Return an SV with the numeric value of the source SV, doing any necessary reference or overload conversion. The caller is expected to have handled get-magic already.</p>
+
+<pre><code>        SV*     sv_2num(SV *const sv)</code></pre>
+
+</dd>
 <dt id="sv_add_arena">sv_add_arena </dt>
 <dd>
 
@@ -3833,6 +3852,24 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <pre><code>        void    sv_add_arena(char *const ptr, const U32 size,
                              const U32 flags)</code></pre>
+
+</dd>
+<dt id="sv_add_backref">sv_add_backref </dt>
+<dd>
+
+<p>Give tsv backref magic if it hasn&#39;t already got it, then push a back-reference to sv onto the array associated with the backref magic.</p>
+
+<p>As an optimisation, if there&#39;s only one backref and it&#39;s not an AV, store it directly in the HvAUX or mg_obj slot, avoiding the need to allocate an AV. (Whether the slot holds an AV tells us whether this is active.)</p>
+
+<p>A discussion about the backreferences array and its refcount:</p>
+
+<p>The AV holding the backreferences is pointed to either as the <code>mg_obj</code> of <code>PERL_MAGIC_backref</code>, or in the specific case of a HV, from the <code>xhv_backreferences</code> field. The array is created with a refcount of 2. This means that if during global destruction the array gets picked on before its parent to have its refcount decremented by the random zapper, it won&#39;t actually be freed, meaning it&#39;s still there for when its parent gets freed.</p>
+
+<p>When the parent SV is freed, the extra ref is killed by <a href="/cperl/perlintern.html#sv_kill_backrefs">&quot;sv_kill_backrefs&quot; in perlintern</a>. The other ref is killed, in the case of magic, by <a href="/cperl/perlapi.html#mg_free">&quot;mg_free&quot; in perlapi</a> / <code>MGf_REFCOUNTED</code>, or for a hash, by <a href="/cperl/perlintern.html#hv_kill_backrefs">&quot;hv_kill_backrefs&quot; in perlintern</a>.</p>
+
+<p>When a single backref SV is stored directly, it is not reference counted.</p>
+
+<pre><code>        void    sv_add_backref(SV *const tsv, SV *const sv)</code></pre>
 
 </dd>
 <dt id="sv_clean_all">sv_clean_all </dt>
@@ -3843,12 +3880,48 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        Size_t  sv_clean_all()</code></pre>
 
 </dd>
+<dt id="sv_del_backref">sv_del_backref </dt>
+<dd>
+
+<p>Delete a back-reference to ourselves from the backref magic associated with the SV we point to.</p>
+
+<pre><code>        void    sv_del_backref(SV *const tsv, SV *const sv)</code></pre>
+
+</dd>
+<dt id="sv_free2">sv_free2 </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Private helper function for SvREFCNT_dec(). Called with rc set to original SvREFCNT(sv), where rc == 0 or 1</p>
+
+<pre><code>        void    sv_free2(SV *const sv, const U32 refcnt)</code></pre>
+
+</dd>
 <dt id="sv_free_arenas">sv_free_arenas </dt>
 <dd>
 
 <p>Deallocate the memory used by all arenas. Note that all the individual SV heads and bodies within the arenas must already have been freed.</p>
 
 <pre><code>        void    sv_free_arenas()</code></pre>
+
+</dd>
+<dt id="sv_kill_backrefs">sv_kill_backrefs </dt>
+<dd>
+
+<p>NOTE: this function is experimental and may change or be removed without notice.</p>
+
+<p>Delete all back-references to ourselves from the backreferences array.</p>
+
+<pre><code>        void    sv_kill_backrefs(SV *const sv, AV *const av)</code></pre>
+
+</dd>
+<dt id="sv_len_utf8_nomg">sv_len_utf8_nomg </dt>
+<dd>
+
+<p>Returns the number of characters in the string in an SV, counting wide UTF-8 bytes as a single character. Ignores get magic.</p>
+
+<pre><code>        STRLEN  sv_len_utf8_nomg(SV *const sv)</code></pre>
 
 </dd>
 <dt id="SvTHINKFIRST">SvTHINKFIRST </dt>
@@ -3898,7 +3971,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 <p>Returns a bool as to whether or not the sequence of bytes from <code>s</code> up to but not including <code>send</code> form a &quot;script run&quot;. <code>utf8_target</code> is TRUE iff the sequence starting at <code>s</code> is to be treated as UTF-8. To be precise, except for two degenerate cases given below, this function returns TRUE iff all code points in it come from any combination of three &quot;scripts&quot; given by the Unicode &quot;Script Extensions&quot; property: Common, Inherited, and possibly one other. Additionally all decimal digits must come from the same consecutive sequence of 10.</p>
 
-<p>For example, if all the characters in the sequence are Greek, or Common, or Inherited, this function will return TRUE, provided any decimal digits in it are the ASCII digits &quot;0&quot;..&quot;9&quot;. For scripts (unlike Greek) that have their own digits defined this will accept either digits from that set or from 0..9, but not a combination of the two. Some scripts, such as Arabic, have more than one set of digits. All digits must come from the same set for this function to return TRUE.</p>
+<p>For example, if all the characters in the sequence are Greek, or Common, or Inherited, this function will return TRUE, provided any decimal digits in it are from the same block of digits in Common. (These are the ASCII digits &quot;0&quot;..&quot;9&quot; and additionally a block for full width forms of these, and several others used in mathematical notation.) For scripts (unlike Greek) that have their own digits defined this will accept either digits from that set or from one of the Common digit sets, but not a combination of the two. Some scripts, such as Arabic, have more than one set of digits. All digits must come from the same set for this function to return TRUE.</p>
 
 <p><code>*ret_script</code>, if <code>ret_script</code> is not NULL, will on return of TRUE contain the script found, using the <code>SCX_enum</code> typedef. Its value will be <code>SCX_INVALID</code> if the function returns FALSE.</p>
 
@@ -3935,6 +4008,14 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <pre><code>        void    report_uninit(const SV *uninit_sv)</code></pre>
 
 </dd>
+<dt id="utf8_add_script">utf8_add_script </dt>
+<dd>
+
+<p>Adds the given ASCIIZ script to %utf8::SCRIPTS, and initializes it lazily.</p>
+
+<pre><code>        void    utf8_add_script(const char* script)</code></pre>
+
+</dd>
 <dt id="utf8_check_script">utf8_check_script </dt>
 <dd>
 
@@ -3950,11 +4031,13 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dt id="utf8_error_script">utf8_error_script </dt>
 <dd>
 
-<p>If this character is the first non-Latin or non-Common character, and no other scripts were declared, and the script is not member of %utf8::EXCLUDED_SCRIPTS, then add the script to the list of allowed scripts, otherwise error.</p>
+<p>If this character is the first non-Latin or non-Common character, and no other scripts were declared, and the script is either member of %VALID_SCRIPTS, or is not member of %utf8::EXCLUDED_SCRIPTS, then add the script to the list of allowed scripts, otherwise error.</p>
 
-<p>%utf8::EXCLUDED_SCRIPTS map the Moderately Restrictive Level for identifiers. i.e. Allow Recommended or Aspirational scripts except Cyrillic and Greek.</p>
+<p>%utf8::EXCLUDED_SCRIPTS map the Moderately Restrictive Level for identifiers. i.e. Allow Recommended scripts except Cyrillic and Greek.</p>
 
 <p>Also allow Latin + :Japanese, Latin + :Hanb and Latin + :Korean, but always only the first encounter of such a combination.</p>
+
+<p>Use an extra error message for %utf8::LIMITED_SCRIPTS errors, as this is a new restriction since v5.29.2c.</p>
 
 <p>Note that the argument is guaranteed to be not of the Common or Latin script property.</p>
 
@@ -4092,19 +4175,11 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="core_swash_init">_core_swash_init </dt>
-<dd>
-
-</dd>
 <dt id="get_encoding">_get_encoding </dt>
 <dd>
 
 </dd>
 <dt id="get_regclass_nonbitmap_data">_get_regclass_nonbitmap_data </dt>
-<dd>
-
-</dd>
-<dt id="get_swash_invlist">_get_swash_invlist </dt>
 <dd>
 
 </dd>
@@ -4141,10 +4216,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="invlist_len">_invlist_len </dt>
-<dd>
-
-</dd>
-<dt id="invlist_populate_swatch">_invlist_populate_swatch </dt>
 <dd>
 
 </dd>
@@ -4188,10 +4259,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="swash_to_invlist">_swash_to_invlist </dt>
-<dd>
-
-</dd>
 <dt id="to_fold_latin1">_to_fold_latin1 </dt>
 <dd>
 
@@ -4209,10 +4276,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="add_cp_to_invlist">add_cp_to_invlist </dt>
-<dd>
-
-</dd>
-<dt id="alloc_maybe_populate_EXACT">alloc_maybe_populate_EXACT </dt>
 <dd>
 
 </dd>
@@ -4325,6 +4388,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="core_type_name">core_type_name </dt>
+<dd>
+
+</dd>
+<dt id="croak_caller">croak_caller </dt>
 <dd>
 
 </dd>
@@ -4532,6 +4599,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="dup_warnings">dup_warnings </dt>
+<dd>
+
+</dd>
 <dt id="emulate_cop_io">emulate_cop_io </dt>
 <dd>
 
@@ -4556,11 +4627,19 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="foldEQ_latin1_s2_folded">foldEQ_latin1_s2_folded </dt>
+<dd>
+
+</dd>
 <dt id="form_short_octal_warning">form_short_octal_warning </dt>
 <dd>
 
 </dd>
 <dt id="free_tied_hv_pool">free_tied_hv_pool </dt>
+<dd>
+
+</dd>
+<dt id="get_and_check_backslash_N_name">get_and_check_backslash_N_name </dt>
 <dd>
 
 </dd>
@@ -4600,10 +4679,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="grok_atoUV">grok_atoUV </dt>
-<dd>
-
-</dd>
 <dt id="grok_bslash_c">grok_bslash_c </dt>
 <dd>
 
@@ -4637,6 +4712,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="handle_named_backref">handle_named_backref </dt>
+<dd>
+
+</dd>
+<dt id="handle_user_defined_property">handle_user_defined_property </dt>
 <dd>
 
 </dd>
@@ -4729,6 +4808,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 
 </dd>
 <dt id="isFOO_lc">isFOO_lc </dt>
+<dd>
+
+</dd>
+<dt id="is_invlist">is_invlist </dt>
 <dd>
 
 </dd>
@@ -5300,6 +5383,10 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
+<dt id="skipspace_flags">skipspace_flags </dt>
+<dd>
+
+</dd>
 <dt id="ssc_add_range">ssc_add_range </dt>
 <dd>
 
@@ -5388,7 +5475,7 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <dd>
 
 </dd>
-<dt id="utf8_add_script">utf8_add_script </dt>
+<dt id="uiv_2buf">uiv_2buf </dt>
 <dd>
 
 </dd>
@@ -5465,20 +5552,6 @@ S_gv_magicalize(pTHX_ GV *gv, HV *stash, const char *name, STRLEN len,
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
 <p><a href="/cperl/perlguts.html">perlguts</a>, <a href="/cperl/perlapi.html">perlapi</a>, <a href="/cperl/perlapio.html">perlapio</a></p>
-
-<h1 id="POD-ERRORS">POD ERRORS</h1>
-
-<p>Hey! <b>The above document had some coding errors, which are explained below:</b></p>
-
-<dl>
-
-<dt id="Around-line-2492">Around line 2492:</dt>
-<dd>
-
-<p>Non-ASCII character seen before =encoding in &#39;don&rsquo;t&#39;. Assuming UTF-8</p>
-
-</dd>
-</dl>
 
 
 </body>

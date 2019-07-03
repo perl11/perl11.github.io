@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>perlvar - Perl predefined variables</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:rurban@cpan.org" />
 </head>
@@ -408,7 +408,7 @@
 <dt id="INC">@INC </dt>
 <dd>
 
-<p>The array <code>@INC</code> contains the list of places that the <code>do EXPR</code>, <code>require</code>, or <code>use</code> constructs look for their library files. It initially consists of the arguments to any <b>-I</b> command-line switches, followed by the default Perl library, probably <i>/usr/local/lib/perl</i>, followed by &quot;.&quot;, to represent the current directory. (&quot;.&quot; will not be appended if taint checks are enabled, either by <code>-T</code> or by <code>-t</code>, or if configured not to do so by the <code>-Ddefault_inc_excludes_dot</code> compile time option.) If you need to modify this at runtime, you should use the <code>use lib</code> pragma to get the machine-dependent library properly loaded also:</p>
+<p>The array <code>@INC</code> contains the list of places that the <code>do EXPR</code>, <code>require</code>, or <code>use</code> constructs look for their library files. It initially consists of the arguments to any <b>-I</b> command-line switches, followed by the default Perl library, probably <i>/usr/local/lib/perl</i>. Prior to Perl 5.26, <code>.</code> -which represents the current directory, was included in <code>@INC</code>; it has been removed. This change in behavior is documented in <a href="/cperl/perlrun.html#PERL_USE_UNSAFE_INC"><code>PERL_USE_UNSAFE_INC</code></a> and it is not recommended that <code>.</code> be re-added to <code>@INC</code>. If you need to modify <code>@INC</code> at runtime, you should use the <code>use lib</code> pragma to get the machine-dependent library properly loaded as well:</p>
 
 <pre><code>    use lib &#39;/mypath/libdir/&#39;;
     use SomeMod;</code></pre>
@@ -717,7 +717,7 @@
 
 <p>should output &quot;f-o-a-l&quot;.</p>
 
-<p>See also <a href="#digits">&quot;$<i>digits</i>&quot;</a>, <a href="#CAPTURE">&quot;%{^CAPTURE}&quot;</a> and <a href="#CAPTURE_ALL">&quot;%{^CAPTURE_ALL}&quot;</a>.</p>
+<p>See also <a href="#pod-1-2">&quot;$&lt;<i>digits</i>&gt; ($1, $2, ...)&quot;</a>, <a href="#CAPTURE">&quot;%{^CAPTURE}&quot;</a> and <a href="#CAPTURE_ALL">&quot;%{^CAPTURE_ALL}&quot;</a>.</p>
 
 <p>This variable was added in 5.25.7</p>
 
@@ -823,7 +823,9 @@
 <dt id="pod11">$+  </dt>
 <dd>
 
-<p>The text matched by the last bracket of the last successful search pattern. This is useful if you don&#39;t know which one of a set of alternative patterns matched. For example:</p>
+<p>The text matched by the highest used capture group of the last successful search pattern. It is logically equivalent to the highest numbered capture variable (<code>$1</code>, <code>$2</code>, ...) which has a defined value.</p>
+
+<p>This is useful if you don&#39;t know which one of a set of alternative patterns matched. For example:</p>
 
 <pre><code>    /Version: (.*)|Revision: (.*)/ &amp;&amp; ($rev = $+);</code></pre>
 
@@ -839,7 +841,15 @@
 <dt id="N">$^N  </dt>
 <dd>
 
-<p>The text matched by the used group most-recently closed (i.e. the group with the rightmost closing parenthesis) of the last successful search pattern.</p>
+<p>The text matched by the used group most-recently closed (i.e. the group with the rightmost closing parenthesis) of the last successful search pattern. This is subtly different from <code>$+</code>. For example in</p>
+
+<pre><code>    &quot;ab&quot; =~ /^((.)(.))$/</code></pre>
+
+<p>we have</p>
+
+<pre><code>    $1,$^N   have the value &quot;ab&quot;
+    $2       has  the value &quot;a&quot;
+    $3,$+    have the value &quot;b&quot;</code></pre>
 
 <p>This is primarily used inside <code>(?{...})</code> blocks for examining text recently matched. For example, to effectively capture text to a variable (in addition to <code>$1</code>, <code>$2</code>, etc.), replace <code>(...)</code> with</p>
 
@@ -901,7 +911,7 @@
 <dt id="pod14">@-  </dt>
 <dd>
 
-<p><code>$-[0]</code> is the offset of the start of the last successful match. <code>$-[</code><i>n</i><code>]</code> is the offset of the start of the substring matched by <i>n</i>-th subpattern, or undef if the subpattern did not match.</p>
+<p><code>$-[0]</code> is the offset of the start of the last successful match. <code>$-[<i>n</i>]</code> is the offset of the start of the substring matched by <i>n</i>-th subpattern, or undef if the subpattern did not match.</p>
 
 <p>Thus, after a match against <code>$_</code>, <code>$&amp;</code> coincides with <code>substr $_, $-[0], $+[0] - $-[0]</code>. Similarly, $<i>n</i> coincides with <code>substr $_, $-[n], $+[n] - $-[n]</code> if <code>$-[n]</code> is defined, and $+ coincides with <code>substr $_, $-[$#-], $+[$#-] - $-[$#-]</code>. One can use <code>$#-</code> to find the last matched subgroup in the last successful match. Contrast with <code>$#+</code>, the number of subgroups in the regular expression. Compare with <code>@+</code>.</p>
 
@@ -992,6 +1002,14 @@
 <p>The result of evaluation of the last successful <code>(?{ code })</code> regular expression assertion (see <a href="/cperl/perlre.html">perlre</a>). May be written to.</p>
 
 <p>This variable was added in Perl 5.005.</p>
+
+</dd>
+<dt id="RE_COMPILE_RECURSION_LIMIT">${^RE_COMPILE_RECURSION_LIMIT} </dt>
+<dd>
+
+<p>The current value giving the maximum number of open but unclosed parenthetical groups there may be at any point during a regular expression compilation. The default is currently 1000 nested groups. You may adjust it depending on your needs and the amount of memory available.</p>
+
+<p>This variable was added in Perl v5.30.0.</p>
 
 </dd>
 <dt id="RE_DEBUG_FLAGS">${^RE_DEBUG_FLAGS} </dt>
@@ -1183,6 +1201,35 @@
     s/\n[ \t]+/ /g;</code></pre>
 
 <p>Remember: the value of <code>$/</code> is a string, not a regex. <b>awk</b> has to be better for something. :-)</p>
+
+<p>Setting <code>$/</code> to an empty string -- the so-called <i>paragraph mode</i> -- merits special attention. When <code>$/</code> is set to <code>&quot;&quot;</code> and the entire file is read in with that setting, any sequence of consecutive newlines <code>&quot;\n\n&quot;</code> at the beginning of the file is discarded. With the exception of the final record in the file, each sequence of characters ending in two or more newlines is treated as one record and is read in to end in exactly two newlines. If the last record in the file ends in zero or one consecutive newlines, that record is read in with that number of newlines. If the last record ends in two or more consecutive newlines, it is read in with two newlines like all preceding records.</p>
+
+<p>Suppose we wrote the following string to a file:</p>
+
+<pre><code>    my $string = &quot;\n\n\n&quot;;
+    $string .= &quot;alpha beta\ngamma delta\n\n\n&quot;;
+    $string .= &quot;epsilon zeta eta\n\n&quot;;
+    $string .= &quot;theta\n&quot;;
+
+    my $file = &#39;simple_file.txt&#39;; 
+    open my $OUT, &#39;&gt;&#39;, $file or die;
+    print $OUT $string;
+    close $OUT or die;</code></pre>
+
+<p>Now we read that file in paragraph mode:</p>
+
+<pre><code>    local $/ = &quot;&quot;; # paragraph mode
+    open my $IN, &#39;&lt;&#39;, $file or die;
+    my @records = &lt;$IN&gt;;
+    close $IN or die;</code></pre>
+
+<p><code>@records</code> will consist of these 3 strings:</p>
+
+<pre><code>    (
+      &quot;alpha beta\ngamma delta\n\n&quot;,
+      &quot;epsilon zeta eta\n\n&quot;,
+      &quot;theta\n&quot;,
+    )</code></pre>
 
 <p>Setting <code>$/</code> to a reference to an integer, scalar containing an integer, or scalar that&#39;s convertible to an integer will attempt to read records instead of lines, with the maximum record size being the referenced integer number of characters. So this:</p>
 
@@ -1961,15 +2008,13 @@
 
 <p>Prior to Perl v5.10.0, assignment to <code>$[</code> could be seen from outer lexical scopes in the same file, unlike other compile-time directives (such as <a href="/cperl/lib/strict.html">strict</a>). Using local() on it would bind its value strictly to a lexical block. Now it is always lexically scoped.</p>
 
-<p>As of Perl v5.16.0, it is implemented by the <a href="/cperl/lib/arybase.html">arybase</a> module. See <a href="/cperl/lib/arybase.html">arybase</a> for more details on its behaviour.</p>
+<p>As of Perl v5.16.0, it is implemented by the <a>arybase</a> module.</p>
 
-<p>Under <code>use v5.16</code>, or <code>no feature &quot;array_base&quot;</code>, <code>$[</code> no longer has any effect, and always contains 0. Assigning 0 to it is permitted, but any other value will produce an error.</p>
+<p>As of Perl v5.30.0, or under <code>use v5.16</code>, or <code>no feature &quot;array_base&quot;</code>, <code>$[</code> no longer has any effect, and always contains 0. Assigning 0 to it is permitted, but any other value will produce an error.</p>
 
 <p>Mnemonic: [ begins subscripts.</p>
 
 <p>Deprecated in Perl v5.12.0.</p>
-
-<p>Assigning a non-zero value be fatal in Perl v5.30.0.</p>
 
 </dd>
 </dl>

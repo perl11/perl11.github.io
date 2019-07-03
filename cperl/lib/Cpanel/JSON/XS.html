@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Cpanel::JSON::XS - cPanel fork of JSON::XS, fast and correct serializing</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:rurban@cpan.org" />
 </head>
@@ -157,7 +157,7 @@
 
 <p>- fixed encode of numbers for dual-vars. Different string representations are preserved, but numbers with temporary strings which represent the same number are here treated as numbers, not strings. Cpanel::JSON::XS is a bit slower, but preserves numeric types better.</p>
 
-<p>- numbers ending with .0 stay numbers, are not converted to integers. [#63] dual-vars which are represented as number not integer (42+&quot;bar&quot; != 5.8.9) are now encoded as number (=&gt; 42.0) because internally it&#39;s now a NOK type. However !!1 which is wrongly encoded in 5.8 as &quot;1&quot;/1.0 is still represented as integer.</p>
+<p>- numbers ending with .0 stray numbers, are not converted to integers. [#63] dual-vars which are represented as number not integer (42+&quot;bar&quot; != 5.8.9) are now encoded as number (=&gt; 42.0) because internally it&#39;s now a NOK type. However !!1 which is wrongly encoded in 5.8 as &quot;1&quot;/1.0 is still represented as integer.</p>
 
 <p>- different handling of inf/nan. Default now to null, optionally with stringify_infnan() to &quot;inf&quot;/&quot;nan&quot;. [#28, #32]</p>
 
@@ -208,7 +208,7 @@
 
 <p>- support many more options and methods from JSON::PP: stringify_infnan, allow_unknown, allow_stringify, allow_barekey, encode_stringify, allow_bignum, allow_singlequote, sort_by (partially), escape_slash, convert_blessed, ... optional decode_json(, allow_nonref) arg. relaxed implements allow_dupkeys.</p>
 
-<p>- support all 5 unicode BOM&#39;s: UTF-8, UTF-16LE, UTF-16BE, UTF-32LE, UTF-32BE, encoding internally to UTF-8.</p>
+<p>- support all 5 unicode <a href="#BOM">BOM</a>&#39;s: UTF-8, UTF-16LE, UTF-16BE, UTF-32LE, UTF-32BE, encoding internally to UTF-8.</p>
 
 <h1 id="FUNCTIONAL-INTERFACE">FUNCTIONAL INTERFACE</h1>
 
@@ -223,27 +223,29 @@
 
 <p>This function call is functionally identical to:</p>
 
-<pre><code>   $json_text = Cpanel::JSON::XS-&gt;new-&gt;utf8-&gt;encode ($perl_scalar)</code></pre>
+<pre><code>   $json_text = Cpanel::JSON::XS-&gt;new-&gt;utf8-&gt;encode ($perl_scalar, $json_type)</code></pre>
 
 <p>Except being faster.</p>
 
 <p>For the type argument see <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
 
 </dd>
-<dt id="perl_scalar-decode_json-json_text-allow_nonref">$perl_scalar = decode_json $json_text [, $allow_nonref ]</dt>
+<dt id="perl_scalar-decode_json-json_text-allow_nonref-my-json_type">$perl_scalar = decode_json $json_text [, $allow_nonref [, my $json_type ] ]</dt>
 <dd>
 
 <p>The opposite of <code>encode_json</code>: expects an UTF-8 (binary) string of an json reference and tries to parse that as an UTF-8 encoded JSON text, returning the resulting reference. Croaks on error.</p>
 
 <p>This function call is functionally identical to:</p>
 
-<pre><code>   $perl_scalar = Cpanel::JSON::XS-&gt;new-&gt;utf8-&gt;decode ($json_text)</code></pre>
+<pre><code>   $perl_scalar = Cpanel::JSON::XS-&gt;new-&gt;utf8-&gt;decode ($json_text, $json_type)</code></pre>
 
 <p>except being faster.</p>
 
 <p>Note that older decode_json versions in Cpanel::JSON::XS older than 3.0116 and JSON::XS did not set allow_nonref but allowed them due to a bug in the decoder.</p>
 
 <p>If the new optional $allow_nonref argument is set and not false, the allow_nonref option will be set and the function will act is described as in the relaxed RFC 7159 allowing all values such as objects, arrays, strings, numbers, &quot;null&quot;, &quot;true&quot;, and &quot;false&quot;.</p>
+
+<p>For the type argument see <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
 
 </dd>
 <dt id="is_boolean-Cpanel::JSON::XS::is_bool-scalar">$is_boolean = Cpanel::JSON::XS::is_bool $scalar</dt>
@@ -742,6 +744,18 @@
 <p>This option is special to this module, it is not supported by other encoders. So it is not recommended to use it.</p>
 
 </dd>
+<dt id="json-json-require_types-enable">$json = $json-&gt;require_types ([$enable])</dt>
+<dd>
+
+</dd>
+<dt id="enable-json-get_require_types">$enable = $json-&gt;get_require_types</dt>
+<dd>
+
+<pre><code>     $json = $json-&gt;require_types([$enable])</code></pre>
+
+<p>If <code>$enable</code> is true (or missing), then <code>encode</code> will require second argument with supplied JSON types. See <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>. When second argument is not provided (or is undef), then <code>encode</code> croaks. It also croaks when the type for provided structure in <code>encode</code> is incomplete.</p>
+
+</dd>
 <dt id="json-json-allow_dupkeys-enable">$json = $json-&gt;allow_dupkeys ([$enable])</dt>
 <dd>
 
@@ -779,7 +793,7 @@
 
 <p>If <code>$enable</code> is true (or missing), then <code>encode</code>, upon encountering a blessed object, will check for the availability of the <code>TO_JSON</code> method on the object&#39;s class. If found, it will be called in scalar context and the resulting scalar will be encoded instead of the object. If no <code>TO_JSON</code> method is found, a stringification overload method is tried next. If both are not found, the value of <code>allow_blessed</code> will decide what to do.</p>
 
-<p>The <code>TO_JSON</code> method may safely call die if it wants. If <code>TO_JSON</code> returns other blessed objects, those will be handled in the same way. <code>TO_JSON</code> must take care of not causing an endless recursion cycle (== crash) in this case. The name of <code>TO_JSON</code> was chosen because other methods called by the Perl core (== not by the user of the object) are usually in upper case letters and to avoid collisions with any <code>to_json</code> function or method.</p>
+<p>The <code>TO_JSON</code> method may safely call die if it wants. If <code>TO_JSON</code> returns other blessed objects, those will be handled in the same way. <code>TO_JSON</code> must take care of not causing an endless recursion cycle (== crash) in this case. The same care must be taken with calling encode in stringify overloads (even if this works by luck in older perls) or other callbacks. The name of <code>TO_JSON</code> was chosen because other methods called by the Perl core (== not by the user of the object) are usually in upper case letters and to avoid collisions with any <code>to_json</code> function or method.</p>
 
 <p>If <code>$enable</code> is false (the default), then <code>encode</code> will not consider this type of conversion.</p>
 
@@ -926,18 +940,22 @@
 <p>&quot;inf/-inf/nan&quot;: infnan_mode = 3. Platform independent inf/nan/-inf strings. No QNAN/SNAN/negative NAN support, unified to &quot;nan&quot;. Much easier to detect, but may conflict with valid strings.</p>
 
 </dd>
-<dt id="json_text-json-encode-perl_scalar">$json_text = $json-&gt;encode ($perl_scalar)</dt>
+<dt id="json_text-json-encode-perl_scalar-json_type">$json_text = $json-&gt;encode ($perl_scalar, $json_type)</dt>
 <dd>
 
 <p>Converts the given Perl data structure (a simple scalar or a reference to a hash or array) to its JSON representation. Simple scalars will be converted into JSON string or number sequences, while references to arrays become JSON arrays and references to hashes become JSON objects. Undefined Perl values (e.g. <code>undef</code>) become JSON <code>null</code> values. Neither <code>true</code> nor <code>false</code> values will be generated.</p>
 
+<p>For the type argument see <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
+
 </dd>
-<dt id="perl_scalar-json-decode-json_text">$perl_scalar = $json-&gt;decode ($json_text)</dt>
+<dt id="perl_scalar-json-decode-json_text-my-json_type">$perl_scalar = $json-&gt;decode ($json_text, my $json_type)</dt>
 <dd>
 
 <p>The opposite of <code>encode</code>: expects a JSON text and tries to parse it, returning the resulting simple scalar or reference. Croaks on error.</p>
 
 <p>JSON numbers and strings become simple Perl scalars. JSON arrays become Perl arrayrefs and JSON objects become Perl hashrefs. <code>true</code> becomes <code>1</code>, <code>false</code> becomes <code>0</code> and <code>null</code> becomes <code>undef</code>.</p>
+
+<p>For the type argument see <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
 
 </dd>
 <dt id="perl_scalar-characters-json-decode_prefix-json_text">($perl_scalar, $characters) = $json-&gt;decode_prefix ($json_text)</dt>
@@ -1147,6 +1165,8 @@
 
 <p>Detect all unicode <b>Byte Order Marks</b> on decode. Which are UTF-8, UTF-16LE, UTF-16BE, UTF-32LE and UTF-32BE.</p>
 
+<p>The BOM encoding is set only for one specific decode call, it does not change the state of the JSON object.</p>
+
 <p><b>Warning</b>: With perls older than 5.20 you need load the Encode module before loading a multibyte BOM, i.e. &gt;= UTF-16. Otherwise an error is thrown. This is an implementation limitation and might get fixed later.</p>
 
 <p>See <a href="https://tools.ietf.org/html/rfc7159#section-8.1">https://tools.ietf.org/html/rfc7159#section-8.1</a> <i>&quot;JSON text SHALL be encoded in UTF-8, UTF-16, or UTF-32.&quot;</i></p>
@@ -1202,7 +1222,9 @@
 <dt id="true-false">true, false</dt>
 <dd>
 
-<p>These JSON atoms become <code>Cpanel::JSON::XS::true</code> and <code>Cpanel::JSON::XS::false</code>, respectively. They are <code>JSON::PP::Boolean</code> objects and are overloaded to act almost exactly like the numbers <code>1</code> and <code>0</code>. You can check whether a scalar is a JSON boolean by using the <code>Cpanel::JSON::XS::is_bool</code> function.</p>
+<p>When <code>unblessed_bool</code> is set to true, then JSON <code>true</code> becomes <code>1</code> and JSON <code>false</code> becomes <code>0</code>.</p>
+
+<p>Otherwise these JSON atoms become <code>Cpanel::JSON::XS::true</code> and <code>Cpanel::JSON::XS::false</code>, respectively. They are <code>JSON::PP::Boolean</code> objects and are overloaded to act almost exactly like the numbers <code>1</code> and <code>0</code>. You can check whether a scalar is a JSON boolean by using the <code>Cpanel::JSON::XS::is_bool</code> function.</p>
 
 <p>The other round, from perl to JSON, <code>!0</code> which is represented as <code>yes</code> becomes <code>true</code>, and <code>!1</code> which is represented as <code>no</code> becomes <code>false</code>.</p>
 
@@ -1275,7 +1297,7 @@
 
 <p>These special values become JSON true and JSON false values, respectively. You can also use <code>\1</code> and <code>\0</code> or <code>!0</code> and <code>!1</code> directly if you want.</p>
 
-<pre><code>   encode_json [Cpanel::JSON::XS::true, Cpanel::JSON::XS::true] # yields [false,true]
+<pre><code>   encode_json [Cpanel::JSON::XS::false, Cpanel::JSON::XS::true] # yields [false,true]
    encode_json [!1, !0]      # yields [false,true]</code></pre>
 
 <p>eq/ne comparisons with true, false:</p>
@@ -1296,7 +1318,11 @@
 <dt id="simple-scalars">simple scalars</dt>
 <dd>
 
-<p>Simple Perl scalars (any scalar that is not a reference) are the most difficult objects to encode: Cpanel::JSON::XS will encode undefined scalars or inf/nan as JSON <code>null</code> values, scalars that have last been used in a string context before encoding as JSON strings, and anything else as number value:</p>
+<p>Simple Perl scalars (any scalar that is not a reference) are the most difficult objects to encode: Cpanel::JSON::XS will encode undefined scalars or inf/nan as JSON <code>null</code> values and other scalars to either number or string in non-deterministic way which may be affected or changed by Perl version or any other loaded Perl module.</p>
+
+<p>If you want to have stable and deterministic types in JSON encoder then use <a href="/cperl/lib/Cpanel/JSON/XS/Type.html">Cpanel::JSON::XS::Type</a>.</p>
+
+<p>Non-deterministic behavior is following: scalars that have last been used in a string context before encoding as JSON strings, and anything else as number value:</p>
 
 <pre><code>   # dump as number
    encode_json [2]                      # yields [2]
@@ -1708,9 +1734,9 @@
 
 <p>While the goal of the Cpanel::JSON::XS module is to be correct, that unfortunately does not mean it&#39;s bug-free, only that the author thinks its design is bug-free. If you keep reporting bugs and tests they will be fixed swiftly, though.</p>
 
-<p>Since the JSON::XS author refuses to use a public bugtracker and prefers private emails, we&#39;ve setup a tracker at RT, so you might want to report any issues twice. Once in private to MLEHMANN to be fixed in JSON::XS and one to our the public tracker. Issues fixed by JSON::XS with a new release will also be backported to Cpanel::JSON::XS and 5.6.2, as long as cPanel relies on 5.6.2 and Cpanel::JSON::XS as our serializer of choice.</p>
+<p>Since the JSON::XS author refuses to use a public bugtracker and prefers private emails, we use the tracker at <b>github</b>, so you might want to report any issues twice. Once in private to MLEHMANN to be fixed in JSON::XS and one to our the public tracker. Issues fixed by JSON::XS with a new release will also be backported to Cpanel::JSON::XS and 5.6.2, as long as cPanel relies on 5.6.2 and Cpanel::JSON::XS as our serializer of choice.</p>
 
-<p><a href="https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS">https://rt.cpan.org/Public/Dist/Display.html?Queue=Cpanel-JSON-XS</a></p>
+<p><a href="https://github.com/rurban/Cpanel-JSON-XS/issues">https://github.com/rurban/Cpanel-JSON-XS/issues</a></p>
 
 <h1 id="LICENSE">LICENSE</h1>
 

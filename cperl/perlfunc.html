@@ -240,7 +240,9 @@
 <dt id="X">-X</dt>
 <dd>
 
-<p>A file test, where X is one of the letters listed below. This unary operator takes one argument, either a filename, a filehandle, or a dirhandle, and tests the associated file to see if something is true about it. If the argument is omitted, tests <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a>, except for <code>-t</code>, which tests STDIN. Unless otherwise documented, it returns <code>1</code> for true and <code>&#39;&#39;</code> for false. If the file doesn&#39;t exist or can&#39;t be examined, it returns <a href="#undef-EXPR"><code>undef</code></a> and sets <a href="/cperl/perlvar.html#pod"><code>$!</code></a> (errno). Despite the funny names, precedence is the same as any other named unary operator. The operator may be any of:</p>
+<p>A file test, where X is one of the letters listed below. This unary operator takes one argument, either a filename, a filehandle, or a dirhandle, and tests the associated file to see if something is true about it. If the argument is omitted, tests <a href="/cperl/perlvar.html#pod-_"><code>$_</code></a>, except for <code>-t</code>, which tests STDIN. Unless otherwise documented, it returns <code>1</code> for true and <code>&#39;&#39;</code> for false. If the file doesn&#39;t exist or can&#39;t be examined, it returns <a href="#undef-EXPR"><code>undef</code></a> and sets <a href="/cperl/perlvar.html#pod"><code>$!</code></a> (errno). With the exception of the <code>-l</code> test they all follow symbolic links because they use <code>stat()</code> and not <code>lstat()</code> (so dangling symlinks can&#39;t be examined and will therefore report failure).</p>
+
+<p>Despite the funny names, precedence is the same as any other named unary operator. The operator may be any of:</p>
 
 <pre><code>    -r  File is readable by effective uid/gid.
     -w  File is writable by effective uid/gid.
@@ -1048,7 +1050,7 @@
 
 <p><b>WARNING</b>: Any files opened at the time of the dump will <i>not</i> be open any more when the program is reincarnated, with possible resulting confusion by Perl.</p>
 
-<p>This function is now largely obsolete, mostly because it&#39;s very hard to convert a core file into an executable. That&#39;s why you should now invoke it as <code>CORE::dump()</code> if you don&#39;t want to be warned against a possible typo.</p>
+<p>This function is now largely obsolete, mostly because it&#39;s very hard to convert a core file into an executable. As of Perl 5.30, it must be invoked as <code>CORE::dump()</code>.</p>
 
 <p>Unlike most named operators, this has the same precedence as assignment. It is also exempt from the looks-like-a-function rule, so <code>dump (&quot;foo&quot;).&quot;bar&quot;</code> will cause &quot;bar&quot; to be part of the argument to <a href="#dump-LABEL"><code>dump</code></a>.</p>
 
@@ -3868,7 +3870,7 @@
 
 <p>Receives a message on a socket. Attempts to receive LENGTH characters of data into variable SCALAR from the specified SOCKET filehandle. SCALAR will be grown or shrunk to the length actually read. Takes the same flags as the system call of the same name. Returns the address of the sender if SOCKET&#39;s protocol supports this; returns an empty string otherwise. If there&#39;s an error, returns the undefined value. This call is actually implemented in terms of the <a href="http://man.he.net/man2/recvfrom">recvfrom(2)</a> system call. See <a href="/cperl/perlipc.html#UDP:-Message-Passing">&quot;UDP: Message Passing&quot; in perlipc</a> for examples.</p>
 
-<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are received. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(UTF-8)</code> I/O layer (see the <a href="/cperl/lib/open.html">open</a> pragma), the I/O will operate on UTF8-encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be read.</p>
+<p>Note that if the socket has been marked as <code>:utf8</code>, <code>recv</code> will throw an exception. The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>.</p>
 
 </dd>
 <dt id="redo-LABEL">redo LABEL </dt>
@@ -3950,7 +3952,7 @@
 
 <p>If the operand is a reference to a blessed object, then the name of the class into which the referent is blessed will be returned. <code>ref</code> doesn&#39;t care what the physical type of the referent is; blessing takes precedence over such concerns. Beware that exact comparison of <code>ref</code> results against a class name doesn&#39;t perform a class membership test: a class&#39;s members also include objects blessed into subclasses, for which <code>ref</code> will return the name of the subclass. Also beware that class names can clash with the built-in type names (described below).</p>
 
-<p>If the operand is a reference to an unblessed object, then the return value indicates the type of object. If the unblessed referent is not a scalar, then the return value will be one of the strings <code>ARRAY</code>, <code>HASH</code>, <code>CODE</code>, <code>FORMAT</code>, or <code>IO</code>, indicating only which kind of object it is. If the unblessed referent is a scalar, then the return value will be one of the strings <code>SCALAR</code>, <code>VSTRING</code>, <code>REF</code>, <code>GLOB</code>, <code>LVALUE</code>, or <code>Regexp</code>, depending on the kind of value the scalar currently has. Beware that these built-in type names can also be used as class names, so <code>ref</code> returning one of these names doesn&#39;t unambiguously indicate that the referent is of the kind to which the name refers.</p>
+<p>If the operand is a reference to an unblessed object, then the return value indicates the type of object. If the unblessed referent is not a scalar, then the return value will be one of the strings <code>ARRAY</code>, <code>HASH</code>, <code>CODE</code>, <code>FORMAT</code>, or <code>IO</code>, indicating only which kind of object it is. If the unblessed referent is a scalar, then the return value will be one of the strings <code>SCALAR</code>, <code>VSTRING</code>, <code>REF</code>, <code>GLOB</code>, <code>LVALUE</code>, or <code>REGEXP</code>, depending on the kind of value the scalar currently has. But note that <code>qr//</code> scalars are created already blessed, so <code>ref qr/.../</code> will likely return <code>Regexp</code>. Beware that these built-in type names can also be used as class names, so <code>ref</code> returning one of these names doesn&#39;t unambiguously indicate that the referent is of the kind to which the name refers.</p>
 
 <p>The ambiguity between built-in type names and class names significantly limits the utility of <code>ref</code>. For unambiguous information, use <a href="/cperl/lib/Scalar/Util.html#blessed"><code>Scalar::Util::blessed()</code></a> for information about blessing, and <a href="/cperl/lib/Scalar/Util.html#reftype"><code>Scalar::Util::reftype()</code></a> for information about physical types. Use <a href="/cperl/lib/UNIVERSAL.html#obj--isa-TYPE">the <code>isa</code> method</a> for class membership tests, though one must be sure of blessedness before attempting a method call.</p>
 
@@ -4136,13 +4138,15 @@
 <dt id="reset">reset</dt>
 <dd>
 
-<p>Generally used in a <a href="#continue-BLOCK"><code>continue</code></a> block at the end of a loop to clear variables and reset <code>m?pattern?</code> searches so that they work again. The expression is interpreted as a list of single characters (hyphens allowed for ranges). All variables and arrays beginning with one of those letters are reset to their pristine state. If the expression is omitted, one-match searches (<code>m?pattern?</code>) are reset to match again. Only resets variables or searches in the current package. Always returns 1. Examples:</p>
+<p>Generally used in a <a href="#continue-BLOCK"><code>continue</code></a> block at the end of a loop to clear variables and reset <code>m?pattern?</code> searches so that they work again. The expression is interpreted as a list of single characters (hyphens allowed for ranges). All variables (scalars, arrays, and hashes) in the current package beginning with one of those letters are reset to their pristine state. If the expression is omitted, one-match searches (<code>m?pattern?</code>) are reset to match again. Only resets variables or searches in the current package. Always returns 1. Examples:</p>
 
 <pre><code>    reset &#39;X&#39;;      # reset all X variables
     reset &#39;a-z&#39;;    # reset lower case variables
     reset;          # just reset m?one-time? searches</code></pre>
 
-<p>Resetting <code>&quot;A-Z&quot;</code> is not recommended because you&#39;ll wipe out your <a href="/cperl/perlvar.html#ARGV"><code>@ARGV</code></a> and <a href="/cperl/perlvar.html#INC"><code>@INC</code></a> arrays and your <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> hash. Resets only package variables; lexical variables are unaffected, but they clean themselves up on scope exit anyway, so you&#39;ll probably want to use them instead. See <a href="#my-VARLIST"><code>my</code></a>.</p>
+<p>Resetting <code>&quot;A-Z&quot;</code> is not recommended because you&#39;ll wipe out your <a href="/cperl/perlvar.html#ARGV"><code>@ARGV</code></a> and <a href="/cperl/perlvar.html#INC"><code>@INC</code></a> arrays and your <a href="/cperl/perlvar.html#ENV"><code>%ENV</code></a> hash.</p>
+
+<p>Resets only package variables; lexical variables are unaffected, but they clean themselves up on scope exit anyway, so you&#39;ll probably want to use them instead. See <a href="#my-VARLIST"><code>my</code></a>.</p>
 
 </dd>
 <dt id="return-EXPR">return EXPR </dt>
@@ -4418,7 +4422,7 @@
 
 <p>Sends a message on a socket. Attempts to send the scalar MSG to the SOCKET filehandle. Takes the same flags as the system call of the same name. On unconnected sockets, you must specify a destination to <i>send to</i>, in which case it does a <a href="http://man.he.net/man2/sendto">sendto(2)</a> syscall. Returns the number of characters sent, or the undefined value on error. The <a href="http://man.he.net/man2/sendmsg">sendmsg(2)</a> syscall is currently unimplemented. See <a href="/cperl/perlipc.html#UDP:-Message-Passing">&quot;UDP: Message Passing&quot; in perlipc</a> for examples.</p>
 
-<p>Note the <i>characters</i>: depending on the status of the socket, either (8-bit) bytes or characters are sent. By default all sockets operate on bytes, but for example if the socket has been changed using <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a> to operate with the <code>:encoding(UTF-8)</code> I/O layer (see <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, or the <a href="/cperl/lib/open.html">open</a> pragma), the I/O will operate on UTF-8 encoded Unicode characters, not bytes. Similarly for the <code>:encoding</code> layer: in that case pretty much any characters can be sent.</p>
+<p>Note that if the socket has been marked as <code>:utf8</code>, <code>send</code> will throw an exception. The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>.</p>
 
 </dd>
 <dt id="setpgrp-PID-PGRP">setpgrp PID,PGRP  </dt>
@@ -5137,8 +5141,8 @@
    h           interpret integer as C type &quot;short&quot; or
                &quot;unsigned short&quot;
    j           interpret integer as C type &quot;intmax_t&quot; on Perl
-               5.14 or later; and only with a C99 compiler
-               prior to Perl 5.30 (unportable)
+               5.14 or later; and prior to Perl 5.30, only with
+               a C99 compiler (unportable)
    l           interpret integer as C type &quot;long&quot; or
                &quot;unsigned long&quot;
    q, L, or ll interpret integer as C type &quot;long long&quot;,
@@ -5581,15 +5585,15 @@
 
 <p>An OFFSET may be specified to place the read data at some place in the string other than the beginning. A negative OFFSET specifies placement at that many characters counting backwards from the end of the string. A positive OFFSET greater than the length of SCALAR results in the string being padded to the required size with <code>&quot;\0&quot;</code> bytes before the result of the read is appended.</p>
 
-<p>There is no syseof() function, which is ok, since <a href="#eof-FILEHANDLE"><code>eof</code></a> doesn&#39;t work well on device files (like ttys) anyway. Use <a href="#sysread-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>sysread</code></a> and check for a return value for 0 to decide whether you&#39;re done.</p>
+<p>There is no syseof() function, which is ok, since <a href="#eof-FILEHANDLE"><code>eof</code></a> doesn&#39;t work well on device files (like ttys) anyway. Use <a href="#sysread-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>sysread</code></a> and check for a return value of 0 to decide whether you&#39;re done.</p>
 
-<p>Note that if the filehandle has been marked as <code>:utf8</code>, Unicode characters are read instead of bytes (the LENGTH, OFFSET, and the return value of <a href="#sysread-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>sysread</code></a> are in Unicode characters). The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>, <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, and the <a href="/cperl/lib/open.html">open</a> pragma.</p>
+<p>Note that if the filehandle has been marked as <code>:utf8</code>, <code>sysread</code> will throw an exception. The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>, <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, and the <a href="/cperl/lib/open.html">open</a> pragma.</p>
 
 </dd>
 <dt id="sysseek-FILEHANDLE-POSITION-WHENCE">sysseek FILEHANDLE,POSITION,WHENCE  </dt>
 <dd>
 
-<p>Sets FILEHANDLE&#39;s system position <i>in bytes</i> using <a href="http://man.he.net/man2/lseek">lseek(2)</a>. FILEHANDLE may be an expression whose value gives the name of the filehandle. The values for WHENCE are <code>0</code> to set the new position to POSITION; <code>1</code> to set the it to the current position plus POSITION; and <code>2</code> to set it to EOF plus POSITION, typically negative.</p>
+<p>Sets FILEHANDLE&#39;s system position <i>in bytes</i> using <a href="http://man.he.net/man2/lseek">lseek(2)</a>. FILEHANDLE may be an expression whose value gives the name of the filehandle. The values for WHENCE are <code>0</code> to set the new position to POSITION; <code>1</code> to set it to the current position plus POSITION; and <code>2</code> to set it to EOF plus POSITION, typically negative.</p>
 
 <p>Note the emphasis on bytes: even if the filehandle has been set to operate on characters (for example using the <code>:encoding(UTF-8)</code> I/O layer), the <a href="#seek-FILEHANDLE-POSITION-WHENCE"><code>seek</code></a>, <a href="#tell-FILEHANDLE"><code>tell</code></a>, and <a href="#sysseek-FILEHANDLE-POSITION-WHENCE"><code>sysseek</code></a> family of functions use byte offsets, not character offsets, because seeking to a character offset would be very slow in a UTF-8 file.</p>
 
@@ -5663,7 +5667,7 @@
 
 <p>An OFFSET may be specified to write the data from some part of the string other than the beginning. A negative OFFSET specifies writing that many characters counting backwards from the end of the string. If SCALAR is of length zero, you can only use an OFFSET of 0.</p>
 
-<p><b>WARNING</b>: If the filehandle is marked <code>:utf8</code>, Unicode characters encoded in UTF-8 are written instead of bytes, and the LENGTH, OFFSET, and return value of <a href="#syswrite-FILEHANDLE-SCALAR-LENGTH-OFFSET"><code>syswrite</code></a> are in (UTF8-encoded Unicode) characters. The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. Alternately, if the handle is not marked with an encoding but you attempt to write characters with code points over 255, raises an exception. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>, <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, and the <a href="/cperl/lib/open.html">open</a> pragma.</p>
+<p><b>WARNING</b>: If the filehandle is marked <code>:utf8</code>, <code>syswrite</code> will raise an exception. The <code>:encoding(...)</code> layer implicitly introduces the <code>:utf8</code> layer. Alternately, if the handle is not marked with an encoding but you attempt to write characters with code points over 255, raises an exception. See <a href="#binmode-FILEHANDLE-LAYER"><code>binmode</code></a>, <a href="#open-FILEHANDLE-EXPR"><code>open</code></a>, and the <a href="/cperl/lib/open.html">open</a> pragma.</p>
 
 </dd>
 <dt id="tell-FILEHANDLE">tell FILEHANDLE </dt>

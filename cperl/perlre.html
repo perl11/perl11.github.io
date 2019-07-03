@@ -375,7 +375,7 @@
 
 <p><code>/d</code> is the old, problematic, pre-5.14 <b>D</b>efault character set behavior. Its only use is to force that old behavior.</p>
 
-<p>At any given time, exactly one of these modifiers is in effect. Their existence allows Perl to keep the originally compiled behavior of a regular expression, regardless of what rules are in effect when it is actually executed. And if it is interpolated into a larger regex, the original&#39;s rules continue to apply to it, and only it.</p>
+<p>At any given time, exactly one of these modifiers is in effect. Their existence allows Perl to keep the originally compiled behavior of a regular expression, regardless of what rules are in effect when it is actually executed. And if it is interpolated into a larger regex, the original&#39;s rules continue to apply to it, and don&#39;t affect the other parts.</p>
 
 <p>The <code>/l</code> and <code>/u</code> modifiers are automatically selected for regular expressions compiled within the scope of various pragmas, and we recommend that in general, you use those pragmas instead of specifying these modifiers explicitly. For one thing, the modifiers affect only pattern matching, and do not extend to even any replacement done, whereas using the pragmas gives consistent results for all appropriate operations within their scopes. For example,</p>
 
@@ -407,7 +407,7 @@
 
 <p>means to use Unicode rules when pattern matching. On ASCII platforms, this means that the code points between 128 and 255 take on their Latin-1 (ISO-8859-1) meanings (which are the same as Unicode&#39;s). (Otherwise Perl considers their meanings to be undefined.) Thus, under this modifier, the ASCII platform effectively becomes a Unicode platform; and hence, for example, <code>\w</code> will match any of the more than 100_000 word characters in Unicode.</p>
 
-<p>Unlike most locales, which are specific to a language and country pair, Unicode classifies all the characters that are letters <i>somewhere</i> in the world as <code>\w</code>. For example, your locale might not think that <code>LATIN SMALL LETTER ETH</code> is a letter (unless you happen to speak Icelandic), but Unicode does. Similarly, all the characters that are decimal digits somewhere in the world will match <code>\d</code>; this is hundreds, not 10, possible matches. And some of those digits look like some of the 10 ASCII digits, but mean a different number, so a human could easily think a number is a different quantity than it really is. For example, <code>BENGALI DIGIT FOUR</code> (U+09EA) looks very much like an <code>ASCII DIGIT EIGHT</code> (U+0038). And, <code>\d+</code>, may match strings of digits that are a mixture from different writing systems, creating a security issue. <a href="/cperl/lib/Unicode/UCD.html#num">&quot;num()&quot; in Unicode::UCD</a> can be used to sort this out. Or the <code>/a</code> modifier can be used to force <code>\d</code> to match just the ASCII 0 through 9.</p>
+<p>Unlike most locales, which are specific to a language and country pair, Unicode classifies all the characters that are letters <i>somewhere</i> in the world as <code>\w</code>. For example, your locale might not think that <code>LATIN SMALL LETTER ETH</code> is a letter (unless you happen to speak Icelandic), but Unicode does. Similarly, all the characters that are decimal digits somewhere in the world will match <code>\d</code>; this is hundreds, not 10, possible matches. And some of those digits look like some of the 10 ASCII digits, but mean a different number, so a human could easily think a number is a different quantity than it really is. For example, <code>BENGALI DIGIT FOUR</code> (U+09EA) looks very much like an <code>ASCII DIGIT EIGHT</code> (U+0038), and <code>LEPCHA DIGIT SIX</code> (U+1C46) looks very much like an <code>ASCII DIGIT FIVE</code> (U+0035). And, <code>\d+</code>, may match strings of digits that are a mixture from different writing systems, creating a security issue. A fraudulent website, for example, could display the price of something using U+1C46, and it would appear to the user that something cost 500 units, but it really costs 600. A browser that enforced script runs (<a href="#Script-Runs">&quot;Script Runs&quot;</a>) would prevent that fraudulent display. <a href="/cperl/lib/Unicode/UCD.html#num">&quot;num()&quot; in Unicode::UCD</a> can also be used to sort this out. Or the <code>/a</code> modifier can be used to force <code>\d</code> to match just the ASCII 0 through 9.</p>
 
 <p>Also, under this modifier, case-insensitive matching works on the full set of Unicode characters. The <code>KELVIN SIGN</code>, for example matches the letters &quot;k&quot; and &quot;K&quot;; and <code>LATIN SMALL LIGATURE FF</code> matches the sequence &quot;ff&quot;, which, if you&#39;re not prepared, might make it look like a hexadecimal constant, presenting another potential security issue. See <a href="http://unicode.org/reports/tr36">http://unicode.org/reports/tr36</a> for a detailed discussion of Unicode security issues.</p>
 
@@ -445,7 +445,7 @@
 </li>
 </ol>
 
-<p>Another mnemonic for this modifier is &quot;Depends&quot;, as the rules actually used depend on various things, and as a result you can get unexpected results. See <a href="/cperl/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>. The Unicode Bug has become rather infamous, leading to yet another (printable) name for this modifier, &quot;Dodgy&quot;.</p>
+<p>Another mnemonic for this modifier is &quot;Depends&quot;, as the rules actually used depend on various things, and as a result you can get unexpected results. See <a href="/cperl/perlunicode.html#The-Unicode-Bug">&quot;The &quot;Unicode Bug&quot;&quot; in perlunicode</a>. The Unicode Bug has become rather infamous, leading to yet another (without swearing) name for this modifier, &quot;Dodgy&quot;.</p>
 
 <p>Unless the pattern or string are encoded in UTF-8, only ASCII characters can match positively.</p>
 
@@ -541,11 +541,11 @@
 
 <pre><code>   /&quot;(?:[^&quot;\\]++|\\.)*+&quot;/</code></pre>
 
-<p>as we know that if the final quote does not match, backtracking will not help. See the independent subexpression <a href="#pattern">&quot;<code>(?&gt;pattern)</code>&quot;</a> for more details; possessive quantifiers are just syntactic sugar for that construct. For instance the above example could also be written as follows:</p>
+<p>as we know that if the final quote does not match, backtracking will not help. See the independent subexpression <a href="#pattern">&quot;<code>(?&gt;<i>pattern</i>)</code>&quot;</a> for more details; possessive quantifiers are just syntactic sugar for that construct. For instance the above example could also be written as follows:</p>
 
 <pre><code>   /&quot;(?&gt;(?:(?&gt;[^&quot;\\]+)|\\.)*)&quot;/</code></pre>
 
-<p>Note that the possessive quantifier modifier can not be be combined with the non-greedy modifier. This is because it would make no sense. Consider the follow equivalency table:</p>
+<p>Note that the possessive quantifier modifier can not be combined with the non-greedy modifier. This is because it would make no sense. Consider the follow equivalency table:</p>
 
 <pre><code>    Illegal         Legal
     ------------    ------
@@ -634,7 +634,7 @@
 <dt id="pod-3">[3]</dt>
 <dd>
 
-<p>See <a href="/cperl/perlrecharclass.html#Backslash-sequences">&quot;Backslash sequences&quot; in perlrecharclass</a> for details.</p>
+<p>See <a href="/cperl/perlunicode.html#Unicode-Character-Properties">&quot;Unicode Character Properties&quot; in perlunicode</a> for details</p>
 
 </dd>
 <dt id="pod-4">[4]</dt>
@@ -658,7 +658,7 @@
 <dt id="pod-7">[7]</dt>
 <dd>
 
-<p>Note that <code>\N</code> has two meanings. When of the form <code>\N{NAME}</code>, it matches the character or character sequence whose name is <code>NAME</code>; and similarly when of the form <code>\N{U+<i>hex</i>}</code>, it matches the character whose Unicode code point is <i>hex</i>. Otherwise it matches any character but <code>\n</code>.</p>
+<p>Note that <code>\N</code> has two meanings. When of the form <code>\N{<i>NAME</i>}</code>, it matches the character or character sequence whose name is <i>NAME</i>; and similarly when of the form <code>\N{U+<i>hex</i>}</code>, it matches the character whose Unicode code point is <i>hex</i>. Otherwise it matches any character but <code>\n</code>.</p>
 
 </dd>
 <dt id="pod-8">[8]</dt>
@@ -804,10 +804,10 @@
 
 <dl>
 
-<dt id="text"><code>(?#text)</code> </dt>
+<dt id="text"><code>(?#<i>text</i>)</code> </dt>
 <dd>
 
-<p>A comment. The text is ignored. Note that Perl closes the comment as soon as it sees a <code>&quot;)&quot;</code>, so there is no way to put a literal <code>&quot;)&quot;</code> in the comment. The pattern&#39;s closing delimiter must be escaped by a backslash if it appears in the comment.</p>
+<p>A comment. The <i>text</i> is ignored. Note that Perl closes the comment as soon as it sees a <code>&quot;)&quot;</code>, so there is no way to put a literal <code>&quot;)&quot;</code> in the comment. The pattern&#39;s closing delimiter must be escaped by a backslash if it appears in the comment.</p>
 
 <p>See <a href="#x">&quot;/x&quot;</a> for another way to have comments in patterns.</p>
 
@@ -839,7 +839,7 @@
 <dt id="alupimnsx"><code>(?^alupimnsx)</code>  </dt>
 <dd>
 
-<p>One or more embedded pattern-match modifiers, to be turned on (or turned off if preceded by <code>&quot;-&quot;</code>) for the remainder of the pattern or the remainder of the enclosing pattern group (if any).</p>
+<p>Zero or more embedded pattern-match modifiers, to be turned on (or turned off if preceded by <code>&quot;-&quot;</code>) for the remainder of the pattern or the remainder of the enclosing pattern group (if any).</p>
 
 <p>This is particularly useful for dynamically-generated patterns, such as those read in from a configuration file, taken from an argument, or specified in a table somewhere. Consider the case where some patterns want to be case-sensitive and some do not: The case-insensitive ones merely need to include <code>(?i)</code> at the front of the pattern. For example:</p>
 
@@ -857,7 +857,7 @@
 
 <p>will match <code>blah</code> in any case, some spaces, and an exact (<i>including the case</i>!) repetition of the previous word, assuming the <code>/x</code> modifier, and no <code>/i</code> modifier outside this group.</p>
 
-<p>These modifiers do not carry over into named subpatterns called in the enclosing group. In other words, a pattern such as <code>((?i)(?&amp;NAME))</code> does not change the case-sensitivity of the <code>&quot;NAME&quot;</code> pattern.</p>
+<p>These modifiers do not carry over into named subpatterns called in the enclosing group. In other words, a pattern such as <code>((?i)(?&amp;<i>NAME</i>))</code> does not change the case-sensitivity of the <i>NAME</i> pattern.</p>
 
 <p>A modifier is overridden by later occurrences of this construct in the same scope containing the same modifier, so that</p>
 
@@ -881,16 +881,18 @@
 
 <p>Note also that the <code>&quot;p&quot;</code> modifier is special in that its presence anywhere in a pattern has a global effect.</p>
 
+<p>Having zero modifiers makes this a no-op (so why did you specify it, unless it&#39;s generated code), and starting in v5.30, warns under <a href="/cperl/lib/re.html#strict-mode"><code>use re &#39;strict&#39;</code></a>.</p>
+
 </dd>
-<dt id="pattern"><code>(?:pattern)</code> </dt>
+<dt id="pattern"><code>(?:<i>pattern</i>)</code> </dt>
 <dd>
 
 </dd>
-<dt id="adluimnsx-imnsx:pattern"><code>(?adluimnsx-imnsx:pattern)</code></dt>
+<dt id="adluimnsx-imnsx:pattern"><code>(?adluimnsx-imnsx:<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="aluimnsx:pattern"><code>(?^aluimnsx:pattern)</code> </dt>
+<dt id="aluimnsx:pattern"><code>(?^aluimnsx:<i>pattern</i>)</code> </dt>
 <dd>
 
 <p>This is for clustering, not capturing; it groups subexpressions like <code>&quot;()&quot;</code>, but doesn&#39;t make backreferences as <code>&quot;()&quot;</code> does. So</p>
@@ -936,7 +938,7 @@
 <p>Mnemonic for <code>(?^...)</code>: A fresh beginning since the usual use of a caret is to match at the beginning.</p>
 
 </dd>
-<dt id="pattern1"><code>(?|pattern)</code>  </dt>
+<dt id="pattern1"><code>(?|<i>pattern</i>)</code>  </dt>
 <dd>
 
 <p>This is the &quot;branch reset&quot; pattern, which has the special property that the capture groups are numbered from the same starting point in each alternation branch. It is available starting from perl 5.10.0.</p>
@@ -974,15 +976,15 @@
 
 <dl>
 
-<dt id="pattern2"><code>(?=pattern)</code></dt>
+<dt id="pattern2"><code>(?=<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="pla:pattern"><code>(*pla:pattern)</code></dt>
+<dt id="pla:pattern"><code>(*pla:<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="positive_lookahead:pattern"><code>(*positive_lookahead:pattern)</code>     </dt>
+<dt id="positive_lookahead:pattern"><code>(*positive_lookahead:<i>pattern</i>)</code>     </dt>
 <dd>
 
 <p>A zero-width positive lookahead assertion. For example, <code>/\w+(?=\t)/</code> matches a word followed by a tab, without including the tab in <code>$&amp;</code>.</p>
@@ -990,15 +992,15 @@
 <p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
 </dd>
-<dt id="pattern3"><code>(?!pattern)</code></dt>
+<dt id="pattern3"><code>(?!<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="nla:pattern"><code>(*nla:pattern)</code></dt>
+<dt id="nla:pattern"><code>(*nla:<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="negative_lookahead:pattern"><code>(*negative_lookahead:pattern)</code>     </dt>
+<dt id="negative_lookahead:pattern"><code>(*negative_lookahead:<i>pattern</i>)</code>     </dt>
 <dd>
 
 <p>A zero-width negative lookahead assertion. For example <code>/foo(?!bar)/</code> matches any occurrence of &quot;foo&quot; that isn&#39;t followed by &quot;bar&quot;. Note however that lookahead and lookbehind are NOT the same thing. You cannot use this for lookbehind.</p>
@@ -1008,7 +1010,7 @@
 <p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
 </dd>
-<dt id="pattern4"><code>(?&lt;=pattern)</code></dt>
+<dt id="pattern4"><code>(?&lt;=<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
@@ -1016,16 +1018,24 @@
 <dd>
 
 </dd>
-<dt id="plb:pattern"><code>(*plb:pattern)</code></dt>
+<dt id="plb:pattern"><code>(*plb:<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="positive_lookbehind:pattern"><code>(*positive_lookbehind:pattern)</code>      </dt>
+<dt id="positive_lookbehind:pattern"><code>(*positive_lookbehind:<i>pattern</i>)</code>      </dt>
 <dd>
 
-<p>A zero-width positive lookbehind assertion. For example, <code>/(?&lt;=\t)\w+/</code> matches a word that follows a tab, without including the tab in <code>$&amp;</code>. Works only for fixed-width lookbehind.</p>
+<p>A zero-width positive lookbehind assertion. For example, <code>/(?&lt;=\t)\w+/</code> matches a word that follows a tab, without including the tab in <code>$&amp;</code>.</p>
 
-<p>There is a special form of this construct, called <code>\K</code> (available since Perl 5.10.0), which causes the regex engine to &quot;keep&quot; everything it had matched prior to the <code>\K</code> and not include it in <code>$&amp;</code>. This effectively provides variable-length lookbehind. The use of <code>\K</code> inside of another lookaround assertion is allowed, but the behaviour is currently not well defined.</p>
+<p>Prior to Perl 5.30, it worked only for fixed-width lookbehind, but starting in that release, it can handle variable lengths from 1 to 255 characters as an experimental feature. The feature is enabled automatically if you use a variable length lookbehind assertion, but will raise a warning at pattern compilation time, unless turned off, in the <code>experimental::vlb</code> category. This is to warn you that the exact behavior is subject to change should feedback from actual use in the field indicate to do so; or even complete removal if the problems found are not practically surmountable. You can achieve close to pre-5.30 behavior by fatalizing warnings in this category.</p>
+
+<p>There is a special form of this construct, called <code>\K</code> (available since Perl 5.10.0), which causes the regex engine to &quot;keep&quot; everything it had matched prior to the <code>\K</code> and not include it in <code>$&amp;</code>. This effectively provides non-experimental variable-length lookbehind of any length.</p>
+
+<p>And, there is a technique that can be used to handle variable length lookbehinds on earlier releases, and longer than 255 characters. It is described in <a href="http://www.drregex.com/2019/02/variable-length-lookbehinds-actually.html">http://www.drregex.com/2019/02/variable-length-lookbehinds-actually.html</a>.</p>
+
+<p>Note that under <code>/i</code>, a few single characters match two or three other characters. This makes them variable length, and the 255 length applies to the maximum number of characters in the match. For example <code>qr/\N{LATIN SMALL LETTER SHARP S}/i</code> matches the sequence <code>&quot;ss&quot;</code>. Your lookbehind assertion could contain 127 Sharp S characters under <code>/i</code>, but adding a 128th would generate a compilation error, as that could match 256 <code>&quot;s&quot;</code> characters in a row.</p>
+
+<p>The use of <code>\K</code> inside of another lookaround assertion is allowed, but the behaviour is currently not well defined.</p>
 
 <p>For various reasons <code>\K</code> may be significantly more efficient than the equivalent <code>(?&lt;=...)</code> construct, and it is especially useful in situations where you want to efficiently remove something following something else in a string. For instance</p>
 
@@ -1035,21 +1045,31 @@
 
 <pre><code>  s/foo\Kbar//g;</code></pre>
 
+<p>Use of the non-greedy modifier <code>&quot;?&quot;</code> may not give you the expected results if it is within a capturing group within the construct.</p>
+
 <p>The alphabetic forms (not including <code>\K</code> are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
 </dd>
-<dt id="pattern5"><code>(?&lt;!pattern)</code></dt>
+<dt id="pattern5"><code>(?&lt;!<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="nlb:pattern"><code>(*nlb:pattern)</code></dt>
+<dt id="nlb:pattern"><code>(*nlb:<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="negative_lookbehind:pattern"><code>(*negative_lookbehind:pattern)</code>     </dt>
+<dt id="negative_lookbehind:pattern"><code>(*negative_lookbehind:<i>pattern</i>)</code>     </dt>
 <dd>
 
-<p>A zero-width negative lookbehind assertion. For example <code>/(?&lt;!bar)foo/</code> matches any occurrence of &quot;foo&quot; that does not follow &quot;bar&quot;. Works only for fixed-width lookbehind.</p>
+<p>A zero-width negative lookbehind assertion. For example <code>/(?&lt;!bar)foo/</code> matches any occurrence of &quot;foo&quot; that does not follow &quot;bar&quot;.</p>
+
+<p>Prior to Perl 5.30, it worked only for fixed-width lookbehind, but starting in that release, it can handle variable lengths from 1 to 255 characters as an experimental feature. The feature is enabled automatically if you use a variable length lookbehind assertion, but will raise a warning at pattern compilation time, unless turned off, in the <code>experimental::vlb</code> category. This is to warn you that the exact behavior is subject to change should feedback from actual use in the field indicate to do so; or even complete removal if the problems found are not practically surmountable. You can achieve close to pre-5.30 behavior by fatalizing warnings in this category.</p>
+
+<p>There is a technique that can be used to handle variable length lookbehinds on earlier releases, and longer than 255 characters. It is described in <a href="http://www.drregex.com/2019/02/variable-length-lookbehinds-actually.html">http://www.drregex.com/2019/02/variable-length-lookbehinds-actually.html</a>.</p>
+
+<p>Note that under <code>/i</code>, a few single characters match two or three other characters. This makes them variable length, and the 255 length applies to the maximum number of characters in the match. For example <code>qr/\N{LATIN SMALL LETTER SHARP S}/i</code> matches the sequence <code>&quot;ss&quot;</code>. Your lookbehind assertion could contain 127 Sharp S characters under <code>/i</code>, but adding a 128th would generate a compilation error, as that could match 256 <code>&quot;s&quot;</code> characters in a row.</p>
+
+<p>Use of the non-greedy modifier <code>&quot;?&quot;</code> may not give you the expected results if it is within a capturing group within the construct.</p>
 
 <p>The alphabetic forms are experimental; using them yields a warning in the <code>experimental::alpha_assertions</code> category.</p>
 
@@ -1057,47 +1077,47 @@
 </dl>
 
 </dd>
-<dt id="NAMEpattern"><code>(?&lt;NAME&gt;pattern)</code></dt>
+<dt id="NAMEpattern"><code>(?&lt;<i>NAME</i>&gt;<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="NAMEpattern1"><code>(?&#39;NAME&#39;pattern)</code>    </dt>
+<dt id="NAMEpattern1"><code>(?&#39;<i>NAME</i>&#39;<i>pattern</i>)</code>    </dt>
 <dd>
 
-<p>A named capture group. Identical in every respect to normal capturing parentheses <code>()</code> but for the additional fact that the group can be referred to by name in various regular expression constructs (like <code>\g{NAME}</code>) and can be accessed by name after a successful match via <code>%+</code> or <code>%-</code>. See <a href="/cperl/perlvar.html">perlvar</a> for more details on the <code>%+</code> and <code>%-</code> hashes.</p>
+<p>A named capture group. Identical in every respect to normal capturing parentheses <code>()</code> but for the additional fact that the group can be referred to by name in various regular expression constructs (like <code>\g{<i>NAME</i>}</code>) and can be accessed by name after a successful match via <code>%+</code> or <code>%-</code>. See <a href="/cperl/perlvar.html">perlvar</a> for more details on the <code>%+</code> and <code>%-</code> hashes.</p>
 
-<p>If multiple distinct capture groups have the same name, then <code>$+{NAME}</code> will refer to the leftmost defined group in the match.</p>
+<p>If multiple distinct capture groups have the same name, then <code>$+{<i>NAME</i>}</code> will refer to the leftmost defined group in the match.</p>
 
-<p>The forms <code>(?&#39;NAME&#39;pattern)</code> and <code>(?&lt;NAME&gt;pattern)</code> are equivalent.</p>
+<p>The forms <code>(?&#39;<i>NAME</i>&#39;<i>pattern</i>)</code> and <code>(?&lt;<i>NAME</i>&gt;<i>pattern</i>)</code> are equivalent.</p>
 
 <p><b>NOTE:</b> While the notation of this construct is the same as the similar function in .NET regexes, the behavior is not. In Perl the groups are numbered sequentially regardless of being named or not. Thus in the pattern</p>
 
 <pre><code>  /(x)(?&lt;foo&gt;y)(z)/</code></pre>
 
-<p><code>$+{<i>foo</i>}</code> will be the same as <code>$2</code>, and <code>$3</code> will contain &#39;z&#39; instead of the opposite which is what a .NET regex hacker might expect.</p>
+<p><code>$+{foo}</code> will be the same as <code>$2</code>, and <code>$3</code> will contain &#39;z&#39; instead of the opposite which is what a .NET regex hacker might expect.</p>
 
 <p>Currently <i>NAME</i> is restricted to simple identifiers only. In other words, it must match <code>/^[_A-Za-z][_A-Za-z0-9]*\z/</code> or its Unicode extension (see <a href="/cperl/lib/utf8.html">utf8</a>), though it isn&#39;t extended by the locale (see <a href="/cperl/perllocale.html">perllocale</a>).</p>
 
-<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines, the pattern <code>(?P&lt;NAME&gt;pattern)</code> may be used instead of <code>(?&lt;NAME&gt;pattern)</code>; however this form does not support the use of single quotes as a delimiter for the name.</p>
+<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines, the pattern <code>(?P&lt;<i>NAME</i>&gt;<i>pattern</i>)</code> may be used instead of <code>(?&lt;<i>NAME</i>&gt;<i>pattern</i>)</code>; however this form does not support the use of single quotes as a delimiter for the name.</p>
 
 </dd>
-<dt id="kNAME"><code>\k&lt;NAME&gt;</code></dt>
+<dt id="kNAME"><code>\k&lt;<i>NAME</i>&gt;</code></dt>
 <dd>
 
 </dd>
-<dt id="kNAME1"><code>\k&#39;NAME&#39;</code></dt>
+<dt id="kNAME1"><code>\k&#39;<i>NAME</i>&#39;</code></dt>
 <dd>
 
 <p>Named backreference. Similar to numeric backreferences, except that the group is designated by name and not number. If multiple groups have the same name then it refers to the leftmost defined group in the current match.</p>
 
-<p>It is an error to refer to a name not defined by a <code>(?&lt;NAME&gt;)</code> earlier in the pattern.</p>
+<p>It is an error to refer to a name not defined by a <code>(?&lt;<i>NAME</i>&gt;)</code> earlier in the pattern.</p>
 
 <p>Both forms are equivalent.</p>
 
-<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines, the pattern <code>(?P=NAME)</code> may be used instead of <code>\k&lt;NAME&gt;</code>.</p>
+<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines, the pattern <code>(?P=<i>NAME</i>)</code> may be used instead of <code>\k&lt;<i>NAME</i>&gt;</code>.</p>
 
 </dd>
-<dt id="code"><code>(?{ code })</code>    </dt>
+<dt id="code"><code>(?{ <i>code</i> })</code>    </dt>
 <dd>
 
 <p><b>WARNING</b>: Using this feature safely requires that you understand its limitations. Code executed that has side effects may not perform identically from version to version due to the effect of future optimisations in the regex engine. For more information on this, see <a href="#Embedded-Code-Execution-Frequency">&quot;Embedded Code Execution Frequency&quot;</a>.</p>
@@ -1171,7 +1191,7 @@
 
 <pre><code>    (?(condition)yes-pattern|no-pattern)</code></pre>
 
-<p>switch. If <i>not</i> used in this way, the result of evaluation of <code>code</code> is put into the special variable <code>$^R</code>. This happens immediately, so <code>$^R</code> can be used from other <code>(?{ code })</code> assertions inside the same regular expression.</p>
+<p>switch. If <i>not</i> used in this way, the result of evaluation of <i>code</i> is put into the special variable <code>$^R</code>. This happens immediately, so <code>$^R</code> can be used from other <code>(?{ <i>code</i> })</code> assertions inside the same regular expression.</p>
 
 <p>The assignment to <code>$^R</code> above is properly localized, so the old value of <code>$^R</code> is restored if the assertion is backtracked; compare <a href="#Backtracking">&quot;Backtracking&quot;</a>.</p>
 
@@ -1182,12 +1202,12 @@
   print &quot;color = $color, animal = $animal\n&quot;;</code></pre>
 
 </dd>
-<dt id="code1"><code>(??{ code })</code>    </dt>
+<dt id="code1"><code>(??{ <i>code</i> })</code>    </dt>
 <dd>
 
 <p><b>WARNING</b>: Using this feature safely requires that you understand its limitations. Code executed that has side effects may not perform identically from version to version due to the effect of future optimisations in the regex engine. For more information on this, see <a href="#Embedded-Code-Execution-Frequency">&quot;Embedded Code Execution Frequency&quot;</a>.</p>
 
-<p>This is a &quot;postponed&quot; regular subexpression. It behaves in <i>exactly</i> the same way as a <code>(?{ code })</code> code block as described above, except that its return value, rather than being assigned to <code>$^R</code>, is treated as a pattern, compiled if it&#39;s a string (or used as-is if its a qr// object), then matched as if it were inserted instead of this construct.</p>
+<p>This is a &quot;postponed&quot; regular subexpression. It behaves in <i>exactly</i> the same way as a <code>(?{ <i>code</i> })</code> code block as described above, except that its return value, rather than being assigned to <code>$^R</code>, is treated as a pattern, compiled if it&#39;s a string (or used as-is if its a qr// object), then matched as if it were inserted instead of this construct.</p>
 
 <p>During the matching of this sub-pattern, it has its own set of captures which are valid during the sub-match, but are discarded once control returns to the main pattern. For example, the following matches, with the inner pattern capturing &quot;B&quot; and matching &quot;BB&quot;, while the outer pattern captures &quot;A&quot;;</p>
 
@@ -1223,7 +1243,7 @@
 
 <p>Recursive subpattern. Treat the contents of a given capture buffer in the current pattern as an independent subpattern and attempt to match it at the current position in the string. Information about capture state from the caller for things like backreferences is available to the subpattern, but capture buffers set by the subpattern are not visible to the caller.</p>
 
-<p>Similar to <code>(??{ code })</code> except that it does not involve executing any code or potentially compiling a returned pattern string; instead it treats the part of the current pattern contained within a specified capture group as an independent pattern that must match at the current position. Also different is the treatment of capture buffers, unlike <code>(??{ code })</code> recursive patterns have access to their caller&#39;s match state, so one can use backreferences safely.</p>
+<p>Similar to <code>(??{ <i>code</i> })</code> except that it does not involve executing any code or potentially compiling a returned pattern string; instead it treats the part of the current pattern contained within a specified capture group as an independent pattern that must match at the current position. Also different is the treatment of capture buffers, unlike <code>(??{ <i>code</i> })</code> recursive patterns have access to their caller&#39;s match state, so one can use backreferences safely.</p>
 
 <p><i>PARNO</i> is a sequence of digits (not starting with 0) whose value reflects the paren-number of the capture group to recurse to. <code>(?R)</code> recurses to the beginning of the whole pattern. <code>(?0)</code> is an alternate syntax for <code>(?R)</code>. If <i>PARNO</i> is preceded by a plus or minus sign then it is assumed to be relative, with negative numbers indicating preceding capture groups and positive ones following. Thus <code>(?-1)</code> refers to the most recently declared group, and <code>(?+1)</code> indicates the next group to be declared. Note that the counting for relative recursion differs from that of relative backreferences, in that with recursion unclosed groups <b>are</b> included.</p>
 
@@ -1270,26 +1290,26 @@
 <p><b>Note</b> that this pattern does not behave the same way as the equivalent PCRE or Python construct of the same form. In Perl you can backtrack into a recursed group, in PCRE and Python the recursed into group is treated as atomic. Also, modifiers are resolved at compile time, so constructs like <code>(?i:(?1))</code> or <code>(?:(?i)(?1))</code> do not affect how the sub-pattern will be processed.</p>
 
 </dd>
-<dt id="NAME1"><code>(?&amp;NAME)</code> </dt>
+<dt id="NAME1"><code>(?&amp;<i>NAME</i>)</code> </dt>
 <dd>
 
 <p>Recurse to a named subpattern. Identical to <code>(?<i>PARNO</i>)</code> except that the parenthesis to recurse to is determined by name. If multiple parentheses have the same name, then it recurses to the leftmost.</p>
 
 <p>It is an error to refer to a name that is not declared somewhere in the pattern.</p>
 
-<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines the pattern <code>(?P&gt;NAME)</code> may be used instead of <code>(?&amp;NAME)</code>.</p>
+<p><b>NOTE:</b> In order to make things easier for programmers with experience with the Python or PCRE regex engines the pattern <code>(?P&gt;<i>NAME</i>)</code> may be used instead of <code>(?&amp;<i>NAME</i>)</code>.</p>
 
 </dd>
-<dt id="condition-yes-pattern-no-pattern"><code>(?(condition)yes-pattern|no-pattern)</code> </dt>
+<dt id="condition-yes-pattern-no-pattern"><code>(?(<i>condition</i>)<i>yes-pattern</i>|<i>no-pattern</i>)</code> </dt>
 <dd>
 
 </dd>
-<dt id="condition-yes-pattern"><code>(?(condition)yes-pattern)</code></dt>
+<dt id="condition-yes-pattern"><code>(?(<i>condition</i>)<i>yes-pattern</i>)</code></dt>
 <dd>
 
-<p>Conditional expression. Matches <code>yes-pattern</code> if <code>condition</code> yields a true value, matches <code>no-pattern</code> otherwise. A missing pattern always matches.</p>
+<p>Conditional expression. Matches <i>yes-pattern</i> if <i>condition</i> yields a true value, matches <i>no-pattern</i> otherwise. A missing pattern always matches.</p>
 
-<p><code>(condition)</code> should be one of:</p>
+<p><code>(<i>condition</i>)</code> should be one of:</p>
 
 <dl>
 
@@ -1312,7 +1332,7 @@
 <dt id="the-special-symbol-R">the special symbol <code>(R)</code></dt>
 <dd>
 
-<p>(true when evaluated inside of recursion or eval). Additionally the <code>&quot;R&quot;</code> may be followed by a number, (which will be true when evaluated when recursing inside of the appropriate group), or by <code>&amp;NAME</code>, in which case it will be true only when evaluated during recursion in the named group.</p>
+<p>(true when evaluated inside of recursion or eval). Additionally the <code>&quot;R&quot;</code> may be followed by a number, (which will be true when evaluated when recursing inside of the appropriate group), or by <code>&amp;<i>NAME</i></code>, in which case it will be true only when evaluated during recursion in the named group.</p>
 
 </dd>
 </dl>
@@ -1336,19 +1356,19 @@
 <dt id="pod"><code>(?=...)</code> <code>(?!...)</code> <code>(?&lt;=...)</code> <code>(?&lt;!...)</code></dt>
 <dd>
 
-<p>Checks whether the pattern matches (or does not match, for the <code>&quot;!&quot;</code> variants). Full syntax: <code>(?(?=lookahead)then|else)</code></p>
+<p>Checks whether the pattern matches (or does not match, for the <code>&quot;!&quot;</code> variants). Full syntax: <code>(?(?=<i>lookahead</i>)<i>then</i>|<i>else</i>)</code></p>
 
 </dd>
 <dt id="CODE"><code>(?{ <i>CODE</i> })</code></dt>
 <dd>
 
-<p>Treats the return value of the code block as the condition. Full syntax: <code>(?(?{ code })then|else)</code></p>
+<p>Treats the return value of the code block as the condition. Full syntax: <code>(?(?{ <i>code</i> })<i>then</i>|<i>else</i>)</code></p>
 
 </dd>
 <dt id="R"><code>(R)</code></dt>
 <dd>
 
-<p>Checks if the expression has been evaluated inside of recursion. Full syntax: <code>(?(R)then|else)</code></p>
+<p>Checks if the expression has been evaluated inside of recursion. Full syntax: <code>(?(R)<i>then</i>|<i>else</i>)</code></p>
 
 </dd>
 <dt id="R1-R2"><code>(R1)</code> <code>(R2)</code> ...</dt>
@@ -1360,19 +1380,19 @@
 
 <p>In other words, it does not check the full recursion stack.</p>
 
-<p>Full syntax: <code>(?(R1)then|else)</code></p>
+<p>Full syntax: <code>(?(R1)<i>then</i>|<i>else</i>)</code></p>
 
 </dd>
 <dt id="RNAME"><code>(R&amp;<i>NAME</i>)</code></dt>
 <dd>
 
-<p>Similar to <code>(R1)</code>, this predicate checks to see if we&#39;re executing directly inside of the leftmost group with a given name (this is the same logic used by <code>(?&amp;<i>NAME</i>)</code> to disambiguate). It does not check the full stack, but only the name of the innermost active recursion. Full syntax: <code>(?(R&amp;name)then|else)</code></p>
+<p>Similar to <code>(R1)</code>, this predicate checks to see if we&#39;re executing directly inside of the leftmost group with a given name (this is the same logic used by <code>(?&amp;<i>NAME</i>)</code> to disambiguate). It does not check the full stack, but only the name of the innermost active recursion. Full syntax: <code>(?(R&amp;<i>name</i>)<i>then</i>|<i>else</i>)</code></p>
 
 </dd>
 <dt id="DEFINE"><code>(DEFINE)</code></dt>
 <dd>
 
-<p>In this case, the yes-pattern is never directly executed, and no no-pattern is allowed. Similar in spirit to <code>(?{0})</code> but more efficient. See below for details. Full syntax: <code>(?(DEFINE)definitions...)</code></p>
+<p>In this case, the yes-pattern is never directly executed, and no no-pattern is allowed. Similar in spirit to <code>(?{0})</code> but more efficient. See below for details. Full syntax: <code>(?(DEFINE)<i>definitions</i>...)</code></p>
 
 </dd>
 </dl>
@@ -1413,20 +1433,20 @@
 <p>Will output 2, not 1. This is particularly important if you intend to compile the definitions with the <code>qr//</code> operator, and later interpolate them in another pattern.</p>
 
 </dd>
-<dt id="pattern6"><code>(?&gt;pattern)</code></dt>
+<dt id="pattern6"><code>(?&gt;<i>pattern</i>)</code></dt>
 <dd>
 
 </dd>
-<dt id="atomic:pattern"><code>(*atomic:pattern)</code>      </dt>
+<dt id="atomic:pattern"><code>(*atomic:<i>pattern</i>)</code>      </dt>
 <dd>
 
-<p>An &quot;independent&quot; subexpression, one which matches the substring that a <i>standalone</i> <code>pattern</code> would match if anchored at the given position, and it matches <i>nothing other than this substring</i>. This construct is useful for optimizations of what would otherwise be &quot;eternal&quot; matches, because it will not backtrack (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). It may also be useful in places where the &quot;grab all you can, and do not give anything back&quot; semantic is desirable.</p>
+<p>An &quot;independent&quot; subexpression, one which matches the substring that a standalone <i>pattern</i> would match if anchored at the given position, and it matches <i>nothing other than this substring</i>. This construct is useful for optimizations of what would otherwise be &quot;eternal&quot; matches, because it will not backtrack (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). It may also be useful in places where the &quot;grab all you can, and do not give anything back&quot; semantic is desirable.</p>
 
 <p>For example: <code>^(?&gt;a*)ab</code> will never match, since <code>(?&gt;a*)</code> (anchored at the beginning of string, as above) will match <i>all</i> characters <code>&quot;a&quot;</code> at the beginning of string, leaving no <code>&quot;a&quot;</code> for <code>ab</code> to match. In contrast, <code>a*ab</code> will match the same as <code>a+b</code>, since the match of the subgroup <code>a*</code> is influenced by the following group <code>ab</code> (see <a href="#Backtracking">&quot;Backtracking&quot;</a>). In particular, <code>a*</code> inside <code>a*ab</code> will match fewer characters than a standalone <code>a*</code>, since this makes the tail match.</p>
 
-<p><code>(?&gt;pattern)</code> does not disable backtracking altogether once it has matched. It is still possible to backtrack past the construct, but not into it. So <code>((?&gt;a*)|(?&gt;b*))ar</code> will still match &quot;bar&quot;.</p>
+<p><code>(?&gt;<i>pattern</i>)</code> does not disable backtracking altogether once it has matched. It is still possible to backtrack past the construct, but not into it. So <code>((?&gt;a*)|(?&gt;b*))ar</code> will still match &quot;bar&quot;.</p>
 
-<p>An effect similar to <code>(?&gt;pattern)</code> may be achieved by writing <code>(?=(pattern))\g{-1}</code>. This matches the same substring as a standalone <code>a+</code>, and the following <code>\g{-1}</code> eats the matched string; it therefore makes a zero-length assertion into an analogue of <code>(?&gt;...)</code>. (The difference between these two constructs is that the second one uses a capturing group, thus shifting ordinals of backreferences in the rest of a regular expression.)</p>
+<p>An effect similar to <code>(?&gt;<i>pattern</i>)</code> may be achieved by writing <code>(?=(<i>pattern</i>))\g{-1}</code>. This matches the same substring as a standalone <code>a+</code>, and the following <code>\g{-1}</code> eats the matched string; it therefore makes a zero-length assertion into an analogue of <code>(?&gt;...)</code>. (The difference between these two constructs is that the second one uses a capturing group, thus shifting ordinals of backreferences in the rest of a regular expression.)</p>
 
 <p>Consider this pattern:</p>
 
@@ -1638,7 +1658,7 @@
 <pre><code> (*script_run:pattern)
  (*sr:pattern)</code></pre>
 
-<p>What happens is that after <i>pattern</i> succeeds in matching, it is subjected to the additional criterion that every character in it must be from the same script (see exceptions below). If this isn&#39;t true, backtracking occurs until something all in the same script is found that matches, or all possibilities are exhausted. This can cause a lot of backtracking, but generally, only malicious input will result in this, though the slow down could cause a denial of service attack. If your needs permit, it is best to make the pattern atomic. This is so likely to be what you want, that instead of writing this:</p>
+<p>What happens is that after <i>pattern</i> succeeds in matching, it is subjected to the additional criterion that every character in it must be from the same script (see exceptions below). If this isn&#39;t true, backtracking occurs until something all in the same script is found that matches, or all possibilities are exhausted. This can cause a lot of backtracking, but generally, only malicious input will result in this, though the slow down could cause a denial of service attack. If your needs permit, it is best to make the pattern atomic to cut down on the amount of backtracking. This is so likely to be what you want, that instead of writing this:</p>
 
 <pre><code> (*script_run:(?&gt;pattern))</code></pre>
 
@@ -1647,11 +1667,11 @@
 <pre><code> (*atomic_script_run:pattern)
  (*asr:pattern)</code></pre>
 
-<p>(See <a href="#pattern">&quot;<code>(?&gt;pattern)</code>&quot;</a>.)</p>
+<p>(See <a href="#pattern">&quot;<code>(?&gt;<i>pattern</i>)</code>&quot;</a>.)</p>
 
-<p>In Taiwan, Japan, and Korea, it is common for text to have a mixture of characters from their native scripts and base Chinese. Perl follows Unicode&#39;s UTS 39 (<a href="http://unicode.org/reports/tr39/">http://unicode.org/reports/tr39/</a>) Unicode Security Mechanisms in allowing such mixtures.</p>
+<p>In Taiwan, Japan, and Korea, it is common for text to have a mixture of characters from their native scripts and base Chinese. Perl follows Unicode&#39;s UTS 39 (<a href="http://unicode.org/reports/tr39/">http://unicode.org/reports/tr39/</a>) Unicode Security Mechanisms in allowing such mixtures. For example, the Japanese scripts Katakana and Hiragana are commonly mixed together in practice, along with some Chinese characters, and hence are treated as being in a single script run by Perl.</p>
 
-<p>The rules used for matching decimal digits are somewhat different. Many scripts have their own sets of digits equivalent to the Western <code>0</code> through <code>9</code> ones. A few, such as Arabic, have more than one set. For a string to be considered a script run, all digits in it must come from the same set, as determined by the first digit encountered. The ASCII <code>[0-9]</code> are accepted as being in any script, even those that have their own set. This is because these are often used in commerce even in such scripts. But any mixing of the ASCII and other digits will cause the sequence to not be a script run, failing the match. As an example,</p>
+<p>The rules used for matching decimal digits are slightly stricter. Many scripts have their own sets of digits equivalent to the Western <code>0</code> through <code>9</code> ones. A few, such as Arabic, have more than one set. For a string to be considered a script run, all digits in it must come from the same set of ten, as determined by the first digit encountered. As an example,</p>
 
 <pre><code> qr/(*script_run: \d+ \b )/x</code></pre>
 
@@ -1663,23 +1683,54 @@
 
 <p>&quot;Inherited&quot; is applied to characters that modify another, such as an accent of some type. These are considered to be in the script of the master character, and so never cause a script run to not match.</p>
 
-<p>The other one is &quot;Common&quot;. This consists of mostly punctuation, emoji, and characters used in mathematics and music, and the ASCII digits <code>0</code> through <code>9</code>. These characters can appear intermixed in text in many of the world&#39;s scripts. These also don&#39;t cause a script run to not match, except any ASCII digits encountered have to obey the decimal digit rules described above.</p>
+<p>The other one is &quot;Common&quot;. This consists of mostly punctuation, emoji, and characters used in mathematics and music, the ASCII digits <code>0</code> through <code>9</code>, and full-width forms of these digits. These characters can appear intermixed in text in many of the world&#39;s scripts. These also don&#39;t cause a script run to not match. But like other scripts, all digits in a run must come from the same set of 10.</p>
 
 <p>This construct is non-capturing. You can add parentheses to <i>pattern</i> to capture, if desired. You will have to do this if you plan to use <a href="#ACCEPT-ACCEPT:arg">&quot;(*ACCEPT) (*ACCEPT:arg)&quot;</a> and not have it bypass the script run checking.</p>
 
 <p>This feature is experimental, and the exact syntax and details of operation are subject to change; using it yields a warning in the <code>experimental::script_run</code> category.</p>
 
-<p>The <code>Script_Extensions</code> property is used as the basis for this feature.</p>
+<p>The <code>Script_Extensions</code> property as modified by UTS 39 (<a href="http://unicode.org/reports/tr39/">http://unicode.org/reports/tr39/</a>) is used as the basis for this feature.</p>
+
+<p>To summarize,</p>
+
+<ul>
+
+<li><p>All length 0 or length 1 sequences are script runs.</p>
+
+</li>
+<li><p>A longer sequence is a script run if and only if <b>all</b> of the following conditions are met:</p>
+
+<p></p>
+
+<ol>
+
+<li><p>No code point in the sequence has the <code>Script_Extension</code> property of <code>Unknown</code>.</p>
+
+<p>This currently means that all code points in the sequence have been assigned by Unicode to be characters that aren&#39;t private use nor surrogate code points.</p>
+
+</li>
+<li><p>All characters in the sequence come from the Common script and/or the Inherited script and/or a single other script.</p>
+
+<p>The script of a character is determined by the <code>Script_Extensions</code> property as modified by UTS 39 (<a href="http://unicode.org/reports/tr39/">http://unicode.org/reports/tr39/</a>), as described above.</p>
+
+</li>
+<li><p>All decimal digits in the sequence come from the same block of 10 consecutive digits.</p>
+
+</li>
+</ol>
+
+</li>
+</ul>
 
 <h2 id="Special-Backtracking-Control-Verbs">Special Backtracking Control Verbs</h2>
 
-<p>These special patterns are generally of the form <code>(*<i>VERB</i>:<i>ARG</i>)</code>. Unless otherwise stated the <i>ARG</i> argument is optional; in some cases, it is mandatory.</p>
+<p>These special patterns are generally of the form <code>(*<i>VERB</i>:<i>arg</i>)</code>. Unless otherwise stated the <i>arg</i> argument is optional; in some cases, it is mandatory.</p>
 
 <p>Any pattern containing a special backtracking verb that allows an argument has the special behaviour that when executed it sets the current package&#39;s <code>$REGERROR</code> and <code>$REGMARK</code> variables. When doing so the following rules apply:</p>
 
-<p>On failure, the <code>$REGERROR</code> variable will be set to the <i>ARG</i> value of the verb pattern, if the verb was involved in the failure of the match. If the <i>ARG</i> part of the pattern was omitted, then <code>$REGERROR</code> will be set to the name of the last <code>(*MARK:NAME)</code> pattern executed, or to TRUE if there was none. Also, the <code>$REGMARK</code> variable will be set to FALSE.</p>
+<p>On failure, the <code>$REGERROR</code> variable will be set to the <i>arg</i> value of the verb pattern, if the verb was involved in the failure of the match. If the <i>arg</i> part of the pattern was omitted, then <code>$REGERROR</code> will be set to the name of the last <code>(*MARK:<i>NAME</i>)</code> pattern executed, or to TRUE if there was none. Also, the <code>$REGMARK</code> variable will be set to FALSE.</p>
 
-<p>On a successful match, the <code>$REGERROR</code> variable will be set to FALSE, and the <code>$REGMARK</code> variable will be set to the name of the last <code>(*MARK:NAME)</code> pattern executed. See the explanation for the <code>(*MARK:NAME)</code> verb below for more details.</p>
+<p>On a successful match, the <code>$REGERROR</code> variable will be set to FALSE, and the <code>$REGMARK</code> variable will be set to the name of the last <code>(*MARK:<i>NAME</i>)</code> pattern executed. See the explanation for the <code>(*MARK:<i>NAME</i>)</code> verb below for more details.</p>
 
 <p><b>NOTE:</b> <code>$REGERROR</code> and <code>$REGMARK</code> are not magic variables like <code>$1</code> and most other regex-related variables. They are not local to a scope, nor readonly, but instead are volatile package variables similar to <code>$AUTOLOAD</code>. They are set in the package containing the code that <i>executed</i> the regex (rather than the one that compiled it, where those differ). If necessary, you can use <code>local</code> to localize changes to these variables to a specific scope before executing a regex.</p>
 
@@ -1692,7 +1743,7 @@
 
 <dl>
 
-<dt id="PRUNE-PRUNE:NAME"><code>(*PRUNE)</code> <code>(*PRUNE:NAME)</code>  </dt>
+<dt id="PRUNE-PRUNE:NAME"><code>(*PRUNE)</code> <code>(*PRUNE:<i>NAME</i>)</code>  </dt>
 <dd>
 
 <p>This zero-width pattern prunes the backtracking tree at the current point when backtracked into on failure. Consider the pattern <code>/<i>A</i> (*PRUNE) <i>B</i>/</code>, where <i>A</i> and <i>B</i> are complex patterns. Until the <code>(*PRUNE)</code> verb is reached, <i>A</i> may backtrack as necessary to match. Once it is reached, matching continues in <i>B</i>, which may also backtrack as necessary; however, should B not match, then no further backtracking will take place, and the pattern will fail outright at the current starting position.</p>
@@ -1729,15 +1780,15 @@
 
 <p>Any number of <code>(*PRUNE)</code> assertions may be used in a pattern.</p>
 
-<p>See also <code><a href="#pattern">&quot;(?&gt;pattern)&quot;</a></code> and possessive quantifiers for other ways to control backtracking. In some cases, the use of <code>(*PRUNE)</code> can be replaced with a <code>(?&gt;pattern)</code> with no functional difference; however, <code>(*PRUNE)</code> can be used to handle cases that cannot be expressed using a <code>(?&gt;pattern)</code> alone.</p>
+<p>See also <code><a href="#pattern">&quot;(?&gt;<i>pattern</i>)&quot;</a></code> and possessive quantifiers for other ways to control backtracking. In some cases, the use of <code>(*PRUNE)</code> can be replaced with a <code>(?&gt;pattern)</code> with no functional difference; however, <code>(*PRUNE)</code> can be used to handle cases that cannot be expressed using a <code>(?&gt;pattern)</code> alone.</p>
 
 </dd>
-<dt id="SKIP-SKIP:NAME"><code>(*SKIP)</code> <code>(*SKIP:NAME)</code> </dt>
+<dt id="SKIP-SKIP:NAME"><code>(*SKIP)</code> <code>(*SKIP:<i>NAME</i>)</code> </dt>
 <dd>
 
 <p>This zero-width pattern is similar to <code>(*PRUNE)</code>, except that on failure it also signifies that whatever text that was matched leading up to the <code>(*SKIP)</code> pattern being executed cannot be part of <i>any</i> match of this pattern. This effectively means that the regex engine &quot;skips&quot; forward to this position on failure and tries to match again, (assuming that there is sufficient room to match).</p>
 
-<p>The name of the <code>(*SKIP:NAME)</code> pattern has special significance. If a <code>(*MARK:NAME)</code> was encountered while matching, then it is that position which is used as the &quot;skip point&quot;. If no <code>(*MARK)</code> of that name was encountered, then the <code>(*SKIP)</code> operator has no effect. When used without a name the &quot;skip point&quot; is where the match point was when executing the <code>(*SKIP)</code> pattern.</p>
+<p>The name of the <code>(*SKIP:<i>NAME</i>)</code> pattern has special significance. If a <code>(*MARK:<i>NAME</i>)</code> was encountered while matching, then it is that position which is used as the &quot;skip point&quot;. If no <code>(*MARK)</code> of that name was encountered, then the <code>(*SKIP)</code> operator has no effect. When used without a name the &quot;skip point&quot; is where the match point was when executing the <code>(*SKIP)</code> pattern.</p>
 
 <p>Compare the following to the examples in <code>(*PRUNE)</code>; note the string is twice as long:</p>
 
@@ -1753,28 +1804,28 @@
 <p>Once the &#39;aaab&#39; at the start of the string has matched, and the <code>(*SKIP)</code> executed, the next starting point will be where the cursor was when the <code>(*SKIP)</code> was executed.</p>
 
 </dd>
-<dt id="MARK:NAME-:NAME"><code>(*MARK:NAME)</code> <code>(*:NAME)</code>   </dt>
+<dt id="MARK:NAME-:NAME"><code>(*MARK:<i>NAME</i>)</code> <code>(*:<i>NAME</i>)</code>   </dt>
 <dd>
 
 <p>This zero-width pattern can be used to mark the point reached in a string when a certain part of the pattern has been successfully matched. This mark may be given a name. A later <code>(*SKIP)</code> pattern will then skip forward to that point if backtracked into on failure. Any number of <code>(*MARK)</code> patterns are allowed, and the <i>NAME</i> portion may be duplicated.</p>
 
-<p>In addition to interacting with the <code>(*SKIP)</code> pattern, <code>(*MARK:NAME)</code> can be used to &quot;label&quot; a pattern branch, so that after matching, the program can determine which branches of the pattern were involved in the match.</p>
+<p>In addition to interacting with the <code>(*SKIP)</code> pattern, <code>(*MARK:<i>NAME</i>)</code> can be used to &quot;label&quot; a pattern branch, so that after matching, the program can determine which branches of the pattern were involved in the match.</p>
 
-<p>When a match is successful, the <code>$REGMARK</code> variable will be set to the name of the most recently executed <code>(*MARK:NAME)</code> that was involved in the match.</p>
+<p>When a match is successful, the <code>$REGMARK</code> variable will be set to the name of the most recently executed <code>(*MARK:<i>NAME</i>)</code> that was involved in the match.</p>
 
 <p>This can be used to determine which branch of a pattern was matched without using a separate capture group for each branch, which in turn can result in a performance improvement, as perl cannot optimize <code>/(?:(x)|(y)|(z))/</code> as efficiently as something like <code>/(?:x(*MARK:x)|y(*MARK:y)|z(*MARK:z))/</code>.</p>
 
-<p>When a match has failed, and unless another verb has been involved in failing the match and has provided its own name to use, the <code>$REGERROR</code> variable will be set to the name of the most recently executed <code>(*MARK:NAME)</code>.</p>
+<p>When a match has failed, and unless another verb has been involved in failing the match and has provided its own name to use, the <code>$REGERROR</code> variable will be set to the name of the most recently executed <code>(*MARK:<i>NAME</i>)</code>.</p>
 
 <p>See <a href="#SKIP">&quot;(*SKIP)&quot;</a> for more details.</p>
 
-<p>As a shortcut <code>(*MARK:NAME)</code> can be written <code>(*:NAME)</code>.</p>
+<p>As a shortcut <code>(*MARK:<i>NAME</i>)</code> can be written <code>(*:<i>NAME</i>)</code>.</p>
 
 </dd>
-<dt id="THEN-THEN:NAME"><code>(*THEN)</code> <code>(*THEN:NAME)</code></dt>
+<dt id="THEN-THEN:NAME"><code>(*THEN)</code> <code>(*THEN:<i>NAME</i>)</code></dt>
 <dd>
 
-<p>This is similar to the &quot;cut group&quot; operator <code>::</code> from Perl 6. Like <code>(*PRUNE)</code>, this verb always matches, and when backtracked into on failure, it causes the regex engine to try the next alternation in the innermost enclosing group (capturing or otherwise) that has alternations. The two branches of a <code>(?(condition)yes-pattern|no-pattern)</code> do not count as an alternation, as far as <code>(*THEN)</code> is concerned.</p>
+<p>This is similar to the &quot;cut group&quot; operator <code>::</code> from Perl 6. Like <code>(*PRUNE)</code>, this verb always matches, and when backtracked into on failure, it causes the regex engine to try the next alternation in the innermost enclosing group (capturing or otherwise) that has alternations. The two branches of a <code>(?(<i>condition</i>)<i>yes-pattern</i>|<i>no-pattern</i>)</code> do not count as an alternation, as far as <code>(*THEN)</code> is concerned.</p>
 
 <p>Its name comes from the observation that this operation combined with the alternation operator (<code>&quot;|&quot;</code>) can be used to create what is essentially a pattern-based if/then/else block:</p>
 
@@ -1799,7 +1850,7 @@
 <p>as after matching the <i>A</i> but failing on the <i>B</i> the <code>(*THEN)</code> verb will backtrack and try <i>C</i>; but the <code>(*PRUNE)</code> verb will simply fail.</p>
 
 </dd>
-<dt id="COMMIT-COMMIT:args"><code>(*COMMIT)</code> <code>(*COMMIT:args)</code> </dt>
+<dt id="COMMIT-COMMIT:arg"><code>(*COMMIT)</code> <code>(*COMMIT:<i>arg</i>)</code> </dt>
 <dd>
 
 <p>This is the Perl 6 &quot;commit pattern&quot; <code>&lt;commit&gt;</code> or <code>:::</code>. It&#39;s a zero-width pattern similar to <code>(*SKIP)</code>, except that when backtracked into on failure it causes the match to fail outright. No further attempts to find a valid match by advancing the start pointer will occur again. For example,</p>
@@ -1815,7 +1866,7 @@
 <p>In other words, once the <code>(*COMMIT)</code> has been entered, and if the pattern does not match, the regex engine will not try any further matching on the rest of the string.</p>
 
 </dd>
-<dt id="FAIL-F-FAIL:arg"><code>(*FAIL)</code> <code>(*F)</code> <code>(*FAIL:arg)</code>  </dt>
+<dt id="FAIL-F-FAIL:arg"><code>(*FAIL)</code> <code>(*F)</code> <code>(*FAIL:<i>arg</i>)</code>  </dt>
 <dd>
 
 <p>This pattern matches nothing and always fails. It can be used to force the engine to backtrack. It is equivalent to <code>(?!)</code>, but easier to read. In fact, <code>(?!)</code> gets optimised into <code>(*FAIL)</code> internally. You can provide an argument so that if the match fails because of this <code>FAIL</code> directive the argument can be obtained from <code>$REGERROR</code>.</p>
@@ -1823,7 +1874,7 @@
 <p>It is probably useful only when combined with <code>(?{})</code> or <code>(??{})</code>.</p>
 
 </dd>
-<dt id="ACCEPT-ACCEPT:arg"><code>(*ACCEPT)</code> <code>(*ACCEPT:arg)</code> </dt>
+<dt id="ACCEPT-ACCEPT:arg"><code>(*ACCEPT)</code> <code>(*ACCEPT:<i>arg</i>)</code> </dt>
 <dd>
 
 <p>This pattern matches nothing and causes the end of successful matching at the point at which the <code>(*ACCEPT)</code> pattern was encountered, regardless of whether there is actually more to match in the string. When inside of a nested pattern, such as recursion, or in a subpattern dynamically generated via <code>(??{})</code>, only the innermost pattern is ended immediately.</p>
@@ -2007,16 +2058,16 @@
 <p>For this grouping operator there is no need to describe the ordering, since only whether or not <code>&quot;S&quot;</code> can match is important.</p>
 
 </dd>
-<dt id="EXPR-PARNO"><code>(??{ EXPR })</code>, <code>(?<i>PARNO</i>)</code></dt>
+<dt id="EXPR-PARNO"><code>(??{ <i>EXPR</i> })</code>, <code>(?<i>PARNO</i>)</code></dt>
 <dd>
 
-<p>The ordering is the same as for the regular expression which is the result of EXPR, or the pattern contained by capture group <i>PARNO</i>.</p>
+<p>The ordering is the same as for the regular expression which is the result of <i>EXPR</i>, or the pattern contained by capture group <i>PARNO</i>.</p>
 
 </dd>
-<dt id="condition-yes-pattern-no-pattern1"><code>(?(condition)yes-pattern|no-pattern)</code></dt>
+<dt id="condition-yes-pattern-no-pattern1"><code>(?(<i>condition</i>)<i>yes-pattern</i>|<i>no-pattern</i>)</code></dt>
 <dd>
 
-<p>Recall that which of <code>yes-pattern</code> or <code>no-pattern</code> actually matches is already determined. The ordering of the matches is the same as for the chosen subexpression.</p>
+<p>Recall that which of <i>yes-pattern</i> or <i>no-pattern</i> actually matches is already determined. The ordering of the matches is the same as for the chosen subexpression.</p>
 
 </dd>
 </dl>
@@ -2091,22 +2142,22 @@
 
 <dl>
 
-<dt id="PNAMEpattern"><code>(?P&lt;NAME&gt;pattern)</code></dt>
+<dt id="PNAMEpattern"><code>(?P&lt;<i>NAME</i>&gt;<i>pattern</i>)</code></dt>
 <dd>
 
-<p>Define a named capture group. Equivalent to <code>(?&lt;NAME&gt;pattern)</code>.</p>
+<p>Define a named capture group. Equivalent to <code>(?&lt;<i>NAME</i>&gt;<i>pattern</i>)</code>.</p>
 
 </dd>
-<dt id="P-NAME"><code>(?P=NAME)</code></dt>
+<dt id="P-NAME"><code>(?P=<i>NAME</i>)</code></dt>
 <dd>
 
-<p>Backreference to a named capture group. Equivalent to <code>\g{NAME}</code>.</p>
+<p>Backreference to a named capture group. Equivalent to <code>\g{<i>NAME</i>}</code>.</p>
 
 </dd>
-<dt id="PNAME"><code>(?P&gt;NAME)</code></dt>
+<dt id="PNAME"><code>(?P&gt;<i>NAME</i>)</code></dt>
 <dd>
 
-<p>Subroutine call to a named capture group. Equivalent to <code>(?&amp;NAME)</code>.</p>
+<p>Subroutine call to a named capture group. Equivalent to <code>(?&amp;<i>NAME</i>)</code>.</p>
 
 </dd>
 </dl>
